@@ -1,0 +1,62 @@
+name: Humanoid Design Screening and Teaching Simulation Prototype
+name_zh: 人形機器人設計篩選與教學模擬原型
+version: "0.1.0"
+repository: "https://github.com/dofliu/robotMan"
+repository_branch: main
+repository_release_status: "INITIAL_PUBLICATION_PREPARED"
+category: simulation_prototype
+progress: 0
+progress_basis: "V&V gate completion; feature count is not validation maturity"
+status: V0_PARTIAL_IMPLEMENTED_NOT_PASS
+validation_status: NOT_PHYSICALLY_VALIDATED
+evidence_scope: SIM_ONLY_REDUCED_ORDER
+last_updated: "2026-08-29"
+next_milestone: "Use the measured task baseline to implement a controlled deceleration/stop controller phase, then rerun the unchanged stand_start_walk_stop_v1 criteria; V0 immutable bundle/environment/validator blockers remain"
+feature_inventory_status: PROTOTYPE_FEATURES_PRESENT_UNVERIFIED
+runtime_provenance_status: PARTIAL_IMPLEMENTED
+runtime_provenance_scope: ANALYSIS_API_ONLY
+runtime_provenance_fields: "metric-set version, deterministic content hash contract, config/model/code hashes, run/scenario ID, engine, evidence scope, created_at"
+runtime_contract_status: "current SimRequest and typed live init/commands reject unknown, non-finite, out-of-bound, and numerically unresolved inputs; project-wide evidence validator remains incomplete"
+runtime_metric_status: "ANALYSIS_METRICS_V1 implemented for sampled motion/energy/CoT, true peak versus P99.5, explicit windows, and fail-closed ZMP missingness; independent raw evaluator remains incomplete"
+evidence_ui_status: "frontend frozen last-success, request freshness, stale-result, evidence badges, and live intervention/error telemetry implemented; server hash is not independently verified by the client"
+live_evidence_status: "typed commands and controller/intervention state readback implemented; immutable live run identity and raw bundle not implemented"
+development_compare_mode_status: "IMPLEMENTED_BACKEND_FRONTEND_BUILD_PASS_BROWSER_VISUAL_PENDING: independent same-input track/Raibert/RL sessions, assist OFF, no auto-repair; DEVELOPMENT_ONLY and not V3 evidence"
+rl_policy_registry_status: "IMPLEMENTED_V1: legacy checkpoint preserved and gated by policy ID, SHA-256, size, gait/training contract, and explicit legacy evidence status; frozen training environment still absent"
+fixed_speed_training_status: "PIPELINE_SMOKE_PASS_PROFILES_NOT_TRAINED: 0.4/0.7/1.0 m/s versioned profiles each completed a 256-step isolated smoke run; no deployable fixed-speed policy or performance evidence yet"
+dynamic_run_trace_status: "IMPLEMENTED_BACKEND_FRONTEND_BUILD_PASS_BROWSER_VISUAL_PENDING: bounded 500 Hz physics-step NPZ+manifest artifacts, SHA-256 validation, Live/Compare capture, REST analysis API, and first-mode realized-output review"
+motion_task_status: "IMPLEMENTED_BACKEND_FRONTEND_BUILD_PASS_BROWSER_VISUAL_PENDING: versioned registry, fixed 9 s stand-start-steady-walk-stop phases, 0.7 m/s gait, assist OFF, synchronized Live/Compare execution, 500 Hz evaluation, and 11 measurable criteria; first real three-controller development baseline retained as FAIL"
+v0_remaining_blockers: "immutable artifact bundle, environment lock, raw artifact inventory, fail-closed validator, complete requirement registry"
+technologies:
+  - Python
+  - FastAPI
+  - MuJoCo
+  - React
+  - TypeScript
+  - Three.js
+  - Stable-Baselines3
+  - Gymnasium
+current_modes:
+  analysis: "prescribed kinematics + analytical GRF/contact schedule + inverse dynamics"
+  live: "MuJoCo forward dynamics + simulated contact + torque-limited control"
+allowed_uses:
+  - teaching
+  - software regression
+  - relative design screening
+  - hypothesis generation
+prohibited_claims:
+  - physical hardware feasibility
+  - safety or certification
+  - validated actuator selection
+  - measured push recovery
+  - sim-to-real performance
+  - general controller superiority
+outputs:
+  - teaching_prototype
+  - screening_tool
+planned_gates:
+  - V0_evidence_and_provenance
+  - V1_plant_and_numerical_verification
+  - V2_actuator_sensor_estimator_fidelity
+  - V3_fair_benchmark_and_uq
+  - V4_subsystem_validation
+docs: "README.md is the entry point; docs/REPOSITORY_GUIDE.md defines Git/artifact policy, docs/MODEL_CARD.md defines claim boundaries, docs/VV_PLAN.md defines gates, docs/EXPERIMENT_PROTOCOL.md defines formal runs, and docs/HARDWARE_DATA_PROVENANCE.md defines hardware evidence classes"

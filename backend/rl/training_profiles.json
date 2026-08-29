@@ -1,0 +1,9 @@
+{
+  "schema_version": "RL_TRAINING_PROFILES_V1",
+  "evidence_scope": "DEVELOPMENT_TRAINING_CONFIGURATION_ONLY",
+  "profiles": [
+    {"profile_id":"walk_0p4_fixed_v1","speed_mps":0.4,"step_length_m":0.2,"duty":0.62,"clearance_m":0.07,"planned_timesteps":30000000,"parallel_envs":12,"seed_base":1400,"status":"DEVELOPMENT_PROFILE_NOT_TRAINED"},
+    {"profile_id":"walk_0p7_fixed_v1","speed_mps":0.7,"step_length_m":0.35,"duty":0.62,"clearance_m":0.07,"planned_timesteps":30000000,"parallel_envs":12,"seed_base":1700,"status":"DEVELOPMENT_PROFILE_NOT_TRAINED"},
+    {"profile_id":"walk_1p0_fixed_v1","speed_mps":1.0,"step_length_m":0.5,"duty":0.62,"clearance_m":0.07,"planned_timesteps":30000000,"parallel_envs":12,"seed_base":2000,"status":"DEVELOPMENT_PROFILE_NOT_TRAINED"}
+  ]
+}

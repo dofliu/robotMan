@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+
+# Local environment and credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Frontend dependencies and generated bundles
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Runtime simulation artifacts
+backend/run_traces/
+backend/debug_shot.*
+
+# RL training output; the registry-selected inference policy remains tracked.
+backend/rl/checkpoints/
+backend/rl/artifacts/
+backend/rl/train_log.txt
+backend/rl/train_err.txt
+
+# Local assistant/evaluation state
+.claude/
+.deepeval/
+
+# Editors and operating systems
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Logs and temporary files
+*.log
+*.tmp
+*.bak
+~$*
