@@ -3,7 +3,7 @@ name_zh: 人形機器人設計篩選與教學模擬原型
 version: "0.1.0"
 repository: "https://github.com/dofliu/robotMan"
 repository_branch: main
-repository_release_status: "INITIAL_PUBLICATION_PREPARED"
+repository_release_status: "PUBLISHED_MAIN"
 category: simulation_prototype
 progress: 0
 progress_basis: "V&V gate completion; feature count is not validation maturity"
