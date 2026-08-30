@@ -39,9 +39,9 @@
 2. [PARTIAL] Current REST/Live simulation inputs 已有 bounded fail-closed schema、cross-field numerical-resolution gate 與 structured WebSocket errors；尚未等同 project-wide formal evidence validator。
 3. [PARTIAL] `ANALYSIS_METRICS_V1` 已明定 sampled motion/energy/CoT、peak/P99.5、window 與 null semantics；尚缺獨立 raw evaluator。
 4. [TODO] 為每個 claim 建立 requirement ID、metric definition、oracle、acceptance gate 與 owner。
-5. [TODO] 擴充並凍結 experiment manifest：checkpoint/environment SHA-256、seed、assist、disturbance、contact/solver parameters。
-6. [TODO] 定義 raw artifacts 與 immutable result bundle；summary 必須可回指 raw trace。
-7. [TODO] 建立 environment lock、artifact inventory/checksum 與 fail-closed validator。
+5. [PARTIAL] `PAPER_RUN_MANIFEST_V1` 已凍結 run-level protocol/controller/plant/scenario/seed/artifact fields；training/checkpoint與完整 environment lock尚未串入所有 pipelines。
+6. [PARTIAL] V1 static oracle可輸出 10-role regression bundle並回指 raw trace；project-wide immutable storage尚未完成。
+7. [PARTIAL] Artifact inventory/bytes/SHA-256/path validator已實作；environment lock與 experiment matrix validator尚未完成。
 8. [DONE-D0] 將 built-in hardware catalog 定位為 D0 representative demo data。
 9. [TODO] 建立 DEVELOPMENT、CALIBRATION、FORMAL_EVALUATION 分區。
 
@@ -145,7 +145,7 @@ Development 已完成 v1–v6 failure-retaining iteration：v2 解決前進與�
 
 ## 9. 建議執行順序
 
-1. 完成 V0 documents、manifest schema 與 evidence inventory。
+1. 完成 V0 paper manifest、environment lock、matrix completeness與 immutable evidence storage；run-level manifest/inventory validator已 partial implemented。
 2. 完成 V1 contact/plant/numerical verification。
 3. M7A 可作為教學支線；M7B 保持 blocked。
 4. 完成 V2 actuator/sensor/estimator fidelity。

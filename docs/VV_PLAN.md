@@ -20,9 +20,9 @@ SIL PASS 不自動成為 HIL、bench 或 integrated robot PASS。
 | Requirement | Method | Oracle | Required evidence | Gate | Status |
 |---|---|---|---|---|---|
 | V0-R01 每個 claim 有 owner 與 acceptance definition | 建立 requirement registry | schema + completeness check | registry、review record、hash | V0 | IN PROGRESS |
-| V0-R02 每次 run identity 唯一 | hash code bundle/config/MJCF/checkpoint/environment | hash readback equality | manifest、files、checksums | V0 | PARTIAL: runtime hashes/IDs implemented; checkpoint/environment lock incomplete |
+| V0-R02 每次 run identity 唯一 | hash code bundle/config/MJCF/checkpoint/environment | hash readback equality | manifest、files、checksums | V0 | PARTIAL: runtime hashes/IDs + PAPER_RUN_MANIFEST_V1 implemented; checkpoint/environment lock incomplete |
 | V0-R03 hardware parameter provenance | 依 D0–D4 分級 | source/revision/page/unit completeness | provenance records | V0 | D0 ONLY |
-| V0-R04 raw artifacts 可追溯 | summary-to-raw reference validation | zero missing/mismatch/path escape | inventory、hashes、gate receipt | V0 | PARTIAL METADATA ONLY / IMMUTABLE BUNDLE NOT STARTED |
+| V0-R04 raw artifacts 可追溯 | summary-to-raw reference validation | zero missing/mismatch/path escape | inventory、hashes、gate receipt | V0 | PARTIAL: V1 regression bundle 10-role inventory/bytes/SHA/path readback implemented; immutable project storage/matrix linkage missing |
 | V0-R05 外部輸入 fail closed | schema、cross-field 與 live command validation | invalid/NaN/unknown/inadequate-resolution case 全數拒絕 | contract tests、API/WebSocket receipt | V0 | PARTIAL PASS: current REST/Live simulation contracts covered; formal evidence validator and remaining external surfaces incomplete |
 | V0-R06 runtime metric 定義固定 | versioned formula、window、unit 與 null semantics | independent recomputation equality | [METRIC_DEFINITIONS](METRIC_DEFINITIONS.md)、raw trace、oracle output | V0/V1 | PARTIAL: ANALYSIS_METRICS_V1 + regressions and bounded V1 contact raw replay implemented; project-wide independent evaluator/gate missing |
 | V0-R07 result-input identity | frozen request snapshot + server hash readback | stale/race/mismatch case 不得顯示 CURRENT | frontend behavior receipt | V0 | PARTIAL: exact request snapshot/race/stale behavior implemented; server hash independently unverified |
@@ -44,7 +44,7 @@ SIL PASS 不自動成為 HIL、bench 或 integrated robot PASS。
 | V2-R02 transmission fidelity | backlash/compliance/efficiency map | bench or qualified source comparison | transmission records | V2 | NOT STARTED |
 | V2-R03 sensor model | noise/bias/latency/dropout/quantization | match independent sensor characterization | raw sensor data + fit/holdout | V2 | NOT STARTED |
 | V2-R04 state estimator | replay recorded or simulated sensor streams | preregistered state error/latency metrics | input/output traces | V2 | NOT STARTED |
-| V3-R01 fair controller protocol | same plant/init/assist/disturbance/termination | manifest equality except controller fields | paired run manifests | V3 | BLOCKED |
+| V3-R01 fair controller protocol | same plant/init/assist/disturbance/termination | manifest equality except controller fields | paired run manifests | V3 | FOUNDATION PARTIAL: paper run contract exists; paired matrix validator/orchestrator missing |
 | V3-R02 deterministic regression | exact frozen nominal case | hash and tolerance comparison | baseline bundle + diff | V3 | SNAPSHOT EXISTS / UNGATED |
 | V3-R03 scenario coverage | stratified phase/terrain/friction/payload/delay/noise/disturbance | all preregistered cells executed | scenario matrix + completeness receipt | V3 | NOT STARTED |
 | V3-R04 Monte Carlo design | frozen distributions and seed list | seed/cell completeness, no cherry-pick | seed manifest + raw episodes | V3 | NOT STARTED |
@@ -197,7 +197,7 @@ Nominal case 用於 deterministic regression；不得代表 scenario coverage。
 - code checkout 缺少可引用的 version identity；
 - runtime config/model/code/result hashes 與 run/scenario IDs 已 partial implemented，但尚未形成 immutable source/run identity；
 - dependencies 未完整 pin，environment lock 缺失；
-- runtime provenance metadata 已有，raw bundle/inventory/validator 尚未實作；
+- run-level paper manifest與 V1 regression bundle inventory/validator已有；project-wide immutable storage與 matrix validator尚未實作；
 - base wrench、friction 與 CoP 已進入 bounded static oracle及 process replay；raw Jacobian與 dynamic gate 尚未完成；
 - joint/actuator/contact/solver constraints 不完整；
 - benchmark energy/fairness/UQ 未 gate；

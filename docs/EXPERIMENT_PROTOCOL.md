@@ -9,7 +9,7 @@
 
 正式結果必須建立 versioned protocol instance。僅執行 script 或產生 Markdown report 不算 protocol completion。
 
-/api/simulate 已提供 partial runtime provenance，可填入部分 identity 欄位；frontend stale-result/evidence badges 可協助操作判讀。兩者不是 immutable artifact storage、environment lock 或 formal validator。
+`PAPER_RUN_MANIFEST_V1` 與 fail-closed artifact validator 已建立第一個可執行 contract，V1 static oracle 可輸出 integrity-valid regression bundle。這只完成 bounded run-level packaging；project-wide immutable storage、matrix completeness、statistics與 formal authorization 仍未完成。完整架構見 [PAPER_DATA_READINESS](PAPER_DATA_READINESS.md)。
 
 ## 2. Run classes
 

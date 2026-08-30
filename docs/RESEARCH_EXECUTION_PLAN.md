@@ -31,7 +31,7 @@ Policy 在同一 simulator 與 reward 中表現良好，不等於 model validati
 | P0B | v3–v6 observation、terminal、phase 與 500 Hz load iteration | DEV + unchanged Live gates；失敗與 evaluator defects 保留 | DONE / no deployable PASS |
 | P1 | V1 plant/contact/numerical oracle | residual、contact、friction、CoP、convergence、energy 全部可獨立重算 | IN PROGRESS / static wrench+friction+CoP and bounded process replay PASS, gate not pass |
 | P2 | QP/WBC baseline | constraint-feasible、failure-retaining baseline bundle | BLOCKED BY P1 |
-| P3 | Experiment orchestrator | controller × training seed × eval seed × scenario 完整 manifest | NOT STARTED |
+| P3 | Experiment orchestrator | controller × training seed × eval seed × scenario 完整 manifest | FOUNDATION PARTIAL: paper run manifest + V1 regression bundle validator implemented; matrix runner missing |
 | P4 | Study A formal benchmark | protocol frozen、paired statistics、CI、failures/censoring retained | BLOCKED BY P1–P3 |
 | P5 | Motion primitives / imitation | raise hand、single-leg raise、squat、turn 等各有獨立 task contract | AFTER STUDY A |
 | P6 | SIL/HIL/bench/robot validation | 只在實際完成的外部 evidence 層級建立 bounded claim | FUTURE |

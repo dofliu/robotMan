@@ -98,6 +98,7 @@ comparison_report.md 保留既有 deterministic nominal snapshot，供回歸診�
 | [VV_PLAN](docs/VV_PLAN.md) | requirement-to-evidence matrix、gates 與 SIL/HIL/bench 邊界 |
 | [V1_ORACLE_SPEC](docs/V1_ORACLE_SPEC.md) | 第一個 static double-support / forward–inverse numerical oracle、threshold 與證據邊界 |
 | [EXPERIMENT_PROTOCOL](docs/EXPERIMENT_PROTOCOL.md) | frozen configuration、seed、hash、metrics 與 raw artifacts |
+| [PAPER_DATA_READINESS](docs/PAPER_DATA_READINESS.md) | paper-data-first 架構、run bundle、PDR gates、統計與文獻依據 |
 | [METRIC_DEFINITIONS](docs/METRIC_DEFINITIONS.md) | analysis runtime 指標的公式、窗口、命名與限制 |
 | [COMPARE_MODE_SPEC](docs/COMPARE_MODE_SPEC.md) | 三機同步比較的公平性、WebSocket contract、失敗語義與驗收條件 |
 | [RL_POLICY_TRAINING](docs/RL_POLICY_TRAINING.md) | RL inference／training 邊界、policy registry、固定速度 profiles 與不覆寫再訓練流程 |
@@ -120,7 +121,7 @@ comparison_report.md 保留既有 deterministic nominal snapshot，供回歸診�
 
 ## 下一階段
 
-目前不以「功能完成百分比」表示成熟度。v5 已在 unchanged 500 Hz Motion Task 通過 10/11 criteria，沒有跌倒且完成 start/walk/stop；唯一失敗是 saturation duty `38.422222% > 30%`。training evaluator 的 50 Hz saturation under-sampling 已修正為 500 Hz，先前相關 PASS 已撤銷；v6 reward-only fine-tune 仍未降低 saturation。下一步先建立 V1 physics oracles，再 preregister v7 torque-aware action-interface ablation。這些 development 能力不解除 V0/V1/V3 gate。
+目前不以「功能完成百分比」表示成熟度。v5 已在 unchanged 500 Hz Motion Task 通過 10/11 criteria，沒有跌倒且完成 start/walk/stop；唯一失敗是 saturation duty `38.422222% > 30%`。training evaluator 的 50 Hz saturation under-sampling 已修正為 500 Hz，先前相關 PASS 已撤銷；v6 reward-only fine-tune 仍未降低 saturation。後續採 paper-data-first：先完成 `PAPER_RUN_MANIFEST_V1`、artifact inventory、V1 physics evidence、experiment matrix與 independent statistics，再 preregister v7 action-interface PILOT。這些 development 能力不解除 V0/V1/V3 gate。
 
 ## 資料聲明
 

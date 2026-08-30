@@ -8,6 +8,8 @@
 - 依 compiled `PYRAMIDAL` cone 與 `condim=3` 重算 friction utilization。
 - 由 aggregate foot wrench 在 foot-local sole plane 重算 CoP/support margin。
 - 新增僅使用 Python standard library、完全不載入 MuJoCo/controller 的 raw replay evaluator；11 項 replay criteria 與 primary metrics 一致。
+- 新增 paper-data-first architecture、`PAPER_RUN_MANIFEST_V1`、formal HOLDOUT/seed/clean-source gates與 path/size/SHA-256 artifact validator。
+- V1 static oracle可產出第一包 10-role integrity-valid regression bundle；validator明確回報 `REGRESSION_BUNDLE_VALID_ONLY`，不偽裝成 formal paper result。
 - 保留證據邊界：raw Jacobian 尚未 serialized，dynamic contact、independent contact model、convergence、energy 與 physical validation 仍未完成。
 
 ## 0.1.0 — 2026-08-29
