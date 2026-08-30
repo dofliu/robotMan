@@ -2,6 +2,14 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-08-30
+
+- V1 static contact oracle V3：1000-step/500 Hz raw evidence、16 項 frozen criteria。
+- 依 compiled `PYRAMIDAL` cone 與 `condim=3` 重算 friction utilization。
+- 由 aggregate foot wrench 在 foot-local sole plane 重算 CoP/support margin。
+- 新增僅使用 Python standard library、完全不載入 MuJoCo/controller 的 raw replay evaluator；11 項 replay criteria 與 primary metrics 一致。
+- 保留證據邊界：raw Jacobian 尚未 serialized，dynamic contact、independent contact model、convergence、energy 與 physical validation 仍未完成。
+
 ## 0.1.0 — 2026-08-29
 
 第一個公開版本：

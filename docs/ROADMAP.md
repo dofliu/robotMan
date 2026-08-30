@@ -53,7 +53,7 @@
 
 最低範圍：
 
-已開始：`v1_static_double_support_internal_v2` 已建立 500 Hz forward–inverse solver consistency、逐 contact 6-D wrench/Jacobian reconstruction、base force/moment、joint torque、unilateral normal force、weight/GRF、staticity 與 bilateral-contact gate；static case 通過 13/13，但 wrench 與 reference 均來自 MuJoCo，V1 仍未通過。
+已開始：`v1_static_double_support_internal_v3` 已建立 500 Hz forward–inverse solver consistency、逐 contact 6-D wrench/Jacobian reconstruction、base force/moment、joint torque、unilateral normal force、PYRAMIDAL friction utilization、foot-local CoP、weight/GRF、staticity與 bilateral-contact gate；static case 通過 16/16，另由不載入 MuJoCo/controller 的 raw replay 通過 11/11。由於 per-contact generalized force 仍是 source-engine receipt，且 dynamic/convergence/energy cases未完成，V1 仍未通過。
 
 - constrained inverse dynamics 或等價 contact solve，滿足六個 floating-base equilibrium equations；
 - base force/moment residual、joint torque residual 與 energy balance；

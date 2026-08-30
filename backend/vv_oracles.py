@@ -17,10 +17,12 @@ from live_sim import LiveSession
 
 
 STATIC_DOUBLE_SUPPORT_CONTRACT = {
-    "contract_id": "v1_static_double_support_internal_v2",
+    "contract_id": "v1_static_double_support_internal_v3",
     "duration_s": 2.0,
     "evaluation_window_s": 0.5,
     "physics_dt_s": 0.002,
+    "expected_friction_cone": "PYRAMIDAL",
+    "support_geom_names": ["foot_l", "foot_r"],
     # 以名義大腿加小腿長度固定 moment normalization，避免看完結果後調整尺度。
     "characteristic_length_m": 0.76,
     "tolerances": {
@@ -31,6 +33,9 @@ STATIC_DOUBLE_SUPPORT_CONTRACT = {
         "base_moment_residual_relative_max": 1.0e-9,
         "joint_torque_residual_relative_max": 1.0e-9,
         "minimum_contact_normal_force_n": -1.0e-8,
+        "maximum_friction_utilization": 1.0 + 1.0e-9,
+        "minimum_cop_support_margin_m": -1.0e-9,
+        "minimum_loaded_foot_count": 2,
         "weight_balance_relative_error_max": 0.02,
         "mean_linear_speed_max_mps": 0.01,
         "mean_angular_speed_max_rps": 0.01,
@@ -45,6 +50,45 @@ def _name_or_id(model: mujoco.MjModel, object_type: mujoco.mjtObj, object_id: in
     return name if name is not None else f"{object_type.name.lower()}_{object_id}"
 
 
+def _friction_cone_name(model: mujoco.MjModel) -> str:
+    return mujoco.mjtCone(model.opt.cone).name.removeprefix("mjCONE_")
+
+
+def contact_friction_utilization(
+    cone_name: str,
+    dimension: int,
+    wrench_local: np.ndarray,
+    friction_parameters: np.ndarray,
+) -> float:
+    """依 compiled cone semantics 計算單一 contact 的 friction utilization。"""
+    friction_dimensions = max(0, min(int(dimension) - 1, 5))
+    if friction_dimensions == 0:
+        return 0.0
+
+    # MuJoCo 的 contact component 順序為 normal、tangent1/2、spin、roll1/2。
+    components = np.asarray([
+        wrench_local[1],
+        wrench_local[2],
+        wrench_local[3],
+        wrench_local[4],
+        wrench_local[5],
+    ], dtype=np.float64)[:friction_dimensions]
+    coefficients = np.asarray(
+        friction_parameters,
+        dtype=np.float64,
+    )[:friction_dimensions]
+    normal_force = float(wrench_local[0])
+    if normal_force <= 1.0e-12:
+        return 0.0 if float(np.max(np.abs(components))) <= 1.0e-12 else 1.0e12
+
+    scaled = components / np.maximum(coefficients, 1.0e-12)
+    if cone_name == "PYRAMIDAL":
+        return float(np.sum(np.abs(scaled)) / normal_force)
+    if cone_name == "ELLIPTIC":
+        return float(np.linalg.norm(scaled) / normal_force)
+    raise ValueError(f"unsupported MuJoCo friction cone: {cone_name}")
+
+
 def reconstruct_contact_generalized_force(
     model: mujoco.MjModel,
     data: mujoco.MjData,
@@ -56,6 +100,7 @@ def reconstruct_contact_generalized_force(
     """
     reconstructed = np.zeros(model.nv, dtype=np.float64)
     contacts: list[dict] = []
+    cone_name = _friction_cone_name(model)
     for contact_index in range(data.ncon):
         contact = data.contact[contact_index]
         wrench_local = np.zeros(6, dtype=np.float64)
@@ -83,6 +128,13 @@ def reconstruct_contact_generalized_force(
             (jacp2 - jacp1).T @ force_world
             + (jacr2 - jacr1).T @ torque_world
         )
+        friction_parameters = np.asarray(contact.friction, dtype=np.float64)
+        friction_utilization = contact_friction_utilization(
+            cone_name,
+            int(contact.dim),
+            wrench_local,
+            friction_parameters,
+        )
         reconstructed += generalized_force
         contacts.append({
             "contact_index": contact_index,
@@ -101,16 +153,111 @@ def reconstruct_contact_generalized_force(
             "force_world_n": force_world.tolist(),
             "torque_world_nm": torque_world.tolist(),
             "normal_force_n": float(wrench_local[0]),
-            "friction_parameters": np.asarray(contact.friction, dtype=np.float64).tolist(),
+            "friction_cone": cone_name,
+            "friction_parameters": friction_parameters.tolist(),
+            "friction_utilization": friction_utilization,
             "generalized_force": generalized_force.tolist(),
         })
     return reconstructed, contacts
+
+
+def reconstruct_foot_support(
+    model: mujoco.MjModel,
+    data: mujoco.MjData,
+    contacts: list[dict],
+    support_geom_names: list[str],
+) -> dict[str, dict]:
+    """由 aggregate foot wrench 在 foot-local sole plane 重建 CoP。"""
+    supports: dict[str, dict] = {}
+    for geom_name in support_geom_names:
+        geom_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_GEOM, geom_name)
+        if geom_id < 0:
+            supports[geom_name] = {
+                "available": False,
+                "reason": "SUPPORT_GEOM_NOT_FOUND",
+            }
+            continue
+
+        geom_type = int(model.geom_type[geom_id])
+        geom_size = np.asarray(model.geom_size[geom_id], dtype=np.float64).copy()
+        origin_world = np.asarray(data.geom_xpos[geom_id], dtype=np.float64).copy()
+        rotation_world = np.asarray(
+            data.geom_xmat[geom_id],
+            dtype=np.float64,
+        ).reshape(3, 3).copy()
+        total_force_world = np.zeros(3, dtype=np.float64)
+        total_moment_world = np.zeros(3, dtype=np.float64)
+        active_contact_count = 0
+
+        for contact in contacts:
+            sign = 0.0
+            if contact["geom2_id"] == geom_id:
+                sign = 1.0
+            elif contact["geom1_id"] == geom_id:
+                sign = -1.0
+            if sign == 0.0:
+                continue
+
+            active_contact_count += 1
+            position_world = np.asarray(contact["position_world_m"], dtype=np.float64)
+            force_on_support = sign * np.asarray(
+                contact["force_world_n"],
+                dtype=np.float64,
+            )
+            torque_on_support = sign * np.asarray(
+                contact["torque_world_nm"],
+                dtype=np.float64,
+            )
+            total_force_world += force_on_support
+            total_moment_world += (
+                np.cross(position_world - origin_world, force_on_support)
+                + torque_on_support
+            )
+
+        total_force_local = rotation_world.T @ total_force_world
+        total_moment_local = rotation_world.T @ total_moment_world
+        normal_load_n = float(total_force_local[2])
+        is_box = geom_type == int(mujoco.mjtGeom.mjGEOM_BOX)
+        available = bool(active_contact_count > 0 and normal_load_n > 1.0e-12 and is_box)
+        cop_local: list[float] | None = None
+        support_margin_m: float | None = None
+        if available:
+            sole_plane_z = -float(geom_size[2])
+            cop_x = (
+                sole_plane_z * total_force_local[0] - total_moment_local[1]
+            ) / normal_load_n
+            cop_y = (
+                total_moment_local[0] + sole_plane_z * total_force_local[1]
+            ) / normal_load_n
+            cop_local = [float(cop_x), float(cop_y), sole_plane_z]
+            support_margin_m = float(min(
+                geom_size[0] - abs(cop_x),
+                geom_size[1] - abs(cop_y),
+            ))
+
+        supports[geom_name] = {
+            "available": available,
+            "reason": None if available else "NO_LOADED_BOX_SUPPORT",
+            "geom_id": geom_id,
+            "geom_type": mujoco.mjtGeom(geom_type).name,
+            "geom_size_m": geom_size.tolist(),
+            "origin_world_m": origin_world.tolist(),
+            "rotation_world": rotation_world.tolist(),
+            "active_contact_count": active_contact_count,
+            "aggregate_force_local_n": total_force_local.tolist(),
+            "aggregate_moment_local_nm": total_moment_local.tolist(),
+            "normal_load_n": normal_load_n,
+            "cop_local_m": cop_local,
+            "support_margin_m": support_margin_m,
+        }
+    return supports
 
 
 def _step_evidence_receipt(
     session: LiveSession,
     reconstructed: np.ndarray,
     contacts: list[dict],
+    foot_support: dict[str, dict],
 ) -> dict:
     """保存重播 dynamics closure 所需的 physics-step 原始量。"""
     data = session.data
@@ -131,6 +278,19 @@ def _step_evidence_receipt(
         "solver_fwdinv": data.solver_fwdinv.tolist(),
         "contact_count": int(data.ncon),
         "contacts": contacts,
+        "foot_support": foot_support,
+    }
+
+
+def _resolved_model_receipt(session: LiveSession) -> dict:
+    model = session.model
+    return {
+        "mass_kg": float(np.sum(model.body_mass)),
+        "gravity_mps2": np.asarray(model.opt.gravity, dtype=np.float64).tolist(),
+        "friction_cone": _friction_cone_name(model),
+        "solver": mujoco.mjtSolver(model.opt.solver).name,
+        "nv": int(model.nv),
+        "nq": int(model.nq),
     }
 
 
@@ -166,12 +326,18 @@ def run_static_double_support_oracle(*, include_raw_trace: bool = False) -> dict
     session.assist_balance = False
     session.startup_assist_enabled = False
     session.model.opt.enableflags |= int(mujoco.mjtEnableBit.mjENBL_FWDINV)
+    resolved_model = _resolved_model_receipt(session)
+    if resolved_model["friction_cone"] != contract["expected_friction_cone"]:
+        raise RuntimeError(
+            "compiled friction cone does not match frozen oracle contract: "
+            f"{resolved_model['friction_cone']} != {contract['expected_friction_cone']}"
+        )
 
     steps = round(contract["duration_s"] / contract["physics_dt_s"])
     evaluation_start = contract["duration_s"] - contract["evaluation_window_s"]
     fwdinv: list[np.ndarray] = []
     window_rows: list[tuple[float, float, float, float, bool]] = []
-    closure_rows: list[tuple[float, float, float, float, float]] = []
+    closure_rows: list[tuple[float, float, float, float, float, float, float, int]] = []
     raw_trace: list[dict] = []
     finite = True
     for _ in range(steps):
@@ -180,8 +346,19 @@ def run_static_double_support_oracle(*, include_raw_trace: bool = False) -> dict
             session.model,
             session.data,
         )
+        foot_support = reconstruct_foot_support(
+            session.model,
+            session.data,
+            contacts,
+            contract["support_geom_names"],
+        )
         if include_raw_trace:
-            raw_trace.append(_step_evidence_receipt(session, reconstructed, contacts))
+            raw_trace.append(_step_evidence_receipt(
+                session,
+                reconstructed,
+                contacts,
+                foot_support,
+            ))
         finite = finite and bool(
             np.all(np.isfinite(session.data.qpos))
             and np.all(np.isfinite(session.data.qvel))
@@ -203,12 +380,24 @@ def run_static_double_support_oracle(*, include_raw_trace: bool = False) -> dict
                 residual[3:] / max(moment_scale_nm, 1e-12),
             ))
             normal_forces = [item["normal_force_n"] for item in contacts]
+            friction_utilizations = [
+                item["friction_utilization"] for item in contacts
+            ]
+            loaded_feet = [
+                item for item in foot_support.values() if item["available"]
+            ]
+            cop_margins = [
+                float(item["support_margin_m"]) for item in loaded_feet
+            ]
             closure_rows.append((
                 float(np.max(np.abs(normalized_components))),
                 float(np.linalg.norm(residual[0:3]) / max(model_weight_n, 1e-12)),
                 float(np.linalg.norm(residual[3:6]) / max(moment_scale_nm, 1e-12)),
                 float(np.linalg.norm(residual[6:]) / max(moment_scale_nm, 1e-12)),
                 float(min(normal_forces, default=0.0)),
+                float(max(friction_utilizations, default=0.0)),
+                float(min(cop_margins, default=-1.0e12)),
+                len(loaded_feet),
             ))
             window_rows.append((
                 float(np.linalg.norm(session.data.qvel[0:3])),
@@ -232,6 +421,9 @@ def run_static_double_support_oracle(*, include_raw_trace: bool = False) -> dict
         "base_moment_residual_relative_max": float(np.max(closure[:, 2])),
         "joint_torque_residual_relative_max": float(np.max(closure[:, 3])),
         "minimum_contact_normal_force_n": float(np.min(closure[:, 4])),
+        "maximum_friction_utilization": float(np.max(closure[:, 5])),
+        "minimum_cop_support_margin_m": float(np.min(closure[:, 6])),
+        "minimum_loaded_foot_count": int(np.min(closure[:, 7])),
         "physics_step_count": steps,
         "physics_sample_rate_hz": 1.0 / contract["physics_dt_s"],
         "evaluation_step_count": len(closure_rows),
@@ -298,6 +490,27 @@ def run_static_double_support_oracle(*, include_raw_trace: bool = False) -> dict
             "N",
         ),
         _criterion(
+            "FRICTION_CONE_FEASIBILITY",
+            metrics["maximum_friction_utilization"],
+            "<=",
+            limits["maximum_friction_utilization"],
+            "utilization ratio",
+        ),
+        _criterion(
+            "COP_SUPPORT_MARGIN",
+            metrics["minimum_cop_support_margin_m"],
+            ">=",
+            limits["minimum_cop_support_margin_m"],
+            "m",
+        ),
+        _criterion(
+            "BILATERAL_COP_AVAILABLE",
+            metrics["minimum_loaded_foot_count"],
+            ">=",
+            limits["minimum_loaded_foot_count"],
+            "foot count",
+        ),
+        _criterion(
             "WEIGHT_BALANCE",
             metrics["weight_balance_relative_error"],
             "<=",
@@ -334,15 +547,19 @@ def run_static_double_support_oracle(*, include_raw_trace: bool = False) -> dict
         ),
     ]
     result = {
-        "schema_version": "V1_STATIC_DOUBLE_SUPPORT_ORACLE_V2",
-        "evidence_scope": "MUJOCO_INTERNAL_NUMERICAL_AND_WRENCH_RECONSTRUCTION_ONLY",
+        "schema_version": "V1_STATIC_DOUBLE_SUPPORT_ORACLE_V3",
+        "evidence_scope": (
+            "MUJOCO_INTERNAL_WRENCH_FRICTION_COP_RECONSTRUCTION_ONLY"
+        ),
         "claim_boundary": (
             "The evaluator independently aggregates MuJoCo-reported 6-D contact wrenches "
-            "with body Jacobians, but the wrench and qfrc_constraint reference both come "
-            "from the same engine. It does not establish independent contact-model or plant "
-            "validation, hardware feasibility, or V1 gate pass."
+            "with body Jacobians and recomputes cone utilization and foot-local CoP, but "
+            "all contact forces still come from the same engine. It does not establish "
+            "independent contact-model or plant validation, hardware feasibility, or V1 "
+            "gate pass."
         ),
         "contract": contract,
+        "resolved_model": resolved_model,
         "completed_at": datetime.now(timezone.utc).isoformat(),
         "status": "PASS" if all(item["passed"] for item in criteria) else "FAIL",
         "metrics": metrics,

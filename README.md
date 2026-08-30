@@ -10,7 +10,7 @@ Repository：[github.com/dofliu/robotMan](https://github.com/dofliu/robotMan) �
 
 - [SOURCE] 程式包含參數化步態、MuJoCo 模型、分析模式、即時 forward simulation、控制器與 RL pipeline；analysis `/api/simulate` 已開始提供 versioned metrics 與 partial runtime provenance，現行 REST/Live simulation inputs 採 bounded fail-closed schema，frontend 已顯示 frozen/stale-result、evidence 與 intervention/error states。
 - [INFERENCE] 既有數字目前只能視為特定程式版本、單一 nominal configuration 下的 development snapshot；缺少 immutable raw bundle 時不升格為正式 [RESULT] evidence。
-- [BLOCKER] 現有 runtime provenance 尚不是 immutable artifact bundle，也沒有 environment lock；contact wrench closure、torque-speed envelope、joint limits、contact/friction/CoP feasibility、solver convergence、fair benchmark、uncertainty quantification 與實體 subsystem validation 尚未形成完整證據鏈。
+- [BLOCKER] 現有 runtime provenance 尚不是 immutable artifact bundle，也沒有 environment lock；static contact wrench/friction/CoP oracle 雖已有 bounded raw replay，但 dynamic cases、raw Jacobian replay、torque-speed envelope、joint limits、solver convergence、fair benchmark、uncertainty quantification與實體 subsystem validation 尚未形成完整證據鏈。
 
 因此，介面中的「通過」、「穩定」、「可行」或「最大可承受」只代表目前數值模型與規則下的 screening signal，不等同實體機器人驗證結果。完整證據邊界見 [MODEL_CARD](docs/MODEL_CARD.md)。
 
@@ -45,6 +45,7 @@ Repository：[github.com/dofliu/robotMan](https://github.com/dofliu/robotMan) �
 - `WALK → STOPPING → STAND` controlled transition、可擴充 Motion Primitive dispatcher 與 trace-visible STOPPING state
 - RL Training Lab：顯示 fixed-speed／command-conditioned profiles、seed、training budget 與 evidence status；即時模式仍只做 inference
 - Registry-gated Motion Task policies：48-D curriculum-v2 與 51-D phase-observable-v5 可在 Live 選用；v2/v5 的失敗 trace 均保留
+- V1 static contact oracle：500 Hz raw trace、6-D wrench/Jacobian closure、pyramidal friction utilization、foot-local CoP，以及不載入 MuJoCo/controller 的獨立 process replay；僅為 static SIM evidence
 
 這些是 feature inventory，不代表 M1–M6 已通過 V&V gate。
 

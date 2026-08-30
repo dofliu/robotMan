@@ -51,7 +51,7 @@
 - simplified motor/gear conversion；
 - cart-table ZMP/support-polygon indicator。
 
-Analysis mode 不使用 contact solver 來求腳底 wrench。現行 base wrench closure、friction/CoP feasibility 與 solver convergence 尚未成為 gate。
+Analysis mode 不使用 contact solver 來求腳底 wrench。Live plant 已有 bounded static base-wrench、friction 與 CoP oracle，但尚未涵蓋 dynamic contact、完整 raw Jacobian replay 或 solver convergence。
 
 ### Live mode
 
@@ -102,11 +102,11 @@ Formal use 必須保存 resolved values，不可只保存 UI screenshot。
 
 | Limitation | Direct impact | Current evidence boundary |
 |---|---|---|
-| Floating-base wrench closure 未 gate | joint torque 可能依賴未建模外部 wrench | actuator sizing blocked |
+| Floating-base wrench closure 僅完成 static MuJoCo case | dynamic joint torque 仍可能依賴未揭露或未驗證的 contact behavior | actuator sizing blocked |
 | ZMP reference 與 indicator 共用 prescribed support assumptions | 矢狀 stability metric 非獨立 oracle | teaching/consistency only |
 | 無 torque-speed/current/thermal model | high-speed/continuous feasibility 不可信 | D0 screening only |
 | joint limits/self-collision 不完整 | motion may be mechanically unrealizable | workspace/gait feasibility blocked |
-| contact/friction/CoP 未完整驗證 | slip/rotation/contact transition 不可信 | contact claim blocked |
+| contact/friction/CoP 僅完成 static internal/replay checks | slip/rotation/contact transition 不可信 | contact claim blocked |
 | energy definitions/integration 未統一 | CoT 跨 mode/controller 可偏差 | ranking blocked |
 | deterministic nominal repetitions | 沒有 population uncertainty | fall rate/generalization blocked |
 | unpinned environment/checkpoint identity | reproduction 可能 drift | formal result blocked |
