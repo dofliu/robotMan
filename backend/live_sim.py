@@ -55,7 +55,7 @@ class LiveSession:
         self.startup_assist_enabled = True  # track controller 起步外力；assist=false 時一併關閉
         self._balance_assist_active = False
         self._startup_assist_active = False
-        self.walk_controller = "raibert"  # track | raibert | rl
+        self.walk_controller = "raibert"  # track | raibert | rl | rl_task_v2 | rl_task_v5
         self.paused = False
         self.mode = "stand"
         self.sim_t = 0.0
@@ -113,6 +113,12 @@ class LiveSession:
         if selected == "rl":
             from controller_rl import RLWalkController
             return RLWalkController(self.model, self.cfg, self.gait, lean)
+        if selected == "rl_task_v2":
+            from controller_rl import RLTaskController
+            return RLTaskController(self.model, self.cfg, self.gait, lean)
+        if selected == "rl_task_v5":
+            from controller_rl import RLPhaseTaskController
+            return RLPhaseTaskController(self.model, self.cfg, self.gait, lean)
         if selected == "track":
             return BalanceController(self.model, self.cfg, self.engine, lean)
         raise ValueError(f"unsupported controller: {selected}")
@@ -205,7 +211,7 @@ class LiveSession:
                         np.deg2rad(self.gait.torso_lean_deg), kind=kind,
                     )
                 except Exception as exc:
-                    code = "RL_LOAD_FAILED" if kind == "rl" else "CONTROLLER_LOAD_FAILED"
+                    code = "RL_LOAD_FAILED" if kind.startswith("rl") else "CONTROLLER_LOAD_FAILED"
                     return live_error(code, f"{kind} controller 載入失敗：{type(exc).__name__}")
                 candidate.decisions = old.decisions
                 candidate._decide_last = old._decide_last
@@ -214,7 +220,13 @@ class LiveSession:
                 candidate.state = old.state if old.state == "FALLEN" else "STAND"
                 self.controller = candidate
                 self.walk_controller = kind
-                labels = {"track": "軌跡追蹤（開環時序）", "raibert": "Raibert 閉環", "rl": "RL 學習策略"}
+                labels = {
+                    "track": "軌跡追蹤（開環時序）",
+                    "raibert": "Raibert 閉環",
+                    "rl": "RL legacy 學習策略",
+                    "rl_task_v2": "RL curriculum-v2 任務策略",
+                    "rl_task_v5": "RL phase-observable-v5 任務策略",
+                }
                 self.controller.decide("ctrl_switch", f"🔁 行走控制器切換：{labels.get(self.walk_controller, kind)}", "event", 0)
                 self.mode = "stand"     # 換控制器後回站立，再由下方切走
             self._set_mode_internal(new_mode)
@@ -231,7 +243,7 @@ class LiveSession:
         if t == "gait":
             if not payload:
                 return None
-            if self.walk_controller == "rl":
+            if self.walk_controller.startswith("rl"):
                 fields = ", ".join(sorted(payload))
                 return live_error(
                     "RUNTIME_GAIT_UNSUPPORTED",
@@ -297,6 +309,16 @@ class LiveSession:
             self.mode = "stand"
             if not (preserve_fall and self.controller.state == "FALLEN"):
                 self.controller.set_mode("stand")
+
+    def apply_motion_action(self, action: dict, *, preserve_fall: bool = False) -> None:
+        """Dispatch a validated Motion Task primitive without exposing raw session methods."""
+        action_type = action.get("type")
+        if action_type == "set_mode":
+            self._set_mode_internal(str(action["mode"]), preserve_fall=preserve_fall)
+            return
+        if action_type == "hold":
+            return
+        raise ValueError(f"unsupported motion action: {action_type}")
 
     def start_recording(
         self,
@@ -580,7 +602,7 @@ class LiveSession:
                         self._finalize_recording("duration_cap")
                     except Exception as exc:
                         self.trace_error = live_error("TRACE_FINALIZE_FAILED", type(exc).__name__)
-            if self.mode == "walk" and self.controller.state == "WALK":
+            if self.controller.is_locomoting():
                 # 步態時鐘：混合慢啟動 + 實際速度回授（落後時參考不跑掉）
                 self.gait_t += DT * self.controller.gait_clock_rate()
             self._complete_motion_task_if_due()

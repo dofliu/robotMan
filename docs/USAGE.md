@@ -140,8 +140,8 @@ python backend/compare.py
 ## 7. RL training/evaluation
 
 ~~~powershell
-python backend/rl/train_ppo.py 30000000
-python backend/rl/eval_policy.py backend/rl/ppo_walk_final 6
+python backend/rl/train_ppo.py --profile walk_0p7_fixed_v1 --run-id walk-0p7-seed1700-run01
+python backend/rl/eval_policy.py backend/rl/ppo_walk_final.zip --profile walk_0p7_fixed_v1 --episodes 20 --seed-base 10000
 ~~~
 
 這些命令是 development pipeline。正式 RL study 還需：
@@ -175,9 +175,28 @@ Recording active 時不得更換 controller、runtime gait、obstacles 或 reset
 
 第一次三機 development baseline 的三組結果皆為 FAIL，表示現有 controller 尚不能在固定 protocol 下完整完成「行走後停止並重新站穩」。這不是 V3 ranking，也不可解讀為實機結果。完整契約見 [MOTION_TASK_SPEC](MOTION_TASK_SPEC.md)。
 
+更新後 `stand` command 會顯示 `STOPPING`，並在 1.5 秒內逐步降低 locomotion command；不會瞬間凍結 simulated state。可用以下 runner 重複執行同一三機任務並產生 trace：
+
+```powershell
+python backend/run_motion_task.py
+python backend/run_motion_task.py --controller rl
+```
+
+## 10. RL Training Lab
+
+1. 切換至「RL 訓練」查看 versioned profiles、seed、planned timesteps 與目前 status。
+2. 頁面只顯示 inventory，不會在瀏覽器內即時更新 weights；Live/Compare 仍執行 registry 中的 frozen policy。
+3. `stand_start_walk_stop_0p7_v1` 保留為 failed-speed run；v2 與 v5 已有各自的 registry identity 與 Live adapter。
+4. v2 在 Live 失敗於 lateral drift/saturation；v5 通過其他 10 項、失敗於 saturation duty。v6 reward-only fine-tune也未通過 DEV gate。
+5. training evaluator 現以 500 Hz substeps 計算 saturation；舊 50 Hz saturation PASS 已撤銷。
+
+```powershell
+python backend/rl/train_ppo.py --profile stand_start_walk_stop_0p7_curriculum_v2 --run-id start-stop-curriculum-seed3700-run02
+```
+
 Dynamic Trace 顯示的是 `SOFTWARE_ONLY_MUJOCO_REALIZED_SIMULATION`，不是實體機器人量測；Reference 與 realized 的正式 overlay 尚未完成 identity/alignment contract。
 
-## 9. Software checks
+## 11. Software checks
 
 ~~~powershell
 pip install -r backend/requirements-dev.txt
@@ -187,7 +206,7 @@ python -X utf8 -B backend/test_pipeline.py
 
 第一個命令執行 REST/WebSocket schema、actual metric、provenance 與既有 pipeline tests；第二個保留可直接閱讀的 legacy diagnostics。這些 checks 不代表 V1 已通過。執行後須保留 command、environment、stdout/stderr、exit code 與 code hash。新增 physics 功能時，優先加入 residual、conservation、constraint 與 convergence oracle。
 
-## 10. 結果記錄最低要求
+## 12. 結果記錄最低要求
 
 Exploratory note 至少包含：
 
@@ -200,7 +219,7 @@ Exploratory note 至少包含：
 
 Formal run 使用 [EXPERIMENT_PROTOCOL](EXPERIMENT_PROTOCOL.md) 的完整 manifest。/api/simulate meta.provenance 可作初始 identity evidence，但仍須補 environment lock、immutable raw bundle、artifact inventory 與 validator receipt。
 
-## 11. 常見誤解
+## 13. 常見誤解
 
 | 誤解 | 正確解讀 |
 |---|---|
@@ -211,7 +230,7 @@ Formal run 使用 [EXPERIMENT_PROTOCOL](EXPERIMENT_PROTOCOL.md) 的完整 manife
 | 換成 datasheet 數字就完成 validation | 仍缺 CAD/BOM、drive integration、bench 與 subsystem evidence |
 | software test PASS | 只支持對應 software requirement，不支持 physical validation |
 
-## 12. 疑難排解
+## 14. 疑難排解
 
 - RL 選項回到 Raibert：視為 controller identity failure；正式 run 必須停止，不得以 RL label 繼續。
 - PowerShell 中文或勾號輸出失敗：使用 Python UTF-8 mode；仍須保留非零 exit code。

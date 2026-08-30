@@ -35,6 +35,29 @@ class TrainingContract(RegistryModel):
     physics_hz: float = Field(gt=0.0)
 
 
+class ObservationContract(RegistryModel):
+    """凍結 policy 輸入語意，避免只有維度相同卻接錯 observation。"""
+
+    contract_id: Literal[
+        "legacy_walk_47d_v1",
+        "motion_task_command_48d_v1",
+        "motion_task_phase_observable_51d_v1",
+    ]
+    dimension: int = Field(gt=0)
+    command_conditioned: bool
+    command_name: Literal["forward_speed_mps"] | None = None
+    command_normalization_mps: float | None = Field(default=None, gt=0.0)
+
+    @model_validator(mode="after")
+    def command_fields_are_consistent(self):
+        if self.command_conditioned:
+            if self.command_name is None or self.command_normalization_mps is None:
+                raise ValueError("command-conditioned observation 必須定義 command 與 normalization")
+        elif self.command_name is not None or self.command_normalization_mps is not None:
+            raise ValueError("非 command-conditioned observation 不可帶 command 欄位")
+        return self
+
+
 class PolicyRecord(RegistryModel):
     policy_id: str = Field(min_length=1, pattern=r"^[a-z0-9][a-z0-9_.-]*$")
     display_name: str = Field(min_length=1)
@@ -43,6 +66,12 @@ class PolicyRecord(RegistryModel):
     bytes: int = Field(gt=0)
     gait_contract: GaitContract
     training_contract: TrainingContract
+    observation_contract: ObservationContract
+    runtime_adapter: Literal[
+        "legacy_walk_v1",
+        "motion_task_command_envelope_v2",
+        "motion_task_phase_observable_v5",
+    ]
     created_at: str
     evidence_status: str = Field(min_length=1)
     notes: str = ""
@@ -121,6 +150,8 @@ def public_policy_inventory() -> dict:
                 "bytes": item.bytes,
                 "gait_contract": item.gait_contract.model_dump(),
                 "training_contract": item.training_contract.model_dump(),
+                "observation_contract": item.observation_contract.model_dump(),
+                "runtime_adapter": item.runtime_adapter,
                 "created_at": item.created_at,
                 "evidence_status": item.evidence_status,
             }

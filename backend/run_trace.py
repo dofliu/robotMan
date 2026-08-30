@@ -20,7 +20,7 @@ import numpy as np
 
 TRACE_SCHEMA_VERSION = "DYNAMIC_RUN_TRACE_V1"
 RUN_ID_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_-]{7,79}$")
-STATE_CODES = {"STAND": 0, "WALK": 1, "FALLEN": 2}
+STATE_CODES = {"STAND": 0, "WALK": 1, "FALLEN": 2, "STOPPING": 3}
 STATE_LABELS = {value: key for key, value in STATE_CODES.items()}
 DEFAULT_TRACE_ROOT = Path(__file__).resolve().parent / "run_traces"
 

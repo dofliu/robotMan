@@ -67,6 +67,15 @@ def list_motion_tasks() -> list[dict]:
     return [get_motion_task(task_id) for task_id in _TASKS]
 
 
+def phase_action(phase: dict) -> dict:
+    """Normalize a versioned phase into one bounded session action."""
+    if "action" in phase:
+        return deepcopy(phase["action"])
+    if "mode" in phase:
+        return {"type": "set_mode", "mode": phase["mode"]}
+    return {"type": "hold"}
+
+
 class MotionTaskRunner:
     """Tracks phase transitions against simulation time, not wall time."""
 
@@ -82,6 +91,7 @@ class MotionTaskRunner:
             "scheduled_s": 0.0,
             "actual_s": 0.0,
             "mode": contract["phases"][0]["mode"],
+            "action": phase_action(contract["phases"][0]),
         }]
 
     def elapsed(self, sim_t: float) -> float:
@@ -96,12 +106,14 @@ class MotionTaskRunner:
             if elapsed + 1e-9 < float(candidate["start_s"]):
                 break
             self.phase_index += 1
-            session._set_mode_internal(candidate["mode"], preserve_fall=True)
+            action = phase_action(candidate)
+            session.apply_motion_action(action, preserve_fall=True)
             self.phase_events.append({
                 "phase": candidate["id"],
                 "scheduled_s": float(candidate["start_s"]),
                 "actual_s": round(elapsed, 6),
-                "mode": candidate["mode"],
+                "mode": candidate.get("mode"),
+                "action": action,
             })
 
     def status(self, sim_t: float) -> dict:
@@ -181,6 +193,7 @@ def evaluate_motion_task(
     max_saturation = np.nanmax(arrays["saturation_pct"], axis=1)
     saturation_duty = float(np.mean(max_saturation >= criteria_contract["saturation_threshold_pct"]) * 100.0)
 
+    state_labels = {0: "STAND", 1: "WALK", 2: "FALLEN", 3: "STOPPING"}
     criteria = [
         _criterion("TRACE_INTEGRITY", trace_complete, trace_duration, ">=", contract["duration_s"], "s"),
         _criterion("ASSIST_DISABLED", not assist_enabled_at_start, bool(assist_enabled_at_start), "==", False, "bool"),
@@ -197,7 +210,7 @@ def evaluate_motion_task(
         _criterion("STEADY_PROGRESS", steady_progress >= criteria_contract["steady_progress_min_m"], steady_progress, ">=", criteria_contract["steady_progress_min_m"], "m"),
         _criterion("STOP_SPEED", stop_speed <= criteria_contract["stop_speed_max_mps"], stop_speed, "<=", criteria_contract["stop_speed_max_mps"], "m/s"),
         _criterion("FINAL_STAND_POSTURE", final_posture <= criteria_contract["posture_limit_deg"], final_posture, "<=", criteria_contract["posture_limit_deg"], "deg"),
-        _criterion("FINAL_STATE", final_state == 0, "STAND" if final_state == 0 else ("WALK" if final_state == 1 else "FALLEN"), "==", "STAND", "state"),
+        _criterion("FINAL_STATE", final_state == 0, state_labels.get(final_state, "UNKNOWN"), "==", "STAND", "state"),
         _criterion("LATERAL_DRIFT", lateral_drift <= criteria_contract["lateral_drift_max_m"], lateral_drift, "<=", criteria_contract["lateral_drift_max_m"], "m"),
         _criterion("SATURATION_DUTY", saturation_duty <= criteria_contract["saturation_duty_max_pct"], saturation_duty, "<=", criteria_contract["saturation_duty_max_pct"], "% samples"),
     ]

@@ -9,7 +9,7 @@ import main
 from compare_live import CONTROLLERS, CompareSession
 from config_schema import GaitParams, Obstacle, default_robot
 from live_sim import LiveSession
-from motion_tasks import TASK_ID, evaluate_motion_task, get_motion_task
+from motion_tasks import TASK_ID, evaluate_motion_task, get_motion_task, phase_action
 from run_trace import RunTraceStore
 
 
@@ -46,6 +46,36 @@ def test_task_contract_is_versioned_and_frozen_by_copy():
     }
     contract["gait"]["speed"] = 99
     assert get_motion_task(TASK_ID)["gait"]["speed"] == 0.7
+
+
+def test_phase_action_normalizes_legacy_mode_and_supports_hold():
+    assert phase_action({"mode": "walk"}) == {"type": "set_mode", "mode": "walk"}
+    assert phase_action({"id": "HOLD"}) == {"type": "hold"}
+    source = {"action": {"type": "set_mode", "mode": "stand"}}
+    normalized = phase_action(source)
+    normalized["mode"] = "walk"
+    assert source["action"]["mode"] == "stand"
+
+
+def test_walk_to_stand_uses_controlled_transition_and_completes():
+    session = LiveSession(default_robot(), GaitParams(), [])
+    session._set_mode_internal("walk")
+    session._advance_sim(0.20)
+    gait_before_stop = session.gait_t
+
+    session._set_mode_internal("stand")
+    assert session.mode == "stand"
+    assert session.controller.state == "STOPPING"
+    assert session.controller.stop_scale() > 0.99
+
+    session._advance_sim(0.75)
+    assert session.controller.state == "STOPPING"
+    assert 0.0 < session.controller.stop_scale() < 1.0
+    assert session.gait_t > gait_before_stop
+
+    session._advance_sim(0.80)
+    assert session.controller.state == "STAND"
+    assert session.controller.stop_scale() == 0.0
 
 
 def test_evaluator_reports_deterministic_pass_for_conforming_trace():
@@ -95,6 +125,9 @@ def test_live_task_resets_contract_locks_manual_commands_and_finalizes(trace_sto
     assert [event["phase"] for event in session.last_task_result["phase_events"]] == [
         "INITIAL_STAND", "START", "STEADY_WALK", "STOP", "FINAL_STAND",
     ]
+    assert session.last_task_result["phase_events"][3]["action"] == {
+        "type": "set_mode", "mode": "stand",
+    }
     assert {item["id"] for item in session.last_task_result["evaluation"]["criteria"]} == {
         "TRACE_INTEGRITY", "ASSIST_DISABLED", "NO_FALL", "INITIAL_STAND_POSTURE",
         "STEADY_SPEED", "STEADY_PROGRESS", "STOP_SPEED", "FINAL_STAND_POSTURE",

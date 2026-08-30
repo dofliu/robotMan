@@ -13,6 +13,7 @@ import SummaryBar, { UtilTable } from "./panels/SummaryBar";
 import LiveView from "./LiveView";
 import CompareView from "./CompareView";
 import TraceAnalysisView from "./TraceAnalysisView";
+import TrainingView from "./TrainingView";
 import { Chip } from "./ui";
 
 const JOINT_COLORS = [
@@ -125,7 +126,7 @@ export default function App() {
   const [selJoints, setSelJoints] = useState<string[]>(["hip_pitch_l", "knee_l", "ankle_l"]);
   const [motorSide, setMotorSide] = useState(false);
   const [rightTab, setRightTab] = useState<"grf" | "power" | "angle" | "stab">("grf");
-  const [view, setView] = useState<"analysis" | "live" | "compare">("analysis");
+  const [view, setView] = useState<"analysis" | "live" | "compare" | "training">("analysis");
   const [analysisSource, setAnalysisSource] = useState<"reference" | "trace">("reference");
 
   const currentConfigExact = useMemo(
@@ -345,6 +346,14 @@ export default function App() {
           >
             ⚖ 三機同步比較
           </button>
+          <button
+            className={`rounded-t px-3 py-1 text-xs font-semibold ${
+              view === "training" ? "bg-fuchsia-400 text-slate-900" : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+            }`}
+            onClick={() => setView("training")}
+          >
+            🧠 RL 訓練
+          </button>
           {view === "analysis" && (
             <div className="ml-2 flex gap-1 border-l border-slate-700 pl-2">
               <button
@@ -375,7 +384,9 @@ export default function App() {
               : "KINEMATIC_INVERSE_DYNAMICS_ESTIMATE"
             : view === "compare"
               ? "MUJOCO_SAME_INPUT_INDEPENDENT_PLANTS"
-              : "MUJOCO_CONTACT_SIM"}
+              : view === "training"
+                ? "OFFLINE_TRAINING_CONFIGURATION_ONLY"
+                : "MUJOCO_CONTACT_SIM"}
         </span>
         <span className="rounded border border-fuchsia-500/40 bg-fuchsia-500/10 px-1.5 py-0.5 text-fuchsia-300">
           CALIBRATION_NOT_ESTABLISHED
@@ -397,7 +408,9 @@ export default function App() {
         )}
       </div>
 
-      {view === "compare" && robot && gait ? (
+      {view === "training" ? (
+        <TrainingView />
+      ) : view === "compare" && robot && gait ? (
         <CompareView robot={robot} gait={gait} obstacles={obstacles} />
       ) : view === "live" && robot && gait ? (
         <LiveView robot={robot} gait={gait} obstacles={obstacles} />

@@ -20,6 +20,7 @@ from simulator import run_simulation
 from live_sim import LiveSession, live_error, validation_error_message
 from compare_live import CompareSession
 from rl.policy_registry import public_policy_inventory
+from rl.train_ppo import public_training_inventory
 from run_trace import TRACE_STORE, TraceIntegrityError
 
 try:
@@ -59,6 +60,12 @@ def simulate(req: SimRequest):
 def policies():
     """回傳 RL artifact inventory；inventory 本身不是 performance evidence。"""
     return public_policy_inventory()
+
+
+@app.get("/api/training/profiles")
+def training_profiles():
+    """回傳可重現 training profiles；讀取 inventory 不會啟動訓練。"""
+    return public_training_inventory()
 
 
 @app.get("/api/traces")

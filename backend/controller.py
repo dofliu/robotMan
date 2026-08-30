@@ -15,6 +15,7 @@ from config_schema import GaitParams, RobotConfig
 from model_builder import JOINT_ORDER, JOINT_GROUP, joint_peak_torque, pelvis_height
 
 G = 9.81
+LOCOMOTION_STATES = frozenset({"WALK", "STOPPING"})
 
 
 def quat_to_pitch_roll(q: np.ndarray) -> tuple[float, float]:
@@ -35,7 +36,7 @@ class BalanceController:
         self.cfg = cfg
         self.engine = engine            # WALK 模式使用；STAND 可為 None
         self.lean = lean
-        self.state = "STAND"            # STAND | WALK | FALLEN
+        self.state = "STAND"            # STAND | WALK | STOPPING | FALLEN
         self.decisions: list[dict] = []
         self._decide_last: dict[str, float] = {}
         self.t = 0.0
@@ -67,6 +68,8 @@ class BalanceController:
 
         # 質心速度低通（原始速度含腳步衝擊雜訊）
         self._v_filt = np.zeros(3)
+        self._stop_start_t: float | None = None
+        self._stop_duration = 1.5
 
     def _stand_pose(self) -> np.ndarray:
         """對稱站立姿勢的關節角（微蹲，膝蓋避開奇異點）。"""
@@ -97,12 +100,56 @@ class BalanceController:
 
     blend_T = 1.5   # 站立→行走混合時間（閉環控制器可覆寫為更短）
 
+    def is_locomoting(self) -> bool:
+        return self.state in LOCOMOTION_STATES
+
+    def stop_scale(self) -> float:
+        """Controlled stop 的 locomotion command scale，1→0。"""
+        if self.state == "WALK":
+            return 1.0
+        if self.state != "STOPPING" or self._stop_start_t is None:
+            return 0.0
+        u = float(np.clip((self.t - self._stop_start_t) / self._stop_duration, 0.0, 1.0))
+        smooth = u * u * (3.0 - 2.0 * u)
+        return 1.0 - smooth
+
+    def request_stop(self, duration_s: float = 1.5) -> None:
+        """要求受控停止；不改寫 plant state，也不在同一 tick 瞬切站姿。"""
+        if self.state == "FALLEN":
+            return
+        if not self.is_locomoting():
+            self.state = "STAND"
+            return
+        if self.state == "STOPPING":
+            return
+        self._stop_duration = max(float(duration_s), 0.1)
+        self._stop_start_t = self.t
+        self.state = "STOPPING"
+        self.decide(
+            "mode",
+            f"🛑 受控停止：{self._stop_duration:.1f}s 內降低速度與步態幅度，再進入站立平衡",
+            "mode",
+            0,
+        )
+
+    def _complete_stop_if_due(self) -> None:
+        if (
+            self.state == "STOPPING"
+            and self._stop_start_t is not None
+            and self.t - self._stop_start_t + 1e-9 >= self._stop_duration
+        ):
+            self.state = "STAND"
+            self._stop_start_t = None
+            self._q_ref_prev = None
+            self.decide("stop_complete", "🧍 受控停止完成：進入站立平衡", "mode", 0)
+
     def walk_alpha(self) -> float:
         """站立→行走混合進度 0..1（步態時鐘與速度目標皆以此縮放）。"""
-        if self.state != "WALK":
+        if not self.is_locomoting():
             return 0.0
         a = np.clip((self.t - getattr(self, "_walk_start_t", self.t)) / self.blend_T, 0.0, 1.0)
-        return float(a * a * (3 - 2 * a))
+        startup = a * a * (3 - 2 * a)
+        return float(startup * self.stop_scale())
 
     def gait_clock_rate(self) -> float:
         """步態時鐘推進速率（相對即時）。
@@ -123,11 +170,15 @@ class BalanceController:
         if mode == "walk":
             self.engine = engine if engine is not None else self.engine
             self.state = "WALK"
+            self._stop_start_t = None
             self._walk_start_t = self.t       # 站立→行走平滑混合的起點
             self.decide("mode", "🚶 切換至行走模式：1.5s 內從站姿平滑混入步態軌跡", "mode", 0)
         else:
-            self.state = "STAND"
-            self.decide("mode", "🧍 切換至站立平衡模式：踝/髖策略維持重心", "mode", 0)
+            if self.is_locomoting():
+                self.request_stop()
+            else:
+                self.state = "STAND"
+                self.decide("mode", "🧍 切換至站立平衡模式：踝/髖策略維持重心", "mode", 0)
 
     def update_gait(self, gait: GaitParams, engine) -> None:
         """原位同步 runtime gait，保留 controller identity/state/timing history。"""
@@ -141,6 +192,7 @@ class BalanceController:
     def compute(self, data: mujoco.MjData, t_gait: float, dt: float) -> np.ndarray:
         """回傳 12 維關節扭矩命令（MuJoCo 會再以 ctrlrange 截斷）。"""
         self.t += dt
+        self._complete_stop_if_due()
         q = data.qpos[7:]
         qd = data.qvel[6:]
         trunk_quat = data.qpos[3:7]
@@ -173,7 +225,7 @@ class BalanceController:
         self._cp_prev = capture_pt.copy()
 
         # --- 參考姿勢 ---
-        if self.state == "WALK" and self.engine is not None:
+        if self.is_locomoting() and self.engine is not None:
             q_full = self.engine.qpos_at(t_gait, self.model.nq)
             q_gait = q_full[7:]
             if self._q_ref_prev is None:
@@ -196,7 +248,7 @@ class BalanceController:
         # --- 支撐腿重力前饋：預期地面反力經 Jacobian 轉成關節扭矩 ---
         # 沒有這一項，全身重量的重力矩會讓支撐膝在 PD 下明顯塌陷
         # （骨盆下沉 → 擺動腳搆不到地 → 單支撐拖長 → 側向發散跌倒）
-        if self.state == "WALK" and self.engine is not None:
+        if self.is_locomoting() and self.engine is not None:
             w_l = self.engine.contact_weight("l", t_gait)
             w_r = self.engine.contact_weight("r", t_gait)
         else:
@@ -247,11 +299,11 @@ class BalanceController:
             # 行走時以「前傾角」做速度控制：落後 → 多前傾（重力加速），
             # 過快 → 直立減速。這是人類行走速度調節的核心機制
             lean_target = self.lean
-            if self.state == "WALK" and self.engine is not None:
+            if self.is_locomoting() and self.engine is not None:
                 v_des = self.engine.g.speed * self.walk_alpha()
                 lean_target = self.lean + float(np.clip(0.45 * (v_des - v[0]), -0.12, 0.15))
             pitch_err = pitch - lean_target
-            if self.state == "WALK":
+            if self.is_locomoting():
                 # 行走時姿態修正與 PD 參考會互相干擾：小比例、大阻尼
                 self.hip_corr = float(np.clip(140.0 * pitch_err + 120.0 * data.qvel[4], -50.0, 50.0))
             else:
@@ -263,7 +315,7 @@ class BalanceController:
                 self.decide("hip", f"🫁 髖策略介入：{self.hip_corr:+.0f} Nm（軀幹前傾 {np.degrees(pitch):.1f}°）", "strategy", 1.0)
 
         # --- 踏步策略（WALK）：capture point 誤差 → 調整落點 ---
-        if self.state == "WALK" and self.engine is not None:
+        if self.is_locomoting() and self.engine is not None:
             v_err = np.array([v[0] - self.engine.g.speed * self.walk_alpha(), v[1]])
             dp = np.clip(v_err / omega0, -0.28, 0.28)
             self.step_offset = dp

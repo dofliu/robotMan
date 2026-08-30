@@ -2,7 +2,7 @@
 
 > Humanoid Design Screening and Teaching Simulation Prototype
 
-Repository：[github.com/dofliu/robotMan](https://github.com/dofliu/robotMan) ｜ Release：`0.1.0` ｜ License：MIT
+Repository：[github.com/dofliu/robotMan](https://github.com/dofliu/robotMan) ｜ Development：`0.2.0-dev` ｜ License：MIT
 
 本專案目前定位為 **SIM-only、reduced-order** 的人形機器人設計篩選與教學原型。它可用來探索幾何、質量、致動器示意參數、步態與控制策略之間的關係，但尚未完成足以支持實體硬體選型、採購、安全判定或效能保證的 physical validation。
 
@@ -42,6 +42,9 @@ Repository：[github.com/dofliu/robotMan](https://github.com/dofliu/robotMan) �
 - trajectory tracking、Raibert、PPO policy 的 nominal scenario 比較
 - 三機同步比較模式：三個獨立 MuJoCo plants 接收相同命令，assist 預設關閉、跌倒不自動修復；僅供 development observation
 - 正式動作任務 V1：`stand → start → steady walk → stop` 的固定 phase、500 Hz trace 與逐項 PASS/FAIL；可在 Live 或三機 Compare 執行
+- `WALK → STOPPING → STAND` controlled transition、可擴充 Motion Primitive dispatcher 與 trace-visible STOPPING state
+- RL Training Lab：顯示 fixed-speed／command-conditioned profiles、seed、training budget 與 evidence status；即時模式仍只做 inference
+- Registry-gated Motion Task policies：48-D curriculum-v2 與 51-D phase-observable-v5 可在 Live 選用；v2/v5 的失敗 trace 均保留
 
 這些是 feature inventory，不代表 M1–M6 已通過 V&V gate。
 
@@ -68,7 +71,7 @@ python -X utf8 backend/main.py
 
 ## Repository 內容
 
-- Git 追蹤 source、tests、docs、frontend lockfile，以及 registry 指定的 `backend/rl/ppo_walk_final.zip`。
+- Git 追蹤 source、tests、docs、frontend lockfile，以及 registry 指定的 legacy、curriculum-v2 與 phase-observable-v5 inference artifacts。
 - 不追蹤 `node_modules`、frontend build、runtime traces、historical RL checkpoints、training smoke artifacts、logs、cache 或本機 debug files。
 - Clone、驗證、artifact policy 與發布檢查見 [REPOSITORY_GUIDE](docs/REPOSITORY_GUIDE.md)。
 
@@ -92,14 +95,21 @@ comparison_report.md 保留既有 deterministic nominal snapshot，供回歸診�
 | [ARCHITECTURE](docs/ARCHITECTURE.md) | 兩種 simulation pipeline 與資料邊界 |
 | [MODEL_CARD](docs/MODEL_CARD.md) | intended use、out-of-scope、限制與 evidence labels |
 | [VV_PLAN](docs/VV_PLAN.md) | requirement-to-evidence matrix、gates 與 SIL/HIL/bench 邊界 |
+| [V1_ORACLE_SPEC](docs/V1_ORACLE_SPEC.md) | 第一個 static double-support / forward–inverse numerical oracle、threshold 與證據邊界 |
 | [EXPERIMENT_PROTOCOL](docs/EXPERIMENT_PROTOCOL.md) | frozen configuration、seed、hash、metrics 與 raw artifacts |
 | [METRIC_DEFINITIONS](docs/METRIC_DEFINITIONS.md) | analysis runtime 指標的公式、窗口、命名與限制 |
 | [COMPARE_MODE_SPEC](docs/COMPARE_MODE_SPEC.md) | 三機同步比較的公平性、WebSocket contract、失敗語義與驗收條件 |
 | [RL_POLICY_TRAINING](docs/RL_POLICY_TRAINING.md) | RL inference／training 邊界、policy registry、固定速度 profiles 與不覆寫再訓練流程 |
+| [RESEARCH_EXECUTION_PLAN](docs/RESEARCH_EXECUTION_PLAN.md) | model validity 與 method effectiveness 雙證據鏈、RQ、gate 與公平比較設計 |
+| [LITERATURE_MAP_2026-08-30](docs/LITERATURE_MAP_2026-08-30.md) | 近期 humanoid locomotion、sim-to-real、residual/hybrid control 與研究方向對照 |
 | [DYNAMIC_RUN_TRACE_SPEC](docs/DYNAMIC_RUN_TRACE_SPEC.md) | 第二模式 realized simulation 到第一模式工程分析的 raw trace contract 與驗收條件 |
 | [MOTION_TASK_SPEC](docs/MOTION_TASK_SPEC.md) | 第一個正式動作任務、固定 phase/gait、可量測成功條件與後續動作 registry |
+| [MOTION_PRIMITIVE_SPEC](docs/MOTION_PRIMITIVE_SPEC.md) | action dispatcher、controlled stop state machine 與後續基本動作進入條件 |
 | [DYNAMIC_RUN_TRACE_IMPLEMENTATION_RECEIPT_2026-08-29](docs/DYNAMIC_RUN_TRACE_IMPLEMENTATION_RECEIPT_2026-08-29.md) | recorder、artifact/API、UI bridge、測試與 development sample 回條 |
 | [MOTION_TASK_IMPLEMENTATION_RECEIPT_2026-08-29](docs/MOTION_TASK_IMPLEMENTATION_RECEIPT_2026-08-29.md) | Motion Task registry、Live/Compare/Analysis 整合、測試與第一組負結果 baseline |
+| [CONTROLLED_STOP_TRAINING_IMPLEMENTATION_RECEIPT_2026-08-30](docs/CONTROLLED_STOP_TRAINING_IMPLEMENTATION_RECEIPT_2026-08-30.md) | controlled stop、Motion Primitive、Training Lab、start/stop curriculum 與同門檻重跑結果 |
+| [START_STOP_POLICY_TRAINING_RECEIPT_2026-08-30](docs/START_STOP_POLICY_TRAINING_RECEIPT_2026-08-30.md) | v1 failed-speed early stop、curriculum-v2 warm start、30-seed training-env gate 與候選 artifact 邊界 |
+| [PATH_PHASE_SATURATION_TRAINING_RECEIPT_2026-08-30](docs/PATH_PHASE_SATURATION_TRAINING_RECEIPT_2026-08-30.md) | v2–v6 observation/reward iterations、500 Hz sampling defect、Live failure 與下一輪研究 gate |
 | [COMPARE_RL_IMPLEMENTATION_RECEIPT_2026-08-26](docs/COMPARE_RL_IMPLEMENTATION_RECEIPT_2026-08-26.md) | 三機比較、registry、training smoke 的 source/test receipt 與未解 blockers |
 | [V0_IMPLEMENTATION_RECEIPT_2026-08-26](docs/V0_IMPLEMENTATION_RECEIPT_2026-08-26.md) | 第一批 V0 hardening 的 source/test audit 與未解 blockers |
 | [HARDWARE_DATA_PROVENANCE](docs/HARDWARE_DATA_PROVENANCE.md) | datasheet、CAD/BOM、bench data 與 demo catalog 的分級 |
@@ -109,7 +119,7 @@ comparison_report.md 保留既有 deterministic nominal snapshot，供回歸診�
 
 ## 下一階段
 
-目前不以「功能完成百分比」表示成熟度。第一個正式 Motion Task 已能量測 `stand → start → steady walk → stop`，第一組三 controller baseline 均誠實判定 FAIL；下一步是改善 controlled deceleration/stop phase，並用不變的 criteria 重跑。這項 development 能力不解除 V0/V1/V3 gate；Evidence 主線仍須補齊 environment lock、immutable raw artifact bundle、validator 與完整 requirement registry。
+目前不以「功能完成百分比」表示成熟度。v5 已在 unchanged 500 Hz Motion Task 通過 10/11 criteria，沒有跌倒且完成 start/walk/stop；唯一失敗是 saturation duty `38.422222% > 30%`。training evaluator 的 50 Hz saturation under-sampling 已修正為 500 Hz，先前相關 PASS 已撤銷；v6 reward-only fine-tune 仍未降低 saturation。下一步先建立 V1 physics oracles，再 preregister v7 torque-aware action-interface ablation。這些 development 能力不解除 V0/V1/V3 gate。
 
 ## 資料聲明
 

@@ -8,7 +8,7 @@ import main
 from compare_live import CONTROLLERS, CompareSession
 from config_schema import GaitParams, default_robot
 from live_sim import LiveSession
-from run_trace import RunTraceStore, TraceIntegrityError
+from run_trace import STATE_CODES, RunTraceStore, TraceIntegrityError
 
 
 @pytest.fixture
@@ -41,6 +41,10 @@ def capture_short_trace(store: RunTraceStore) -> tuple[LiveSession, dict]:
     ready = session.command({"type": "record_stop"})
     assert ready["type"] == "trace_ready"
     return session, ready["trace"]
+
+
+def test_trace_state_contract_exposes_controlled_stop():
+    assert STATE_CODES == {"STAND": 0, "WALK": 1, "FALLEN": 2, "STOPPING": 3}
 
 
 def test_live_trace_records_physics_steps_and_validated_artifact(trace_store):

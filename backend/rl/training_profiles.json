@@ -1,9 +1,15 @@
 {
-  "schema_version": "RL_TRAINING_PROFILES_V1",
+  "schema_version": "RL_TRAINING_PROFILES_V3",
   "evidence_scope": "DEVELOPMENT_TRAINING_CONFIGURATION_ONLY",
   "profiles": [
     {"profile_id":"walk_0p4_fixed_v1","speed_mps":0.4,"step_length_m":0.2,"duty":0.62,"clearance_m":0.07,"planned_timesteps":30000000,"parallel_envs":12,"seed_base":1400,"status":"DEVELOPMENT_PROFILE_NOT_TRAINED"},
     {"profile_id":"walk_0p7_fixed_v1","speed_mps":0.7,"step_length_m":0.35,"duty":0.62,"clearance_m":0.07,"planned_timesteps":30000000,"parallel_envs":12,"seed_base":1700,"status":"DEVELOPMENT_PROFILE_NOT_TRAINED"},
-    {"profile_id":"walk_1p0_fixed_v1","speed_mps":1.0,"step_length_m":0.5,"duty":0.62,"clearance_m":0.07,"planned_timesteps":30000000,"parallel_envs":12,"seed_base":2000,"status":"DEVELOPMENT_PROFILE_NOT_TRAINED"}
+    {"profile_id":"walk_1p0_fixed_v1","speed_mps":1.0,"step_length_m":0.5,"duty":0.62,"clearance_m":0.07,"planned_timesteps":30000000,"parallel_envs":12,"seed_base":2000,"status":"DEVELOPMENT_PROFILE_NOT_TRAINED"},
+    {"profile_id":"stand_start_walk_stop_0p7_v1","speed_mps":0.7,"step_length_m":0.35,"duty":0.62,"clearance_m":0.07,"planned_timesteps":50000000,"parallel_envs":12,"seed_base":2700,"status":"EARLY_STOPPED_FAILED_SPEED_GATE_2026_08_30","environment_id":"motion_task_command_v1","task_id":"stand_start_walk_stop_v1"},
+    {"profile_id":"stand_start_walk_stop_0p7_curriculum_v2","speed_mps":0.7,"step_length_m":0.35,"duty":0.62,"clearance_m":0.07,"planned_timesteps":20000000,"parallel_envs":12,"seed_base":3700,"status":"LIVE_500HZ_EVALUATED_FAIL_LATERAL_SATURATION_2026_08_30","environment_id":"motion_task_command_envelope_v2","task_id":"stand_start_walk_stop_v1","warm_start_policy_id":"walk_0p7_legacy"},
+    {"profile_id":"stand_start_walk_stop_0p7_path_efficiency_v3","speed_mps":0.7,"step_length_m":0.35,"duty":0.62,"clearance_m":0.07,"planned_timesteps":10000000,"parallel_envs":12,"seed_base":4700,"status":"DEVELOPMENT_4M_FAIL_NOFALL_STOP","environment_id":"motion_task_path_efficiency_v3","task_id":"stand_start_walk_stop_v1","warm_start_policy_id":"stand_start_walk_stop_0p7_curriculum_v2"},
+    {"profile_id":"stand_start_walk_stop_0p7_path_stop_v4","speed_mps":0.7,"step_length_m":0.35,"duty":0.62,"clearance_m":0.07,"planned_timesteps":2000000,"parallel_envs":12,"seed_base":5700,"status":"DEVELOPMENT_0P5M_FAIL_ONE_STOP_SEED","environment_id":"motion_task_path_stop_v4","task_id":"stand_start_walk_stop_v1","warm_start_policy_id":"stand_start_walk_stop_0p7_curriculum_v2"},
+    {"profile_id":"stand_start_walk_stop_0p7_phase_observable_v5","speed_mps":0.7,"step_length_m":0.35,"duty":0.62,"clearance_m":0.07,"planned_timesteps":2000000,"parallel_envs":12,"seed_base":6700,"status":"LIVE_500HZ_FAIL_SATURATION_DUTY_38P422","environment_id":"motion_task_phase_observable_v5","task_id":"stand_start_walk_stop_v1"},
+    {"profile_id":"stand_start_walk_stop_0p7_substep_saturation_v6","speed_mps":0.7,"step_length_m":0.35,"duty":0.62,"clearance_m":0.07,"planned_timesteps":500000,"parallel_envs":12,"seed_base":7700,"status":"DEVELOPMENT_PROFILE_NOT_TRAINED","environment_id":"motion_task_substep_saturation_v6","task_id":"stand_start_walk_stop_v1","warm_start_policy_id":"stand_start_walk_stop_0p7_phase_observable_v5"}
   ]
 }

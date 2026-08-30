@@ -15,7 +15,8 @@ export interface Decision {
   text: string;
   level: string;
 }
-export type WalkController = "track" | "raibert" | "rl";
+export type CompareController = "track" | "raibert" | "rl";
+export type WalkController = CompareController | "rl_task_v2" | "rl_task_v5";
 
 export interface LiveErrorMessage {
   type: "error";
@@ -290,6 +291,7 @@ export class LiveScene3D {
 const STATE_LABEL: Record<string, [string, string]> = {
   STAND: ["🧍 站立平衡", "bg-emerald-500/20 text-emerald-300"],
   WALK: ["🚶 行走中", "bg-sky-500/20 text-sky-300"],
+  STOPPING: ["🛑 受控停止中", "bg-amber-500/20 text-amber-300"],
   FALLEN: ["💥 已跌倒", "bg-red-500/30 text-red-300"],
 };
 
@@ -492,7 +494,9 @@ export default function LiveView({
           {([
             ["track", "軌跡追蹤（開環時序 — 對照組）"],
             ["raibert", "Raibert 閉環（觸地重置＋落腳法則）"],
-            ["rl", "RL 學習策略（PPO 訓練）"],
+            ["rl", "RL legacy policy（原始 PPO 對照組）"],
+            ["rl_task_v2", "RL curriculum-v2（stand/start/walk/stop）"],
+            ["rl_task_v5", "RL phase-observable-v5（path/heading/phase）"],
           ] as [WalkController, string][]).map(([id, label]) => (
             <label key={id} className="flex items-center gap-1.5 text-[11px] text-slate-300">
               <input

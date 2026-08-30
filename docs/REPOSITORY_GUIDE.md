@@ -14,7 +14,7 @@ Repository 保存：
 - `backend/*.py`：simulation、controller、WebSocket/API、trace 與 Motion Task source。
 - `backend/test_*.py`：software contract 與 regression tests。
 - `backend/rl/policy_registry.json`、training profiles 與 training/evaluation source。
-- `backend/rl/ppo_walk_final.zip`：registry 指定的 legacy inference artifact；啟用前仍須通過 size/SHA-256 gate。
+- `backend/rl/ppo_walk_final.zip`、`ppo_stand_start_walk_stop_0p7_curriculum_v2.zip`、`ppo_stand_start_walk_stop_0p7_phase_observable_v5.zip`：registry 指定的 inference artifacts；啟用前皆須通過 identity、observation contract、size 與 SHA-256 gate。
 - `frontend/src`、package manifests 與 build configuration。
 - `README.md`、`STATUS.yaml`、`CHANGELOG.md` 與 `docs/`。
 
@@ -63,7 +63,7 @@ npm run check
 
 1. staged file inventory 不含 runtime/training/local artifacts。
 2. 沒有 credential、token、private key 或個人 absolute path。
-3. `ppo_walk_final.zip` 的 bytes/SHA-256 與 policy registry 相同。
+3. 所有 policy registry artifacts 的 bytes/SHA-256 與 observation/runtime adapter contract 相同。
 4. GitHub remote branch/commit 在 push 後讀回一致。
 
 ## 6. Evidence boundary

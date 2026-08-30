@@ -1,6 +1,6 @@
 # Gate-first 工作規劃
 
-最後更新：2026-08-26
+最後更新：2026-08-30
 
 專案成熟度改以 **evidence gate** 表示，不再以 UI 或 feature count 換算完成百分比。既有 M1–M6 代表 prototype feature inventory，並非 verification 或 physical validation 已完成。
 
@@ -52,6 +52,8 @@
 優先度：最高，早於 dynamic M7、WBC 與任何 RL paper。
 
 最低範圍：
+
+已開始：`v1_static_double_support_internal_v1` 已建立 500 Hz forward–inverse solver consistency、weight/GRF、staticity 與 bilateral-contact gate；其證據僅限 MuJoCo internal numerical/reference case，V1 仍未通過。
 
 - constrained inverse dynamics 或等價 contact solve，滿足六個 floating-base equilibrium equations；
 - base force/moment residual、joint torque residual 與 energy balance；
@@ -111,7 +113,7 @@ V4 不等於整機認證。依風險逐級增加外部 evidence：
 
 ### Motion Task V1：stand → start → steady walk → stop
 
-狀態：IMPLEMENTED / BACKEND TEST PASS / FRONTEND BUILD PASS / BROWSER VISUAL PENDING / DEVELOPMENT ONLY。依 [MOTION_TASK_SPEC](MOTION_TASK_SPEC.md) 固定 9 秒 phase、0.7 m/s gait、assist OFF、session reset 與逐項 acceptance criteria。Live 執行單一 controller；Compare 以同一 contract 同步執行三個獨立 plants；Dynamic Trace Analysis 顯示每項 measured value 與 PASS/FAIL。第一組三 controller baseline 均為 FAIL，負結果已保留，下一輪須改善 stop/deceleration control，不調整既定門檻。
+狀態：V5 LIVE 10/11 CRITERIA / FAIL RETAINED / DEVELOPMENT ONLY。依 [MOTION_TASK_SPEC](MOTION_TASK_SPEC.md) 固定 9 秒 phase、0.7 m/s gait、assist OFF、session reset 與逐項 acceptance criteria。51-D phase-observable-v5 在 run `run-20260830t055847-rl_task_v5-b6c4781d` 無跌倒並完成 start/walk/stop，steady speed `0.585712 m/s`、progress `2.345757 m`、stop speed `0.042144 m/s`、lateral drift `0.045858 m`；唯一失敗為 saturation duty `38.422222% > 30%`。門檻未放寬，結果不可寫成 task PASS。
 
 完成此 task framework 後，再以 registry 新增舉手、抬腳、深蹲與原地轉身。抬腳等平衡動作必須定義 contact/support acceptance，不能只新增視覺動畫。
 
@@ -139,7 +141,7 @@ WBC 必須早於 RL paper 與硬體 × strategy 正式比較。開始條件為 V
 
 多速度、domain randomization、能耗與硬體 × strategy 可在 V3 protocol frozen 後執行。若 V4 尚未通過，論文只能宣稱 SIM-only results，不可宣稱實體硬體效益或 sim-to-real。
 
-Development 實作順序為：先建立 versioned policy registry，再建立 0.4/0.7/1.0 m/s 不覆寫的 training profiles，之後才做 command-conditioned multi-speed 與 run/turn/terrain/disturbance curriculum。Training smoke 只驗證 pipeline，不是 policy performance evidence。
+Development 已完成 v1–v6 failure-retaining iteration：v2 解決前進與停止但 Live path/saturation 失敗；v3/v4/v5 依序加入 path/heading、terminal stability 與 phase trend；v5 在 Live 達到 10/11；v6 證明單純加入 500 Hz saturation reward 尚不足。下一步先完成 V1 oracle，再以 preregistered v7 比較 reward-only、joint-specific action envelope 與 action filtering；正式 WBC residual study 仍等待 P1/P2。Training-env pass 不是 Live trace、V3 或實機證據。
 
 ## 9. 建議執行順序
 

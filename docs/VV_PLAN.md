@@ -36,10 +36,10 @@ SIL PASS 不自動成為 HIL、bench 或 integrated robot PASS。
 | V1-R08 contact schedule consistency | compare prescribed and solved/forward contact | event matching tolerance and no unsupported flight/contact | event trace | V1 | NOT STARTED |
 | V1-R09 joint limits | apply position/velocity/acceleration/hard-stop limits | zero unreported violations | limit source + time trace | V1 | BLOCKED |
 | V1-R10 actuator torque-speed feasibility | evaluate motor/drive envelope at each time step | all operating points within D1+ envelope and duration rules | envelope source + operating trace | V1/V2 | BLOCKED |
-| V1-R11 numerical convergence | time-step, solver tolerance and finite-difference study | metric/residual convergence under preregistered criterion | convergence table + raw runs | V1 | NOT STARTED |
-| V1-R12 solver convergence | log status, iterations, infeasibility, conditioning | zero hidden failure; declared handling of infeasible cases | solver trace | V1 | NOT STARTED |
+| V1-R11 numerical convergence | time-step, solver tolerance and finite-difference study | metric/residual convergence under preregistered criterion | convergence table + raw runs | V1 | PARTIAL: one 500 Hz internal fwd/inv case; time-step study missing |
+| V1-R12 solver convergence | log status, iterations, infeasibility, conditioning | zero hidden failure; declared handling of infeasible cases | solver trace | V1 | PARTIAL: fwd/inv force residual sampled; iterations/infeasibility bundle missing |
 | V1-R13 energy consistency | power balance and physics-step integration | independent recomputation agreement | tau/omega/drive-loss trace | V1 | BLOCKED |
-| V1-R14 analytical reference cases | static double support、single support、known pendulum、known payload | closed-form/reference solution | case bundle and error report | V1 | PARTIAL / INSUFFICIENT |
+| V1-R14 analytical reference cases | static double support、single support、known pendulum、known payload | closed-form/reference solution | case bundle and error report | V1 | PARTIAL: bounded static double-support internal reference implemented; independent cases missing |
 | V2-R01 actuator thermal fidelity | thermal RC or identified equivalent | bench/datasheet transient within tolerance | source/model/fit/validation split | V2 | NOT STARTED |
 | V2-R02 transmission fidelity | backlash/compliance/efficiency map | bench or qualified source comparison | transmission records | V2 | NOT STARTED |
 | V2-R03 sensor model | noise/bias/latency/dropout/quantization | match independent sensor characterization | raw sensor data + fit/holdout | V2 | NOT STARTED |

@@ -35,6 +35,7 @@ backend/rl/train_err.txt
 # Local assistant/evaluation state
 .claude/
 .deepeval/
+.codex-tmp/
 
 # Editors and operating systems
 .idea/

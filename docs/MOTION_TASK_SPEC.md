@@ -1,6 +1,6 @@
 # Motion Task V1：stand → start → steady walk → stop
 
-最後更新：2026-08-29
+最後更新：2026-08-30
 
 ## 1. 目的與證據邊界
 
@@ -27,7 +27,7 @@
 | `INITIAL_STAND` | 0.0–1.0 s | 維持 stand |
 | `START` | 1.0–2.5 s | 1.0 s 切換 walk |
 | `STEADY_WALK` | 2.5–6.5 s | 維持 walk |
-| `STOP` | 6.5–8.0 s | 6.5 s 切換 stand |
+| `STOP` | 6.5–8.0 s | 6.5 s 送出 stand 目標；controller 執行 `WALK → STOPPING → STAND` |
 | `FINAL_STAND` | 8.0–9.0 s | 維持 stand |
 
 任務進行中鎖定會改變測試身份或施加干擾的指令；僅允許 pause、simulation speed、single-step 與 task cancel。
@@ -67,3 +67,5 @@ Motion Task registry 以 task ID、phase events、initialization contract 與 ev
 - `squat_v1`、`turn_in_place_v1`、`sit_to_stand_v1`。
 
 手部動作可沿用目前 shoulder/elbow joints；抬腳則必須先定義支撐腳、重心轉移與接觸條件，不能只把 leg joint 播成動畫後宣稱平衡成功。
+
+Runner 的 primitive/action dispatcher 與 controlled stop state machine 定義於 [MOTION_PRIMITIVE_SPEC](MOTION_PRIMITIVE_SPEC.md)。V1 的 phase timing、gait 與 11 項 criteria 維持不變；本輪只改善 controller 對同一 stand command 的實現。

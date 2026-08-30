@@ -23,9 +23,83 @@
         "controller_hz": 50.0,
         "physics_hz": 500.0
       },
+      "observation_contract": {
+        "contract_id": "legacy_walk_47d_v1",
+        "dimension": 47,
+        "command_conditioned": false,
+        "command_name": null,
+        "command_normalization_mps": null
+      },
+      "runtime_adapter": "legacy_walk_v1",
       "created_at": "2026-08-25T21:50:05+08:00",
       "evidence_status": "LEGACY_RECONSTRUCTED_LOCAL_LOG_NO_FROZEN_ENVIRONMENT",
       "notes": "Artifact hash/size and training summary reconstructed from the retained local checkpoint, train_ppo.py, humanoid_env.py, and train_log.txt; package versions, source identity, and immutable training bundle were not retained."
+    },
+    {
+      "policy_id": "stand_start_walk_stop_0p7_curriculum_v2",
+      "display_name": "Curriculum-v2 Start/Walk/Stop 0.7 m/s",
+      "artifact": "ppo_stand_start_walk_stop_0p7_curriculum_v2.zip",
+      "sha256": "d3e1fc41be570d19cabaa86a760f11e631f5a9970eb3844e481a983b20e3e8ad",
+      "bytes": 1964161,
+      "gait_contract": {
+        "mode": "walk",
+        "speed_mps": 0.7,
+        "step_length_m": 0.35,
+        "duty": 0.62,
+        "clearance_m": 0.07
+      },
+      "training_contract": {
+        "algorithm": "PPO_CURRICULUM_WARM_START",
+        "total_timesteps": 1999992,
+        "parallel_envs": 12,
+        "seed_rule": "train_env_seed=3700+rank;evaluation_seed=17000..17029",
+        "controller_hz": 50.0,
+        "physics_hz": 500.0
+      },
+      "observation_contract": {
+        "contract_id": "motion_task_command_48d_v1",
+        "dimension": 48,
+        "command_conditioned": true,
+        "command_name": "forward_speed_mps",
+        "command_normalization_mps": 0.7
+      },
+      "runtime_adapter": "motion_task_command_envelope_v2",
+      "created_at": "2026-08-30T04:25:01.4529977Z",
+      "evidence_status": "LIVE_500HZ_TASK_EVALUATED_FAIL_LATERAL_SATURATION",
+      "notes": "Warm-started from walk_0p7_legacy with fail-closed 47-to-48D input expansion. Matching training-environment gate passed on evaluation seeds 17000-17029. Unmodified 500 Hz Motion Task run run-20260830t051225-rl_task_v2-a04424f3 passed no-fall, speed, progress, stop and final-stand criteria, but failed lateral drift (2.092011 m) and saturation duty (44.088889%). Not V3, physical, or sim-to-real validation."
+    },
+    {
+      "policy_id": "stand_start_walk_stop_0p7_phase_observable_v5",
+      "display_name": "Phase-observable Start/Walk/Stop 0.7 m/s",
+      "artifact": "ppo_stand_start_walk_stop_0p7_phase_observable_v5.zip",
+      "sha256": "c548867fbd17c736d54c1b1598d2abed1c7cb2dd28c7d310ea6e86ac3b36718c",
+      "bytes": 1983126,
+      "gait_contract": {
+        "mode": "walk",
+        "speed_mps": 0.7,
+        "step_length_m": 0.35,
+        "duty": 0.62,
+        "clearance_m": 0.07
+      },
+      "training_contract": {
+        "algorithm": "PPO_PATH_STOP_PHASE_WARM_START",
+        "total_timesteps": 122880,
+        "parallel_envs": 12,
+        "seed_rule": "train_env_seed=6700+rank;dev_seed=18000..18029;holdout_seed=19000..19029",
+        "controller_hz": 50.0,
+        "physics_hz": 500.0
+      },
+      "observation_contract": {
+        "contract_id": "motion_task_phase_observable_51d_v1",
+        "dimension": 51,
+        "command_conditioned": true,
+        "command_name": "forward_speed_mps",
+        "command_normalization_mps": 0.7
+      },
+      "runtime_adapter": "motion_task_phase_observable_v5",
+      "created_at": "2026-08-30T13:54:00+08:00",
+      "evidence_status": "LIVE_500HZ_TASK_EVALUATED_FAIL_SATURATION_DUTY",
+      "notes": "Warm-started from the v4 local development artifact with fail-closed 50-to-51D input expansion. The selected 122,880-step checkpoint passed DEV seeds 18000-18029 and HOLDOUT seeds 19000-19029 under the original 50 Hz saturation sampler. Live run run-20260830t055847-rl_task_v5-b6c4781d passed all criteria except 500 Hz saturation duty (38.422222%). This exposed a 50 Hz versus 500 Hz evaluator sampling defect; the earlier saturation passes are superseded. A separate 516,096-step run regressed and failed DEV due to one fall, stop, and lateral drift. Not V3, physical, or sim-to-real validation."
     }
   ]
 }

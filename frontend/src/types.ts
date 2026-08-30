@@ -178,6 +178,27 @@ export interface SimulationProvenance {
   created_at?: string;
 }
 
+export interface TrainingProfile {
+  profile_id: string;
+  speed_mps: number;
+  step_length_m: number;
+  duty: number;
+  clearance_m: number;
+  planned_timesteps: number;
+  parallel_envs: number;
+  seed_base: number;
+  status: string;
+  environment_id: "fixed_walk_v1" | "motion_task_command_v1";
+  task_id?: string | null;
+}
+
+export interface TrainingInventory {
+  schema_version: string;
+  evidence_scope: string;
+  execution_mode: "OFFLINE_EXPLICIT_COMMAND_ONLY";
+  profiles: TrainingProfile[];
+}
+
 export interface SimResult {
   meta: {
     dt: number;

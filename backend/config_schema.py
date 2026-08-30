@@ -213,7 +213,7 @@ class LiveObstacleCommand(ContractModel):
 class LiveModeCommand(ContractModel):
     type: Literal["mode"]
     mode: Literal["stand", "walk"] = "stand"
-    controller: Literal["track", "raibert", "rl"] | None = None
+    controller: Literal["track", "raibert", "rl", "rl_task_v2", "rl_task_v5"] | None = None
 
 
 class LiveSpeedCommand(ContractModel):

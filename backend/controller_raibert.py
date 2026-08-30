@@ -49,13 +49,13 @@ class RaibertController(BalanceController):
     def set_mode(self, mode: str, engine=None):
         if mode == "walk":
             self.state = "WALK"
+            self._stop_start_t = None
             self._walk_start_t = self.t
             self.phase = 1.0                # 觸發立即跨出第一步
             self.n_steps = 0
             self.decide("mode", "🚶 Raibert 閉環行走：觸地相位重置 + 線上落腳法則", "mode", 0)
         else:
-            self.state = "STAND"
-            self.decide("mode", "🧍 切換至站立平衡模式", "mode", 0)
+            super().set_mode("stand")
 
     def update_gait(self, gait: GaitParams, engine) -> None:
         """更新 Raibert-owned gait/T_step；保留目前 FSM state 與相位。"""
@@ -68,7 +68,8 @@ class RaibertController(BalanceController):
 
     def compute(self, data: mujoco.MjData, t_gait: float, dt: float) -> np.ndarray:
         # 站立 / 跌倒沿用基底控制器
-        if self.state != "WALK":
+        self._complete_stop_if_due()
+        if not self.is_locomoting():
             return super().compute(data, t_gait, dt)
 
         self.t += dt

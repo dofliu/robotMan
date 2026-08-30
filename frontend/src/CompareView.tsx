@@ -8,11 +8,11 @@ import {
   type LiveScene,
   type MotionTaskStatus,
   type TraceReceipt,
-  type WalkController,
+  type CompareController,
 } from "./LiveView";
 
-const CONTROLLERS: WalkController[] = ["track", "raibert", "rl"];
-const LABELS: Record<WalkController, string> = {
+const CONTROLLERS: CompareController[] = ["track", "raibert", "rl"];
+const LABELS: Record<CompareController, string> = {
   track: "Trajectory Tracking",
   raibert: "Raibert Closed-loop",
   rl: "RL Policy (PPO)",
@@ -20,8 +20,8 @@ const LABELS: Record<WalkController, string> = {
 
 interface CompareScene {
   type: "compare_scene";
-  controllers: WalkController[];
-  scenes: Record<WalkController, LiveScene>;
+  controllers: CompareController[];
+  scenes: Record<CompareController, LiveScene>;
   plant_signature: string;
   evidence_scope: "DEVELOPMENT_COMPARISON_ONLY";
   plant_isolation: boolean;
@@ -31,7 +31,7 @@ interface CompareScene {
 interface CompareFrame {
   type: "compare_frame";
   t: number;
-  frames: Record<WalkController, LiveFrame>;
+  frames: Record<CompareController, LiveFrame>;
   sync: {
     max_time_skew_s: number;
     same_input: boolean;
@@ -42,27 +42,27 @@ interface CompareFrame {
 interface CompareTraceStartedMessage {
   type: "trace_recording_started";
   group_id: string;
-  traces: Record<WalkController, { run_id: string }>;
+  traces: Record<CompareController, { run_id: string }>;
 }
 
 interface CompareTraceReadyMessage {
   type: "trace_ready";
   group_id: string;
-  traces: Record<WalkController, TraceReceipt>;
+  traces: Record<CompareController, TraceReceipt>;
 }
 
 interface CompareTaskStartedMessage {
   type: "task_started";
   group_id: string;
   plant_signature: string;
-  tasks: Record<WalkController, MotionTaskStatus>;
-  scenes: Record<WalkController, LiveScene>;
+  tasks: Record<CompareController, MotionTaskStatus>;
+  scenes: Record<CompareController, LiveScene>;
 }
 
 interface CompareTaskCancelledMessage {
   type: "task_cancelled";
   group_id: string;
-  tasks: Record<WalkController, MotionTaskResult>;
+  tasks: Record<CompareController, MotionTaskResult>;
 }
 
 type CompareMessage = CompareScene | CompareFrame | LiveErrorMessage
@@ -74,7 +74,7 @@ function RobotCard({
   scene,
   frame,
 }: {
-  controller: WalkController;
+  controller: CompareController;
   scene?: LiveScene;
   frame?: LiveFrame;
 }) {
@@ -110,6 +110,8 @@ function RobotCard({
     : 0;
   const stateClass = ctrl?.state === "FALLEN"
     ? "border-red-500/60 text-red-300"
+    : ctrl?.state === "STOPPING"
+      ? "border-amber-500/50 text-amber-300"
     : ctrl?.state === "WALK"
       ? "border-sky-500/50 text-sky-300"
       : "border-emerald-500/40 text-emerald-300";
