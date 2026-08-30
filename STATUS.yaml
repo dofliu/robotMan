@@ -11,7 +11,7 @@ status: V0_PARTIAL_IMPLEMENTED_NOT_PASS
 validation_status: NOT_PHYSICALLY_VALIDATED
 evidence_scope: SIM_ONLY_REDUCED_ORDER
 last_updated: "2026-08-30"
-next_milestone: "Freeze the first V1 physics oracles and design a v7 torque-aware action-interface ablation; DEV seeds 18000-18029 and former HOLDOUT seeds 19000-19029 are retired from future formal holdout use"
+next_milestone: "Add friction/CoP and process-independent raw replay to V1, then design a v7 torque-aware action-interface ablation; DEV seeds 18000-18029 and former HOLDOUT seeds 19000-19029 are retired from future formal holdout use"
 feature_inventory_status: PROTOTYPE_FEATURES_PRESENT_UNVERIFIED
 runtime_provenance_status: PARTIAL_IMPLEMENTED
 runtime_provenance_scope: ANALYSIS_API_ONLY
@@ -28,7 +28,7 @@ training_ui_status: "READ_ONLY_NINE_PROFILE_INVENTORY_IMPLEMENTED: fixed-speed p
 dynamic_run_trace_status: "IMPLEMENTED_BACKEND_FRONTEND_BUILD_PASS_BROWSER_VISUAL_PENDING: bounded 500 Hz physics-step NPZ+manifest artifacts, SHA-256 validation, Live/Compare capture, REST analysis API, and first-mode realized-output review"
 motion_task_status: "V5_LIVE_500HZ_NEAR_PASS_RETAINED_FAIL: run-20260830t055847-rl_task_v5-b6c4781d passed 10 of 11 criteria with no fall, 0.585712 m/s steady speed, 2.345757 m progress, 0.042144 m/s stop speed, 0.045858 m lateral drift, and failed only saturation duty 38.422222% > 30%; thresholds were not changed"
 v0_remaining_blockers: "immutable artifact bundle, environment lock, raw artifact inventory, fail-closed validator, complete requirement registry"
-v1_oracle_status: "PARTIAL_IMPLEMENTED_NOT_PASS: v1_static_double_support_internal_v1 passes 8/8 frozen MuJoCo internal numerical/reference criteria; independent 6D contact-wrench closure, joint equation replay, unilateral/friction/CoP checks, pendulum/payload cases, and convergence studies remain missing"
+v1_oracle_status: "PARTIAL_IMPLEMENTED_NOT_PASS: v1_static_double_support_internal_v2 passes 13/13 frozen criteria and records all 1000 physics steps; 6-D wrench/Jacobian reconstruction closes static base force, base moment, joint torque, and unilateral normal force, but both wrench and qfrc_constraint originate in MuJoCo; process-independent replay, friction/CoP, dynamic/pendulum/payload cases, and convergence studies remain missing"
 technologies:
   - Python
   - FastAPI

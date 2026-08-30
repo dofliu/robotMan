@@ -27,10 +27,10 @@ SIL PASS 不自動成為 HIL、bench 或 integrated robot PASS。
 | V0-R06 runtime metric 定義固定 | versioned formula、window、unit 與 null semantics | independent recomputation equality | [METRIC_DEFINITIONS](METRIC_DEFINITIONS.md)、raw trace、oracle output | V0/V1 | PARTIAL: ANALYSIS_METRICS_V1 + regressions implemented; independent raw evaluator/gate missing |
 | V0-R07 result-input identity | frozen request snapshot + server hash readback | stale/race/mismatch case 不得顯示 CURRENT | frontend behavior receipt | V0 | PARTIAL: exact request snapshot/race/stale behavior implemented; server hash independently unverified |
 | V1-R01 IK/FK correctness | analytical and MuJoCo round-trip cases | position/orientation tolerance frozen before run | per-case raw target/state/error | V1 | PARTIAL / NOT GATED |
-| V1-R02 floating-base force equilibrium | constrained inverse dynamics / residual audit | normalized base force residual below preregistered tolerance | full generalized force/contact traces | V1 | BLOCKED |
-| V1-R03 floating-base moment equilibrium | full 6D contact wrench closure | normalized base moment residual below preregistered tolerance | wrench/Jacobian/residual traces | V1 | BLOCKED |
-| V1-R04 joint torque equation closure | recompute inverse dynamics with solved contacts | generalized equation residual and independent replay | q/qd/qdd/tau/contact/model traces | V1 | BLOCKED |
-| V1-R05 unilateral contact | inspect each contact normal force | all active Fz nonnegative within tolerance | contact trace + violation list | V1 | NOT STARTED |
+| V1-R02 floating-base force equilibrium | constrained inverse dynamics / residual audit | normalized base force residual below preregistered tolerance | full generalized force/contact traces | V1 | PARTIAL: static case contact-wrench/Jacobian reconstruction PASS; dynamic and process-independent replay missing |
+| V1-R03 floating-base moment equilibrium | full 6D contact wrench closure | normalized base moment residual below preregistered tolerance | wrench/Jacobian/residual traces | V1 | PARTIAL: static 6-D reconstruction PASS; independent contact model and dynamic cases missing |
+| V1-R04 joint torque equation closure | recompute inverse dynamics with solved contacts | generalized equation residual and independent replay | q/qd/qdd/tau/contact/model traces | V1 | PARTIAL: static contact generalized-force closure PASS and raw qfrc terms recorded; full equation replay missing |
+| V1-R05 unilateral contact | inspect each contact normal force | all active Fz nonnegative within tolerance | contact trace + violation list | V1 | PARTIAL: static case minimum active normal force gate PASS; scenario coverage missing |
 | V1-R06 friction feasibility | friction cone/pyramid constraint | tangential force inside frozen friction model | friction params + per-contact ratios | V1 | NOT STARTED |
 | V1-R07 CoP/support feasibility | derive CoP from full wrench/contact distribution | CoP inside active foot support; torsional constraint satisfied | wrench/pressure/contact geometry | V1 | NOT STARTED |
 | V1-R08 contact schedule consistency | compare prescribed and solved/forward contact | event matching tolerance and no unsupported flight/contact | event trace | V1 | NOT STARTED |
@@ -198,7 +198,7 @@ Nominal case 用於 deterministic regression；不得代表 scenario coverage。
 - runtime config/model/code/result hashes 與 run/scenario IDs 已 partial implemented，但尚未形成 immutable source/run identity；
 - dependencies 未完整 pin，environment lock 缺失；
 - runtime provenance metadata 已有，raw bundle/inventory/validator 尚未實作；
-- base wrench residual 未進入 production output/gate；
+- base wrench residual 已進入 bounded static oracle；dynamic/process-independent gate 尚未完成；
 - joint/actuator/contact/solver constraints 不完整；
 - benchmark energy/fairness/UQ 未 gate；
 - built-in hardware 仍為 D0；
