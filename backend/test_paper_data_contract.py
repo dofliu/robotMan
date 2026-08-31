@@ -1,16 +1,20 @@
 """Paper-data manifest, artifact inventory, and V1 bundle tests."""
 
+from copy import deepcopy
 from datetime import datetime, timezone
 import json
+from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
 
+import build_v1_paper_bundle as bundle_module
 from build_v1_paper_bundle import build_v1_paper_bundle
 from paper_data_contract import (
     PaperDataIntegrityError,
     PaperRunManifest,
     artifact_record,
+    sha256_file,
     validate_paper_run_bundle,
 )
 
@@ -153,9 +157,302 @@ def test_bundle_rejects_tampered_artifact(tmp_path):
 
 def test_v1_oracle_builds_integrity_validated_regression_bundle(tmp_path):
     receipt = build_v1_paper_bundle(tmp_path / "v1-paper-bundle")
+    manifest = json.loads(Path(receipt["manifest"]).read_text(encoding="utf-8"))
+    evaluator_path = Path(receipt["bundle_root"]) / "evaluator_receipt.json"
+    evaluator = json.loads(evaluator_path.read_text(encoding="utf-8"))
 
     assert receipt["primary_status"] == "PASS"
     assert receipt["replay_status"] == "PASS"
     assert receipt["validation"]["validation_status"] == "REGRESSION_BUNDLE_VALID_ONLY"
     assert receipt["validation"]["paper_data_ready"] is False
     assert receipt["validation"]["artifact_count"] == 10
+    assert manifest["status"] == "COMPLETED"
+    assert manifest["protocol_version"] == "4.0.0"
+    assert manifest["metric_set_id"] == "V1-STATIC-CONTACT-METRICS-V4"
+    assert manifest["evaluator_id"] == "V1-RAW-JACOBIAN-REPLAY-RECEIPT-V2"
+    assert evaluator["schema_version"] == "V1_RAW_JACOBIAN_REPLAY_RECEIPT_V2"
+
+    raw_path = Path(receipt["bundle_root"]) / "raw_oracle.json"
+    raw_result = json.loads(raw_path.read_text(encoding="utf-8"))
+    assert manifest["plant"]["sha256"] == raw_result["resolved_model"][
+        "model_xml_sha256"
+    ]
+    forged = deepcopy(evaluator)
+    for item in forged["criteria"]:
+        item.update({
+            "passed": True,
+            "value": 1.0e30,
+            "operator": "<=",
+            "limit": -1.0e30,
+        })
+    forged["status"] = "PASS"
+    assert bundle_module._valid_replay_receipt(
+        forged,
+        raw_result,
+        sha256_file(raw_path),
+    ) is False
+    forged_claim = deepcopy(evaluator)
+    forged_claim["claim_boundary"] = "PHYSICALLY_VALIDATED hardware result"
+    assert bundle_module._valid_replay_receipt(
+        forged_claim,
+        raw_result,
+        sha256_file(raw_path),
+    ) is False
+    overflow = deepcopy(evaluator)
+    overflow["replayed_at"] = float("inf")
+    assert bundle_module._valid_replay_receipt(
+        overflow,
+        raw_result,
+        sha256_file(raw_path),
+    ) is False
+
+
+def test_v1_bundle_retains_replay_process_error_as_failed_bundle(tmp_path, monkeypatch):
+    original_run = bundle_module.subprocess.run
+
+    def replay_failure(args, *positional, **keyword):
+        if any(str(item).endswith("v1_replay.py") for item in args):
+            return bundle_module.subprocess.CompletedProcess(
+                args,
+                returncode=7,
+                stdout="",
+                stderr="synthetic replay process failure",
+            )
+        return original_run(args, *positional, **keyword)
+
+    monkeypatch.setattr(bundle_module.subprocess, "run", replay_failure)
+    receipt = bundle_module.build_v1_paper_bundle(tmp_path / "v1-failed-bundle")
+    manifest = json.loads(Path(receipt["manifest"]).read_text(encoding="utf-8"))
+    evaluator_path = Path(receipt["bundle_root"]) / "evaluator_receipt.json"
+    evaluator = json.loads(evaluator_path.read_text(encoding="utf-8"))
+
+    assert receipt["primary_status"] == "PASS"
+    assert receipt["replay_status"] == "ERROR"
+    assert receipt["validation"]["validation_status"] == "REGRESSION_BUNDLE_VALID_ONLY"
+    assert manifest["status"] == "FAILED"
+    assert manifest["failures"][0]["failure_type"] == "REPLAY_PROCESS_ERROR"
+    assert evaluator["status"] == "ERROR"
+    assert evaluator["return_code"] == 7
+    assert (Path(receipt["bundle_root"]) / "stderr.txt").read_text(
+        encoding="utf-8"
+    ) == "synthetic replay process failure"
+
+
+def test_v1_bundle_retains_replay_spawn_exception_as_failed_bundle(
+    tmp_path,
+    monkeypatch,
+):
+    original_run = bundle_module.subprocess.run
+
+    def replay_exception(args, *positional, **keyword):
+        if any(str(item).endswith("v1_replay.py") for item in args):
+            raise OSError("synthetic replay spawn failure")
+        return original_run(args, *positional, **keyword)
+
+    monkeypatch.setattr(bundle_module.subprocess, "run", replay_exception)
+    receipt = bundle_module.build_v1_paper_bundle(tmp_path / "v1-spawn-error-bundle")
+    bundle_root = Path(receipt["bundle_root"])
+    manifest = json.loads(Path(receipt["manifest"]).read_text(encoding="utf-8"))
+    evaluator = json.loads(
+        (bundle_root / "evaluator_receipt.json").read_text(encoding="utf-8")
+    )
+
+    assert receipt["primary_status"] == "PASS"
+    assert receipt["replay_status"] == "ERROR"
+    assert manifest["status"] == "FAILED"
+    assert manifest["failures"][0]["failure_type"] == "REPLAY_PROCESS_ERROR"
+    assert evaluator["error_type"] == "PROCESS_EXCEPTION"
+    assert evaluator["return_code"] is None
+    assert "OSError: synthetic replay spawn failure" in (
+        bundle_root / "stderr.txt"
+    ).read_text(encoding="utf-8")
+
+
+def test_v1_bundle_fails_when_source_identity_changes_during_run(
+    tmp_path,
+    monkeypatch,
+):
+    identities = iter([("a" * 40, False), ("b" * 40, False)])
+    monkeypatch.setattr(bundle_module, "_source_identity", lambda: next(identities))
+
+    receipt = bundle_module.build_v1_paper_bundle(tmp_path / "v1-source-drift-bundle")
+    bundle_root = Path(receipt["bundle_root"])
+    manifest = json.loads(Path(receipt["manifest"]).read_text(encoding="utf-8"))
+    environment = json.loads(
+        (bundle_root / "environment.json").read_text(encoding="utf-8")
+    )
+
+    assert receipt["primary_status"] == "PASS"
+    assert receipt["replay_status"] == "PASS"
+    assert manifest["status"] == "FAILED"
+    assert manifest["source_git_sha"] == "a" * 40
+    assert any(
+        item["failure_type"] == "SOURCE_IDENTITY_CHANGED_DURING_RUN"
+        for item in manifest["failures"]
+    )
+    assert environment["source_identity"]["stable_during_run"] is False
+
+
+def test_v1_bundle_retains_primary_oracle_exception_as_failed_bundle(
+    tmp_path,
+    monkeypatch,
+):
+    def primary_failure(**_keyword):
+        raise RuntimeError("synthetic primary oracle failure")
+
+    monkeypatch.setattr(
+        bundle_module,
+        "run_static_double_support_oracle",
+        primary_failure,
+    )
+    receipt = bundle_module.build_v1_paper_bundle(
+        tmp_path / "v1-primary-exception-bundle"
+    )
+    bundle_root = Path(receipt["bundle_root"])
+    manifest = json.loads(Path(receipt["manifest"]).read_text(encoding="utf-8"))
+    raw_receipt = json.loads(
+        (bundle_root / "raw_oracle.json").read_text(encoding="utf-8")
+    )
+    evaluator = json.loads(
+        (bundle_root / "evaluator_receipt.json").read_text(encoding="utf-8")
+    )
+
+    assert receipt["primary_status"] == "ERROR"
+    assert receipt["replay_status"] == "ERROR"
+    assert receipt["validation"]["validation_status"] == "REGRESSION_BUNDLE_VALID_ONLY"
+    assert receipt["validation"]["artifact_count"] == 10
+    assert manifest["status"] == "FAILED"
+    assert manifest["failures"][0]["failure_type"] == "PRIMARY_ORACLE_EXCEPTION"
+    assert raw_receipt["status"] == "ERROR"
+    assert raw_receipt["error_type"] == "PRIMARY_ORACLE_EXCEPTION"
+    assert raw_receipt["error_class"] == "RuntimeError"
+    assert evaluator["status"] == "ERROR"
+    assert evaluator["error_type"] == "PRIMARY_ORACLE_NOT_REPLAYED"
+    assert evaluator["return_code"] is None
+    assert (bundle_root / "stdout.txt").read_text(encoding="utf-8") == ""
+    assert "RuntimeError: synthetic primary oracle failure" in (
+        bundle_root / "stderr.txt"
+    ).read_text(encoding="utf-8")
+
+
+def test_v1_bundle_rejects_incomplete_or_forged_primary_pass(
+    tmp_path,
+    monkeypatch,
+):
+    valid = bundle_module.run_static_double_support_oracle(include_raw_trace=True)
+    incomplete = deepcopy(valid)
+    incomplete["criteria"] = []
+    forged = deepcopy(valid)
+    forged["metrics"]["forward_inverse_joint_force_norm_max"] = 1.0e30
+    forged["criteria"][1]["value"] = 1.0e30
+    forged["criteria"][1]["passed"] = True
+    forged["status"] = "PASS"
+
+    for name, invalid in (("missing-criteria", incomplete), ("forged-pass", forged)):
+        monkeypatch.setattr(
+            bundle_module,
+            "run_static_double_support_oracle",
+            lambda **_keyword: deepcopy(invalid),
+        )
+        receipt = bundle_module.build_v1_paper_bundle(tmp_path / name)
+        bundle_root = Path(receipt["bundle_root"])
+        manifest = json.loads(Path(receipt["manifest"]).read_text(encoding="utf-8"))
+        raw_receipt = json.loads(
+            (bundle_root / "raw_oracle.json").read_text(encoding="utf-8")
+        )
+
+        assert receipt["primary_status"] == "ERROR"
+        assert receipt["replay_status"] == "ERROR"
+        assert manifest["status"] == "FAILED"
+        assert manifest["failures"][0]["failure_type"] == (
+            "PRIMARY_RESULT_INVALID_RECEIPT"
+        )
+        assert raw_receipt["error_type"] == "PRIMARY_RESULT_INVALID_RECEIPT"
+
+
+@pytest.mark.parametrize(
+    ("non_finite_value", "diagnostic"),
+    [
+        (float("nan"), "$.metrics.synthetic=NaN"),
+        (float("inf"), "$.metrics.synthetic=+Infinity"),
+        (float("-inf"), "$.metrics.synthetic=-Infinity"),
+    ],
+    ids=["nan", "positive-infinity", "negative-infinity"],
+)
+def test_v1_bundle_retains_non_finite_primary_result_as_failed_bundle(
+    tmp_path,
+    monkeypatch,
+    non_finite_value,
+    diagnostic,
+):
+    monkeypatch.setattr(
+        bundle_module,
+        "run_static_double_support_oracle",
+        lambda **_keyword: {
+            "schema_version": "V1_STATIC_DOUBLE_SUPPORT_ORACLE_V4",
+            "status": "PASS",
+            "metrics": {"synthetic": non_finite_value},
+            "criteria": [],
+        },
+    )
+    receipt = bundle_module.build_v1_paper_bundle(
+        tmp_path / f"v1-primary-non-finite-{diagnostic.rsplit('=', 1)[-1]}"
+    )
+    bundle_root = Path(receipt["bundle_root"])
+    manifest = json.loads(Path(receipt["manifest"]).read_text(encoding="utf-8"))
+    raw_receipt = json.loads(
+        (bundle_root / "raw_oracle.json").read_text(encoding="utf-8")
+    )
+    evaluator = json.loads(
+        (bundle_root / "evaluator_receipt.json").read_text(encoding="utf-8")
+    )
+
+    assert receipt["primary_status"] == "ERROR"
+    assert receipt["replay_status"] == "ERROR"
+    assert receipt["validation"]["artifact_count"] == 10
+    assert manifest["status"] == "FAILED"
+    assert manifest["failures"][0]["failure_type"] == "PRIMARY_RESULT_NONFINITE"
+    assert raw_receipt["status"] == "ERROR"
+    assert raw_receipt["error_type"] == "PRIMARY_RESULT_NONFINITE"
+    assert diagnostic in raw_receipt["detail"]
+    assert evaluator["status"] == "ERROR"
+    assert evaluator["error_type"] == "PRIMARY_ORACLE_NOT_REPLAYED"
+    assert diagnostic in (bundle_root / "stderr.txt").read_text(encoding="utf-8")
+
+
+@pytest.mark.parametrize(
+    "invalid_stdout",
+    ['{"status":"PASS"}', '{"status":"ERROR"}', "[]"],
+)
+def test_v1_bundle_rejects_incomplete_replay_stdout(
+    tmp_path,
+    monkeypatch,
+    invalid_stdout,
+):
+    original_run = bundle_module.subprocess.run
+
+    def incomplete_replay(args, *positional, **keyword):
+        if any(str(item).endswith("v1_replay.py") for item in args):
+            return bundle_module.subprocess.CompletedProcess(
+                args,
+                returncode=0,
+                stdout=invalid_stdout,
+                stderr="",
+            )
+        return original_run(args, *positional, **keyword)
+
+    monkeypatch.setattr(bundle_module.subprocess, "run", incomplete_replay)
+    receipt = bundle_module.build_v1_paper_bundle(
+        tmp_path / f"v1-invalid-replay-{len(invalid_stdout)}"
+    )
+    manifest = json.loads(Path(receipt["manifest"]).read_text(encoding="utf-8"))
+    evaluator_path = Path(receipt["bundle_root"]) / "evaluator_receipt.json"
+    evaluator = json.loads(evaluator_path.read_text(encoding="utf-8"))
+
+    assert receipt["replay_status"] == "ERROR"
+    assert manifest["status"] == "FAILED"
+    assert manifest["failures"][0]["failure_type"] == "REPLAY_PROCESS_ERROR"
+    assert evaluator["error_type"] == "INVALID_REPLAY_RECEIPT"
+    assert (Path(receipt["bundle_root"]) / "stdout.txt").read_text(
+        encoding="utf-8"
+    ) == invalid_stdout

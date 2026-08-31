@@ -1,7 +1,8 @@
 # 人形機器人控制與訓練方法研究執行計畫
 
-最後更新：2026-08-30  
-目前證據範圍：`SIM_ONLY_REDUCED_ORDER` / `NOT_PHYSICALLY_VALIDATED`
+最後更新：2026-08-31
+
+本次 V1 evidence 範圍：`SIM_ONLY_MUJOCO` / `NOT_PHYSICALLY_VALIDATED`
 
 ## 1. 研究目標與證據邊界
 
@@ -29,12 +30,27 @@ Policy 在同一 simulator 與 reward 中表現良好，不等於 model validati
 |---|---|---|---|
 | P0 | curriculum-v2 48-D Live adapter、registry identity、500 Hz task trace | observation/action contract tests；未修改 11 項 criteria | DONE / task FAIL retained |
 | P0B | v3–v6 observation、terminal、phase 與 500 Hz load iteration | DEV + unchanged Live gates；失敗與 evaluator defects 保留 | DONE / no deployable PASS |
-| P1 | V1 plant/contact/numerical oracle | residual、contact、friction、CoP、convergence、energy 全部可獨立重算 | IN PROGRESS / static wrench+friction+CoP and bounded process replay PASS, gate not pass |
+| P1 | V1 plant/contact/numerical oracle | residual、contact、friction、CoP、convergence、energy 全部可獨立重算 | IN PROGRESS / static raw-Jacobian arithmetic replay PASS; scenario、convergence、energy仍缺，gate not pass |
 | P2 | QP/WBC baseline | constraint-feasible、failure-retaining baseline bundle | BLOCKED BY P1 |
 | P3 | Experiment orchestrator | controller × training seed × eval seed × scenario 完整 manifest | FOUNDATION PARTIAL: paper run manifest + V1 regression bundle validator implemented; matrix runner missing |
 | P4 | Study A formal benchmark | protocol frozen、paired statistics、CI、failures/censoring retained | BLOCKED BY P1–P3 |
 | P5 | Motion primitives / imitation | raise hand、single-leg raise、squat、turn 等各有獨立 task contract | AFTER STUDY A |
 | P6 | SIL/HIL/bench/robot validation | 只在實際完成的外部 evidence 層級建立 bounded claim | FUTURE |
+
+### P1 bounded result：raw Jacobian replay V4
+
+- [SOURCE] MuJoCo [`mj_jac`](https://mujoco.readthedocs.io/en/stable/APIreference/APIfunctions.html#mj-jac)
+  提供 world-aligned `3 × nv` translational/rotational Jacobians；官方
+  [contact computation](https://mujoco.readthedocs.io/en/stable/computation/index.html#contact)
+  使用 `body2 - body1` relative spatial Jacobian與 contact-frame wrench。
+- [RESULT] `v1_static_double_support_internal_v4` 逐 contact保存兩個
+  relative Jacobians與 `adhesion_n == 0`，stdlib-only replay不讀 MuJoCo、
+  controller或 per-contact generalized-force receipt，仍與 primary八個 metrics
+  完全一致。
+- [INFERENCE] 這能檢出 serialization、frame/sign與 arithmetic drift，但不能
+  驗證 MuJoCo contact model的 physical fidelity。
+- [BLOCKER] Single-support、known-payload、time-step convergence、dynamic
+  contact、energy與外部 force/bench evidence仍未完成；P1/V1保持未通過。
 
 ## 4. P0 結果與 P0B 設計
 
@@ -110,6 +126,7 @@ Primary outcomes 在 protocol freeze 時只選少數主指標，例如 task succ
 - immutable model/controller/checkpoint identity；
 - source、environment、package、seed 與 scenario manifest；
 - raw 500 Hz trace 與 hash；
+- raw contact frame、6-D wrench與 relative translational/rotational Jacobians；
 - independent evaluator version 與 output；
 - failure/null/censored episodes；
 - statistics code/output、effect size 與 confidence interval；

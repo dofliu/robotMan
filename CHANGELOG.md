@@ -2,15 +2,17 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
-## Unreleased — 2026-08-30
+## Unreleased — 2026-08-31
 
-- V1 static contact oracle V3：1000-step/500 Hz raw evidence、16 項 frozen criteria。
+- V1 static contact oracle V4：1000-step/500 Hz raw evidence、16 項 frozen criteria，既有 thresholds未變。
 - 依 compiled `PYRAMIDAL` cone 與 `condim=3` 重算 friction utilization。
 - 由 aggregate foot wrench 在 foot-local sole plane 重算 CoP/support margin。
-- 新增僅使用 Python standard library、完全不載入 MuJoCo/controller 的 raw replay evaluator；11 項 replay criteria 與 primary metrics 一致。
+- 每個 contact新增 `body2 - body1` 的 `3 × nv` translational/rotational Jacobians與 frozen `adhesion_n == 0` precondition；移除 per-contact `generalized_force` raw receipt。
+- stdlib-only replay完全不載入 MuJoCo/controller，改由 raw Jacobians、contact frame與6-D wrench重建 generalized force；14 項 replay criteria另涵蓋全 trace closure、absolute time grid與 evaluation count，primary metrics保持一致。
 - 新增 paper-data-first architecture、`PAPER_RUN_MANIFEST_V1`、formal HOLDOUT/seed/clean-source gates與 path/size/SHA-256 artifact validator。
-- V1 static oracle可產出第一包 10-role integrity-valid regression bundle；validator明確回報 `REGRESSION_BUNDLE_VALID_ONLY`，不偽裝成 formal paper result。
-- 保留證據邊界：raw Jacobian 尚未 serialized，dynamic contact、independent contact model、convergence、energy 與 physical validation 仍未完成。
+- V1 static oracle可產出10-role integrity-valid regression bundle；primary exception/non-finite result與 replay `FAIL`/process/schema error會保留為 failed bundle、diagnostic artifact與 failure record；validator明確回報 `REGRESSION_BUNDLE_VALID_ONLY`，不偽裝成 formal paper result。
+- Bundle builder不信任 primary/replay自報 PASS；exact 16/14 criterion mapping、frozen raw/model fields、model.xml SHA-256與 pre/post Git identity皆 fail closed。
+- 保留證據邊界：Jacobian與wrench仍是 same-engine MuJoCo receipts；single-support、known-payload、dynamic contact、independent contact model、convergence、energy與 physical validation仍未完成。
 
 ## 0.1.0 — 2026-08-29
 

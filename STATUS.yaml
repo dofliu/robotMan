@@ -10,8 +10,8 @@ progress_basis: "V&V gate completion; feature count is not validation maturity"
 status: V0_PARTIAL_IMPLEMENTED_NOT_PASS
 validation_status: NOT_PHYSICALLY_VALIDATED
 evidence_scope: SIM_ONLY_REDUCED_ORDER
-last_updated: "2026-08-30"
-next_milestone: "Complete Paper Data Readiness by serializing raw Jacobians, adding single-support/payload/convergence V1 cases, and building experiment-matrix completeness plus statistics inputs before v7 PILOT; DEV seeds 18000-18029 and former HOLDOUT seeds 19000-19029 remain retired from formal holdout use"
+last_updated: "2026-08-31"
+next_milestone: "Add frozen single-support, known-payload, and time-step convergence V1 cases before experiment-matrix completeness, statistics inputs, and v7 PILOT; DEV seeds 18000-18029 and former HOLDOUT seeds 19000-19029 remain retired from formal holdout use"
 feature_inventory_status: PROTOTYPE_FEATURES_PRESENT_UNVERIFIED
 runtime_provenance_status: PARTIAL_IMPLEMENTED
 runtime_provenance_scope: ANALYSIS_API_ONLY
@@ -28,8 +28,8 @@ training_ui_status: "READ_ONLY_NINE_PROFILE_INVENTORY_IMPLEMENTED: fixed-speed p
 dynamic_run_trace_status: "IMPLEMENTED_BACKEND_FRONTEND_BUILD_PASS_BROWSER_VISUAL_PENDING: bounded 500 Hz physics-step NPZ+manifest artifacts, SHA-256 validation, Live/Compare capture, REST analysis API, and first-mode realized-output review"
 motion_task_status: "V5_LIVE_500HZ_NEAR_PASS_RETAINED_FAIL: run-20260830t055847-rl_task_v5-b6c4781d passed 10 of 11 criteria with no fall, 0.585712 m/s steady speed, 2.345757 m progress, 0.042144 m/s stop speed, 0.045858 m lateral drift, and failed only saturation duty 38.422222% > 30%; thresholds were not changed"
 v0_remaining_blockers: "immutable artifact bundle, environment lock, raw artifact inventory, fail-closed validator, complete requirement registry"
-v1_oracle_status: "PARTIAL_IMPLEMENTED_NOT_PASS: v1_static_double_support_internal_v3 passes 16/16 frozen criteria over 1000 physics steps; PYRAMIDAL friction utilization is 0.0014199 and minimum foot-local CoP margin is 0.045 m; a no-MuJoCo/controller raw replay passes 11/11 with zero primary metric delta, but per-contact generalized forces remain source-engine receipts because raw Jacobians are not serialized; dynamic/single-support/pendulum/payload cases and convergence/energy studies remain missing"
-paper_data_readiness_status: "FOUNDATION_PARTIAL_NOT_FORMAL: PAPER_RUN_MANIFEST_V1, 10-role artifact inventory, path/size/SHA-256 readback, formal HOLDOUT/clean-source/seed/assist/tuning gates, and a V1 regression bundle builder are implemented; REGRESSION_BUNDLE_VALID is explicitly not PAPER_DATA_READY; environment lock, raw-Jacobian independence, experiment matrix completeness, paired statistics/CI, and formal Study A authorization remain missing"
+v1_oracle_status: "PARTIAL_IMPLEMENTED_NOT_PASS: v1_static_double_support_internal_v4 passes 16/16 frozen criteria over 1000 physics steps; every contact serializes 3xnv body2-minus-body1 translational/rotational Jacobians plus condim/active-state/zero-adhesion receipts; a stdlib-only no-MuJoCo/controller replay enforces frozen raw/model schemas, reconstructs generalized force from raw Jacobians/wrenches, passes exact 14/14 including full-trace closure and absolute time-grid gates, and has zero primary metric delta; evidence remains SIM_ONLY_MUJOCO / NOT_PHYSICALLY_VALIDATED because same-engine contact receipts, dynamic/single-support/pendulum/payload cases, and convergence/energy studies remain missing"
+paper_data_readiness_status: "FOUNDATION_PARTIAL_NOT_FORMAL: PAPER_RUN_MANIFEST_V1, 10-role artifact inventory, path/size/SHA-256 readback, pre/post Git identity, compiled-model XML identity, formal HOLDOUT/clean-source/seed/assist/tuning gates, V1 raw-Jacobian replay, exact 16/14 receipt validation, and primary/replay failure retention are implemented; REGRESSION_BUNDLE_VALID is explicitly not PAPER_DATA_READY; complete environment lock, analytical/dynamic V1 coverage, experiment matrix completeness, paired statistics/CI, and formal Study A authorization remain missing"
 technologies:
   - Python
   - FastAPI

@@ -9,7 +9,7 @@
 
 正式結果必須建立 versioned protocol instance。僅執行 script 或產生 Markdown report 不算 protocol completion。
 
-`PAPER_RUN_MANIFEST_V1` 與 fail-closed artifact validator 已建立第一個可執行 contract，V1 static oracle 可輸出 integrity-valid regression bundle。這只完成 bounded run-level packaging；project-wide immutable storage、matrix completeness、statistics與 formal authorization 仍未完成。完整架構見 [PAPER_DATA_READINESS](PAPER_DATA_READINESS.md)。
+`PAPER_RUN_MANIFEST_V1` 與 fail-closed artifact validator 已建立第一個可執行 contract；V1 static V4 oracle可保存 raw relative Jacobians，並由不載入 MuJoCo/controller 的另一 process重建 generalized force後輸出 integrity-valid regression bundle。這只完成 bounded same-engine arithmetic replay與 run-level packaging；project-wide immutable storage、analytical/dynamic coverage、matrix completeness、statistics與 formal authorization 仍未完成。完整架構見 [PAPER_DATA_READINESS](PAPER_DATA_READINESS.md)。
 
 ## 2. Run classes
 
@@ -212,6 +212,7 @@ WBC 作為 model-based baseline 時，需先通過 V1 contact/constraint gate，
 - q、qd、qdd；
 - command/torque/actuator state；
 - contact points/forces/wrenches；
+- contact frame與 `body2 - body1` relative translational/rotational Jacobians；
 - CoM/base state；
 - sensor/estimator streams；
 - assist/disturbance/event/termination log；

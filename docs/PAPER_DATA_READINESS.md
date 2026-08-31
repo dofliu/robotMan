@@ -1,6 +1,6 @@
 # Paper Data Readiness Architecture
 
-最後更新：2026-08-30
+最後更新：2026-08-31
 
 狀態：`ARCHITECTURE FROZEN V1 / IMPLEMENTATION IN PROGRESS`
 
@@ -119,9 +119,9 @@ Regression bundle 可通過 integrity validation，但只能標為 `REGRESSION_B
 | Gate | Exit condition | 目前狀態 |
 |---|---|---|
 | PDR-0 Claim | RQ、hypothesis、primary outcomes、claim boundary frozen | PARTIAL |
-| PDR-1 Model evidence | V1 dynamics/contact/numerical suite完成 | PARTIAL / static only |
-| PDR-2 Run identity | manifest schema、source/model/controller/environment hashes | IN PROGRESS |
-| PDR-3 Raw integrity | required artifacts、inventory、SHA-256、failure retention | IN PROGRESS |
+| PDR-1 Model evidence | V1 dynamics/contact/numerical suite完成 | PARTIAL / static raw-Jacobian replay only |
+| PDR-2 Run identity | manifest schema、source/model/controller/environment hashes | IN PROGRESS / V1 pre/post Git + compiled-model XML identity PASS; full environment lock missing |
+| PDR-3 Raw integrity | required artifacts、inventory、SHA-256、failure retention | IN PROGRESS / V1 exact 16/14 receipt + 10-role failed/completed paths PASS |
 | PDR-4 Matrix completeness | controller × seed × scenario expected cells exact | NOT STARTED |
 | PDR-5 Independent metrics | raw-only evaluator覆蓋 primary/secondary outcomes | PARTIAL |
 | PDR-6 Statistics | paired effects、CI、binary intervals、censoring | NOT STARTED |
@@ -149,6 +149,8 @@ Regression bundle 可通過 integrity validation，但只能標為 `REGRESSION_B
 - Humanoid-Gym 使用 sim-to-sim validation檢查 policy 在不同 simulator 的 robustness；本專案可將 cross-simulator列為後續 validation，但目前只有 MuJoCo，不能先宣稱 sim-to-real。
 - MuJoCo MPC on HumanoidBench 指出 sparse reward可能產生不自然行為，因此 paper outcomes不能只報 reward/return，必須包含 posture、smoothness、contact與 saturation metrics。
 - Deep RL reproducibility研究顯示單一 seed與點估計不足；正式結果需多 training seeds、interval estimates與保留 run-level distribution。
+- [SOURCE] MuJoCo 官方定義 contact generalized force 由兩側 body 的 relative spatial Jacobian 與 contact-frame wrench形成。[RESULT] V1 V4保存 `body2 - body1` relative Jacobians，讓另一 process 重算 arithmetic identity。
+- [SOURCE] Joseph and Dutta（2026）及 Crotti et al.（2025）的 MuJoCo contact/foot研究都使用外部 physical force、deformation或 bench prototype做 model validation。[INFERENCE] 本專案只有 same-engine Jacobian/wrench receipts，不能借用其 physical validity。
 
 Primary sources：
 
@@ -157,14 +159,18 @@ Primary sources：
 - [MuJoCo MPC for Humanoid Control, 2024](https://arxiv.org/abs/2408.00342)
 - [Deep Reinforcement Learning That Matters, AAAI 2018](https://ojs.aaai.org/index.php/AAAI/article/view/11694)
 - [Deep RL at the Edge of the Statistical Precipice, NeurIPS 2021](https://proceedings.neurips.cc/paper/2021/hash/f514cec81cb148559cf475e7426eed5e-Abstract.html)
+- [MuJoCo Computation — Contact](https://mujoco.readthedocs.io/en/stable/computation/index.html#contact)
+- [Contact force estimation with compliance in MuJoCo, 2026](https://doi.org/10.1177/09544062251407012)
+- [Soft Adaptive Feet for Legged Robots, IEEE Access 2025](https://doi.org/10.1109/ACCESS.2025.3608584)
 
 ## 8. 立即執行順序
 
-1. 完成 `PAPER_RUN_MANIFEST_V1` 與 artifact validator。
-2. 讓 V1 static oracle輸出第一包 regression paper bundle，驗證 hash/readback流程。
-3. 將 raw relative Jacobian納入 V1 bundle，移除 replay對 primary generalized-force receipt的依賴。
-4. 建立 single-support、known-payload與 time-step convergence cases。
+1. [DONE] 完成 `PAPER_RUN_MANIFEST_V1` 與 artifact validator。
+2. [DONE] 讓 V1 static oracle輸出第一包 regression paper bundle，驗證 hash/readback流程。
+3. [DONE] 將 raw relative Jacobian納入 V1 V4 bundle；stdlib-only replay不再讀取 primary per-contact generalized-force receipt。
+4. [NEXT] 建立 single-support、known-payload與 time-step convergence cases。
 5. 建立 experiment matrix orchestrator與 completeness validator。
-6. 執行 v7 PILOT；完成 power/sample-size決策後才 freeze FORMAL Study A。
+6. 建立 paired statistics、confidence interval與 paper table/figure inputs。
+7. 執行 v7 PILOT；完成 power/sample-size決策後才 freeze FORMAL Study A。
 
 隨研究規模增加時再評估 Parquet/object storage、distributed queue與 GPU worker；現階段 Windows單機、JSON/NPZ與 versioned local artifact root 已足夠，先避免引入不必要的分散式複雜度。

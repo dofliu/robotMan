@@ -51,7 +51,7 @@
 - simplified motor/gear conversion；
 - cart-table ZMP/support-polygon indicator。
 
-Analysis mode 不使用 contact solver 來求腳底 wrench。Live plant 已有 bounded static base-wrench、friction 與 CoP oracle，但尚未涵蓋 dynamic contact、完整 raw Jacobian replay 或 solver convergence。
+Analysis mode 不使用 contact solver 來求腳底 wrench。Live plant 已有 bounded static base-wrench、friction、CoP 與 raw-Jacobian arithmetic replay，但尚未涵蓋 dynamic contact、independent contact model、analytical scenario coverage 或 solver/time-step convergence。
 
 ### Live mode
 

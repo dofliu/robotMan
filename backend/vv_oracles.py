@@ -8,20 +8,27 @@ V1 or physical validation.
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import hashlib
 
 import mujoco
 import numpy as np
 
-from config_schema import GaitParams, default_robot
+from config_schema import GaitParams, RobotConfig, default_robot
 from live_sim import LiveSession
+from model_builder import build_mjcf
 
 
 STATIC_DOUBLE_SUPPORT_CONTRACT = {
-    "contract_id": "v1_static_double_support_internal_v3",
+    "contract_id": "v1_static_double_support_internal_v4",
     "duration_s": 2.0,
     "evaluation_window_s": 0.5,
     "physics_dt_s": 0.002,
     "expected_friction_cone": "PYRAMIDAL",
+    "expected_contact_dimension": 3,
+    "expected_contact_adhesion_n": 0.0,
+    "relative_jacobian_convention": (
+        "BODY2_MINUS_BODY1_AT_CONTACT_POINT_WORLD_ALIGNED_ROWS_DOF_COLUMNS"
+    ),
     "support_geom_names": ["foot_l", "foot_r"],
     # 以名義大腿加小腿長度固定 moment normalization，避免看完結果後調整尺度。
     "characteristic_length_m": 0.76,
@@ -124,9 +131,11 @@ def reconstruct_contact_generalized_force(
         mujoco.mj_jac(model, data, jacp1, jacr1, position_world, body1)
         mujoco.mj_jac(model, data, jacp2, jacr2, position_world, body2)
 
+        jacobian_translation_relative_world = jacp2 - jacp1
+        jacobian_rotation_relative_world = jacr2 - jacr1
         generalized_force = (
-            (jacp2 - jacp1).T @ force_world
-            + (jacr2 - jacr1).T @ torque_world
+            jacobian_translation_relative_world.T @ force_world
+            + jacobian_rotation_relative_world.T @ torque_world
         )
         friction_parameters = np.asarray(contact.friction, dtype=np.float64)
         friction_utilization = contact_friction_utilization(
@@ -135,10 +144,16 @@ def reconstruct_contact_generalized_force(
             wrench_local,
             friction_parameters,
         )
+        exclude = int(contact.exclude)
+        efc_address = int(contact.efc_address)
+        active = bool(exclude == 0 and efc_address >= 0)
         reconstructed += generalized_force
         contacts.append({
             "contact_index": contact_index,
             "dimension": int(contact.dim),
+            "exclude": exclude,
+            "efc_address": efc_address,
+            "active": active,
             "geom1_id": geom1,
             "geom1_name": _name_or_id(model, mujoco.mjtObj.mjOBJ_GEOM, geom1),
             "geom2_id": geom2,
@@ -153,10 +168,16 @@ def reconstruct_contact_generalized_force(
             "force_world_n": force_world.tolist(),
             "torque_world_nm": torque_world.tolist(),
             "normal_force_n": float(wrench_local[0]),
+            "adhesion_n": float(contact.adhesion),
             "friction_cone": cone_name,
             "friction_parameters": friction_parameters.tolist(),
             "friction_utilization": friction_utilization,
-            "generalized_force": generalized_force.tolist(),
+            "jacobian_translation_relative_world": (
+                jacobian_translation_relative_world.tolist()
+            ),
+            "jacobian_rotation_relative_world": (
+                jacobian_rotation_relative_world.tolist()
+            ),
         })
     return reconstructed, contacts
 
@@ -190,6 +211,8 @@ def reconstruct_foot_support(
         active_contact_count = 0
 
         for contact in contacts:
+            if not contact["active"]:
+                continue
             sign = 0.0
             if contact["geom2_id"] == geom_id:
                 sign = 1.0
@@ -282,15 +305,19 @@ def _step_evidence_receipt(
     }
 
 
-def _resolved_model_receipt(session: LiveSession) -> dict:
+def _resolved_model_receipt(session: LiveSession, model_xml_sha256: str) -> dict:
     model = session.model
     return {
         "mass_kg": float(np.sum(model.body_mass)),
         "gravity_mps2": np.asarray(model.opt.gravity, dtype=np.float64).tolist(),
         "friction_cone": _friction_cone_name(model),
         "solver": mujoco.mjtSolver(model.opt.solver).name,
+        "adhesion_enabled": bool(model.flg_adhesion),
+        "model_xml_sha256": model_xml_sha256,
         "nv": int(model.nv),
         "nq": int(model.nq),
+        "nu": int(model.nu),
+        "nbody": int(model.nbody),
     }
 
 
@@ -319,14 +346,31 @@ def _criterion(
     }
 
 
-def run_static_double_support_oracle(*, include_raw_trace: bool = False) -> dict:
+def run_static_double_support_oracle(
+    *,
+    include_raw_trace: bool = False,
+    robot_config: RobotConfig | None = None,
+    gait_params: GaitParams | None = None,
+) -> dict:
     """Run one frozen static double-support numerical reference case."""
     contract = STATIC_DOUBLE_SUPPORT_CONTRACT
-    session = LiveSession(default_robot(), GaitParams(), [])
+    robot = (
+        robot_config.model_copy(deep=True)
+        if robot_config is not None
+        else default_robot()
+    )
+    gait = (
+        gait_params.model_copy(deep=True)
+        if gait_params is not None
+        else GaitParams()
+    )
+    model_xml = build_mjcf(robot, [], dynamic=True)
+    model_xml_sha256 = f"sha256:{hashlib.sha256(model_xml.encode('utf-8')).hexdigest()}"
+    session = LiveSession(robot, gait, [])
     session.assist_balance = False
     session.startup_assist_enabled = False
     session.model.opt.enableflags |= int(mujoco.mjtEnableBit.mjENBL_FWDINV)
-    resolved_model = _resolved_model_receipt(session)
+    resolved_model = _resolved_model_receipt(session, model_xml_sha256)
     if resolved_model["friction_cone"] != contract["expected_friction_cone"]:
         raise RuntimeError(
             "compiled friction cone does not match frozen oracle contract: "
@@ -346,6 +390,26 @@ def run_static_double_support_oracle(*, include_raw_trace: bool = False) -> dict
             session.model,
             session.data,
         )
+        unexpected_adhesion = [
+            item["adhesion_n"]
+            for item in contacts
+            if item["adhesion_n"] != contract["expected_contact_adhesion_n"]
+        ]
+        if unexpected_adhesion:
+            raise RuntimeError(
+                "compiled contact violates frozen non-adhesive oracle contract: "
+                f"{unexpected_adhesion}"
+            )
+        unexpected_dimensions = [
+            item["dimension"]
+            for item in contacts
+            if item["dimension"] != contract["expected_contact_dimension"]
+        ]
+        if unexpected_dimensions:
+            raise RuntimeError(
+                "compiled contact violates frozen dimension contract: "
+                f"{unexpected_dimensions}"
+            )
         foot_support = reconstruct_foot_support(
             session.model,
             session.data,
@@ -379,9 +443,10 @@ def run_static_double_support_oracle(*, include_raw_trace: bool = False) -> dict
                 residual[0:3] / max(model_weight_n, 1e-12),
                 residual[3:] / max(moment_scale_nm, 1e-12),
             ))
-            normal_forces = [item["normal_force_n"] for item in contacts]
+            active_contacts = [item for item in contacts if item["active"]]
+            normal_forces = [item["normal_force_n"] for item in active_contacts]
             friction_utilizations = [
-                item["friction_utilization"] for item in contacts
+                item["friction_utilization"] for item in active_contacts
             ]
             loaded_feet = [
                 item for item in foot_support.values() if item["available"]
@@ -547,16 +612,17 @@ def run_static_double_support_oracle(*, include_raw_trace: bool = False) -> dict
         ),
     ]
     result = {
-        "schema_version": "V1_STATIC_DOUBLE_SUPPORT_ORACLE_V3",
+        "schema_version": "V1_STATIC_DOUBLE_SUPPORT_ORACLE_V4",
         "evidence_scope": (
-            "MUJOCO_INTERNAL_WRENCH_FRICTION_COP_RECONSTRUCTION_ONLY"
+            "MUJOCO_INTERNAL_RAW_JACOBIAN_WRENCH_RECONSTRUCTION_ONLY"
         ),
         "claim_boundary": (
-            "The evaluator independently aggregates MuJoCo-reported 6-D contact wrenches "
-            "with body Jacobians and recomputes cone utilization and foot-local CoP, but "
-            "all contact forces still come from the same engine. It does not establish "
-            "independent contact-model or plant validation, hardware feasibility, or V1 "
-            "gate pass."
+            "SIM_ONLY_MUJOCO / NOT_PHYSICALLY_VALIDATED. The evaluator serializes "
+            "body2-minus-body1 contact-point Jacobians, "
+            "aggregates MuJoCo-reported 6-D contact wrenches, and recomputes cone "
+            "utilization and foot-local CoP. Jacobians and contact forces still come "
+            "from the same MuJoCo engine. It does not establish independent contact-model "
+            "or plant validation, hardware feasibility, or V1 gate pass."
         ),
         "contract": contract,
         "resolved_model": resolved_model,
