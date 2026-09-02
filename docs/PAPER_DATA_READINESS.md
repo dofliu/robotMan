@@ -1,10 +1,10 @@
 # Paper Data Readiness Architecture
 
-最後更新：2026-08-31
+最後更新：2026-09-03
 
 狀態：`ARCHITECTURE FROZEN V1 / IMPLEMENTATION IN PROGRESS`
 
-證據範圍：`SIM_ONLY_MUJOCO / NOT PHYSICALLY VALIDATED`
+證據範圍：`SIM_ONLY_MUJOCO / NOT_PHYSICALLY_VALIDATED`
 
 ## 1. 決策
 
@@ -112,23 +112,30 @@ stderr.txt
 - 所有 controller 有 evaluation/scenario seed schedule；
 - required artifact roles 完整且 hash readback一致。
 
-Regression bundle 可通過 integrity validation，但只能標為 `REGRESSION_BUNDLE_VALID`，不能標為 `PAPER_DATA_READY`。
+Regression bundle 可通過 integrity validation，但只能標為 `REGRESSION_BUNDLE_VALID_ONLY`，不能標為 `PAPER_DATA_READY`。
 
 ## 5. Paper Data Readiness gates
 
 | Gate | Exit condition | 目前狀態 |
 |---|---|---|
 | PDR-0 Claim | RQ、hypothesis、primary outcomes、claim boundary frozen | PARTIAL |
-| PDR-1 Model evidence | V1 dynamics/contact/numerical suite完成 | PARTIAL / static raw-Jacobian replay only |
-| PDR-2 Run identity | manifest schema、source/model/controller/environment hashes | IN PROGRESS / V1 pre/post Git + compiled-model XML identity PASS; full environment lock missing |
-| PDR-3 Raw integrity | required artifacts、inventory、SHA-256、failure retention | IN PROGRESS / V1 exact 16/14 receipt + 10-role failed/completed paths PASS |
-| PDR-4 Matrix completeness | controller × seed × scenario expected cells exact | NOT STARTED |
-| PDR-5 Independent metrics | raw-only evaluator覆蓋 primary/secondary outcomes | PARTIAL |
+| PDR-1 Model evidence | V1 dynamics/contact/numerical suite完成 | PARTIAL / static V4 replay + passive single-support、centered payload與 4/2/1 ms analytical fixture PASS；articulated dynamic/pendulum/energy仍缺 |
+| PDR-2 Run identity | manifest schema、source/model/controller/environment hashes | IN PROGRESS / content-sensitive pre/post Git、exact MJCF/model package與 clean-source identity PASS；full environment lock missing |
+| PDR-3 Raw integrity | required artifacts、inventory、SHA-256、failure retention | IN PROGRESS / static與analytical 10-role completed/failed/cancelled paths、bytes與SHA-256 readback PASS |
+| PDR-4 Matrix completeness | controller × seed × scenario expected cells exact | SOFTWARE VALIDATOR IMPLEMENTED / ACTUAL STUDY MATRIX NOT RUN；strict spec/index、derived seed-schedule hash、bounded no-follow root scan、bundle identity、missing/duplicate/unexpected/unindexed與 FAILED/CANCELLED retention covered |
+| PDR-5 Independent metrics | raw-only evaluator覆蓋 primary/secondary outcomes | PARTIAL / static與analytical fixture已有 stdlib-only raw replay；Study A outcomes未覆蓋 |
 | PDR-6 Statistics | paired effects、CI、binary intervals、censoring | NOT STARTED |
 | PDR-7 Reproduction | clean checkout可重建 selected table/figure | NOT STARTED |
 | PDR-8 Paper export | machine-readable table/figure inputs與 appendix receipts | NOT STARTED |
 
 任何前置 gate 未通過時，可以做 DEVELOPMENT/PILOT，但不可啟動 FORMAL_EVALUATION。
+
+[RESULT] `EXP-V1-ANALYTICAL-FIXTURE-REGRESSION` clean-source bundle在 Git
+`b39a5ea2524a10189959d4968a9a7e15747fbf59`通過 4/4 cases與 independent replay；
+payload mass error為 `0 kg`、paired GRF increment relative error為
+`1.303748139009358e-15`。4/2/1 ms normalized-GRF differences已低於 frozen gate，
+但因差值進入 round-off區，observed order依 preregistered semantics保留為 `null`。
+此結果仍是 `REGRESSION_BUNDLE_VALID_ONLY / paper_data_ready=false`。
 
 ## 6. 第一篇 Study A 建議
 
@@ -151,6 +158,11 @@ Regression bundle 可通過 integrity validation，但只能標為 `REGRESSION_B
 - Deep RL reproducibility研究顯示單一 seed與點估計不足；正式結果需多 training seeds、interval estimates與保留 run-level distribution。
 - [SOURCE] MuJoCo 官方定義 contact generalized force 由兩側 body 的 relative spatial Jacobian 與 contact-frame wrench形成。[RESULT] V1 V4保存 `body2 - body1` relative Jacobians，讓另一 process 重算 arithmetic identity。
 - [SOURCE] Joseph and Dutta（2026）及 Crotti et al.（2025）的 MuJoCo contact/foot研究都使用外部 physical force、deformation或 bench prototype做 model validation。[INFERENCE] 本專案只有 same-engine Jacobian/wrench receipts，不能借用其 physical validity。
+- [SOURCE] MuJoCo的 continuous equations、integration timestep與 `solver_fwdinv` diagnostics定義不同；NASA-STD-7009B要求留下 discretization、iterative與 finite-precision error evidence。[RESULT] 本次以 4/2/1 ms grid保存 timestep stability，並把 round-off-limited order保留為 null，而非用 solver diagnostic代替 convergence study。
+- [SOURCE] Patterson et al.（JMLR 2024）建議 algorithm comparison使用 paired comparisons與 interval，並分開 agent/environment RNG；seed不是可調 hyperparameter。[INFERENCE] Matrix V1因此把 training、evaluation、environment與scenario seeds分欄保存，但 sample size仍須由後續 PILOT與 preregistered estimand決定。
+- [SOURCE] Agarwal et al.（NeurIPS 2021）指出少量 runs下只報 point estimate會忽略顯著 statistical uncertainty，建議 interval與 run-distribution reporting。[INFERENCE] Statistics stage只能讀已保留所有 FAILED/COMPLETED cells且通過 identity/completeness的 receipts；本 validator本身不產生 CI。
+- [SOURCE] RFC 8259禁止 JSON `NaN`/`Infinity`，並指出 duplicate object names造成 parser interoperability問題；JSON Schema 2020-12的 `required`與`uniqueItems`只提供結構條件。[RESULT] Matrix/Run manifest readback改採 strict JSON及 custom composite-cell set arithmetic，不把 schema-valid誤寫為 matrix-complete。
+- [SOURCE] Center for Open Science將 preregistration定義為 data/analysis前發布至 public repository的 time-stamped、read-only plan。[BLOCKER] 本 repo的 frozen hash只能稱 internal preregistered-style freeze；未登錄 external registry，不宣稱 OSF preregistration。
 
 Primary sources：
 
@@ -159,18 +171,25 @@ Primary sources：
 - [MuJoCo MPC for Humanoid Control, 2024](https://arxiv.org/abs/2408.00342)
 - [Deep Reinforcement Learning That Matters, AAAI 2018](https://ojs.aaai.org/index.php/AAAI/article/view/11694)
 - [Deep RL at the Edge of the Statistical Precipice, NeurIPS 2021](https://proceedings.neurips.cc/paper/2021/hash/f514cec81cb148559cf475e7426eed5e-Abstract.html)
+- [Empirical Design in Reinforcement Learning, JMLR 2024](https://www.jmlr.org/papers/v25/23-0183.html)
+- [IETF RFC 8259 — JSON](https://www.rfc-editor.org/rfc/rfc8259.html)
+- [JSON Schema Draft 2020-12 Validation](https://json-schema.org/draft/2020-12/json-schema-validation)
+- [Center for Open Science preregistration guide, 2025](https://www.cos.io/blog/choosing-preregistration-template-guide-for-researchers)
 - [MuJoCo Computation — Contact](https://mujoco.readthedocs.io/en/stable/computation/index.html#contact)
 - [Contact force estimation with compliance in MuJoCo, 2026](https://doi.org/10.1177/09544062251407012)
 - [Soft Adaptive Feet for Legged Robots, IEEE Access 2025](https://doi.org/10.1109/ACCESS.2025.3608584)
+- [MuJoCo 3.12 Computation](https://mujoco.readthedocs.io/en/3.12.0/computation/)
+- [NASA-STD-7009B](https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf)
+- [Caron, Pham and Nakamura, ICRA 2015](https://arxiv.org/abs/1501.04719)
 
 ## 8. 立即執行順序
 
 1. [DONE] 完成 `PAPER_RUN_MANIFEST_V1` 與 artifact validator。
 2. [DONE] 讓 V1 static oracle輸出第一包 regression paper bundle，驗證 hash/readback流程。
 3. [DONE] 將 raw relative Jacobian納入 V1 V4 bundle；stdlib-only replay不再讀取 primary per-contact generalized-force receipt。
-4. [NEXT] 建立 single-support、known-payload與 time-step convergence cases。
-5. 建立 experiment matrix orchestrator與 completeness validator。
-6. 建立 paired statistics、confidence interval與 paper table/figure inputs。
+4. [DONE] 建立 passive single-support、centered known-payload與 4/2/1 ms time-step analytical fixture；round-off-limited order保留為 null。
+5. [DONE-SOFTWARE] 建立 [Experiment Matrix Completeness Contract V1](EXPERIMENT_MATRIX_CONTRACT.md)與 strict fail-closed validator；actual Study A matrix/orchestrator仍未執行，PDR-4不視為 scientific coverage PASS。
+6. [NEXT] 建立 paired statistics、confidence interval與 paper table/figure input contract；先以 synthetic/REGRESSION matrix驗證 failure/cancellation與 null/censoring semantics，不啟動 formal Study A。
 7. 執行 v7 PILOT；完成 power/sample-size決策後才 freeze FORMAL Study A。
 
 隨研究規模增加時再評估 Parquet/object storage、distributed queue與 GPU worker；現階段 Windows單機、JSON/NPZ與 versioned local artifact root 已足夠，先避免引入不必要的分散式複雜度。

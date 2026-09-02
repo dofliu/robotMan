@@ -2,7 +2,7 @@
 
 最後更新：2026-09-02
 
-狀態：`FROZEN BEFORE FIRST EXECUTION / SIM_ONLY_MUJOCO`
+狀態：`IMPLEMENTED AND REGRESSION PASS / V1 PARTIAL / SIM_ONLY_MUJOCO`
 
 ## 1. 本次唯一 milestone
 
@@ -69,9 +69,29 @@ Fixture 是具有 free joint、20 kg carrier、單一 rectangular support geom�
   [NASA-STD-7009B](https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf)。
 - [INFERENCE] Nonsmooth contact不保證穩定 observed order，因此本 milestone以
   三層 grid-refinement stability為 gate，order只作可為 null的 diagnostic。
-- [RESULT] 首次執行前本文件只凍結 contract，尚無數值結果。
+- [RESULT] Contract先於首次執行凍結，首個 clean-source bundle在未調整 threshold下通過 4/4 primary cases與 stdlib-only replay；exact evidence見下節。
 - [BLOCKER] Fixture不是 articulated humanoid、external physical referent或獨立
   contact model。即使全部 PASS，V1仍保持 partial。
 
 固定 evidence boundary：`SIM_ONLY_MUJOCO / NOT_PHYSICALLY_VALIDATED`。不得外推為
 實體機器人平衡、payload能力、sim-to-real、安全性或 controller superiority。
+
+## 5. Clean-source bounded result
+
+完整 receipt見 [V1 Analytical Suite Implementation Receipt](V1_ANALYTICAL_SUITE_IMPLEMENTATION_RECEIPT_2026-09-02.md)。
+
+- [RESULT] Source Git SHA為 `b39a5ea2524a10189959d4968a9a7e15747fbf59`；
+  run前後 worktree皆 clean且 source identity stable。
+- [RESULT] Primary/replay皆 `PASS`，4/4 exact cases通過；payload mass delta error
+  `0 kg`，payload GRF delta relative error `1.303748139009358e-15`。
+- [RESULT] 4/2/1 ms QoI依序為 `1.0000000000000078`、
+  `1.0000000000000016`、`1.0000000000000007`；coarse/fine differences為
+  `6.217248937900877e-15`與 `8.881784197001252e-16`。
+- [RESULT] `timestep_order_status=ROUND_OFF_LIMITED`、
+  `timestep_observed_order=null`；null是 frozen failure semantics允許的誠實
+  diagnostic，不是遺失或事後修補。
+- [RESULT] 10-role artifact inventory共 `41,034,195 bytes`，manifest SHA-256為
+  `97197f0a68a83e18bc12fc743ba7192d8b8e23626e0579c0c2ecc274de5350ff`；
+  bundle仍明示 `REGRESSION_BUNDLE_VALID_ONLY / paper_data_ready=false`。
+- [BLOCKER] 這只完成本 bounded milestone；experiment matrix、statistics與完整
+  V1 articulated/dynamic/energy coverage仍未完成。

@@ -1,6 +1,6 @@
 # 人形機器人控制與訓練方法研究執行計畫
 
-最後更新：2026-08-31
+最後更新：2026-09-03
 
 本次 V1 evidence 範圍：`SIM_ONLY_MUJOCO` / `NOT_PHYSICALLY_VALIDATED`
 
@@ -30,9 +30,9 @@ Policy 在同一 simulator 與 reward 中表現良好，不等於 model validati
 |---|---|---|---|
 | P0 | curriculum-v2 48-D Live adapter、registry identity、500 Hz task trace | observation/action contract tests；未修改 11 項 criteria | DONE / task FAIL retained |
 | P0B | v3–v6 observation、terminal、phase 與 500 Hz load iteration | DEV + unchanged Live gates；失敗與 evaluator defects 保留 | DONE / no deployable PASS |
-| P1 | V1 plant/contact/numerical oracle | residual、contact、friction、CoP、convergence、energy 全部可獨立重算 | IN PROGRESS / static raw-Jacobian arithmetic replay PASS; scenario、convergence、energy仍缺，gate not pass |
+| P1 | V1 plant/contact/numerical oracle | residual、contact、friction、CoP、convergence、energy 全部可獨立重算 | IN PROGRESS / static replay與 passive single-support/payload/4–2–1 ms fixture PASS；articulated dynamic、pendulum、energy/full solver studies仍缺，gate not pass |
 | P2 | QP/WBC baseline | constraint-feasible、failure-retaining baseline bundle | BLOCKED BY P1 |
-| P3 | Experiment orchestrator | controller × training seed × eval seed × scenario 完整 manifest | FOUNDATION PARTIAL: paper run manifest + V1 regression bundle validator implemented; matrix runner missing |
+| P3 | Experiment orchestrator | controller × training seed × eval seed × scenario 完整 manifest | VALIDATOR IMPLEMENTED / RUNNER + ACTUAL MATRIX MISSING：strict matrix spec/index、bundle identity與 missing/duplicate/unexpected/unindexed/status retention covered |
 | P4 | Study A formal benchmark | protocol frozen、paired statistics、CI、failures/censoring retained | BLOCKED BY P1–P3 |
 | P5 | Motion primitives / imitation | raise hand、single-leg raise、squat、turn 等各有獨立 task contract | AFTER STUDY A |
 | P6 | SIL/HIL/bench/robot validation | 只在實際完成的外部 evidence 層級建立 bounded claim | FUTURE |
@@ -49,8 +49,49 @@ Policy 在同一 simulator 與 reward 中表現良好，不等於 model validati
   完全一致。
 - [INFERENCE] 這能檢出 serialization、frame/sign與 arithmetic drift，但不能
   驗證 MuJoCo contact model的 physical fidelity。
-- [BLOCKER] Single-support、known-payload、time-step convergence、dynamic
-  contact、energy與外部 force/bench evidence仍未完成；P1/V1保持未通過。
+- [BLOCKER] Dynamic contact、known pendulum、energy、完整 solver/finite-difference
+  convergence與外部 force/bench evidence仍未完成；P1/V1保持未通過。
+
+### P1 bounded result：analytical fixture V1
+
+- [SOURCE] MuJoCo continuous dynamics採 `M vdot + c = tau + J^T f`；integration
+  timestep與 `solver_fwdinv` residual是不同 diagnostics。NASA-STD-7009B亦要求
+  分別保留 discretization、iteration與 finite-precision evidence。
+- [RESULT] Passive free-body fixture在 exact single support、centered 5 kg simulated
+  payload及 4/2/1 ms grid共 4/4 cases PASS；另一 stdlib-only process由 raw
+  frame/wrench/Jacobian與 exact model package重算後亦 PASS。Payload mass error為
+  `0 kg`，GRF increment relative error為 `1.303748139009358e-15`。
+- [RESULT] Normalized mean-GRF QoI為 `1.0000000000000078`、
+  `1.0000000000000016`、`1.0000000000000007`；fine-grid difference
+  `8.881784197001252e-16`未超過 coarse difference `6.217248937900877e-15`。
+  Successive differences低於 `1e-10`，故 observed order依 frozen semantics為
+  `null / ROUND_OFF_LIMITED`，未補值。
+- [INFERENCE] 此 fixture可檢查單支撐靜力、中心質量增量、serialized contact
+  arithmetic與選定 QoI的 grid stability；不能代表 articulated humanoid dynamics、
+  controller performance或 physical payload capacity。
+- [BLOCKER] Clean bundle只能是 `REGRESSION_BUNDLE_VALID_ONLY`；analytical fixture
+  之後的 matrix completeness software contract已完成，但 actual Study A matrix、statistics
+  與 formal authorization仍不存在。
+
+### P3 bounded result：matrix completeness V1
+
+- [SOURCE] Patterson et al.（JMLR 2024）建議 paired algorithm comparison、interval
+  reporting與 agent/environment RNG分離；Agarwal et al.（NeurIPS 2021）要求在少量
+  runs情境保留 uncertainty與 run distributions。
+- [RESULT] `EXPERIMENT_MATRIX_SPEC_V1`與 run index以 spec hash綁定 explicit cells；
+  validator逐 run重驗 `PAPER_RUN_MANIFEST_V1` artifact path/bytes/SHA-256，並 exact
+  比對 source、protocol/environment/model/controller/config、seed與scenario identity。
+- [RESULT] Seed schedule digest由 sorted expected cells重算；scenario numeric
+  canonicalization避免 `0`/`0.0`/`-0.0`與 boolean/number equality繞過，dedicated root
+  採 bounded no-follow scan。
+- [RESULT] Missing、duplicate、unexpected、unindexed、tamper與 identity drift均
+  fail closed；FAILED/CANCELLED分開保留。CANCELLED可維持 inventory complete，但
+  `statistics_input_ready=false`。
+- [INFERENCE] 這可降低 supplied matrix root內的漏報與 cherry-pick風險；不能證明
+  explicit cells已涵蓋所有科學上必要 strata、sample size充分或 controller較優。
+- [BLOCKER] `PAPER_RUN_MANIFEST_V1`尚無 native `scenario_id/replicate_id`；V1以
+  matrix labels加 exact fingerprint cross-check，不宣稱 self-binding。外部 preregistration、
+  immutable storage、actual matrix與 paired statistics仍缺。
 
 ## 4. P0 結果與 P0B 設計
 
@@ -130,6 +171,7 @@ Primary outcomes 在 protocol freeze 時只選少數主指標，例如 task succ
 - independent evaluator version 與 output；
 - failure/null/censored episodes；
 - statistics code/output、effect size 與 confidence interval；
+- frozen experiment matrix spec/index、completeness receipt與每個 status的分母歸屬；
 - claim boundary：simulation、SIL、HIL、bench 或 robot。
 
 Git 只保存 source、contract、small receipts 與 selected inference artifact。大量 raw traces、checkpoints 與 training logs 使用獨立 versioned experiment storage，不直接取消 `.gitignore` 批次提交。

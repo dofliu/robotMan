@@ -14,6 +14,7 @@ from paper_data_contract import (
     PaperDataIntegrityError,
     PaperRunManifest,
     artifact_record,
+    load_json_object_strict,
     sha256_file,
     validate_paper_run_bundle,
 )
@@ -153,6 +154,62 @@ def test_bundle_rejects_tampered_artifact(tmp_path):
 
     with pytest.raises(PaperDataIntegrityError, match="size mismatch|SHA-256 mismatch"):
         validate_paper_run_bundle(manifest_path)
+
+
+@pytest.mark.parametrize(
+    ("raw_manifest", "diagnostic"),
+    [
+        (
+            '{"schema_version":"PAPER_RUN_MANIFEST_V1",'
+            '"schema_version":"PAPER_RUN_MANIFEST_V1"}',
+            "duplicate JSON key",
+        ),
+        ('{"schema_version":"PAPER_RUN_MANIFEST_V1","value":NaN}', "non-finite"),
+    ],
+    ids=["duplicate-key", "nan"],
+)
+def test_bundle_rejects_non_strict_json(tmp_path, raw_manifest, diagnostic):
+    manifest_path = tmp_path / "paper_run_manifest.json"
+    manifest_path.write_text(raw_manifest, encoding="utf-8")
+
+    with pytest.raises(PaperDataIntegrityError, match=diagnostic):
+        validate_paper_run_bundle(manifest_path)
+
+
+@pytest.mark.parametrize(
+    "raw_payload",
+    [
+        '{"value":' + "9" * 5000 + "}",
+        '{"value":' + '{"nested":' * 5000 + "0" + "}" * 5000 + "}",
+    ],
+    ids=["huge-integer", "deep-nesting"],
+)
+def test_strict_json_wraps_pathological_parser_failures(tmp_path, raw_payload):
+    payload_path = tmp_path / "pathological.json"
+    payload_path.write_text(raw_payload, encoding="utf-8")
+
+    with pytest.raises(PaperDataIntegrityError, match="invalid JSON file"):
+        load_json_object_strict(payload_path)
+
+
+def test_manifest_rejects_controller_label_identity_mismatch(tmp_path):
+    payload = _minimal_manifest(tmp_path)
+    payload["controller_id"] = "REQUESTED-CONTROLLER-LABEL"
+
+    with pytest.raises(ValidationError, match="actual controller identity_id"):
+        PaperRunManifest.model_validate(payload)
+
+
+def test_manifest_rejects_completed_status_with_failure_records(tmp_path):
+    payload = _minimal_manifest(tmp_path)
+    payload["failures"] = [{
+        "failure_type": "SYNTHETIC_FAILURE",
+        "timestamp_s": 1.0,
+        "detail": "A terminal failure may not be relabeled as completed.",
+    }]
+
+    with pytest.raises(ValidationError, match="COMPLETED run"):
+        PaperRunManifest.model_validate(payload)
 
 
 def test_v1_oracle_builds_integrity_validated_regression_bundle(tmp_path):

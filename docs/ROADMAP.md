@@ -1,6 +1,6 @@
 # Gate-first 工作規劃
 
-最後更新：2026-08-31
+最後更新：2026-09-03
 
 專案成熟度改以 **evidence gate** 表示，不再以 UI 或 feature count 換算完成百分比。既有 M1–M6 代表 prototype feature inventory，並非 verification 或 physical validation 已完成。
 
@@ -40,8 +40,8 @@
 3. [PARTIAL] `ANALYSIS_METRICS_V1` 已明定 sampled motion/energy/CoT、peak/P99.5、window 與 null semantics；尚缺獨立 raw evaluator。
 4. [TODO] 為每個 claim 建立 requirement ID、metric definition、oracle、acceptance gate 與 owner。
 5. [PARTIAL] `PAPER_RUN_MANIFEST_V1` 已凍結 run-level protocol/controller/plant/scenario/seed/artifact fields；training/checkpoint與完整 environment lock尚未串入所有 pipelines。
-6. [PARTIAL] V1 static V4 oracle可輸出含 raw relative Jacobians的 10-role regression bundle，由 stdlib-only process重建 generalized force並回指 raw trace；project-wide immutable storage尚未完成。
-7. [PARTIAL] Artifact inventory/bytes/SHA-256/path validator已實作；environment lock與 experiment matrix validator尚未完成。
+6. [PARTIAL] V1 static V4與 analytical fixture V1均可輸出含 raw relative Jacobians的 10-role regression bundle，由 stdlib-only process重建 generalized force並回指 raw trace；project-wide immutable storage尚未完成。
+7. [PARTIAL] Artifact inventory/bytes/SHA-256/path、clean-source/content-sensitive Git identity、exact model-package與 experiment matrix completeness V1 validator已實作；完整 environment lock、project-wide immutable storage與 actual Study matrix尚未完成。
 8. [DONE-D0] 將 built-in hardware catalog 定位為 D0 representative demo data。
 9. [TODO] 建立 DEVELOPMENT、CALIBRATION、FORMAL_EVALUATION 分區。
 
@@ -53,7 +53,7 @@
 
 最低範圍：
 
-已開始：`v1_static_double_support_internal_v4` 已建立 500 Hz forward–inverse solver consistency、逐 contact 6-D wrench與 `body2 - body1` relative Jacobian serialization、base force/moment、joint torque、non-adhesive unilateral normal force、PYRAMIDAL friction utilization、foot-local CoP、weight/GRF、staticity與 bilateral-contact gate；static case通過 16/16，另由不載入 MuJoCo/controller、也不讀 per-contact generalized-force receipt的 stdlib-only replay通過 14/14，包含全 trace closure、absolute time grid與 evaluation count，primary metric delta為零。Jacobian與wrench仍來自同一 MuJoCo engine，且 single-support、known-payload、dynamic、convergence與energy cases未完成，因此 V1仍未通過。
+已開始：`v1_static_double_support_internal_v4` 通過 16/16 primary與 14/14 stdlib replay criteria；`EXP-V1-ANALYTICAL-FIXTURE-REGRESSION`另以 passive single-support、centered 5 kg simulated payload與 4/2/1 ms grid共 4/4 cases通過 primary/replay。Timestep QoI達 frozen stability gate，但差值進入 round-off區，observed order正確保留為 null。Jacobian、frame與wrench仍來自同一 MuJoCo engine，fixture也不是 articulated humanoid；known pendulum、dynamic contact、solver/finite-difference convergence與energy cases未完成，因此 V1仍未通過。
 
 - constrained inverse dynamics 或等價 contact solve，滿足六個 floating-base equilibrium equations；
 - base force/moment residual、joint torque residual 與 energy balance；
@@ -141,11 +141,11 @@ WBC 必須早於 RL paper 與硬體 × strategy 正式比較。開始條件為 V
 
 多速度、domain randomization、能耗與硬體 × strategy 可在 V3 protocol frozen 後執行。若 V4 尚未通過，論文只能宣稱 SIM-only results，不可宣稱實體硬體效益或 sim-to-real。
 
-Development 已完成 v1–v6 failure-retaining iteration：v2 解決前進與停止但 Live path/saturation 失敗；v3/v4/v5 依序加入 path/heading、terminal stability 與 phase trend；v5 在 Live 達到 10/11；v6 證明單純加入 500 Hz saturation reward 尚不足。V1 raw-Jacobian replay已完成；下一步先完成 single-support、known-payload與 time-step convergence，再依 paper-data gates推進 matrix/statistics，最後才以 preregistered v7比較 reward-only、joint-specific action envelope與 action filtering；正式 WBC residual study仍等待 P1/P2。Training-env pass不是 Live trace、V3或實機證據。
+Development 已完成 v1–v6 failure-retaining iteration：v2 解決前進與停止但 Live path/saturation 失敗；v3/v4/v5 依序加入 path/heading、terminal stability 與 phase trend；v5 在 Live 達到 10/11；v6 證明單純加入 500 Hz saturation reward 尚不足。V1 raw-Jacobian replay、single-support／known-payload／time-step fixture與 experiment matrix completeness V1 software contract已完成 bounded evidence；下一步推進 paired statistics/CI與 paper inputs，最後才以 preregistered v7比較 reward-only、joint-specific action envelope與 action filtering。Actual Study matrix、P1/P2/WBC與 V3仍未通過；training-env pass不是 Live trace、V3或實機證據。
 
 ## 9. 建議執行順序
 
-1. 完成 V0 paper manifest、environment lock、matrix completeness與 immutable evidence storage；run-level manifest/inventory validator已 partial implemented。
+1. 完成 V0 environment lock、actual matrix execution與 immutable evidence storage；run-level manifest/inventory及 matrix completeness software validators已 bounded implemented。
 2. 完成 V1 contact/plant/numerical verification。
 3. M7A 可作為教學支線；M7B 保持 blocked。
 4. 完成 V2 actuator/sensor/estimator fidelity。

@@ -9,7 +9,7 @@
 
 正式結果必須建立 versioned protocol instance。僅執行 script 或產生 Markdown report 不算 protocol completion。
 
-`PAPER_RUN_MANIFEST_V1` 與 fail-closed artifact validator 已建立第一個可執行 contract；V1 static V4 oracle可保存 raw relative Jacobians，並由不載入 MuJoCo/controller 的另一 process重建 generalized force後輸出 integrity-valid regression bundle。這只完成 bounded same-engine arithmetic replay與 run-level packaging；project-wide immutable storage、analytical/dynamic coverage、matrix completeness、statistics與 formal authorization 仍未完成。完整架構見 [PAPER_DATA_READINESS](PAPER_DATA_READINESS.md)。
+`PAPER_RUN_MANIFEST_V1` 與 fail-closed artifact validator 已建立 run-level contract；V1 static/analytical suites可保存 raw relative Jacobians，並由不載入 MuJoCo/controller 的另一 process重建 generalized force。`EXPERIMENT_MATRIX_SPEC_V1`另以 frozen spec/index hash、exact cell identity與 dedicated-root scan檢查 missing、duplicate、unexpected、unindexed及 status retention。這只完成 bounded software contracts；project-wide immutable storage、actual Study matrix、remaining dynamic coverage、statistics與 formal authorization仍未完成。完整架構見 [PAPER_DATA_READINESS](PAPER_DATA_READINESS.md)與 [EXPERIMENT_MATRIX_CONTRACT](EXPERIMENT_MATRIX_CONTRACT.md)。
 
 ## 2. Run classes
 
@@ -120,7 +120,7 @@ Formal evaluation case 不得回流為 tuning data。若看過結果後修改方
 - assist off/on as separate declared strata；
 - controller/checkpoint and training seed。
 
-Scenario cells 在執行前凍結；缺 cell、重複 cell、unexpected cell 都是 completeness failure。
+Scenario cells 在執行前凍結；缺 cell、重複 cell、unexpected cell或 dedicated root內未索引 manifest都是 completeness failure。V1 exact semantics見 [EXPERIMENT_MATRIX_CONTRACT](EXPERIMENT_MATRIX_CONTRACT.md)。
 
 ## 6. Fair controller comparison
 

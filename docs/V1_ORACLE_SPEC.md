@@ -1,6 +1,6 @@
 # V1 Physics Oracle — 第一階段規格
 
-最後更新：2026-08-31
+最後更新：2026-09-02
 
 狀態：`V4 RAW JACOBIAN REPLAY IMPLEMENTED / V1 NOT PASS`
 
@@ -164,9 +164,9 @@ physical-foot validation。
 
 ## 5. 下一批 oracle
 
-1. 新增 single support、known payload 與 time-step convergence cases。
-2. 新增 known pendulum與 dynamic contact cases。
-3. 新增 power/energy balance 與 solver-iteration evidence。
+1. [DONE] 以獨立 [V1 Analytical Fixture Suite](V1_ANALYTICAL_SUITE_SPEC.md)新增 passive single support、centered known payload與 4/2/1 ms time-step cases；clean-source primary/replay 4/4 PASS，round-off-limited observed order保留為 null。
+2. [NEXT FOR V1] 新增 known pendulum與 articulated dynamic contact cases。
+3. 新增 power/energy balance、solver-tolerance/iteration與 finite-difference evidence。
 4. 將任何 NaN、solver failure 或 constraint violation保留為 case FAIL，不修補輸出。
 
 ## 6. MuJoCo 定義來源

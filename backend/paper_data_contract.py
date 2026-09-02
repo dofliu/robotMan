@@ -11,7 +11,7 @@ import hashlib
 import json
 from pathlib import Path, PurePosixPath
 import re
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -20,6 +20,7 @@ SCHEMA_VERSION = "PAPER_RUN_MANIFEST_V1"
 SHA256_PATTERN = r"^sha256:[0-9a-f]{64}$"
 GIT_SHA_PATTERN = r"^[0-9a-f]{40}$"
 ID_PATTERN = r"^[A-Za-z0-9][A-Za-z0-9_.-]{2,95}$"
+MAX_JSON_BYTES = 16 * 1024 * 1024
 REQUIRED_ARTIFACT_ROLES = {
     "protocol",
     "resolved_config",
@@ -133,6 +134,8 @@ class PaperRunManifest(ContractModel):
 
     @model_validator(mode="after")
     def enforce_inventory_and_formal_rules(self):
+        if self.controller_id != self.controller.identity_id:
+            raise ValueError("controller_id 必須等於 actual controller identity_id")
         roles = [item.role for item in self.artifacts]
         paths = [item.path for item in self.artifacts]
         if len(roles) != len(set(roles)):
@@ -144,6 +147,8 @@ class PaperRunManifest(ContractModel):
             raise ValueError(f"required artifact roles missing: {missing_roles}")
         if self.status in {"FAILED", "CANCELLED"} and not self.failures:
             raise ValueError("FAILED/CANCELLED run 必須保留 failure record")
+        if self.status == "COMPLETED" and self.failures:
+            raise ValueError("COMPLETED run 不可夾帶 failure record或改標 terminal failure")
         if self.run_class == "FORMAL_EVALUATION":
             if self.protocol_status != "FROZEN":
                 raise ValueError("FORMAL_EVALUATION protocol 必須 FROZEN")
@@ -163,6 +168,39 @@ class PaperRunManifest(ContractModel):
             ):
                 raise ValueError("learning/hybrid formal run 必須保存 training seed")
         return self
+
+
+def _reject_json_constant(value: str) -> None:
+    raise PaperDataIntegrityError(f"JSON non-finite constant is forbidden: {value}")
+
+
+def _reject_duplicate_json_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    payload: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in payload:
+            raise PaperDataIntegrityError(f"duplicate JSON key is forbidden: {key}")
+        payload[key] = value
+    return payload
+
+
+def load_json_object_strict(path: Path) -> dict[str, Any]:
+    """Read one UTF-8 JSON object without duplicate keys or non-finite values."""
+
+    try:
+        if path.stat().st_size > MAX_JSON_BYTES:
+            raise PaperDataIntegrityError(
+                f"JSON file exceeds {MAX_JSON_BYTES} byte limit: {path.name}"
+            )
+        payload = json.loads(
+            path.read_text(encoding="utf-8"),
+            parse_constant=_reject_json_constant,
+            object_pairs_hook=_reject_duplicate_json_keys,
+        )
+    except (OSError, UnicodeError, ValueError, RecursionError) as exc:
+        raise PaperDataIntegrityError(f"invalid JSON file: {path.name}") from exc
+    if not isinstance(payload, dict):
+        raise PaperDataIntegrityError(f"JSON root must be an object: {path.name}")
+    return payload
 
 
 def sha256_file(path: Path) -> str:
@@ -199,10 +237,7 @@ def validate_paper_run_bundle(manifest_path: Path) -> dict:
     if not manifest_path.is_file():
         raise FileNotFoundError(manifest_path)
     bundle_root = manifest_path.parent.resolve()
-    try:
-        payload = json.loads(manifest_path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError as exc:
-        raise PaperDataIntegrityError("manifest is not valid JSON") from exc
+    payload = load_json_object_strict(manifest_path)
     manifest = PaperRunManifest.model_validate(payload)
     for artifact in manifest.artifacts:
         resolved = (bundle_root / artifact.path).resolve()

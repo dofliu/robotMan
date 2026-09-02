@@ -10,7 +10,7 @@ Repository：[github.com/dofliu/robotMan](https://github.com/dofliu/robotMan) �
 
 - [SOURCE] 程式包含參數化步態、MuJoCo 模型、分析模式、即時 forward simulation、控制器與 RL pipeline；analysis `/api/simulate` 已開始提供 versioned metrics 與 partial runtime provenance，現行 REST/Live simulation inputs 採 bounded fail-closed schema，frontend 已顯示 frozen/stale-result、evidence 與 intervention/error states。
 - [INFERENCE] 既有數字目前只能視為特定程式版本、單一 nominal configuration 下的 development snapshot；缺少 immutable raw bundle 時不升格為正式 [RESULT] evidence。
-- [BLOCKER] 現有 runtime provenance 尚不是 immutable artifact bundle，也沒有 environment lock；static contact raw-Jacobian replay 已完成 bounded arithmetic identity，但 dynamic/analytical cases、torque-speed envelope、joint limits、solver convergence、fair benchmark、uncertainty quantification與實體 subsystem validation 尚未形成完整證據鏈。
+- [BLOCKER] 現有 runtime provenance 尚不是 project-wide immutable artifact storage，也沒有完整 environment lock；static contact raw-Jacobian replay，以及 passive single-support／centered known-payload／4–2–1 ms analytical fixture 已完成 bounded arithmetic identity，但 articulated dynamic/pendulum/energy cases、torque-speed envelope、joint limits、完整 solver convergence、fair benchmark、uncertainty quantification與實體 subsystem validation 尚未形成完整證據鏈。
 
 因此，介面中的「通過」、「穩定」、「可行」或「最大可承受」只代表目前數值模型與規則下的 screening signal，不等同實體機器人驗證結果。完整證據邊界見 [MODEL_CARD](docs/MODEL_CARD.md)。
 
@@ -46,6 +46,8 @@ Repository：[github.com/dofliu/robotMan](https://github.com/dofliu/robotMan) �
 - RL Training Lab：顯示 fixed-speed／command-conditioned profiles、seed、training budget 與 evidence status；即時模式仍只做 inference
 - Registry-gated Motion Task policies：48-D curriculum-v2 與 51-D phase-observable-v5 可在 Live 選用；v2/v5 的失敗 trace 均保留
 - V1 static contact oracle V4：500 Hz raw trace、serialized relative Jacobians、6-D wrench closure、pyramidal friction utilization、foot-local CoP，以及不載入 MuJoCo/controller 的 stdlib-only process replay；僅為 static SIM evidence
+- V1 analytical fixture：passive single-support、centered 5 kg simulated payload與 4/2/1 ms grid-refinement；exact MJCF/model package、raw frame/wrench/Jacobian與 stdlib-only replay皆 fail closed，僅為 `SIM_ONLY_MUJOCO`
+- Experiment matrix completeness V1：strict JSON frozen spec/index、expected-to-observed exact cell matching、run bundle path/bytes/SHA-256 readback，以及 missing/duplicate/unexpected/unindexed/identity drift與 FAILED/CANCELLED retention；只驗 software inventory identity
 
 這些是 feature inventory，不代表 M1–M6 已通過 V&V gate。
 
@@ -97,6 +99,8 @@ comparison_report.md 保留既有 deterministic nominal snapshot，供回歸診�
 | [MODEL_CARD](docs/MODEL_CARD.md) | intended use、out-of-scope、限制與 evidence labels |
 | [VV_PLAN](docs/VV_PLAN.md) | requirement-to-evidence matrix、gates 與 SIL/HIL/bench 邊界 |
 | [V1_ORACLE_SPEC](docs/V1_ORACLE_SPEC.md) | 第一個 static double-support / forward–inverse numerical oracle、threshold 與證據邊界 |
+| [V1_ANALYTICAL_SUITE_SPEC](docs/V1_ANALYTICAL_SUITE_SPEC.md) | single-support、known-payload、time-step fixture 的 frozen contract、failure semantics 與 claim boundary |
+| [EXPERIMENT_MATRIX_CONTRACT](docs/EXPERIMENT_MATRIX_CONTRACT.md) | controller × seed × scenario exact matrix、status retention與 completeness receipt contract |
 | [EXPERIMENT_PROTOCOL](docs/EXPERIMENT_PROTOCOL.md) | frozen configuration、seed、hash、metrics 與 raw artifacts |
 | [PAPER_DATA_READINESS](docs/PAPER_DATA_READINESS.md) | paper-data-first 架構、run bundle、PDR gates、統計與文獻依據 |
 | [METRIC_DEFINITIONS](docs/METRIC_DEFINITIONS.md) | analysis runtime 指標的公式、窗口、命名與限制 |
@@ -114,6 +118,7 @@ comparison_report.md 保留既有 deterministic nominal snapshot，供回歸診�
 | [PATH_PHASE_SATURATION_TRAINING_RECEIPT_2026-08-30](docs/PATH_PHASE_SATURATION_TRAINING_RECEIPT_2026-08-30.md) | v2–v6 observation/reward iterations、500 Hz sampling defect、Live failure 與下一輪研究 gate |
 | [COMPARE_RL_IMPLEMENTATION_RECEIPT_2026-08-26](docs/COMPARE_RL_IMPLEMENTATION_RECEIPT_2026-08-26.md) | 三機比較、registry、training smoke 的 source/test receipt 與未解 blockers |
 | [V0_IMPLEMENTATION_RECEIPT_2026-08-26](docs/V0_IMPLEMENTATION_RECEIPT_2026-08-26.md) | 第一批 V0 hardening 的 source/test audit 與未解 blockers |
+| [V1_ANALYTICAL_SUITE_IMPLEMENTATION_RECEIPT_2026-09-02](docs/V1_ANALYTICAL_SUITE_IMPLEMENTATION_RECEIPT_2026-09-02.md) | analytical fixture 的 clean-source bundle、independent replay、tests 與 bounded result |
 | [HARDWARE_DATA_PROVENANCE](docs/HARDWARE_DATA_PROVENANCE.md) | datasheet、CAD/BOM、bench data 與 demo catalog 的分級 |
 | [ROADMAP](docs/ROADMAP.md) | V0–V4 gate-first 工作順序 |
 | [CONVENTIONS](docs/CONVENTIONS.md) | 開發與 evidence governance 規範 |
@@ -121,7 +126,7 @@ comparison_report.md 保留既有 deterministic nominal snapshot，供回歸診�
 
 ## 下一階段
 
-目前不以「功能完成百分比」表示成熟度。v5 已在 unchanged 500 Hz Motion Task 通過 10/11 criteria，沒有跌倒且完成 start/walk/stop；唯一失敗是 saturation duty `38.422222% > 30%`。training evaluator 的 50 Hz saturation under-sampling 已修正為 500 Hz，先前相關 PASS 已撤銷；v6 reward-only fine-tune 仍未降低 saturation。後續採 paper-data-first：raw Jacobian serialization與 process-independent stdlib-only arithmetic replay已完成；下一步依序是 single-support、known-payload、time-step convergence、experiment matrix與 independent statistics，再 preregister v7 action-interface PILOT。這些 development 能力不解除 V0/V1/V3 gate。
+目前不以「功能完成百分比」表示成熟度。v5 已在 unchanged 500 Hz Motion Task 通過 10/11 criteria，沒有跌倒且完成 start/walk/stop；唯一失敗是 saturation duty `38.422222% > 30%`。training evaluator 的 50 Hz saturation under-sampling 已修正為 500 Hz，先前相關 PASS 已撤銷；v6 reward-only fine-tune 仍未降低 saturation。後續採 paper-data-first：raw Jacobian replay、single-support／known-payload／time-step fixture與 experiment matrix completeness V1 software contract均已完成 bounded evidence；Study A actual matrix、orchestrator與 formal authorization仍未完成。下一個唯一優先目標是 paired statistics／confidence interval與 paper table/figure input contract，其後才是 preregistered v7 action-interface PILOT。這些 development 能力不解除 V0/V1/V3 gate。
 
 ## 資料聲明
 
