@@ -87,6 +87,9 @@ Policy 在同一 simulator 與 reward 中表現良好，不等於 model validati
 - [RESULT] Missing、duplicate、unexpected、unindexed、tamper與 identity drift均
   fail closed；FAILED/CANCELLED分開保留。CANCELLED可維持 inventory complete，但
   `statistics_input_ready=false`。
+- [RESULT] Clean-source synthetic receipt（Git `b8aea995eca0f3a3eff36ff04137ea3dd163f017`）
+  驗證 3/3 identity-valid cells，並保留 `COMPLETED=1`、`FAILED=1`、`CANCELLED=1`；
+  receipt SHA-256為 `8ebe7aa2509135143371774147dc85cc35fd5072c046522d1aabf90a74eb4691`。
 - [INFERENCE] 這可降低 supplied matrix root內的漏報與 cherry-pick風險；不能證明
   explicit cells已涵蓋所有科學上必要 strata、sample size充分或 controller較優。
 - [BLOCKER] `PAPER_RUN_MANIFEST_V1`尚無 native `scenario_id/replicate_id`；V1以

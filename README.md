@@ -119,6 +119,7 @@ comparison_report.md 保留既有 deterministic nominal snapshot，供回歸診�
 | [COMPARE_RL_IMPLEMENTATION_RECEIPT_2026-08-26](docs/COMPARE_RL_IMPLEMENTATION_RECEIPT_2026-08-26.md) | 三機比較、registry、training smoke 的 source/test receipt 與未解 blockers |
 | [V0_IMPLEMENTATION_RECEIPT_2026-08-26](docs/V0_IMPLEMENTATION_RECEIPT_2026-08-26.md) | 第一批 V0 hardening 的 source/test audit 與未解 blockers |
 | [V1_ANALYTICAL_SUITE_IMPLEMENTATION_RECEIPT_2026-09-02](docs/V1_ANALYTICAL_SUITE_IMPLEMENTATION_RECEIPT_2026-09-02.md) | analytical fixture 的 clean-source bundle、independent replay、tests 與 bounded result |
+| [EXPERIMENT_MATRIX_IMPLEMENTATION_RECEIPT_2026-09-03](docs/EXPERIMENT_MATRIX_IMPLEMENTATION_RECEIPT_2026-09-03.md) | matrix validator 的 clean-source synthetic receipt、negative/null retention與 fail-closed tests |
 | [HARDWARE_DATA_PROVENANCE](docs/HARDWARE_DATA_PROVENANCE.md) | datasheet、CAD/BOM、bench data 與 demo catalog 的分級 |
 | [ROADMAP](docs/ROADMAP.md) | V0–V4 gate-first 工作順序 |
 | [CONVENTIONS](docs/CONVENTIONS.md) | 開發與 evidence governance 規範 |

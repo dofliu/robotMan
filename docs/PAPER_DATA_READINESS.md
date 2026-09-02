@@ -137,6 +137,8 @@ payload mass error為 `0 kg`、paired GRF increment relative error為
 但因差值進入 round-off區，observed order依 preregistered semantics保留為 `null`。
 此結果仍是 `REGRESSION_BUNDLE_VALID_ONLY / paper_data_ready=false`。
 
+[RESULT] [Experiment matrix implementation receipt](EXPERIMENT_MATRIX_IMPLEMENTATION_RECEIPT_2026-09-03.md)在 clean Git `b8aea995eca0f3a3eff36ff04137ea3dd163f017`以 synthetic regression matrix驗證 3/3 exact cells，並同時保留 `COMPLETED=1`、`FAILED=1`、`CANCELLED=1`；receipt hash為 `sha256:8ebe7aa2509135143371774147dc85cc35fd5072c046522d1aabf90a74eb4691`。因存在 CANCELLED且未做 statistics，`statistics_input_ready=false`、`paper_data_ready=false`。
+
 ## 6. 第一篇 Study A 建議
 
 第一篇先聚焦一個可回答的問題，避免同時聲稱所有動作與所有演算法：
