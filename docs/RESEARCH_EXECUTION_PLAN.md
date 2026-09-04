@@ -1,6 +1,6 @@
 # 人形機器人控制與訓練方法研究執行計畫
 
-最後更新：2026-09-03
+最後更新：2026-09-05
 
 本次 V1 evidence 範圍：`SIM_ONLY_MUJOCO` / `NOT_PHYSICALLY_VALIDATED`
 
@@ -33,7 +33,8 @@ Policy 在同一 simulator 與 reward 中表現良好，不等於 model validati
 | P1 | V1 plant/contact/numerical oracle | residual、contact、friction、CoP、convergence、energy 全部可獨立重算 | IN PROGRESS / static replay與 passive single-support/payload/4–2–1 ms fixture PASS；articulated dynamic、pendulum、energy/full solver studies仍缺，gate not pass |
 | P2 | QP/WBC baseline | constraint-feasible、failure-retaining baseline bundle | BLOCKED BY P1 |
 | P3 | Experiment orchestrator | controller × training seed × eval seed × scenario 完整 manifest | VALIDATOR IMPLEMENTED / RUNNER + ACTUAL MATRIX MISSING：strict matrix spec/index、bundle identity與 missing/duplicate/unexpected/unindexed/status retention covered |
-| P4 | Study A formal benchmark | protocol frozen、paired statistics、CI、failures/censoring retained | BLOCKED BY P1–P3 |
+| P3B | Paired statistics/export | explicit pairs、failure/null/censoring retention、effect/CI、independent paper-input replay | SOFTWARE CONTRACT IMPLEMENTED / SCIENTIFIC GATE NOT PASS：continuous paired effect/bootstrap CI、binary 2×2 counts、JSON table/figure與 exact replay已驗證；binary paired CI、actual Study A與 sample-size decision missing |
+| P4 | Study A formal benchmark | protocol frozen、paired statistics、CI、failures/censoring retained | BLOCKED BY P1–P3 / paired-statistics software precursor implemented；actual Study A、suitable binary CI與 formal authorization absent |
 | P5 | Motion primitives / imitation | raise hand、single-leg raise、squat、turn 等各有獨立 task contract | AFTER STUDY A |
 | P6 | SIL/HIL/bench/robot validation | 只在實際完成的外部 evidence 層級建立 bounded claim | FUTURE |
 
@@ -70,8 +71,8 @@ Policy 在同一 simulator 與 reward 中表現良好，不等於 model validati
   arithmetic與選定 QoI的 grid stability；不能代表 articulated humanoid dynamics、
   controller performance或 physical payload capacity。
 - [BLOCKER] Clean bundle只能是 `REGRESSION_BUNDLE_VALID_ONLY`；analytical fixture
-  之後的 matrix completeness software contract已完成，但 actual Study A matrix、statistics
-  與 formal authorization仍不存在。
+  之後的 matrix completeness與 paired statistics/export software contracts已完成，
+  但 actual Study A matrix、formal statistics、binary paired CI與 authorization仍不存在。
 
 ### P3 bounded result：matrix completeness V1
 
@@ -94,7 +95,15 @@ Policy 在同一 simulator 與 reward 中表現良好，不等於 model validati
   explicit cells已涵蓋所有科學上必要 strata、sample size充分或 controller較優。
 - [BLOCKER] `PAPER_RUN_MANIFEST_V1`尚無 native `scenario_id/replicate_id`；V1以
   matrix labels加 exact fingerprint cross-check，不宣稱 self-binding。外部 preregistration、
-  immutable storage、actual matrix與 paired statistics仍缺。
+  immutable storage、actual matrix與 formal statistical evidence仍缺。
+
+### P3B bounded result：paired statistics/export V1
+
+- [SOURCE] Patterson et al.（JMLR 2024）建議對 fully specified methods先形成 paired differences並回報 interval；Fay and Lumbard（2021）與 Newcombe（1998）顯示 matched-pair binary risk difference需專用 interval，不可以兩個 marginal intervals取代。
+- [RESULT] `PAIRED_STATISTICS_SPEC_V1`以 explicit pair map綁定 scenario、replicate與 evaluation/environment/scenario seeds；continuous outcome輸出 candidate-minus-reference mean/median、Cohen dz與 deterministic paired percentile-bootstrap CI。
+- [RESULT] Clean-source synthetic package綁定 Git `a36b230de28c9f00f495027539c9266b22a9ec15`，191 個 indexed artifacts / 297961 bytes的 path、bytes、SHA-256全數吻合；`python -I -S` replay對 raw table→summary/table/figure exact identity通過。
+- [RESULT] Regression case保留 FAILED、CANCELLED、negative、NULL、NONFINITE與 CENSORED；任一 nonobserved state會使對應 outcome的 effect/CI為 null，CANCELLED則在 upstream 直接阻擋 aggregate。
+- [BLOCKER] Binary outcome只輸出 paired 2×2 counts、risk-difference point estimate與 marginal Wilson descriptions；paired CI固定 `null / PAIRED_BINARY_CI_NOT_IMPLEMENTED_V1`。Synthetic values不是 scientific observation，不支持 controller superiority、V3 PASS或 paper readiness。
 
 ## 4. P0 結果與 P0B 設計
 
@@ -127,7 +136,7 @@ v3 由 v2 做 fail-closed input expansion；新增輸入權重從零開始，其
 - 檢查後發現原 training evaluator 只在 50 Hz control step 末端取樣 saturation，正式 task 則以 500 Hz physics trace 計算。修正後 v5 DEV mean/worst saturation 為 `37.571852% / 39.2%`，因此先前 saturation PASS 已撤銷。
 - v6 保留 51-D observation，加入 500 Hz substep saturation reward；122,880-step DEV run 未降低 saturation，且新增一次末段跌倒。此負結果不進入 registry。
 
-下一個 learning study 不再只堆疊 reward。v7 應 preregister `reward-only`、`joint-specific action envelope`、`action low-pass/rate limit` 與後續 `WBC residual` 的 interface ablation。DEV 使用 18000–18029；19000–19029 已因 evaluator defect audit 而退役。新的 formal holdout 預先凍結為 20000–20029，只能在選定單一候選後執行一次。
+下一個唯一優先目標是 v7 action-interface DEVELOPMENT PILOT：先凍結 `reward-only`、`joint-specific action envelope`、`action low-pass/rate limit` 的 protocol、seeds、acceptance與 failure semantics，再執行 bounded PILOT，結果只用於 variance/power/sample-size planning。DEV 使用 18000–18029；19000–19029 已因 evaluator defect audit 而退役。新的 formal holdout 預先凍結為 20000–20029，只能在選定單一候選後執行一次；本 PILOT不得使用 FORMAL/HOLDOUT、不得放寬現有 Motion Task threshold。
 
 ## 5. Study A 的方法組與公平比較
 

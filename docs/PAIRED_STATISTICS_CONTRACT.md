@@ -2,7 +2,7 @@
 
 最後更新：2026-09-05
 
-狀態：`FROZEN / IMPLEMENTED PENDING CLEAN-SOURCE EVIDENCE`
+狀態：`FROZEN V1 / BOUNDED SOFTWARE IMPLEMENTATION VERIFIED`
 
 證據範圍：`SIM_ONLY_MUJOCO / NOT_PHYSICALLY_VALIDATED`
 
@@ -210,3 +210,25 @@ review均未完成。
 - [SOURCE] [IETF RFC 8259](https://www.rfc-editor.org/rfc/rfc8259.html)：JSON grammar不包含NaN/Infinity，duplicate object names會造成interoperability問題。
 - [SOURCE] CRAN `exact2x2` [version 1.7.0 package documentation](https://cran.r-project.org/package=exact2x2), 2025-08-20：提供與 Fay–Lumbard matched-pair interval相容的 `mcnemarExactDP` reference implementation。[BLOCKER] 本V1尚未建立 published golden-case cross-check，因此只登錄後續 V2 oracle候選，不在結果後臨時啟用。
 - [INFERENCE] 因此V1採strict JSON、explicit observation states、exact pair map、continuous pair-level deterministic bootstrap、binary paired-CI blocker、Wilson marginal descriptive interval與stdlib-only replay；這些software choices不產生controller或physical claims。
+
+## 9. Bounded implementation result
+
+[RESULT] Clean-source synthetic `REGRESSION` package在 Git
+`a36b230de28c9f00f495027539c9266b22a9ec15`通過 `PS-01..PS-12`；source
+pre/post相同且均為 clean。Package receipt列入 191 個 artifacts / 297961 bytes，
+receipt為 `sha256:c3b860ce70690a1ed855e475f72cfc4da83d236a6e71dd3fdec93ec9a834ebf1`。
+Aggregate bundle的6個 artifacts / 170487 bytes通過 path/bytes/SHA-256與 no-extra-file
+readback；`python -I -S` replay對 raw table、summary、table與figure exact identity。
+
+[RESULT] Aggregate fixture保留 `FAILED`、negative、`NULL`、`NONFINITE`與
+`CENSORED`；另一 fixture保留 `CANCELLED` 並回報
+`BLOCKED_UPSTREAM_MATRIX`。`STATISTICS_CONTRACT_VALID` 只表示結構、pairing、
+arithmetic、retention與replay符合contract；由於 binary paired CI與保留的
+nonobserved outcomes仍有blocker，`statistics_ready=false`、`paper_data_ready=false`。
+
+[INFERENCE] 此 evidence支持 synthetic software pipeline的bounded verification；不支持
+sample-size adequacy、controller ranking、actual Study A、physical fidelity或publication readiness。
+
+[BLOCKER] 後續仍需獨立驗證matched-pair binary CI、以PILOT凍結sample size、
+執行actual matrix，並完成P1/V1、V3、formal authorization與project-wide immutable
+storage。

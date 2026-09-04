@@ -48,6 +48,7 @@ Repository：[github.com/dofliu/robotMan](https://github.com/dofliu/robotMan) �
 - V1 static contact oracle V4：500 Hz raw trace、serialized relative Jacobians、6-D wrench closure、pyramidal friction utilization、foot-local CoP，以及不載入 MuJoCo/controller 的 stdlib-only process replay；僅為 static SIM evidence
 - V1 analytical fixture：passive single-support、centered 5 kg simulated payload與 4/2/1 ms grid-refinement；exact MJCF/model package、raw frame/wrench/Jacobian與 stdlib-only replay皆 fail closed，僅為 `SIM_ONLY_MUJOCO`
 - Experiment matrix completeness V1：strict JSON frozen spec/index、expected-to-observed exact cell matching、run bundle path/bytes/SHA-256 readback，以及 missing/duplicate/unexpected/unindexed/identity drift與 FAILED/CANCELLED retention；只驗 software inventory identity
+- Paired statistics/export V1：frozen explicit pair map、continuous paired mean/median/Cohen dz、deterministic paired bootstrap CI、binary 2×2 counts/Wilson marginal descriptions、failure/null/non-finite/censoring retention，以及 `python -I -S` raw-to-summary/table/figure exact replay；paired binary CI 仍 fail-closed blocked
 
 這些是 feature inventory，不代表 M1–M6 已通過 V&V gate。
 
@@ -101,6 +102,7 @@ comparison_report.md 保留既有 deterministic nominal snapshot，供回歸診�
 | [V1_ORACLE_SPEC](docs/V1_ORACLE_SPEC.md) | 第一個 static double-support / forward–inverse numerical oracle、threshold 與證據邊界 |
 | [V1_ANALYTICAL_SUITE_SPEC](docs/V1_ANALYTICAL_SUITE_SPEC.md) | single-support、known-payload、time-step fixture 的 frozen contract、failure semantics 與 claim boundary |
 | [EXPERIMENT_MATRIX_CONTRACT](docs/EXPERIMENT_MATRIX_CONTRACT.md) | controller × seed × scenario exact matrix、status retention與 completeness receipt contract |
+| [PAIRED_STATISTICS_CONTRACT](docs/PAIRED_STATISTICS_CONTRACT.md) | paired estimand、failure/null/censoring semantics、CI與 machine-readable paper input contract |
 | [EXPERIMENT_PROTOCOL](docs/EXPERIMENT_PROTOCOL.md) | frozen configuration、seed、hash、metrics 與 raw artifacts |
 | [PAPER_DATA_READINESS](docs/PAPER_DATA_READINESS.md) | paper-data-first 架構、run bundle、PDR gates、統計與文獻依據 |
 | [METRIC_DEFINITIONS](docs/METRIC_DEFINITIONS.md) | analysis runtime 指標的公式、窗口、命名與限制 |
@@ -120,6 +122,7 @@ comparison_report.md 保留既有 deterministic nominal snapshot，供回歸診�
 | [V0_IMPLEMENTATION_RECEIPT_2026-08-26](docs/V0_IMPLEMENTATION_RECEIPT_2026-08-26.md) | 第一批 V0 hardening 的 source/test audit 與未解 blockers |
 | [V1_ANALYTICAL_SUITE_IMPLEMENTATION_RECEIPT_2026-09-02](docs/V1_ANALYTICAL_SUITE_IMPLEMENTATION_RECEIPT_2026-09-02.md) | analytical fixture 的 clean-source bundle、independent replay、tests 與 bounded result |
 | [EXPERIMENT_MATRIX_IMPLEMENTATION_RECEIPT_2026-09-03](docs/EXPERIMENT_MATRIX_IMPLEMENTATION_RECEIPT_2026-09-03.md) | matrix validator 的 clean-source synthetic receipt、negative/null retention與 fail-closed tests |
+| [PAIRED_STATISTICS_IMPLEMENTATION_RECEIPT_2026-09-05](docs/PAIRED_STATISTICS_IMPLEMENTATION_RECEIPT_2026-09-05.md) | paired statistics/export 的 clean-source regression receipt、independent replay與保留狀態驗證 |
 | [HARDWARE_DATA_PROVENANCE](docs/HARDWARE_DATA_PROVENANCE.md) | datasheet、CAD/BOM、bench data 與 demo catalog 的分級 |
 | [ROADMAP](docs/ROADMAP.md) | V0–V4 gate-first 工作順序 |
 | [CONVENTIONS](docs/CONVENTIONS.md) | 開發與 evidence governance 規範 |
@@ -127,7 +130,7 @@ comparison_report.md 保留既有 deterministic nominal snapshot，供回歸診�
 
 ## 下一階段
 
-目前不以「功能完成百分比」表示成熟度。v5 已在 unchanged 500 Hz Motion Task 通過 10/11 criteria，沒有跌倒且完成 start/walk/stop；唯一失敗是 saturation duty `38.422222% > 30%`。training evaluator 的 50 Hz saturation under-sampling 已修正為 500 Hz，先前相關 PASS 已撤銷；v6 reward-only fine-tune 仍未降低 saturation。後續採 paper-data-first：raw Jacobian replay、single-support／known-payload／time-step fixture與 experiment matrix completeness V1 software contract均已完成 bounded evidence；Study A actual matrix、orchestrator與 formal authorization仍未完成。下一個唯一優先目標是 paired statistics／confidence interval與 paper table/figure input contract，其後才是 preregistered v7 action-interface PILOT。這些 development 能力不解除 V0/V1/V3 gate。
+目前不以「功能完成百分比」表示成熟度。v5 已在 unchanged 500 Hz Motion Task 通過 10/11 criteria，沒有跌倒且完成 start/walk/stop；唯一失敗是 saturation duty `38.422222% > 30%`。training evaluator 的 50 Hz saturation under-sampling 已修正為 500 Hz，先前相關 PASS 已撤銷；v6 reward-only fine-tune 仍未降低 saturation。後續採 paper-data-first：raw Jacobian replay、single-support／known-payload／time-step fixture、experiment matrix completeness與 paired statistics/export V1 software contracts均已完成 bounded evidence；Study A actual matrix、orchestrator、formal sample-size decision、paired binary CI與 formal authorization仍未完成。下一個唯一優先目標是 preregistered v7 action-interface PILOT，限 DEVELOPMENT seeds比較 reward-only、joint-specific action envelope與 action filtering，不開啟 formal holdout。這些 development 能力不解除 V0/V1/V3 gate。
 
 ## 資料聲明
 

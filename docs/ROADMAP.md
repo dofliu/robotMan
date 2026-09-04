@@ -1,6 +1,6 @@
 # Gate-first 工作規劃
 
-最後更新：2026-09-03
+最後更新：2026-09-05
 
 專案成熟度改以 **evidence gate** 表示，不再以 UI 或 feature count 換算完成百分比。既有 M1–M6 代表 prototype feature inventory，並非 verification 或 physical validation 已完成。
 
@@ -11,7 +11,7 @@
 | V0 Evidence & Provenance | 凍結 requirements、metrics、scenario、hash、hardware evidence class 與 raw artifact schema | PARTIAL IMPLEMENTED / NOT PASS | bounded input contracts、metric semantics、partial runtime provenance 與 UI evidence state 已有；仍須 immutable bundle、environment lock、validator 與完整 hash readback |
 | V1 Plant & Numerical Verification | 驗證 equations、base wrench closure、constraints 與 numerical convergence | BLOCKED BY V0 | 所有 V1 oracle 通過，失敗案例保留 |
 | V2 Actuator / Sensor / Estimator Fidelity | 建立 torque-speed、thermal、joint limits、latency/noise 與 estimator models | NOT STARTED | 來源與參數不確定性可追溯 |
-| V3 Fair Benchmark & UQ | 公平 controller comparison、scenario strata、Monte Carlo、CI | NOT STARTED | protocol frozen、raw traces 完整、統計 gate 通過 |
+| V3 Fair Benchmark & UQ | 公平 controller comparison、scenario strata、Monte Carlo、CI | FOUNDATION SOFTWARE PARTIAL / FORMAL NOT STARTED | protocol frozen、raw traces 完整、統計 gate 通過 |
 | V4 Subsystem Validation | 以 SIL/HIL/bench evidence 校準並驗證 bounded subsystem claims | NOT STARTED | 外部量測與 acceptance criteria 通過 |
 
 任一上游 gate 未通過，下游結果一律標記 BLOCKED，不可用 feature demo、software smoke test 或單一 nominal run 代替。
@@ -41,7 +41,7 @@
 4. [TODO] 為每個 claim 建立 requirement ID、metric definition、oracle、acceptance gate 與 owner。
 5. [PARTIAL] `PAPER_RUN_MANIFEST_V1` 已凍結 run-level protocol/controller/plant/scenario/seed/artifact fields；training/checkpoint與完整 environment lock尚未串入所有 pipelines。
 6. [PARTIAL] V1 static V4與 analytical fixture V1均可輸出含 raw relative Jacobians的 10-role regression bundle，由 stdlib-only process重建 generalized force並回指 raw trace；project-wide immutable storage尚未完成。
-7. [PARTIAL] Artifact inventory/bytes/SHA-256/path、clean-source/content-sensitive Git identity、exact model-package與 experiment matrix completeness V1 validator已實作；完整 environment lock、project-wide immutable storage與 actual Study matrix尚未完成。
+7. [PARTIAL] Artifact inventory/bytes/SHA-256/path、clean-source/content-sensitive Git identity、exact model-package、experiment matrix validator與 paired statistics/export V1 aggregate inventory/replay已實作；完整 environment lock、project-wide immutable storage與 actual Study matrix尚未完成。
 8. [DONE-D0] 將 built-in hardware catalog 定位為 D0 representative demo data。
 9. [TODO] 建立 DEVELOPMENT、CALIBRATION、FORMAL_EVALUATION 分區。
 
@@ -88,6 +88,8 @@
 - stochastic policy/training 使用 preregistered multi-seed design；
 - 回報 raw episode values、effect size、confidence interval 與 censored/failed cases；
 - push test 以 impulse、application point、gait phase、direction、duration 與 recovery criterion 完整定義。
+
+Paired statistics/export V1已完成 synthetic software precursor：continuous paired effect/bootstrap CI、binary 2×2 counts/Wilson marginal descriptions、failure/null/censoring retention、hash-bound table/figure inputs與 stdlib-only exact replay均已驗證。`statistics_ready=false`、binary paired CI blocker與 `paper_data_ready=false`均保留，不構成 V3 PASS。
 
 ### Development precursor：三機同步觀察
 
@@ -141,7 +143,7 @@ WBC 必須早於 RL paper 與硬體 × strategy 正式比較。開始條件為 V
 
 多速度、domain randomization、能耗與硬體 × strategy 可在 V3 protocol frozen 後執行。若 V4 尚未通過，論文只能宣稱 SIM-only results，不可宣稱實體硬體效益或 sim-to-real。
 
-Development 已完成 v1–v6 failure-retaining iteration：v2 解決前進與停止但 Live path/saturation 失敗；v3/v4/v5 依序加入 path/heading、terminal stability 與 phase trend；v5 在 Live 達到 10/11；v6 證明單純加入 500 Hz saturation reward 尚不足。V1 raw-Jacobian replay、single-support／known-payload／time-step fixture與 experiment matrix completeness V1 software contract已完成 bounded evidence；下一步推進 paired statistics/CI與 paper inputs，最後才以 preregistered v7比較 reward-only、joint-specific action envelope與 action filtering。Actual Study matrix、P1/P2/WBC與 V3仍未通過；training-env pass不是 Live trace、V3或實機證據。
+Development 已完成 v1–v6 failure-retaining iteration：v2 解決前進與停止但 Live path/saturation 失敗；v3/v4/v5 依序加入 path/heading、terminal stability 與 phase trend；v5 在 Live 達到 10/11；v6 證明單純加入 500 Hz saturation reward 尚不足。V1 raw-Jacobian replay、single-support／known-payload／time-step fixture、experiment matrix completeness與 paired statistics/export V1 software contracts已完成 bounded evidence。下一個唯一優先目標是 v7 action-interface DEVELOPMENT PILOT：先凍結 reward-only、joint-specific action envelope與 action filtering的 protocol/seeds/acceptance/failure semantics，再以 DEV 18000–18029 執行；FORMAL/HOLDOUT不開啟、threshold不放寬。Actual Study matrix、paired binary CI、P1/P2/WBC與 V3仍未通過；training-env pass不是 Live trace、V3或實機證據。
 
 ## 9. 建議執行順序
 

@@ -9,7 +9,7 @@
 
 正式結果必須建立 versioned protocol instance。僅執行 script 或產生 Markdown report 不算 protocol completion。
 
-`PAPER_RUN_MANIFEST_V1` 與 fail-closed artifact validator 已建立 run-level contract；V1 static/analytical suites可保存 raw relative Jacobians，並由不載入 MuJoCo/controller 的另一 process重建 generalized force。`EXPERIMENT_MATRIX_SPEC_V1`另以 frozen spec/index hash、exact cell identity與 dedicated-root scan檢查 missing、duplicate、unexpected、unindexed及 status retention。這只完成 bounded software contracts；project-wide immutable storage、actual Study matrix、remaining dynamic coverage、statistics與 formal authorization仍未完成。完整架構見 [PAPER_DATA_READINESS](PAPER_DATA_READINESS.md)與 [EXPERIMENT_MATRIX_CONTRACT](EXPERIMENT_MATRIX_CONTRACT.md)。
+`PAPER_RUN_MANIFEST_V1` 與 fail-closed artifact validator 已建立 run-level contract；V1 static/analytical suites可保存 raw relative Jacobians，並由不載入 MuJoCo/controller 的另一 process重建 generalized force。`EXPERIMENT_MATRIX_SPEC_V1`以 frozen spec/index hash、exact cell identity與 dedicated-root scan檢查 missing、duplicate、unexpected、unindexed及 status retention；`PAIRED_STATISTICS_SPEC_V1`另將 explicit pairing、outcome/failure semantics、continuous CI與 machine-readable paper inputs凍結，並由 stdlib-only process exact replay。這些仍只是 bounded software contracts；project-wide immutable storage、actual Study matrix、remaining dynamic coverage、binary paired CI、sample-size decision與 formal authorization仍未完成。完整架構見 [PAPER_DATA_READINESS](PAPER_DATA_READINESS.md)、[EXPERIMENT_MATRIX_CONTRACT](EXPERIMENT_MATRIX_CONTRACT.md)與 [PAIRED_STATISTICS_CONTRACT](PAIRED_STATISTICS_CONTRACT.md)。
 
 ## 2. Run classes
 
@@ -200,6 +200,9 @@ WBC 作為 model-based baseline 時，需先通過 V1 contact/constraint gate，
 - threshold search回報 resolution、bounds與censoring。
 - failures、NaN、solver infeasible、early termination一律保留並依 protocol處理。
 - 不以只剩成功 cases 的平均值作性能結論。
+- V1 aggregate contract對 continuous metrics使用 pair-level candidate-minus-reference mean、median、Cohen dz與 deterministic paired percentile bootstrap；CI只對應 mean difference。
+- Binary outcome保留 paired 2×2 counts與 marginal Wilson descriptions；在 matched-pair CI 尚未通過 published golden-case oracle前，paired CI必須為 null/blocker，不得以 marginal intervals取代。
+- `NULL`、`NONFINITE`、`CENSORED`阻擋對應 outcome inference；`FAILED`仍在 denominator內，只有事先定義的 terminal-failure binary outcome才能明示寫為 observed false。
 
 ## 9. Raw artifacts
 

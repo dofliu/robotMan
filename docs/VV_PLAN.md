@@ -22,7 +22,7 @@ SIL PASS 不自動成為 HIL、bench 或 integrated robot PASS。
 | V0-R01 每個 claim 有 owner 與 acceptance definition | 建立 requirement registry | schema + completeness check | registry、review record、hash | V0 | IN PROGRESS |
 | V0-R02 每次 run identity 唯一 | hash code bundle/config/MJCF/checkpoint/environment | hash readback equality | manifest、files、checksums | V0 | PARTIAL: V1 regression binds pre/post Git SHA+dirty and actual-config model XML SHA; checkpoint/complete environment lock incomplete |
 | V0-R03 hardware parameter provenance | 依 D0–D4 分級 | source/revision/page/unit completeness | provenance records | V0 | D0 ONLY |
-| V0-R04 raw artifacts 可追溯 | summary-to-raw reference validation | zero missing/mismatch/path escape | inventory、hashes、gate receipt | V0 | PARTIAL: V1 raw/model receipts、10-role inventory與 matrix spec/index-to-run path/bytes/SHA linkage implemented；project-wide immutable storage與 actual Study matrix missing |
+| V0-R04 raw artifacts 可追溯 | summary-to-raw reference validation | zero missing/mismatch/path escape | inventory、hashes、gate receipt | V0 | PARTIAL: V1 raw/model receipts、10-role inventory、matrix-to-run linkage與 paired raw-to-summary/table/figure aggregate inventory/replay implemented；project-wide immutable storage與 actual Study matrix missing |
 | V0-R05 外部輸入 fail closed | schema、cross-field 與 live command validation | invalid/NaN/unknown/inadequate-resolution case 全數拒絕 | contract tests、API/WebSocket receipt | V0 | PARTIAL PASS: current REST/Live simulation contracts covered; formal evidence validator and remaining external surfaces incomplete |
 | V0-R06 runtime metric 定義固定 | versioned formula、window、unit 與 null semantics | independent recomputation equality | [METRIC_DEFINITIONS](METRIC_DEFINITIONS.md)、raw trace、oracle output | V0/V1 | PARTIAL: ANALYSIS_METRICS_V1 + regressions and bounded V1 raw-Jacobian arithmetic replay implemented; project-wide independent evaluator/gate missing |
 | V0-R07 result-input identity | frozen request snapshot + server hash readback | stale/race/mismatch case 不得顯示 CURRENT | frontend behavior receipt | V0 | PARTIAL: exact request snapshot/race/stale behavior implemented; server hash independently unverified |
@@ -48,7 +48,7 @@ SIL PASS 不自動成為 HIL、bench 或 integrated robot PASS。
 | V3-R02 deterministic regression | exact frozen nominal case | hash and tolerance comparison | baseline bundle + diff | V3 | SNAPSHOT EXISTS / UNGATED |
 | V3-R03 scenario coverage | stratified phase/terrain/friction/payload/delay/noise/disturbance | all preregistered cells executed | scenario matrix + completeness receipt | V3 | VALIDATOR IMPLEMENTED / COVERAGE NOT RUN：explicit expected-cell set arithmetic不能代替 scientific strata design |
 | V3-R04 Monte Carlo design | frozen distributions and seed list | seed/cell completeness, no cherry-pick | seed manifest + raw episodes | V3 | VALIDATOR IMPLEMENTED / RUNS NOT STARTED：training/evaluation/environment/scenario seed identity可驗，sample size/distributions未 freeze |
-| V3-R05 uncertainty reporting | paired effect size + suitable CI | preregistered method; failures/censoring retained | statistics code/output | V3 | NOT STARTED |
+| V3-R05 uncertainty reporting | paired effect size + suitable CI | preregistered method; failures/censoring retained | statistics code/output | V3 | SOFTWARE CONTRACT PARTIAL / V3 NOT PASS：continuous paired effect/bootstrap CI、binary 2×2 counts、nonobserved blockers與 independent export replay implemented on synthetic data；binary paired CI、sample-size decision與 actual Study A missing |
 | V3-R06 RL reproducibility | multi training/evaluation seeds | checkpoint/config/environment identity + distribution of outcomes | training/eval bundles | V3 | BLOCKED |
 | V3-R07 push robustness | phase/point/direction/impulse strata | recovery criterion and censored upper bounds | force/contact/state traces | V3 | NOT STARTED |
 | DCOMP-R01 三 controller plant isolation | 三個獨立 LiveSession、固定 controller identity | session/model identity 與無 cross-contact state | contract/integration tests | DEVELOPMENT | SOFTWARE TEST PASS / NOT V3 EVIDENCE |
@@ -197,7 +197,7 @@ Nominal case 用於 deterministic regression；不得代表 scenario coverage。
 - code checkout 缺少可引用的 version identity；
 - runtime config/model/code/result hashes 與 run/scenario IDs 已 partial implemented，但尚未形成 immutable source/run identity；
 - dependencies 未完整 pin，environment lock 缺失；
-- run-level paper manifest、V1 regression bundle inventory與 experiment matrix completeness validator已有；project-wide immutable storage、external preregistration與 actual Study matrix尚未完成；
+- run-level paper manifest、V1 regression bundle inventory、experiment matrix validator與 paired statistics/export V1 software contract已有；project-wide immutable storage、external preregistration、binary paired CI與 actual Study matrix尚未完成；
 - base wrench、friction、CoP與 raw relative Jacobians 已進入 bounded double/single-support、centered payload與 4/2/1 ms fixture及 stdlib-only replay；same-engine contact receipts、articulated dynamic、known pendulum、energy與完整 numerical gate 尚未完成；
 - joint/actuator/contact/solver constraints 不完整；
 - benchmark energy/fairness/UQ 未 gate；

@@ -1,8 +1,8 @@
 # Paper Data Readiness Architecture
 
-最後更新：2026-09-03
+最後更新：2026-09-05
 
-狀態：`ARCHITECTURE FROZEN V1 / IMPLEMENTATION IN PROGRESS`
+狀態：`ARCHITECTURE FROZEN V1 / SOFTWARE PIPELINE PARTIAL`
 
 證據範圍：`SIM_ONLY_MUJOCO / NOT_PHYSICALLY_VALIDATED`
 
@@ -26,7 +26,7 @@ Functional requirements：
 4. Artifact inventory 逐檔保存 bytes 與 SHA-256，任何缺檔、path escape或 tamper 均 fail closed。
 5. Experiment matrix 可檢查 expected/missing/duplicate/unexpected cells。
 6. Training seed、evaluation seed 與 HOLDOUT partition 分離。
-7. Aggregate stage 產生 paired raw table、effect size、confidence interval、binary outcome interval與 performance profile inputs。
+7. Aggregate stage 產生 paired raw table、effect size、confidence interval、binary outcome interval與 performance profile inputs；matched-pair binary CI在 published golden-case oracle完成前必須明示 blocked，不得以 marginal Wilson interval取代。
 
 Non-functional requirements：
 
@@ -124,9 +124,9 @@ Regression bundle 可通過 integrity validation，但只能標為 `REGRESSION_B
 | PDR-3 Raw integrity | required artifacts、inventory、SHA-256、failure retention | IN PROGRESS / static與analytical 10-role completed/failed/cancelled paths、bytes與SHA-256 readback PASS |
 | PDR-4 Matrix completeness | controller × seed × scenario expected cells exact | SOFTWARE VALIDATOR IMPLEMENTED / ACTUAL STUDY MATRIX NOT RUN；strict spec/index、derived seed-schedule hash、bounded no-follow root scan、bundle identity、missing/duplicate/unexpected/unindexed與 FAILED/CANCELLED retention covered |
 | PDR-5 Independent metrics | raw-only evaluator覆蓋 primary/secondary outcomes | PARTIAL / static與analytical fixture已有 stdlib-only raw replay；Study A outcomes未覆蓋 |
-| PDR-6 Statistics | paired effects、CI、binary intervals、censoring | NOT STARTED |
-| PDR-7 Reproduction | clean checkout可重建 selected table/figure | NOT STARTED |
-| PDR-8 Paper export | machine-readable table/figure inputs與 appendix receipts | NOT STARTED |
+| PDR-6 Statistics | paired effects、CI、binary intervals、censoring | SOFTWARE CONTRACT PARTIAL / continuous paired mean、median、Cohen dz與 deterministic bootstrap CI已實作；binary paired CI固定 null/blocked；actual Study A未執行 |
+| PDR-7 Reproduction | clean checkout可重建 selected table/figure | SOFTWARE PARTIAL / synthetic raw table已由 `python -I -S` stdlib-only process exact重建 summary/table/figure；formal clean-checkout reproduction未做 |
+| PDR-8 Paper export | machine-readable table/figure inputs與 appendix receipts | SOFTWARE PARTIAL / synthetic JSON table/figure inputs與hash-bound receipt已實作；無 formal data或 paper-ready export |
 
 任何前置 gate 未通過時，可以做 DEVELOPMENT/PILOT，但不可啟動 FORMAL_EVALUATION。
 
@@ -138,6 +138,8 @@ payload mass error為 `0 kg`、paired GRF increment relative error為
 此結果仍是 `REGRESSION_BUNDLE_VALID_ONLY / paper_data_ready=false`。
 
 [RESULT] [Experiment matrix implementation receipt](EXPERIMENT_MATRIX_IMPLEMENTATION_RECEIPT_2026-09-03.md)在 clean Git `b8aea995eca0f3a3eff36ff04137ea3dd163f017`以 synthetic regression matrix驗證 3/3 exact cells，並同時保留 `COMPLETED=1`、`FAILED=1`、`CANCELLED=1`；receipt hash為 `sha256:8ebe7aa2509135143371774147dc85cc35fd5072c046522d1aabf90a74eb4691`。因存在 CANCELLED且未做 statistics，`statistics_input_ready=false`、`paper_data_ready=false`。
+
+[RESULT] [Paired statistics implementation receipt](PAIRED_STATISTICS_IMPLEMENTATION_RECEIPT_2026-09-05.md)在 clean Git `a36b230de28c9f00f495027539c9266b22a9ec15`用 synthetic regression matrix驗證 explicit pairing、continuous paired effect/bootstrap CI、binary 2×2 counts、machine-readable table/figure input與 stdlib-only exact replay。Package receipt `sha256:c3b860ce70690a1ed855e475f72cfc4da83d236a6e71dd3fdec93ec9a834ebf1`列入 191 個 artifacts / 297961 bytes，保留 FAILED、CANCELLED、negative、NULL、NONFINITE與 CENSORED。Binary paired CI未經 published golden-case oracle驗證，故仍為 `null / PAIRED_BINARY_CI_NOT_IMPLEMENTED_V1`；`statistics_ready=false`、`paper_data_ready=false`。
 
 ## 6. 第一篇 Study A 建議
 
@@ -163,6 +165,8 @@ payload mass error為 `0 kg`、paired GRF increment relative error為
 - [SOURCE] MuJoCo的 continuous equations、integration timestep與 `solver_fwdinv` diagnostics定義不同；NASA-STD-7009B要求留下 discretization、iterative與 finite-precision error evidence。[RESULT] 本次以 4/2/1 ms grid保存 timestep stability，並把 round-off-limited order保留為 null，而非用 solver diagnostic代替 convergence study。
 - [SOURCE] Patterson et al.（JMLR 2024）建議 algorithm comparison使用 paired comparisons與 interval，並分開 agent/environment RNG；seed不是可調 hyperparameter。[INFERENCE] Matrix V1因此把 training、evaluation、environment與scenario seeds分欄保存，但 sample size仍須由後續 PILOT與 preregistered estimand決定。
 - [SOURCE] Agarwal et al.（NeurIPS 2021）指出少量 runs下只報 point estimate會忽略顯著 statistical uncertainty，建議 interval與 run-distribution reporting。[INFERENCE] Statistics stage只能讀已保留所有 FAILED/COMPLETED cells且通過 identity/completeness的 receipts；本 validator本身不產生 CI。
+- [SOURCE] Fay and Lumbard（Statistics in Medicine 2021）提出與 exact McNemar/sign tests相容的 matched-pair risk-difference interval；Newcombe（1998）與 Chang et al.（2022）顯示 paired binary interval的 coverage依 method/sample configuration而異。[RESULT] V1只保留 paired 2×2 counts與兩側 Wilson marginal descriptive intervals，paired binary CI因尚無 published golden-case cross-check而 fail-closed blocked。
+- [SOURCE] Wünsch et al.（Statistics in Medicine 2025）指出 comparison study的 method failure不應被 silent deletion或一般 missing-data imputation處理。[RESULT] Aggregator保留 FAILED與所有 nonobserved states；只有預先凍結為 terminal-failure outcome的 binary metric才可明示寫為 observed false。
 - [SOURCE] RFC 8259禁止 JSON `NaN`/`Infinity`，並指出 duplicate object names造成 parser interoperability問題；JSON Schema 2020-12的 `required`與`uniqueItems`只提供結構條件。[RESULT] Matrix/Run manifest readback改採 strict JSON及 custom composite-cell set arithmetic，不把 schema-valid誤寫為 matrix-complete。
 - [SOURCE] Center for Open Science將 preregistration定義為 data/analysis前發布至 public repository的 time-stamped、read-only plan。[BLOCKER] 本 repo的 frozen hash只能稱 internal preregistered-style freeze；未登錄 external registry，不宣稱 OSF preregistration。
 
@@ -191,7 +195,7 @@ Primary sources：
 3. [DONE] 將 raw relative Jacobian納入 V1 V4 bundle；stdlib-only replay不再讀取 primary per-contact generalized-force receipt。
 4. [DONE] 建立 passive single-support、centered known-payload與 4/2/1 ms time-step analytical fixture；round-off-limited order保留為 null。
 5. [DONE-SOFTWARE] 建立 [Experiment Matrix Completeness Contract V1](EXPERIMENT_MATRIX_CONTRACT.md)與 strict fail-closed validator；actual Study A matrix/orchestrator仍未執行，PDR-4不視為 scientific coverage PASS。
-6. [NEXT] 建立 paired statistics、confidence interval與 paper table/figure input contract；先以 synthetic/REGRESSION matrix驗證 failure/cancellation與 null/censoring semantics，不啟動 formal Study A。
-7. 執行 v7 PILOT；完成 power/sample-size決策後才 freeze FORMAL Study A。
+6. [DONE-SOFTWARE] 建立 [Paired Statistics and Paper Export Contract V1](PAIRED_STATISTICS_CONTRACT.md)；synthetic regression已驗證 failure/cancellation、negative/null/non-finite/censoring retention、continuous CI與 raw-to-export replay，binary paired CI仍 blocked，不視為 PDR-6/7/8 scientific PASS。
+7. [NEXT] 執行一個 preregistered v7 action-interface PILOT；只使用 DEVELOPMENT seeds，完成 variance/power/sample-size決策後才能 freeze FORMAL Study A。
 
 隨研究規模增加時再評估 Parquet/object storage、distributed queue與 GPU worker；現階段 Windows單機、JSON/NPZ與 versioned local artifact root 已足夠，先避免引入不必要的分散式複雜度。

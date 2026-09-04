@@ -1,8 +1,8 @@
 # Experiment Matrix Completeness Contract V1
 
-最後更新：2026-09-03
+最後更新：2026-09-05
 
-狀態：`FROZEN BEFORE IMPLEMENTATION / PDR-4 SOFTWARE CONTRACT`
+狀態：`FROZEN / PDR-4 SOFTWARE CONTRACT IMPLEMENTED`
 
 證據範圍：`SIM_ONLY_MUJOCO / NOT_PHYSICALLY_VALIDATED`
 
@@ -93,8 +93,9 @@ scientific outcome PASS。
 風險，但不能證明 metrics正確、sample size充分、controller較優或 model具有 physical
 validity。
 
-[BLOCKER] PDR-6 paired statistics/CI、PDR-7 reproduction、PDR-8 paper export、完整
-V1/V2/V3及任何 HIL/bench/robot evidence仍須獨立完成。
+[PARTIAL] PDR-6/PDR-8已有 bounded synthetic paired-statistics/export software
+contract；actual Study statistics、validated paired binary CI、PDR-7 formal reproduction、
+完整 V1/V2/V3及任何 HIL/bench/robot evidence仍須獨立完成。
 
 [BLOCKER] `PAPER_RUN_MANIFEST_V1`沒有 `scenario_id/replicate_id`欄位；V1 matrix
 因此以 explicit cell label加上 exact controller/seeds/scenario/config fingerprint完成
