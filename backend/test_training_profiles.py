@@ -8,19 +8,32 @@ import main
 from rl.humanoid_env import (
     HumanoidMotionTaskCurriculumEnv,
     HumanoidMotionTaskEnv,
+    HumanoidMotionTaskFilteredActionV7Env,
     HumanoidMotionTaskPathEfficiencyEnv,
     HumanoidMotionTaskPathStopEnv,
     HumanoidMotionTaskPhaseObservableEnv,
+    HumanoidMotionTaskReducedJointEnvelopeV7Env,
+    HumanoidMotionTaskRewardOnlyV7Env,
     HumanoidMotionTaskSubstepSaturationEnv,
     HumanoidWalkEnv,
 )
 from rl.train_ppo import load_profiles, make_env, public_training_inventory, resolve_profile
 
 
+ACTION_DIAGNOSTIC_KEYS = {
+    "action_interface_id",
+    "requested_action",
+    "applied_action",
+    "joint_target_rad",
+    "applied_action_delta_l2",
+    "requested_applied_delta_l2",
+}
+
+
 def test_fixed_speed_and_motion_task_profiles_are_versioned_and_not_marked_trained():
     profiles = load_profiles()
 
-    assert profiles.schema_version == "RL_TRAINING_PROFILES_V3"
+    assert profiles.schema_version == "RL_TRAINING_PROFILES_V4"
     assert [item.profile_id for item in profiles.profiles] == [
         "walk_0p4_fixed_v1", "walk_0p7_fixed_v1", "walk_1p0_fixed_v1",
         "stand_start_walk_stop_0p7_v1", "stand_start_walk_stop_0p7_curriculum_v2",
@@ -28,14 +41,31 @@ def test_fixed_speed_and_motion_task_profiles_are_versioned_and_not_marked_train
         "stand_start_walk_stop_0p7_path_stop_v4",
         "stand_start_walk_stop_0p7_phase_observable_v5",
         "stand_start_walk_stop_0p7_substep_saturation_v6",
+        "stand_start_walk_stop_0p7_action_reward_v7a",
+        "stand_start_walk_stop_0p7_reduced_joint_envelope_v7b",
+        "stand_start_walk_stop_0p7_filtered_action_v7c",
     ]
-    assert [item.speed_mps for item in profiles.profiles] == pytest.approx([0.4, 0.7, 1.0, 0.7, 0.7, 0.7, 0.7, 0.7, 0.7])
-    assert profiles.profiles[-6].status == "EARLY_STOPPED_FAILED_SPEED_GATE_2026_08_30"
-    assert profiles.profiles[-5].status == "LIVE_500HZ_EVALUATED_FAIL_LATERAL_SATURATION_2026_08_30"
-    assert profiles.profiles[-4].status == "DEVELOPMENT_4M_FAIL_NOFALL_STOP"
-    assert profiles.profiles[-3].status == "DEVELOPMENT_0P5M_FAIL_ONE_STOP_SEED"
-    assert profiles.profiles[-2].status == "LIVE_500HZ_FAIL_SATURATION_DUTY_38P422"
-    assert profiles.profiles[-1].status == "DEVELOPMENT_PROFILE_NOT_TRAINED"
+    assert [item.speed_mps for item in profiles.profiles] == pytest.approx(
+        [0.4, 0.7, 1.0] + [0.7] * 9
+    )
+    by_id = {item.profile_id: item for item in profiles.profiles}
+    assert by_id["stand_start_walk_stop_0p7_v1"].status == (
+        "EARLY_STOPPED_FAILED_SPEED_GATE_2026_08_30"
+    )
+    assert by_id["stand_start_walk_stop_0p7_curriculum_v2"].status == (
+        "LIVE_500HZ_EVALUATED_FAIL_LATERAL_SATURATION_2026_08_30"
+    )
+    assert by_id["stand_start_walk_stop_0p7_substep_saturation_v6"].status == (
+        "DEVELOPMENT_100K_EVALUATED_FAIL_2026_08_30"
+    )
+    assert all(
+        by_id[profile_id].status == "FROZEN_DEVELOPMENT_PILOT_CONFIGURATION"
+        for profile_id in [
+            "stand_start_walk_stop_0p7_action_reward_v7a",
+            "stand_start_walk_stop_0p7_reduced_joint_envelope_v7b",
+            "stand_start_walk_stop_0p7_filtered_action_v7c",
+        ]
+    )
 
 
 @pytest.mark.parametrize("profile_id", [
@@ -74,12 +104,14 @@ def test_unknown_training_profile_is_rejected():
 
 def test_public_training_inventory_is_read_only_and_explicit():
     body = public_training_inventory()
-    assert body["schema_version"] == "RL_TRAINING_PROFILES_V3"
+    assert body["schema_version"] == "RL_TRAINING_PROFILES_V4"
     assert body["execution_mode"] == "OFFLINE_EXPLICIT_COMMAND_ONLY"
-    assert len(body["profiles"]) == 9
-    assert body["profiles"][-3]["warm_start_policy_id"] == "stand_start_walk_stop_0p7_curriculum_v2"
-    assert body["profiles"][-2]["warm_start_policy_id"] is None
-    assert body["profiles"][-1]["warm_start_policy_id"] == "stand_start_walk_stop_0p7_phase_observable_v5"
+    assert len(body["profiles"]) == 12
+    assert [item["pilot_arm_id"] for item in body["profiles"][-3:]] == [
+        "V7A_REWARD_ONLY",
+        "V7B_REDUCED_JOINT_ENVELOPE",
+        "V7C_FILTERED_ACTION",
+    ]
 
 
 def test_training_profile_api_exposes_inventory_without_starting_a_run():
@@ -115,7 +147,7 @@ def test_motion_task_profile_adds_command_observation_and_frozen_schedule():
     assert {
         "x", "vx", "command_vx", "command_phase",
         "saturation_substeps_over_threshold", "saturation_substeps_total",
-        "saturation_excess_sq_mean_500hz",
+        "saturation_excess_sq_mean_500hz", *ACTION_DIAGNOSTIC_KEYS,
     } == set(step_info)
 
 
@@ -142,7 +174,7 @@ def test_curriculum_profile_uses_warm_start_envelope_and_forward_rewards():
     assert {
         "x", "vx", "command_vx", "command_phase",
         "saturation_substeps_over_threshold", "saturation_substeps_total",
-        "saturation_excess_sq_mean_500hz",
+        "saturation_excess_sq_mean_500hz", *ACTION_DIAGNOSTIC_KEYS,
     } == set(step_info)
 
 

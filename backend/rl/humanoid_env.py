@@ -84,6 +84,7 @@ class HumanoidWalkEnv(gym.Env):
         self.phase = 0.0
         self.prev_action = np.zeros(12)
         self.np_random_seeded = False
+        self.action_interface_id = "DIRECT_NORMALIZED_ACTION_LEGACY_V1"
 
     # ------------------------------------------------------------------
 
@@ -106,6 +107,30 @@ class HumanoidWalkEnv(gym.Env):
         i = int(self.phase * self.n_ref) % self.n_ref
         return self.ref_qpos[i, 7:], self.ref_qvel_j[i]
 
+    def _process_action(self, action) -> tuple[np.ndarray, np.ndarray]:
+        """Validate once, then return requested/applied normalized actions.
+
+        Shape and finite-value checks are fail-closed because silently
+        broadcasting or forwarding NaN into MuJoCo would make a retained run
+        impossible to interpret.
+        """
+        requested = np.asarray(action, dtype=np.float64)
+        if requested.shape != (len(JOINT_ORDER),):
+            raise ValueError(f"ACTION_SHAPE_INVALID:{requested.shape}")
+        if not np.all(np.isfinite(requested)):
+            raise ValueError("ACTION_NONFINITE")
+        requested = np.clip(requested, -1.0, 1.0)
+        return requested, requested.copy()
+
+    def action_interface_contract(self) -> dict:
+        return {
+            "action_interface_id": self.action_interface_id,
+            "action_scale_rad": [float(value) for value in self.act_scale],
+            "low_pass_alpha": None,
+            "rate_limit_normalized_per_control_step": None,
+            "previous_action_semantics": "PREVIOUS_APPLIED_NORMALIZED_ACTION",
+        }
+
     def reset(self, *, seed=None, options=None):
         super().reset(seed=seed)
         mujoco.mj_resetData(self.model, self.data)
@@ -127,7 +152,7 @@ class HumanoidWalkEnv(gym.Env):
         return self._obs(), {}
 
     def step(self, action):
-        action = np.clip(np.asarray(action, dtype=np.float64), -1, 1)
+        _, action = self._process_action(action)
         q_target = self.stand_q + action * self.act_scale
         for _ in range(SUBSTEPS):
             q = self.data.qpos[7:]
@@ -276,7 +301,8 @@ class HumanoidMotionTaskEnv(HumanoidWalkEnv):
         }
 
     def step(self, action):
-        action = np.clip(np.asarray(action, dtype=np.float64), -1, 1)
+        previous_action = self.prev_action.copy()
+        requested_action, action = self._process_action(action)
         command_scale_before_step = self.command_speed / max(self.v_des, 1e-6)
         gait_q_target = self.rl_stand_q + action * self.act_scale
         q_target = (
@@ -379,6 +405,14 @@ class HumanoidMotionTaskEnv(HumanoidWalkEnv):
             "saturation_substeps_over_threshold": saturation_substeps_over_threshold,
             "saturation_substeps_total": SUBSTEPS,
             "saturation_excess_sq_mean_500hz": saturation_excess_sq_sum / SUBSTEPS,
+            "action_interface_id": self.action_interface_id,
+            "requested_action": requested_action.tolist(),
+            "applied_action": action.tolist(),
+            "joint_target_rad": q_target.tolist(),
+            "applied_action_delta_l2": float(np.linalg.norm(action - previous_action)),
+            "requested_applied_delta_l2": float(
+                np.linalg.norm(requested_action - action)
+            ),
         }
 
 
@@ -517,3 +551,59 @@ class HumanoidMotionTaskSubstepSaturationEnv(HumanoidMotionTaskPhaseObservableEn
         )
         info["saturation_duty_fraction_500hz"] = duty_fraction
         return observation, float(reward), terminated, truncated, info
+
+
+class _HumanoidMotionTaskV7ActionInterfaceEnv(
+    HumanoidMotionTaskSubstepSaturationEnv
+):
+    """Common v7 reward/observation with one frozen action transform."""
+
+    PILOT_ARM_ID: str
+
+    def __init__(self, **kwargs):
+        from rl.action_interface_v7 import resolve_v7_action_interface
+
+        self.v7_action_interface = resolve_v7_action_interface(self.PILOT_ARM_ID)
+        super().__init__(**kwargs)
+        self.action_interface_id = self.v7_action_interface.interface_id
+        self.act_scale = np.asarray(
+            self.v7_action_interface.action_scale_rad,
+            dtype=np.float64,
+        )
+
+    def _process_action(self, action) -> tuple[np.ndarray, np.ndarray]:
+        return self.v7_action_interface.transform(action, self.prev_action)
+
+    def action_interface_contract(self) -> dict:
+        return {
+            "pilot_arm_id": self.v7_action_interface.arm_id,
+            "action_interface_id": self.v7_action_interface.interface_id,
+            "action_scale_rad": list(self.v7_action_interface.action_scale_rad),
+            "low_pass_alpha": self.v7_action_interface.low_pass_alpha,
+            "rate_limit_normalized_per_control_step": (
+                self.v7_action_interface.rate_limit_per_step
+            ),
+            "previous_action_semantics": "PREVIOUS_APPLIED_NORMALIZED_ACTION",
+        }
+
+
+class HumanoidMotionTaskRewardOnlyV7Env(_HumanoidMotionTaskV7ActionInterfaceEnv):
+    """V7A：v6 500 Hz reward with the unchanged direct action interface."""
+
+    PILOT_ARM_ID = "V7A_REWARD_ONLY"
+
+
+class HumanoidMotionTaskReducedJointEnvelopeV7Env(
+    _HumanoidMotionTaskV7ActionInterfaceEnv
+):
+    """V7B：v6 reward plus the frozen reduced per-joint target envelope."""
+
+    PILOT_ARM_ID = "V7B_REDUCED_JOINT_ENVELOPE"
+
+
+class HumanoidMotionTaskFilteredActionV7Env(
+    _HumanoidMotionTaskV7ActionInterfaceEnv
+):
+    """V7C：v6 reward plus observable low-pass and rate-limited action."""
+
+    PILOT_ARM_ID = "V7C_FILTERED_ACTION"
