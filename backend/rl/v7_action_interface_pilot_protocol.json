@@ -1,0 +1,217 @@
+{
+  "schema_version": "V7_ACTION_INTERFACE_PILOT_PROTOCOL_V1",
+  "protocol_id": "PILOT-V7-ACTION-INTERFACE-DEV-V1",
+  "protocol_status": "FROZEN_INTERNAL_DEVELOPMENT",
+  "frozen_date": "2026-09-06",
+  "run_class": "DEVELOPMENT",
+  "evidence_scope": "SIM_ONLY_MUJOCO",
+  "validation_status": "NOT_PHYSICALLY_VALIDATED",
+  "paper_data_ready": false,
+  "supersession": {
+    "supersedes_text": "The 2026-08-30 receipt described a v5-interface negative control; the 2026-09-05 canonical plan instead names reward-only. This protocol resolves the ambiguity before implementation.",
+    "common_objective": "V6_500HZ_SATURATION_REWARD_V1",
+    "ablation_rule": "All three arms use the same reward and differ only in the normalized-action-to-joint-target interface."
+  },
+  "source_baseline": {
+    "freeze_parent_git_sha": "eb547e89d1bf4ba5c1bdf614b258a7feda6e2c2e",
+    "warm_start_policy_id": "stand_start_walk_stop_0p7_phase_observable_v5",
+    "warm_start_path": "backend/rl/ppo_stand_start_walk_stop_0p7_phase_observable_v5.zip",
+    "warm_start_bytes": 1983126,
+    "warm_start_sha256": "sha256:c548867fbd17c736d54c1b1598d2abed1c7cb2dd28c7d310ea6e86ac3b36718c",
+    "motion_task_source": "backend/motion_tasks.py",
+    "motion_task_source_sha256": "sha256:3dd9a47b6798a2fba713eda3654b428377f3a75e825105b233a1da375d4215af",
+    "model_builder_source": "backend/model_builder.py",
+    "model_builder_source_sha256": "sha256:0beabfa2df6fde118dc2dfaea94a22da9af42c69c49ee2290993322cf96aab29",
+    "config_schema_source": "backend/config_schema.py",
+    "config_schema_source_sha256": "sha256:426ce01561284dc84f50018c6f2558951c9dd820a7cf2756ac2ae8ee728ed298"
+  },
+  "task_contract": {
+    "task_id": "stand_start_walk_stop_v1",
+    "duration_s": 9.0,
+    "physics_rate_hz": 500.0,
+    "control_rate_hz": 50.0,
+    "assist_enabled": false,
+    "criteria": {
+      "posture_limit_deg": 15.0,
+      "steady_speed_min_mps": 0.35,
+      "steady_speed_max_mps": 1.05,
+      "steady_progress_min_m": 1.4,
+      "stop_speed_max_mps": 0.15,
+      "lateral_drift_max_m": 0.3,
+      "saturation_threshold_pct": 95.0,
+      "saturation_duty_max_pct": 30.0,
+      "final_window_s": 0.5
+    },
+    "pilot_gate_subset": [
+      "NO_FALL",
+      "STEADY_SPEED",
+      "STEADY_PROGRESS",
+      "STOP_SPEED",
+      "LATERAL_DRIFT",
+      "SATURATION_DUTY"
+    ],
+    "interpretation": "The training-environment evaluator uses the unchanged numeric limits for this six-gate subset. It is not the 11-criterion 500 Hz Live Motion Task evaluator."
+  },
+  "training_design": {
+    "agent_seed": 8700,
+    "parallel_envs": 12,
+    "environment_seed_start": 8700,
+    "environment_seed_end": 8711,
+    "independent_training_replicates_per_arm": 1,
+    "requested_timesteps": 100000,
+    "expected_realized_timesteps": 122880,
+    "ppo_rollout_steps_per_env": 2048,
+    "ppo_batch_size": 8192,
+    "ppo_epochs": 5,
+    "device": "cpu",
+    "training_population_inference": "BLOCKED_SINGLE_TRAINING_REPLICATE"
+  },
+  "evaluation_design": {
+    "deterministic_policy": true,
+    "episodes_per_arm": 30,
+    "evaluation_seed_start": 18000,
+    "evaluation_seed_end": 18029,
+    "evaluation_seeds": [
+      18000,
+      18001,
+      18002,
+      18003,
+      18004,
+      18005,
+      18006,
+      18007,
+      18008,
+      18009,
+      18010,
+      18011,
+      18012,
+      18013,
+      18014,
+      18015,
+      18016,
+      18017,
+      18018,
+      18019,
+      18020,
+      18021,
+      18022,
+      18023,
+      18024,
+      18025,
+      18026,
+      18027,
+      18028,
+      18029
+    ],
+    "pair_key": "evaluation_seed",
+    "retired_seed_range": [19000, 19029],
+    "sealed_formal_seed_range": [20000, 20029],
+    "forbidden_seed_policy": "Any access to retired or sealed seeds invalidates the pilot receipt."
+  },
+  "joint_order": [
+    "hip_roll_l",
+    "hip_pitch_l",
+    "knee_l",
+    "ankle_l",
+    "hip_roll_r",
+    "hip_pitch_r",
+    "knee_r",
+    "ankle_r",
+    "shoulder_l",
+    "elbow_l",
+    "shoulder_r",
+    "elbow_r"
+  ],
+  "arms": [
+    {
+      "arm_id": "V7A_REWARD_ONLY",
+      "profile_id": "stand_start_walk_stop_0p7_action_reward_v7a",
+      "environment_id": "motion_task_v7_reward_only",
+      "training_run_id": "v7a-reward-only-seed8700-100k-run01",
+      "action_interface_id": "DIRECT_NORMALIZED_ACTION_V1",
+      "action_scale_rad": [0.5, 0.8, 0.9, 0.6, 0.5, 0.8, 0.9, 0.6, 0.6, 0.6, 0.6, 0.6],
+      "low_pass_alpha": null,
+      "rate_limit_normalized_per_control_step": null
+    },
+    {
+      "arm_id": "V7B_REDUCED_JOINT_ENVELOPE",
+      "profile_id": "stand_start_walk_stop_0p7_reduced_joint_envelope_v7b",
+      "environment_id": "motion_task_v7_reduced_joint_envelope",
+      "training_run_id": "v7b-joint-envelope-seed8700-100k-run01",
+      "action_interface_id": "REDUCED_PER_JOINT_TARGET_OFFSET_ENVELOPE_V1",
+      "action_scale_rad": [0.5, 0.8, 0.675, 0.45, 0.5, 0.8, 0.675, 0.45, 0.45, 0.45, 0.45, 0.45],
+      "low_pass_alpha": null,
+      "rate_limit_normalized_per_control_step": null
+    },
+    {
+      "arm_id": "V7C_FILTERED_ACTION",
+      "profile_id": "stand_start_walk_stop_0p7_filtered_action_v7c",
+      "environment_id": "motion_task_v7_filtered_action",
+      "training_run_id": "v7c-filtered-action-seed8700-100k-run01",
+      "action_interface_id": "LOW_PASS_THEN_RATE_LIMIT_V1",
+      "action_scale_rad": [0.5, 0.8, 0.9, 0.6, 0.5, 0.8, 0.9, 0.6, 0.6, 0.6, 0.6, 0.6],
+      "low_pass_alpha": 0.25,
+      "rate_limit_normalized_per_control_step": 0.1
+    }
+  ],
+  "action_operator": {
+    "operation_order": [
+      "clip_requested_action_to_minus1_plus1",
+      "compute_low_pass_candidate_when_enabled",
+      "apply_symmetric_rate_limit_when_enabled",
+      "map_applied_normalized_action_through_joint_scale",
+      "apply_existing_command_envelope",
+      "compute_pd_target_torque_and_existing_torque_clamp"
+    ],
+    "low_pass_equation": "candidate_t = applied_(t-1) + alpha * (requested_t - applied_(t-1))",
+    "rate_limit_equation": "applied_t = applied_(t-1) + clip(candidate_t - applied_(t-1), -delta_max, +delta_max)",
+    "filter_reset_state": "all-zero applied normalized action",
+    "filter_state_observation": "The existing 12 previous-action observation slots contain the previous applied action.",
+    "mujoco_actuator_filter": "DISABLED_NO_DOUBLE_FILTER"
+  },
+  "frozen_hypotheses": {
+    "joint_envelope": "A symmetric 25 percent target-range reduction for knee, ankle, shoulder, and elbow may reduce simulated torque saturation without breaking the frozen task subset.",
+    "filtered_action": "alpha 0.25 plus a 0.10 normalized-action per 20 ms hard rate limit may reduce PD target discontinuity and simulated saturation.",
+    "evidence_limit": "The numerical envelope and filter constants are DEVELOPMENT hypotheses, not identified actuator dynamics or physical safety limits."
+  },
+  "estimand_and_selection": {
+    "reference_arm": "V7A_REWARD_ONLY",
+    "candidate_arms": ["V7B_REDUCED_JOINT_ENVELOPE", "V7C_FILTERED_ACTION"],
+    "primary_outcome": "saturation_duty_pct",
+    "paired_contrast": "candidate_minus_reference_by_evaluation_seed",
+    "reported_statistics": [
+      "arm_mean",
+      "arm_sample_standard_deviation",
+      "paired_difference_mean",
+      "paired_difference_sample_standard_deviation",
+      "null_and_failure_counts"
+    ],
+    "eligibility": "A candidate is eligible only if all 30 terminal episode records are present and every frozen pilot-subset gate passes without null or non-finite required outcomes.",
+    "selection": "Among eligible candidates, select the lower mean saturation duty. Exact equality is unresolved and selects neither arm.",
+    "no_eligible_candidate": "PILOT_COMPLETE_NEGATIVE_RESULT_NO_CANDIDATE",
+    "confidence_interval": "NOT_COMPUTED_DEVELOPMENT_PILOT",
+    "method_level_power_ready": false,
+    "formal_sample_size_decision": "BLOCKED_INDEPENDENT_TRAINING_SEED_VARIANCE_NOT_ESTIMATED"
+  },
+  "failure_semantics": {
+    "retain_states": ["COMPLETED", "FAILED", "CANCELLED", "NULL", "NONFINITE"],
+    "performance_failure": "A failed frozen gate is retained as a valid negative episode result and does not make the evidence package structurally invalid.",
+    "semantic_blocker": "Training/evaluation cancellation or an explicit non-observed required outcome is retained and makes pilot_planning_ready=false.",
+    "structural_failure": "Missing/duplicate/unexpected arm or seed, forbidden seed access, identity drift, invalid JSON, path escape, bytes/SHA-256 mismatch, non-finite JSON number, or replay mismatch invalidates the package.",
+    "cli_exit_codes": {"complete_evidence": 0, "retained_semantic_blocker": 1, "structural_failure": 2},
+    "threshold_change": "FORBIDDEN"
+  },
+  "acceptance_criteria": [
+    "AP-01_PROTOCOL_AND_ARM_IDENTITY",
+    "AP-02_CLEAN_GIT_SOURCE_PRE_POST_IDENTITY",
+    "AP-03_EXACT_COMMON_TRAINING_SEED_BUDGET_AND_WARM_START",
+    "AP-04_EXACT_30_PAIRED_DEV_EVALUATION_SEEDS_PER_ARM",
+    "AP-05_FAILED_CANCELLED_NULL_NONFINITE_RETENTION",
+    "AP-06_UNCHANGED_PILOT_SUBSET_THRESHOLDS_AND_EXPLICIT_GATE_RESULTS",
+    "AP-07_CONDITIONAL_VARIANCE_AND_PAIRED_DIFFERENCE_WITH_POWER_BLOCKER",
+    "AP-08_SAFE_ARTIFACT_PATH_BYTES_AND_SHA256_INVENTORY",
+    "AP-09_STDLIB_ONLY_RAW_EPISODE_TO_SUMMARY_EXACT_REPLAY",
+    "AP-10_SIM_ONLY_CLAIM_BOUNDARY_AND_PAPER_DATA_FALSE"
+  ],
+  "claim_boundary": "SIM_ONLY_MUJOCO / NOT_PHYSICALLY_VALIDATED / DEVELOPMENT_ONLY. The pilot may support only a conditional action-interface screening statement for this frozen simulated plant, checkpoint, task, and evaluation-seed set. It does not support controller superiority, method-population power, formal sample-size adequacy, paper readiness, physical torque or thermal margins, safety, or sim-to-real claims."
+}
