@@ -123,6 +123,8 @@ comparison_report.md 保留既有 deterministic nominal snapshot，供回歸診�
 | [V1_ANALYTICAL_SUITE_IMPLEMENTATION_RECEIPT_2026-09-02](docs/V1_ANALYTICAL_SUITE_IMPLEMENTATION_RECEIPT_2026-09-02.md) | analytical fixture 的 clean-source bundle、independent replay、tests 與 bounded result |
 | [EXPERIMENT_MATRIX_IMPLEMENTATION_RECEIPT_2026-09-03](docs/EXPERIMENT_MATRIX_IMPLEMENTATION_RECEIPT_2026-09-03.md) | matrix validator 的 clean-source synthetic receipt、negative/null retention與 fail-closed tests |
 | [PAIRED_STATISTICS_IMPLEMENTATION_RECEIPT_2026-09-05](docs/PAIRED_STATISTICS_IMPLEMENTATION_RECEIPT_2026-09-05.md) | paired statistics/export 的 clean-source regression receipt、independent replay與保留狀態驗證 |
+| [V7_ACTION_INTERFACE_PILOT_SPEC](docs/V7_ACTION_INTERFACE_PILOT_SPEC.md) | v7 三臂 DEVELOPMENT pilot 的 frozen action math、seeds、acceptance、failure semantics與 claim boundary |
+| [V7_ACTION_INTERFACE_PILOT_IMPLEMENTATION_RECEIPT_2026-09-06](docs/V7_ACTION_INTERFACE_PILOT_IMPLEMENTATION_RECEIPT_2026-09-06.md) | v7 clean-source training/evaluation bundle、retained NULL、conditional statistics與 stdlib-only replay |
 | [HARDWARE_DATA_PROVENANCE](docs/HARDWARE_DATA_PROVENANCE.md) | datasheet、CAD/BOM、bench data 與 demo catalog 的分級 |
 | [ROADMAP](docs/ROADMAP.md) | V0–V4 gate-first 工作順序 |
 | [CONVENTIONS](docs/CONVENTIONS.md) | 開發與 evidence governance 規範 |
@@ -130,7 +132,7 @@ comparison_report.md 保留既有 deterministic nominal snapshot，供回歸診�
 
 ## 下一階段
 
-目前不以「功能完成百分比」表示成熟度。v5 已在 unchanged 500 Hz Motion Task 通過 10/11 criteria，沒有跌倒且完成 start/walk/stop；唯一失敗是 saturation duty `38.422222% > 30%`。training evaluator 的 50 Hz saturation under-sampling 已修正為 500 Hz，先前相關 PASS 已撤銷；v6 reward-only fine-tune 仍未降低 saturation。後續採 paper-data-first：raw Jacobian replay、single-support／known-payload／time-step fixture、experiment matrix completeness與 paired statistics/export V1 software contracts均已完成 bounded evidence；Study A actual matrix、orchestrator、formal sample-size decision、paired binary CI與 formal authorization仍未完成。下一個唯一優先目標是 preregistered v7 action-interface PILOT，限 DEVELOPMENT seeds比較 reward-only、joint-specific action envelope與 action filtering，不開啟 formal holdout。這些 development 能力不解除 V0/V1/V3 gate。
+目前不以「功能完成百分比」表示成熟度。v7 action-interface DEVELOPMENT pilot已在 clean source `058657dd43d28a9175e54362cf4d0a0618507c38`完成 exact 3 arms × 30 DEV seeds與 independent replay。V7A saturation為 `36.2185185 ± 1.0328300%`；V7B降至 `23.3896264 ± 1.0044698%`，paired差為 `-12.8288921 ± 1.0720320` percentage points，但有4個 negative episodes而不 eligible；V7C 30/30 early fall，required outcomes全為 NULL。Bundle evidence完整且 contract valid，但 `pilot_planning_ready=false`、沒有 selected candidate。下一個唯一優先目標是只讀既有 raw traces完成 V7 early-termination / exposure-censoring validity audit V1，將 V7C的0% duty與 paired contrast明示為 non-comparable/censored；不重跑、不新增 seed、不調 alpha/envelope/threshold，也不開啟 formal holdout。Study A actual matrix、independent training-seed variance、formal sample-size decision、paired binary CI與 formal authorization仍未完成；這些 development evidence不解除 V0/V1/V3 gate。
 
 ## 資料聲明
 

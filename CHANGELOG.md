@@ -2,6 +2,16 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-06
+
+- 先以 Git `e839aa263b391ade21bbfc61c50123a9ca384df4`凍結 `PILOT-V7-ACTION-INTERFACE-DEV-V1`：三臂 action math、common training seed 8700、DEV 18000–18029、retired/formal seed ranges、acceptance、failure semantics與 `SIM_ONLY_MUJOCO / NOT_PHYSICALLY_VALIDATED / DEVELOPMENT_ONLY` boundary。
+- 新增 v7 action-interface runtime、`RL_TRAINING_PROFILES_V4`三個 profiles、strict training/evaluation CLI、requested/applied action與每個control step的500 Hz saturation aggregate counts、14-artifact bundle validator及 `python -I -S` stdlib-only raw-to-summary replay；未修改 policy registry、Live adapter或 frontend。
+- Clean source `058657dd43d28a9175e54362cf4d0a0618507c38`完成三臂各122880 training steps及30個DEV episodes：V7A saturation `36.2185185 ± 1.0328300%`；V7B `23.3896264 ± 1.0044698%`，paired B−A `-12.8288921 ± 1.0720320` percentage points，但保留4個 negative episodes而不 eligible。
+- V7C 30/30 early fall，required outcomes全數保留為 NULL；倒下前0% saturation與 paired arithmetic contrast不得解讀為改善。Selection為 `PILOT_RETAINED_SEMANTIC_BLOCKER`，candidate null、pilot planning/method-level power/paper data均 false。
+- Bundle列入14 artifacts / `109520182` bytes，receipt `sha256:ed3e3eaa7c86f2b855d24aca68b09ce45bce61ac2fb6e573328b12157d758435`；path/bytes/SHA-256/source/policy identities與六項 independent replay checks通過。Frozen semantic blocker使builder/validator exit 1，並非 structural invalidity。
+- Final targeted為 `54 passed, 1 warning`，quiescent完整 backend為 `301 passed, 5 warnings`。另保留一輪 concurrent source edit造成的 `274 passed / 20 failed`無效結果；frontend未受影響。
+- 未開啟FORMAL/HOLDOUT、未放寬 threshold、未重標 failures。下一個唯一目標是只讀既有 bundle的 V7 early-termination / exposure-censoring validity audit V1；不重訓、不新增 seed、不調 alpha/envelope/threshold。
+
 ## Unreleased — 2026-09-05
 
 - 新增 frozen `PAIRED_STATISTICS_SPEC_V1`、per-run metrics、paired raw table、statistics summary、paper table/figure inputs、aggregate receipt與 stdlib-only replay schemas。

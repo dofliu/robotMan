@@ -1,6 +1,6 @@
 # RL Policy 與再訓練操作說明
 
-最後更新：2026-08-30
+最後更新：2026-09-06
 
 ## 1. 現行 live 行為
 
@@ -22,7 +22,7 @@
 
 ## 3. Training profiles
 
-`backend/rl/training_profiles.json` 使用 `RL_TRAINING_PROFILES_V3`，目前有三組 fixed-speed 與六組 Motion Task development profiles：
+`backend/rl/training_profiles.json` 使用 `RL_TRAINING_PROFILES_V4`，目前有三組 fixed-speed 與九組 Motion Task development profiles：
 
 | Profile | Speed | Step length | Seed base | Current status |
 |---|---:|---:|---:|---|
@@ -35,8 +35,11 @@
 | `stand_start_walk_stop_0p7_path_stop_v4` | 0.7 m/s | 0.35 m | 5700 | 0.5M fine-tune / 30 no-fall / 1 stop failure |
 | `stand_start_walk_stop_0p7_phase_observable_v5` | 0.7 m/s | 0.35 m | 6700 | selected 122,880 steps / Live 10 of 11 / saturation fail |
 | `stand_start_walk_stop_0p7_substep_saturation_v6` | 0.7 m/s | 0.35 m | 7700 | 122,880-step reward-only negative result |
+| `stand_start_walk_stop_0p7_action_reward_v7a` | 0.7 m/s | 0.35 m | 8700 | 122,880-step pilot / 30 DEV saturation failures |
+| `stand_start_walk_stop_0p7_reduced_joint_envelope_v7b` | 0.7 m/s | 0.35 m | 8700 | 122,880-step pilot / lower conditional saturation / 4 negatives / ineligible |
+| `stand_start_walk_stop_0p7_filtered_action_v7c` | 0.7 m/s | 0.35 m | 8700 | 122,880-step pilot / 30 of 30 early falls / NULL outcomes |
 
-所有新 environment 先經 256-step pipeline smoke。Smoke artifacts 的 status 固定為 `PIPELINE_SMOKE_NOT_POLICY_EVIDENCE`，不可放入 policy registry、不可用來比較穩定性。
+一般新 environment先以256-step pipeline smoke做介面檢查；Smoke artifacts的 status固定為 `PIPELINE_SMOKE_NOT_POLICY_EVIDENCE`，不可放入 policy registry、不可用來比較穩定性。Frozen v7 pilot禁止以 `--smoke`取代其 exact training budget，並由 dedicated contract tests檢查 environment/action math。
 
 `stand_start_walk_stop_0p7_v1` 使用 `HumanoidMotionTaskEnv`：episode 依 frozen 9 秒 task schedule 產生 stand、smooth start、steady walk、smooth stop 與 final stand command，並把 normalized forward-speed command 加入 observation。其 observation 為 48-D，與 legacy 47-D policy 不相容。
 
@@ -66,10 +69,12 @@ python backend/rl/train_ppo.py --profile walk_0p4_fixed_v1 --run-id smoke-walk-0
 
 介面的「RL 訓練」頁只讀取 `/api/training/profiles` inventory，不會啟動 subprocess 或更新 policy。這避免誤觸長時間 GPU/CPU 工作，也讓每次 training 必須明確指定不重複的 run ID。
 
-Live 目前可選 registry-gated v2 與 v5，兩者都是 deterministic inference，不會即時學習。v2 的 unchanged task 失敗於 lateral drift 與 saturation；v5 通過其他 10 項、失敗於 saturation duty。v6 artifact 因 DEV gate 失敗，未加入 registry。
+Live 目前可選 registry-gated v2 與 v5，兩者都是 deterministic inference，不會即時學習。v2 的 unchanged task 失敗於 lateral drift 與 saturation；v5 通過其他10項、失敗於 saturation duty。v6與v7 artifacts均未加入 registry；v7B不符合 frozen eligibility，V7C為30/30 early fall。
 
-原 evaluator 曾每 20 ms 只取一次 saturation，而正式 Motion Task 每 2 ms 取樣。現在 `RL_TRAINING_ENV_EVALUATION_V3` 會聚合所有 500 Hz physics substeps；舊的 50 Hz saturation PASS 已撤銷。完整數值與 seed reuse 規則見 [PATH_PHASE_SATURATION_TRAINING_RECEIPT_2026-08-30](PATH_PHASE_SATURATION_TRAINING_RECEIPT_2026-08-30.md)。
+原 evaluator 曾每20 ms只取一次 saturation，而正式 Motion Task每2 ms取樣。`RL_TRAINING_ENV_EVALUATION_V4`在每個 control step保存500 Hz physics substeps的 saturation aggregate numerator/denominator（total固定10），並在v7 raw bundle保存 requested/applied action、joint target與 action deltas；它不保存10筆逐substep torque samples。舊的50 Hz saturation PASS已撤銷。v2–v6完整數值與 seed reuse規則見 [PATH_PHASE_SATURATION_TRAINING_RECEIPT_2026-08-30](PATH_PHASE_SATURATION_TRAINING_RECEIPT_2026-08-30.md)，v7見 [V7_ACTION_INTERFACE_PILOT_IMPLEMENTATION_RECEIPT_2026-09-06](V7_ACTION_INTERFACE_PILOT_IMPLEMENTATION_RECEIPT_2026-09-06.md)。
 
 ## 6. 下一個 policy 形式
 
-目前 start/stop curriculum 已建立 48-D command-conditioned 與 51-D path/heading/phase-observable contracts。下一個 v7 將研究 torque-aware action interface；multi-speed policy、turn、terrain 與其他 primitive 仍需另立 profile/protocol version，不可改 label 冒充。v2 以前的完整數值見 [START_STOP_POLICY_TRAINING_RECEIPT_2026-08-30](START_STOP_POLICY_TRAINING_RECEIPT_2026-08-30.md)。
+目前 start/stop curriculum已建立48-D command-conditioned與51-D path/heading/phase-observable contracts。v7三臂 action-interface pilot已完成：V7B相對V7A的 conditional saturation paired difference為 `-12.8288921 ± 1.0720320` percentage points，但有4個 negative episodes；V7C全部 early fall，required outcomes為 NULL。因只有單一 training seed且 exposure不等，沒有 candidate、沒有 method-level CI/power，亦不得部署。
+
+下一個唯一工作是只讀既有 v7 traces完成 early-termination / exposure-censoring validity audit V1；不重訓、不調 envelope/filter/threshold、不存取 FORMAL/HOLDOUT。完成後若另立 fresh DEVELOPMENT protocol，才可處理 independent training-seed variance。Multi-speed policy、turn、terrain與其他 primitive仍需另立 profile/protocol version，不可改 label冒充。v2以前的完整數值見 [START_STOP_POLICY_TRAINING_RECEIPT_2026-08-30](START_STOP_POLICY_TRAINING_RECEIPT_2026-08-30.md)。

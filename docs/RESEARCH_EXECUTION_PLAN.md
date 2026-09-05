@@ -1,6 +1,6 @@
 # 人形機器人控制與訓練方法研究執行計畫
 
-最後更新：2026-09-05
+最後更新：2026-09-06
 
 本次 V1 evidence 範圍：`SIM_ONLY_MUJOCO` / `NOT_PHYSICALLY_VALIDATED`
 
@@ -30,6 +30,7 @@ Policy 在同一 simulator 與 reward 中表現良好，不等於 model validati
 |---|---|---|---|
 | P0 | curriculum-v2 48-D Live adapter、registry identity、500 Hz task trace | observation/action contract tests；未修改 11 項 criteria | DONE / task FAIL retained |
 | P0B | v3–v6 observation、terminal、phase 與 500 Hz load iteration | DEV + unchanged Live gates；失敗與 evaluator defects 保留 | DONE / no deployable PASS |
+| P0C | v7 action-interface DEVELOPMENT pilot | frozen 3-arm runtime、exact DEV seeds、raw actions與per-control-step 500 Hz saturation aggregate counts、bundle/replay、failure/NULL retention | EVIDENCE COMPLETE / RETAINED SEMANTIC BLOCKER：V7B有4個 negatives；V7C 30/30 early fall與 NULL；no candidate selected |
 | P1 | V1 plant/contact/numerical oracle | residual、contact、friction、CoP、convergence、energy 全部可獨立重算 | IN PROGRESS / static replay與 passive single-support/payload/4–2–1 ms fixture PASS；articulated dynamic、pendulum、energy/full solver studies仍缺，gate not pass |
 | P2 | QP/WBC baseline | constraint-feasible、failure-retaining baseline bundle | BLOCKED BY P1 |
 | P3 | Experiment orchestrator | controller × training seed × eval seed × scenario 完整 manifest | VALIDATOR IMPLEMENTED / RUNNER + ACTUAL MATRIX MISSING：strict matrix spec/index、bundle identity與 missing/duplicate/unexpected/unindexed/status retention covered |
@@ -136,7 +137,15 @@ v3 由 v2 做 fail-closed input expansion；新增輸入權重從零開始，其
 - 檢查後發現原 training evaluator 只在 50 Hz control step 末端取樣 saturation，正式 task 則以 500 Hz physics trace 計算。修正後 v5 DEV mean/worst saturation 為 `37.571852% / 39.2%`，因此先前 saturation PASS 已撤銷。
 - v6 保留 51-D observation，加入 500 Hz substep saturation reward；122,880-step DEV run 未降低 saturation，且新增一次末段跌倒。此負結果不進入 registry。
 
-下一個唯一優先目標是 v7 action-interface DEVELOPMENT PILOT：先凍結 `reward-only`、`joint-specific action envelope`、`action low-pass/rate limit` 的 protocol、seeds、acceptance與 failure semantics，再執行 bounded PILOT，結果只用於 variance/power/sample-size planning。DEV 使用 18000–18029；19000–19029 已因 evaluator defect audit 而退役。新的 formal holdout 預先凍結為 20000–20029，只能在選定單一候選後執行一次；本 PILOT不得使用 FORMAL/HOLDOUT、不得放寬現有 Motion Task threshold。
+### v7 action-interface DEVELOPMENT pilot結果
+
+- [SOURCE] Frozen protocol `PILOT-V7-ACTION-INTERFACE-DEV-V1`在 Git `e839aa263b391ade21bbfc61c50123a9ca384df4`先固定三臂 action math、training seed `8700`、DEV `18000–18029`、acceptance、failure semantics與 claim boundary；FORMAL `20000–20029`維持 sealed。
+- [RESULT] Clean source `058657dd43d28a9175e54362cf4d0a0618507c38`完成三臂各 `122880` steps及30個DEV episodes。V7A saturation為 `36.2185185 ± 1.0328300%`；V7B為 `23.3896264 ± 1.0044698%`，paired B−A為 `-12.8288921 ± 1.0720320` percentage points，但有4個 negative episodes而不 eligible。
+- [RESULT] V7C 30/30 early fall，required outcomes全數為 NULL；14-artifact bundle共 `109520182` bytes，path/bytes/SHA-256與 clean-source identity通過，`python -I -S` raw-to-summary exact replay通過。
+- [INFERENCE] V7B只顯示單一 training checkpoint與指定DEV seeds下的 conditional simulated saturation降低；30個 evaluation seeds不是30個獨立 training replicates。
+- [BLOCKER] V7C倒下前的0% saturation不具相同 exposure，不能解讀為改善或形成有效 paired contrast。`selected_candidate_arm_id=null`、`pilot_planning_ready=false`、`paper_data_ready=false`。
+
+下一個唯一優先目標是 **V7 early-termination / exposure-censoring validity audit V1**：只讀既有 raw traces重建 termination time／phase與有效 exposure，將V7C 0% duty及 paired contrast標為 non-comparable/censored，原 receipt不回改。不重訓、不新增 seed、不調 alpha/envelope/threshold，也不開啟 FORMAL/HOLDOUT；完成後才可另立 fresh DEVELOPMENT protocol處理獨立 training-seed variance。
 
 ## 5. Study A 的方法組與公平比較
 
@@ -147,7 +156,8 @@ v3 由 v2 做 fail-closed input expansion；新增輸入權重從零開始，其
 3. `PPO_CURRICULUM_V2`：保留 Live lateral/saturation failure。
 4. `PPO_PHASE_OBSERVABLE_V5`：Live 10/11、saturation FAIL。
 5. `PPO_SUBSTEP_SATURATION_V6`：reward-only negative control。
-6. `WBC_RESIDUAL_PPO_V1`：P2 後實作。
+6. `V7_ACTION_INTERFACE_CANDIDATE`：目前為 null；不得在 exposure-censoring audit與獨立 training-seed evidence前填入V7B或V7C。
+7. `WBC_RESIDUAL_PPO_V1`：P2 後實作。
 
 Track 與 Raibert 保留為 engineering/teaching baselines；在 plant/contact gate 通過且 controller contract 凍結前，不拿來做正式 ranking。
 

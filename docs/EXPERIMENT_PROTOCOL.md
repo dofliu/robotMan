@@ -9,7 +9,7 @@
 
 正式結果必須建立 versioned protocol instance。僅執行 script 或產生 Markdown report 不算 protocol completion。
 
-`PAPER_RUN_MANIFEST_V1` 與 fail-closed artifact validator 已建立 run-level contract；V1 static/analytical suites可保存 raw relative Jacobians，並由不載入 MuJoCo/controller 的另一 process重建 generalized force。`EXPERIMENT_MATRIX_SPEC_V1`以 frozen spec/index hash、exact cell identity與 dedicated-root scan檢查 missing、duplicate、unexpected、unindexed及 status retention；`PAIRED_STATISTICS_SPEC_V1`另將 explicit pairing、outcome/failure semantics、continuous CI與 machine-readable paper inputs凍結，並由 stdlib-only process exact replay。這些仍只是 bounded software contracts；project-wide immutable storage、actual Study matrix、remaining dynamic coverage、binary paired CI、sample-size decision與 formal authorization仍未完成。完整架構見 [PAPER_DATA_READINESS](PAPER_DATA_READINESS.md)、[EXPERIMENT_MATRIX_CONTRACT](EXPERIMENT_MATRIX_CONTRACT.md)與 [PAIRED_STATISTICS_CONTRACT](PAIRED_STATISTICS_CONTRACT.md)。
+`PAPER_RUN_MANIFEST_V1` 與 fail-closed artifact validator 已建立 run-level contract；V1 static/analytical suites可保存 raw relative Jacobians，並由不載入 MuJoCo/controller 的另一 process重建 generalized force。`EXPERIMENT_MATRIX_SPEC_V1`以 frozen spec/index hash、exact cell identity與 dedicated-root scan檢查 missing、duplicate、unexpected、unindexed及 status retention；`PAIRED_STATISTICS_SPEC_V1`另將 explicit pairing、outcome/failure semantics、continuous CI與 machine-readable paper inputs凍結，並由 stdlib-only process exact replay。`PILOT-V7-ACTION-INTERFACE-DEV-V1`則凍結三臂 action math、單一 training seed、DEV 18000–18029、failure/NULL semantics與 FORMAL seed封存；其 clean-source bundle/replay已完成，但V7B保留4個 negative、V7C保留30個 early-fall NULL，故沒有 selected candidate。這些仍只是 bounded software/DEVELOPMENT contracts；V7 exposure-censoring audit、獨立 training-seed variance、project-wide immutable storage、actual Study matrix、remaining dynamic coverage、binary paired CI、sample-size decision與 formal authorization仍未完成。完整架構見 [PAPER_DATA_READINESS](PAPER_DATA_READINESS.md)、[EXPERIMENT_MATRIX_CONTRACT](EXPERIMENT_MATRIX_CONTRACT.md)、[PAIRED_STATISTICS_CONTRACT](PAIRED_STATISTICS_CONTRACT.md)與 [V7_ACTION_INTERFACE_PILOT_SPEC](V7_ACTION_INTERFACE_PILOT_SPEC.md)。
 
 ## 2. Run classes
 
@@ -200,6 +200,7 @@ WBC 作為 model-based baseline 時，需先通過 V1 contact/constraint gate，
 - threshold search回報 resolution、bounds與censoring。
 - failures、NaN、solver infeasible、early termination一律保留並依 protocol處理。
 - 不以只剩成功 cases 的平均值作性能結論。
+- Early termination造成不同 exposure時，rate/duty/time-aggregate outcome必須保存 numerator、denominator與 termination time／phase；若 estimand未先定義，contrast標為 non-comparable/censored，不得把短 exposure的0值當改善。
 - V1 aggregate contract對 continuous metrics使用 pair-level candidate-minus-reference mean、median、Cohen dz與 deterministic paired percentile bootstrap；CI只對應 mean difference。
 - Binary outcome保留 paired 2×2 counts與 marginal Wilson descriptions；在 matched-pair CI 尚未通過 published golden-case oracle前，paired CI必須為 null/blocker，不得以 marginal intervals取代。
 - `NULL`、`NONFINITE`、`CENSORED`阻擋對應 outcome inference；`FAILED`仍在 denominator內，只有事先定義的 terminal-failure binary outcome才能明示寫為 observed false。
@@ -238,6 +239,8 @@ WBC 作為 model-based baseline 時，需先通過 V1 contact/constraint gate，
 4. 不使用 holdout/formal cases選擇 reward、controller、solver 或 model 修正。
 5. 若需修改，建立新 hypothesis、protocol version、experiment ID 與完整 frozen matrix。
 6. 舊 failure 永久保留並在後續 report 說明。
+
+V7 DEVELOPMENT pilot同樣遵守 frozen change control：不得回改原 receipt、將 NULL重標為 observed、或依結果調整 action envelope、filter alpha、rate limit、seed partition與 threshold。任何新設計必須另立 protocol version與 experiment ID。
 
 ## 11. SIL / HIL / Bench execution
 

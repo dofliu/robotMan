@@ -1,6 +1,6 @@
 # Gate-first 工作規劃
 
-最後更新：2026-09-05
+最後更新：2026-09-06
 
 專案成熟度改以 **evidence gate** 表示，不再以 UI 或 feature count 換算完成百分比。既有 M1–M6 代表 prototype feature inventory，並非 verification 或 physical validation 已完成。
 
@@ -89,7 +89,7 @@
 - 回報 raw episode values、effect size、confidence interval 與 censored/failed cases；
 - push test 以 impulse、application point、gait phase、direction、duration 與 recovery criterion 完整定義。
 
-Paired statistics/export V1已完成 synthetic software precursor：continuous paired effect/bootstrap CI、binary 2×2 counts/Wilson marginal descriptions、failure/null/censoring retention、hash-bound table/figure inputs與 stdlib-only exact replay均已驗證。`statistics_ready=false`、binary paired CI blocker與 `paper_data_ready=false`均保留，不構成 V3 PASS。
+Paired statistics/export V1已完成 synthetic software precursor：continuous paired effect/bootstrap CI、binary 2×2 counts/Wilson marginal descriptions、failure/null/censoring retention、hash-bound table/figure inputs與 stdlib-only exact replay均已驗證。v7 action-interface DEVELOPMENT pilot另完成 clean-source三臂/30 DEV seeds bundle與 raw-to-summary replay，但每臂只有一個 training seed；V7B有4個 negative，V7C有30個 early-fall NULL且 exposure不相等，沒有 selected candidate。`statistics_ready=false`、binary paired CI blocker與 `paper_data_ready=false`均保留，不構成 V3 PASS。
 
 ### Development precursor：三機同步觀察
 
@@ -143,7 +143,7 @@ WBC 必須早於 RL paper 與硬體 × strategy 正式比較。開始條件為 V
 
 多速度、domain randomization、能耗與硬體 × strategy 可在 V3 protocol frozen 後執行。若 V4 尚未通過，論文只能宣稱 SIM-only results，不可宣稱實體硬體效益或 sim-to-real。
 
-Development 已完成 v1–v6 failure-retaining iteration：v2 解決前進與停止但 Live path/saturation 失敗；v3/v4/v5 依序加入 path/heading、terminal stability 與 phase trend；v5 在 Live 達到 10/11；v6 證明單純加入 500 Hz saturation reward 尚不足。V1 raw-Jacobian replay、single-support／known-payload／time-step fixture、experiment matrix completeness與 paired statistics/export V1 software contracts已完成 bounded evidence。下一個唯一優先目標是 v7 action-interface DEVELOPMENT PILOT：先凍結 reward-only、joint-specific action envelope與 action filtering的 protocol/seeds/acceptance/failure semantics，再以 DEV 18000–18029 執行；FORMAL/HOLDOUT不開啟、threshold不放寬。Actual Study matrix、paired binary CI、P1/P2/WBC與 V3仍未通過；training-env pass不是 Live trace、V3或實機證據。
+Development 已完成 v1–v7 failure-retaining iteration：v2 解決前進與停止但 Live path/saturation 失敗；v3/v4/v5 依序加入 path/heading、terminal stability與 phase trend；v5在 Live達到10/11；v6證明單純加入500 Hz saturation reward不足。v7先凍結三臂 action-interface protocol，再於 clean source完成各 `122880` training steps及DEV `18000–18029`：V7A saturation `36.2185185%`；V7B `23.3896264%`但有4個 negative episodes；V7C 30/30 early fall、required outcomes為 NULL。Bundle/replay完整但 `selected_candidate_arm_id=null`、`pilot_planning_ready=false`。下一個唯一優先目標是只讀既有 raw traces的 **V7 early-termination / exposure-censoring validity audit V1**；不重訓、不新增 seed、不調 alpha/envelope/threshold、不開啟 FORMAL/HOLDOUT。Actual Study matrix、獨立 training-seed variance、paired binary CI、P1/P2/WBC與V3仍未通過；training-env result不是 Live trace、V3或實機證據。
 
 ## 9. 建議執行順序
 
