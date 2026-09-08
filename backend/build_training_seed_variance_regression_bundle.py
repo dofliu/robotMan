@@ -78,8 +78,15 @@ ARM_SPREAD_PCT = {
     "V7C_FILTERED_ACTION": 1.1,
 }
 # Replicate offsets are the point of the exercise: they are the between-seed
-# shifts a single-seed pilot cannot see.
-REPLICATE_OFFSET_PCT = (0.0, 0.62, -0.41, 1.05, -0.86)
+# shifts a single-seed pilot cannot see. They must differ *per arm*. A common
+# offset is exactly what pairing removes, so a fixture that shifted all three
+# arms together would cancel in the contrast, make the pairing look perfectly
+# effective, and never exercise between-replicate variance at all.
+REPLICATE_OFFSET_PCT = {
+    "V7A_REWARD_ONLY": (0.0, 0.62, -0.41, 1.05, -0.86),
+    "V7B_REDUCED_JOINT_ENVELOPE": (0.0, 1.94, -1.37, -0.58, 2.11),
+    "V7C_FILTERED_ACTION": (0.0, -1.22, 2.05, 0.74, -1.63),
+}
 CENSORED_EXPOSURE_FRACTION = 0.354889
 DUTY_DECIMALS = 6
 
@@ -170,7 +177,7 @@ def _cell(
     method_failure_seeds: tuple[int, ...] = (),
 ) -> dict[str, Any]:
     draw = _lcg(9000 + replicate_index * 31 + ARM_IDS.index(arm_id))
-    base = ARM_BASE_DUTY_PCT[arm_id] + REPLICATE_OFFSET_PCT[replicate_index]
+    base = ARM_BASE_DUTY_PCT[arm_id] + REPLICATE_OFFSET_PCT[arm_id][replicate_index]
     spread = ARM_SPREAD_PCT[arm_id]
     episodes = []
     for seed in design["evaluation_seeds"]:

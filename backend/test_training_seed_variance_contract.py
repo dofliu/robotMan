@@ -1074,3 +1074,30 @@ def test_symlink_escaping_the_bundle_fails_closed(
     (root / RAW_ARTIFACT).symlink_to(outside)
     with pytest.raises(SeedVarianceError, match="escapes the bundle root"):
         analyse_seed_variance(root, analysis)
+
+
+def test_fixture_paired_differences_vary_between_replicates(
+    raw: dict, protocol: dict
+) -> None:
+    """The fixture must actually exercise the phenomenon under test.
+
+    If all three arms shared one replicate offset it would cancel in the paired
+    contrast, between_replicate_sd would collapse toward zero, and the suite
+    would be green while never testing between-replicate variance at all.
+    """
+    summary = build_summary(raw, protocol)
+    for candidate_id in CANDIDATE_ARM_IDS:
+        method_level = _method_level(summary, candidate_id)
+        differences = [
+            item["lower_pp"]
+            for item in next(
+                candidate
+                for candidate in summary["candidates"]
+                if candidate["candidate_arm_id"] == candidate_id
+            )["replicate_paired_differences"]
+        ]
+        assert len(set(differences)) == 5
+        # Between-replicate spread must be comparable to the within-replicate
+        # spread, not orders of magnitude below it.
+        assert method_level["between_replicate_sd_pp"] > 0.5
+        assert method_level["variance_ratio_between_over_within"] > 0.5
