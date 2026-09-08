@@ -29,6 +29,26 @@
       "Accumulated addition reaches 1.0000000000000004 after 50 additions, 6.499999999999949 after 325 and 7.999999999999917 after 400, so the START boundary advances one step early while the STOP and FINAL_STAND boundaries do not shift; exact multiplication would give a third, different answer."
     ]
   },
+  "amendment_2": {
+    "amended_date": "2026-09-08",
+    "changes": [
+      "Non-comparable verdicts and blocked-aggregate reasons now name the actual cause instead of always naming exposure censoring.",
+      "An arm counts as having no comparable episode based on its comparability states alone; exposure class no longer masks it.",
+      "The retained method-failure doctrine is enforced in the descriptive sensitivity, which no longer emits an observed matched duty for a method-failure pair.",
+      "An episode with no exposure may not retain an observed primary outcome.",
+      "The estimand-existence convention behind the identification bounds is stated explicitly instead of being implied by the phrase assumption-free.",
+      "The replay check inventory is frozen and required exactly, the replay binds its inputs to the audited receipt inventory, and replay-receipt booleans are compared type-strictly.",
+      "A DEVELOPMENT bundle must retain the pinned audited protocol hash.",
+      "Validation re-derives the blocker list from the summary's own retained states, so a consistently re-stamped receipt cannot certify a rewritten summary.",
+      "The audited bundle's file set is compared before and after the audit, directory scans fail closed on unreadable subtrees, and output writes refuse to follow links.",
+      "Missing selection keys are no longer accepted as a preserved null selection."
+    ],
+    "claim_effect": "No previously stated numerical result changed. The receipt's allowed conclusion was narrowed to remove a statement about the frozen v7 pilot that this run never measured.",
+    "direction": "NARROWING_ONLY",
+    "no_scientific_threshold_changed": "The exposure horizon, phase conventions, primary outcome, gate thresholds, bound formulae and seed inventory are unchanged. Every change either names a cause more precisely, adds a check, or narrows a claim.",
+    "prior_source_commit": "c7852ccfce217ac20f5aaabbc5837665b44c7d8d",
+    "trigger": "Adversarial multi-dimension review of the implementation plus a differential sweep between the contract and replay builders."
+  },
   "arms": {
     "all_arm_ids": [
       "V7A_REWARD_ONLY",
@@ -86,6 +106,7 @@
   },
   "audit_class": "READ_ONLY_VALIDITY_AUDIT",
   "audited_protocol": {
+    "development_bundle_pin_rule": "A bundle declaring V7_PILOT_DEVELOPMENT_BUNDLE must retain protocol_sha256 equal to audited_protocol.protocol_sha256, and the retained protocol artifact must hash to the same value.",
     "frozen_pilot_receipt_document": "docs/V7_ACTION_INTERFACE_PILOT_IMPLEMENTATION_RECEIPT_2026-09-06.md",
     "frozen_pilot_receipt_sha256": "sha256:ed3e3eaa7c86f2b855d24aca68b09ce45bce61ac2fb6e573328b12157d758435",
     "frozen_pilot_source_git_sha": "058657dd43d28a9175e54362cf4d0a0618507c38",
@@ -102,6 +123,7 @@
     "METHOD_FAILURE_NOT_CENSORING": "The primary outcome is NULL or NONFINITE, or the terminal record state is not COMPLETED, or the episode has NO_EXPOSURE.",
     "classification_order": "METHOD_FAILURE_NOT_CENSORING is decided first, then EXPOSURE_CENSORED, then COMPARABLE.",
     "method_failure_doctrine": "Following the project position already recorded in the paired statistics contract, a non-finite value, a solver or process error, a terminal failure, and a cancellation are method failures, not censoring. They are retained with frequency and reason and are never imputed, deleted, or silently converted into an observed value.",
+    "no_exposure_rule": "An episode with no exposure may not retain an observed primary outcome; there is no measurement support for one, so it is a structural failure.",
     "reasons": [
       "FULL_EXPOSURE_OBSERVED_COMPARABLE",
       "EARLY_TERMINATION_EXPOSURE_CENSORED",
@@ -118,9 +140,11 @@
     "OVER_EXPOSURE": "observed_control_steps exceeds full_exposure_control_steps and is a structural failure."
   },
   "exposure_matched_sensitivity": {
+    "aggregate_rule": "A descriptive mean and sample standard deviation over the 30 per-seed matched differences is reported only when every pair has a matched value; otherwise the aggregate is null with a cause-named reason. Each per-seed difference is computed on its own truncation window, so the aggregate averages heterogeneous windows and carries no confirmatory interpretation.",
     "informative_censoring": "SUSPECTED_DEPENDENT_ON_ARM_BEHAVIOUR",
     "interpretation_limit": "Truncation matching equalizes the measurement denominator only. It does not remove informative censoring, because the truncation point is produced by the arm's own early termination, and it does not recover the full-horizon estimand.",
     "matched_exposure_rule": "For each evaluation seed the matched exposure k is min(reference observed_control_steps, candidate observed_control_steps).",
+    "method_failure_rule": "A pair whose reference or candidate episode is a retained method failure yields a null matched value even when its trace still carries usable counts. A retained method failure is never re-materialized as an observed matched duty.",
     "prohibited_uses": [
       "candidate_selection",
       "confidence_interval",
@@ -213,6 +237,7 @@
   },
   "identification_bounds": {
     "applies_to": "EXPOSURE_CENSORED and COMPARABLE episodes only; a METHOD_FAILURE_NOT_CENSORING episode has no bound and is retained as null.",
+    "assumption_scope": "The bounds are assumption-free with respect to the censoring distribution ONLY once the estimand is taken as the full-horizon duty defined by the frozen task contract. The existence of that estimand for an early-terminated episode is itself a contract convention: the full-horizon duty is a frozen task target, not an observed counterfactual of an episode that could have continued.",
     "degenerate_case": "A FULL_EXPOSURE episode has observed_substeps equal to full_exposure_physics_substeps, so the lower and upper bounds coincide with the recorded value.",
     "lower_bound_rule": "full_horizon_duty_lower_pct = 100 * observed_over_threshold_substeps / full_exposure_physics_substeps, which assumes every unobserved substep is below the saturation threshold.",
     "paired_bound_rule": "paired_difference_lower = candidate_lower - reference_upper and paired_difference_upper = candidate_upper - reference_lower.",
@@ -224,6 +249,7 @@
       "sample_size_decision"
     ],
     "rationale": "The project position already recorded in the paired statistics contract is that until a censored estimator is frozen, only bounds are retained and ordinary mean and bootstrap procedures are blocked. This audit follows that rule and therefore reports bounds instead of a censored point estimate.",
+    "reported_assumption_field": "audit_findings.identification_bound_assumption",
     "sign_identification_rule": "The paired contrast sign is identified only when the paired difference bound excludes zero. A bound that contains zero leaves the direction of the effect unidentified without an additional, currently unfrozen, censoring assumption.",
     "status": "ASSUMPTION_FREE_WORST_CASE_BOUNDS",
     "upper_bound_rule": "full_horizon_duty_upper_pct = 100 * (observed_over_threshold_substeps + full_exposure_physics_substeps - observed_substeps) / full_exposure_physics_substeps, which assumes every unobserved substep is above the saturation threshold."
@@ -239,6 +265,12 @@
   },
   "paired_comparability": {
     "aggregate_rule": "The audited paired mean and sample standard deviation are reported only when all 30 pairs are COMPARABLE. Otherwise the aggregate is null with reason BLOCKED_EXPOSURE_CENSORED_PAIRS_RETAINED_NO_COMPLETE_CASE_DELETION.",
+    "blocked_aggregate_reasons": [
+      "BLOCKED_EXPOSURE_CENSORED_PAIRS_RETAINED_NO_COMPLETE_CASE_DELETION",
+      "BLOCKED_METHOD_FAILURE_RETAINED_NO_COMPLETE_CASE_DELETION",
+      "BLOCKED_EXPOSURE_CENSORED_AND_METHOD_FAILURE_RETAINED_NO_COMPLETE_CASE_DELETION"
+    ],
+    "cause_attribution_rule": "Every non-comparable verdict and every blocked aggregate must name the cause that actually produced it. Attributing a method-failure block to exposure censoring, or the reverse, is a misreport.",
     "comparable_rule": "A pair is COMPARABLE only if both sides are COMPARABLE.",
     "contrast": "candidate_minus_reference_by_evaluation_seed",
     "no_complete_case_deletion": "Restricting the aggregate to the comparable subset is forbidden, because the censoring indicator is produced by the arm's own early-termination behaviour and is therefore not independent of the outcome.",
@@ -246,7 +278,13 @@
       "CENSORED_UNEQUAL_EXPOSURE_NON_COMPARABLE",
       "METHOD_FAILURE_NOT_CENSORING_NON_COMPARABLE"
     ],
-    "retained_arithmetic_difference": "The raw candidate-minus-reference arithmetic difference is retained for every pair whose two primary-outcome values are OBSERVED, including non-comparable pairs, and is explicitly labelled as not a valid contrast."
+    "retained_arithmetic_difference": "The raw candidate-minus-reference arithmetic difference is retained for every pair whose two primary-outcome values are OBSERVED, including non-comparable pairs, and is explicitly labelled as not a valid contrast.",
+    "validity_verdicts": [
+      "PAIRED_CONTRAST_COMPARABLE",
+      "PAIRED_CONTRAST_NON_COMPARABLE_EXPOSURE_CENSORED",
+      "PAIRED_CONTRAST_NON_COMPARABLE_METHOD_FAILURE",
+      "PAIRED_CONTRAST_NON_COMPARABLE_EXPOSURE_CENSORED_AND_METHOD_FAILURE"
+    ]
   },
   "paper_data_ready": false,
   "phase_convention": {
@@ -335,18 +373,38 @@
     ],
     "output_root_containment_policy": "AUDIT_OUTPUT_ROOT_MUST_NOT_BE_INSIDE_OR_EQUAL_TO_SOURCE_BUNDLE_ROOT",
     "post_audit_drift_policy": "ANY_SOURCE_BYTES_OR_SHA256_DRIFT_IS_A_STRUCTURAL_FAILURE",
+    "post_audit_file_set_rule": "The audited bundle's regular-file set is enumerated before and after the audit and must be identical, so a file added to or removed from the audited bundle during the run is a structural failure rather than an undetected change.",
     "source_bundle_write_policy": "FORBIDDEN",
     "source_identity_readback": "EVERY_CONSUMED_SOURCE_ARTIFACT_IS_HASHED_BEFORE_AND_AFTER_THE_AUDIT"
   },
   "replay_contract": {
+    "check_inventory_rule": "The audit requires the replay receipt to carry exactly this check inventory, all true. A shorter or renamed inventory is a structural failure, so a rubber-stamp replay cannot satisfy AX-11.",
+    "expected_checks": [
+      "audit_findings_exact",
+      "audit_summary_exact",
+      "censoring_blockers_exact",
+      "contract_phase_schedule_exact",
+      "exact_three_arm_seed_inventory",
+      "exposure_and_censoring_exact",
+      "exposure_matched_sensitivity_exact",
+      "frozen_audit_protocol_exact",
+      "frozen_task_horizon_exact",
+      "identification_bounds_exact",
+      "original_pilot_selection_preserved",
+      "paired_comparability_exact",
+      "phase_convention_offset_exact",
+      "recorder_phase_convention_exact"
+    ],
     "independent_reconstruction": "The replay recomputes exposure, termination, censoring classification, identification bounds, paired comparability, and the descriptive exposure-matched sensitivity from raw episode rows, and requires exact identity with the audit summary.",
+    "input_binding_rule": "The replay requires the raw-episode, pilot-summary and retained-protocol files it is handed to match the SHA-256 values indexed by the audited pilot receipt, so it cannot mint a passing receipt over files that receipt never indexed.",
     "interpreter_flags": [
       "-I",
       "-S"
     ],
     "mismatch_policy": "STRUCTURAL_FAILURE",
     "script": "backend/v7_exposure_audit_replay.py",
-    "standard_library_only": true
+    "standard_library_only": true,
+    "what_identity_establishes": "Exact identity establishes that the written summary is a faithful function of the retained raw rows under a separate interpreter with no project imports and no site-packages. It does not establish that the shared derivation rules are scientifically correct, because both implementations deliberately encode the same frozen rules."
   },
   "retained_blockers": {
     "formal_sample_size_decision": "BLOCKED_INDEPENDENT_TRAINING_SEED_VARIANCE_NOT_ESTIMATED",

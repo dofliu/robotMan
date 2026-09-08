@@ -18,7 +18,7 @@ exposure-censored、哪些是保留的 method failure。
 
 Acceptance criteria、failure semantics與 claim boundary已先在 Git
 `ee7321090089b186d847a958ae607478b6a12e6c`凍結；實作與實驗 source為 Git
-`428ba214ec7d9e85c254b3b4f85d2c417094d202`。`19000–19029`未讀取且維持退役，
+`4d0709327a03ba2773c8ad05f6051118dda6f54e`。`19000–19029`未讀取且維持退役，
 `20000–20029`未讀取且維持 sealed FORMAL range。Motion Task thresholds未變，
 2026-09-06 pilot receipt原文未改。
 
@@ -104,8 +104,14 @@ censoring，也不取得 bound。
 
 [SOURCE] 本 repo [Paired Statistics and Paper Export Contract V1](PAIRED_STATISTICS_CONTRACT.md)
 已凍結「未凍結 censored estimator前只保存 bound並阻擋一般 mean/bootstrap」。
-[RESULT] 本 audit因此對 `COMPARABLE`與 `EXPOSURE_CENSORED` episode輸出 assumption-free
-worst-case bounds，不輸出 censored point estimate：
+[RESULT] 本 audit因此對 `COMPARABLE`與 `EXPOSURE_CENSORED` episode輸出 worst-case
+identification bounds，不輸出 censored point estimate。此處「assumption-free」限定於：
+estimand已由 frozen task contract定義為 full-horizon duty時，bound不再需要任何 censoring
+分布假設。
+
+[BLOCKER] estimand本身的存在性仍是 contract約定：對提早終止的 episode，full-horizon duty
+是 contract定義的 target，不是「該 episode若能繼續」的可觀測 counterfactual。summary以
+`audit_findings.identification_bound_assumption`明示此點。
 
 ```text
 lower_pct = 100 * over / 4500
@@ -121,17 +127,23 @@ comparable subset，因為 censoring indicator由該臂自身的 early-terminati
 
 ## 6. Synthetic regression 執行結果
 
-Clean-source run：Git pre/post皆為 `428ba214ec7d9e85c254b3b4f85d2c417094d202`，
+Clean-source run：Git pre/post皆為 `4d0709327a03ba2773c8ad05f6051118dda6f54e`，
 worktree clean。Package root
-`backend/run_traces/v7-exposure-audit-clean-20260908/`，18個 artifacts共 `68338712`
+`backend/run_traces/v7-exposure-audit-clean-20260908/`，27個 artifacts共 `118218688`
 bytes，package receipt SHA-256
-`15c2aef746edc2976a30f186180f32ba3c2c2ebcb6e30f1e08a5a2bf1a4b1415`。
+`96782c7987af6630be543ee0d18820267e8149f36a21c483526400c86c6519ac`。
 
-兩個 case皆回傳 `AUDIT_COMPLETE_RETAINED_CENSORING_BLOCKER`、
-`source_bundle_read_only_verified=true`、`AUDIT_BUNDLE_VALID`，且
-`python -I -S` replay exact重建 audit summary。
+三個 case皆回傳 `source_bundle_read_only_verified=true`與 `AUDIT_BUNDLE_VALID`，
+且 `python -I -S` replay exact重建 audit summary。前兩個 case回傳
+`AUDIT_COMPLETE_RETAINED_CENSORING_BLOCKER`，第三個回傳
+`AUDIT_COMPLETE_NO_CENSORING_BLOCKER`。
 
-`exposure-censored-case`：
+[BLOCKER] 以下兩個 case的 bundle皆為 synthetic。為維持 schema fidelity，它們沿用
+`V7A`／`V7B`／`V7C`這三個 frozen arm identifier，但其 episode長度與 saturation counts都是
+本 builder以固定整數算式構造的，**不是** 2026-09-06 pilot的實測值。下列所有數值只描述
+audit software的行為，不描述 v7 pilot的實際 exposure分布。
+
+`exposure-censored-case`（synthetic）：
 
 | Arm | exposure steps mean ± SD | comparability | retained bound mean |
 |---|---:|---|---|
@@ -158,9 +170,26 @@ exposure時的描述性差異，`informative_censoring=SUSPECTED_DEPENDENT_ON_AR
 保留，不得用於 candidate selection、CI、p-value、hypothesis test、恢復 comparability或
 sample-size決策。
 
-`method-failure-case`：V7C的 30個 episode為 `FAILED` / `NO_EXPOSURE`，全部歸入
+`method-failure-case`（synthetic）：V7C的 30個 episode為 `FAILED` / `NO_EXPOSURE`，全部歸入
 `METHOD_FAILURE_NOT_CENSORING`（`EXPOSURE_CENSORED=0`），bound為 `NULL`，
-`method_failure_pair_count=30`。
+`method_failure_pair_count=30`。其 paired verdict為
+`PAIRED_CONTRAST_NON_COMPARABLE_METHOD_FAILURE`、blocked reason為
+`BLOCKED_METHOD_FAILURE_RETAINED_NO_COMPLETE_CASE_DELETION`、
+`zero_duty_interpretation`為 `NON_COMPARABLE_RETAINED_METHOD_FAILURE`；成因不再被誤標為
+exposure censoring。
+
+`all-comparable-case`（synthetic）：三臂各 30個 episode全部 `FULL_EXPOSURE`且
+`COMPARABLE`，但每臂 saturation duty都超過 frozen 30% gate，因此 pilot沒有 eligible
+candidate、selection維持 null。audit回傳 `AUDIT_COMPLETE_NO_CENSORING_BLOCKER`、
+`censoring_blocker_count=0`、兩個 paired verdict皆 `PAIRED_CONTRAST_COMPARABLE`、
+`audited_paired_difference_pct`為 `OBSERVED`，CLI exit `0`。此 case涵蓋 observed-aggregate
+與 clean-status分支，先前完全沒有測到。
+
+[RESULT] Audit receipt另記錄產生該 receipt的 replay實作 identity：
+`backend/v7_exposure_audit_replay.py`、bytes `79346`、SHA-256
+`ae7e0f97c27a0922ddbc7e016c07e882f280e7cd5b0952d94673d2ba05ec4120`。replay script不綁定
+frozen hash（它會隨 audit derivation一起改變），但 identity記錄使 retained evidence可追溯到
+特定實作而非只有檔名。
 
 ## 7. 範圍邊界：frozen pilot bundle 不在本 checkout
 
@@ -190,7 +219,8 @@ python backend/v7_exposure_audit_contract.py audit \
 
 | 驗證 | 結果 |
 |---|---|
-| 新增 audit targeted suite | `38 passed` |
+| 新增 audit targeted suite | `72 passed` |
+| Contract 與 replay builder differential sweep（66 cases） | `66/66` 完全一致或同時拒絕 |
 | Full backend suite | `337 passed, 2 failed` |
 | Clean-tree 重現 2個 failure（`ee73210`，無本次程式） | `2 failed`，確認為既有環境問題 |
 | JSON、Python compile、protocol self-consistency | PASS |
@@ -213,16 +243,25 @@ Wünsch et al.（Statistics in Medicine 2025）指出 comparison study的 method
 並分開 agent/environment RNG；Agarwal et al.（NeurIPS 2021）指出少量 runs只報 point
 estimate會低估 statistical uncertainty。
 
-[INFERENCE] 本 audit把「V7C的 0%不是改善」從敘述改為可檢查的結果：assumption-free
-bound重疊且 sign不可識別。這只成立於本 frozen plant、v5 warm start、單一 training seed
-與 DEV evaluation seeds。
+[INFERENCE] 本 audit提供把「截斷後的 0% duty不是改善」從敘述改為可檢查結果的機制：
+對 exposure-censored episode輸出 worst-case bound，並以 paired bound是否含 0判定 sign是否
+可識別。上述 bound重疊與 0/30 sign-unidentified是 **synthetic** case的數值；2026-09-06
+pilot的實際 exposure、bound與 sign identification尚未量測，因此本次不產生任何關於 v7
+pilot的數值結論。
 
 [BLOCKER] 沒有 independent training-seed variance、full 11-criterion Live evidence、
 actual Study A、frozen censored estimator、binary paired CI、complete environment lock、
 immutable storage、HIL、bench或robot evidence；frozen pilot bundle也不在本 checkout。
 
-因此允許的結論只到：exposure-censoring audit software已實作並在 synthetic regression上
-驗證，且 v7 pilot的 primary-outcome contrast在 realized exposure不相等時不具內部可比性。
+因此允許的結論只到兩點：(1) exposure-censoring audit software已實作，並在 synthetic
+regression上通過 read-only、identity、censoring分類、bounds與 exact replay檢查；(2) 就
+`saturation_duty_pct`這個 rate的定義而言，當兩臂 realized exposure不相等時，逐 seed算術差
+不落在同一 measurement support上。
+
+[BLOCKER] 第 (2) 點是 metric定義的性質，不是對 2026-09-06 pilot的量測。pilot自身 receipt
+已記錄 V7C為 30/30 early fall，但本次未對該 bundle執行 audit，因此其實際 exposure、
+identification bounds與 sign identification皆未量測；不得據本 receipt對 v7 pilot的 contrast
+下數值結論或可比性判定。
 不得宣稱 controller superiority、method-level effect、sample-size adequacy、paper
 readiness、physical torque/thermal margin、安全、sim-to-real或實體機器人效能。
 `pilot_planning_ready=false`、`method_level_power_ready=false`、`statistics_ready=false`、
@@ -236,7 +275,33 @@ Primary/official sources：
 - [Deep RL at the Edge of the Statistical Precipice, NeurIPS 2021](https://proceedings.neurips.cc/paper/2021/hash/f514cec81cb148559cf475e7426eed5e-Abstract.html)
 - [IETF RFC 8259 — JSON](https://www.rfc-editor.org/rfc/rfc8259.html)
 - [NASA-STD-7009B](https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf)
-- [MuJoCo Actuation Model](https://mujoco.readthedocs.io/en/stable/computation/index.html#actuation-model)
+
+## 9.1 Review-driven fix pass（2026-09-08）
+
+本 receipt初版後另做一次 adversarial multi-dimension review與 contract／replay differential
+sweep，共產生 59個 findings。修正一律為「命名更精確、增加檢查、或縮小主張」，未動任何
+threshold、envelope、horizon或 bound formula，數值結果不變。
+
+[RESULT] 已修正的實質缺陷包含：method-failure-only的 arm曾被標為 `EXPOSURE_CENSORED`；
+`arms_without_any_comparable_episode`因多餘的 `FULL_EXPOSURE == 0`條件而漏列 arm；
+blocker identifier有重複的 `PAIRED_CONTRAST_` 前綴；descriptive sensitivity會把 retained
+method failure重新物化為 observed值；no-exposure episode可保留 observed primary outcome；
+缺少 selection key被當成 null selection；validation僅比對 hash，因此一份一致地重新蓋章的
+receipt可為被改寫的 summary背書。
+
+[RESULT] Differential sweep另發現兩個同名 `build_audit_summary`的 precondition不一致
+（contract驗證 raw、pilot summary與 bundle-class binding，replay不驗證），已改為完全一致；
+66個 case涵蓋所有 phase boundary、各臂 terminal failure、mixed comparability與 NONFINITE
+primary outcome，全部一致或同時拒絕。
+
+[RESULT] 新增的 fixture guard把 synthetic raw payload送進 pilot自身 validator，首次執行即
+發現 fixture自行編造了 frozen protocol未宣告的 per-arm `profile_id`／`environment_id`／
+`training_run_id`，意即先前 audit是對「真實 pipeline不可能產生的輸入」做測試。已改為直接
+取用 frozen protocol的值。
+
+[BLOCKER] Review的 59個 findings中，25個完成 adversarial verification（15 confirmed、
+10 refuted）後 workflow被主動停止，因為其 verifier與本地 validation競用 CPU。其餘 findings
+由本次直接對照 source與 shipped evidence判定，未逐一取得獨立 verdict。
 
 ## 10. 下一步
 

@@ -20,12 +20,14 @@ from typing import Any
 
 from v7_exposure_audit_contract import (
     AUDIT_STATUS_BLOCKED,
+    AUDIT_STATUS_CLEAN,
     SYNTHETIC_BUNDLE_CLASS,
     audit_v7_exposure_censoring,
     validate_v7_exposure_audit_bundle,
 )
 from test_v7_exposure_audit_contract import (
     AUDIT_PROTOCOL_PATH,
+    _all_comparable_plan,
     _build_synthetic_pilot_bundle,
     _default_plan,
     _method_failure_plan,
@@ -96,6 +98,8 @@ def _case(
     case_root: Path,
     plan: dict[str, dict[str, Any]],
     source_sha: str,
+    *,
+    expect_blocker: bool = True,
 ) -> dict[str, Any]:
     """Build one synthetic pilot bundle, audit it read-only, and re-validate."""
     source = _build_synthetic_pilot_bundle(
@@ -119,8 +123,13 @@ def _case(
     }
     if after != before:
         raise RegressionBundleError("audit mutated the audited bundle")
-    if receipt["audit_status"] != AUDIT_STATUS_BLOCKED:
-        raise RegressionBundleError("synthetic case must retain a censoring blocker")
+    expected_status = AUDIT_STATUS_BLOCKED if expect_blocker else AUDIT_STATUS_CLEAN
+    if receipt["audit_status"] != expected_status:
+        raise RegressionBundleError(
+            f"synthetic case status {receipt['audit_status']} is not {expected_status}"
+        )
+    if expect_blocker != bool(receipt["censoring_blocker_count"]):
+        raise RegressionBundleError("synthetic case blocker count contradicts its status")
     if receipt["audit_applies_to_frozen_v7_pilot"] is not False:
         raise RegressionBundleError("synthetic case must not claim the frozen v7 pilot")
     validation = validate_v7_exposure_audit_bundle(
@@ -181,6 +190,14 @@ def build_regression_package(repo_root: Path, output_root: Path) -> dict[str, An
     method_failure = _case(
         output_root / "method-failure-case", _method_failure_plan(), pre_sha
     )
+    # A case with no censoring blocker at all, so the retained evidence also
+    # covers the observed-aggregate and clean-status branches.
+    all_comparable = _case(
+        output_root / "all-comparable-case",
+        _all_comparable_plan(),
+        pre_sha,
+        expect_blocker=False,
+    )
 
     post_sha = _git(repo_root, "rev-parse", "HEAD")
     post_status = _git(repo_root, "status", "--porcelain=v1", "--untracked-files=all")
@@ -195,6 +212,15 @@ def build_regression_package(repo_root: Path, output_root: Path) -> dict[str, An
         != 30
     ):
         raise RegressionBundleError("method-failure case lost its method-failure retention")
+    if method_failure["paired_validity_verdicts"]["V7C_FILTERED_ACTION"] != (
+        "PAIRED_CONTRAST_NON_COMPARABLE_METHOD_FAILURE"
+    ):
+        raise RegressionBundleError("method-failure case must not be labelled censored")
+    if any(
+        verdict != "PAIRED_CONTRAST_COMPARABLE"
+        for verdict in all_comparable["paired_validity_verdicts"].values()
+    ):
+        raise RegressionBundleError("all-comparable case lost its comparable verdicts")
 
     artifacts = _artifact_inventory(output_root)
     receipt = {
@@ -207,6 +233,7 @@ def build_regression_package(repo_root: Path, output_root: Path) -> dict[str, An
         "source_dirty_post": False,
         "exposure_censored_case": censored,
         "method_failure_case": method_failure,
+        "all_comparable_case": all_comparable,
         "retained_states": [
             "COMPLETED",
             "FAILED",

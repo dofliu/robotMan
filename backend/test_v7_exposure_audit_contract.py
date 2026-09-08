@@ -23,6 +23,7 @@ from v7_exposure_audit_contract import (
     audit_v7_exposure_censoring,
     validate_v7_exposure_audit_bundle,
 )
+import v7_exposure_audit_replay
 import v7_pilot_replay
 
 
@@ -177,7 +178,18 @@ def _episode_row(
     substep_total = steps * SUBSTEPS_PER_STEP
     duty = round(100.0 * over_total / substep_total, 6)
     fell = steps < FULL_STEPS
-    if kind == "EARLY_NULL":
+    if kind == "EARLY_METHOD_FAILURE":
+        reason = "SOURCE_EVALUATOR_REPORTED_NAN"
+        measurements = {
+            "no_fall": _measurement("OBSERVED", not fell, None),
+            "steady_speed_mps": _measurement("NULL", None, reason),
+            "steady_progress_m": _measurement("NULL", None, reason),
+            "final_stop_speed_mps": _measurement("NULL", None, reason),
+            "lateral_drift_m": _measurement("NULL", None, reason),
+            "saturation_duty_pct": _measurement("NULL", None, reason),
+        }
+        outcome_state = "NULL"
+    elif kind == "EARLY_NULL":
         reason = "EARLY_TERMINATION_REQUIRED_OUTCOME_UNOBSERVED"
         measurements = {
             "no_fall": _measurement("OBSERVED", not fell, None),
@@ -213,8 +225,12 @@ def _episode_row(
             "saturation_substeps_total": substep_total,
             "saturation_substeps_over_threshold": over_total,
             "recomputed_saturation_duty_pct": duty,
-            "reported_saturation_duty_pct": duty,
-            "reported_absolute_delta": 0.0,
+            "reported_saturation_duty_pct": (
+                None if measurements["saturation_duty_pct"]["state"] != "OBSERVED" else duty
+            ),
+            "reported_absolute_delta": (
+                None if measurements["saturation_duty_pct"]["state"] != "OBSERVED" else 0.0
+            ),
             "action_operator_state": "PASS",
             "action_operator_max_abs_delta": 0.0,
         },
@@ -256,12 +272,19 @@ def _raw_arm(arm_index: int, arm_id: str, layout: dict[str, object]) -> dict[str
                 kind=str(spec["kind"]),
             )
         )
-    profile = arm_id.lower()
+    # Take the per-arm identifiers from the frozen pilot protocol; inventing
+    # them here would make the fixture something the real pipeline could never
+    # produce, which the pilot's own raw validator rejects.
+    frozen_arm = next(
+        item
+        for item in json.loads(PILOT_PROTOCOL_PATH.read_text("utf-8"))["arms"]
+        if item["arm_id"] == arm_id
+    )
     return {
         "arm_id": arm_id,
-        "profile_id": f"stand_start_walk_stop_0p7_action_{profile}",
-        "environment_id": f"motion_task_{profile}",
-        "training_run_id": f"run-synthetic-{profile}",
+        "profile_id": frozen_arm["profile_id"],
+        "environment_id": frozen_arm["environment_id"],
+        "training_run_id": frozen_arm["training_run_id"],
         "training_terminal_state": "COMPLETED",
         "training_terminal_reason": None,
         "actual_total_timesteps": 122880,
@@ -840,7 +863,7 @@ def test_non_finite_json_number_in_raw_episodes_fails_closed(synthetic_bundle):
         text.replace(literal, '"applied_action_delta_l2": NaN', 1), encoding="utf-8"
     )
     _reindex(synthetic_bundle["source"])
-    with pytest.raises(V7ExposureAuditError, match="non-finite"):
+    with pytest.raises(V7ExposureAuditError, match="non-finite constant is forbidden"):
         _audit(synthetic_bundle)
 
 
@@ -853,7 +876,7 @@ def test_json_overflow_number_in_raw_episodes_fails_closed(synthetic_bundle):
         text.replace(literal, '"applied_action_delta_l2": 1e400', 1), encoding="utf-8"
     )
     _reindex(synthetic_bundle["source"])
-    with pytest.raises(V7ExposureAuditError, match="non-finite"):
+    with pytest.raises(V7ExposureAuditError, match="non-finite number is forbidden"):
         _audit(synthetic_bundle)
 
 
@@ -890,7 +913,7 @@ def test_over_exposure_beyond_the_frozen_horizon_fails_closed(synthetic_bundle):
         _audit(synthetic_bundle)
 
 
-def test_exposure_denominator_drift_fails_closed(synthetic_bundle):
+def test_per_control_step_substep_total_must_be_exactly_ten(synthetic_bundle):
     def mutate(payload):
         payload["arms"][0]["episodes"][0]["control_step_trace"][0][
             "saturation_substeps_total"
@@ -1053,3 +1076,666 @@ def test_cli_exit_codes_distinguish_censoring_blocker_and_structural_failure(
     failure = json.loads(broken.stdout)
     assert failure["validation_status"] == "STRUCTURAL_FAILURE"
     assert failure["contract_valid"] is False
+
+
+def _raw_from_plan(plan: dict[str, dict[str, object]], source_sha: str = SOURCE_SHA) -> dict[str, object]:
+    """Build a canonical raw payload without writing a bundle to disk."""
+    return {
+        "schema_version": "V7_PILOT_RAW_EPISODES_V1",
+        "protocol_id": "PILOT-V7-ACTION-INTERFACE-DEV-V1",
+        "protocol_sha256": _sha256_file(PILOT_PROTOCOL_PATH),
+        "source_git_sha_pre": source_sha,
+        "source_git_sha_post": source_sha,
+        "source_dirty_pre": False,
+        "source_dirty_post": False,
+        "run_class": "DEVELOPMENT",
+        "data_partition": "DEVELOPMENT",
+        "evidence_scope": "SIM_ONLY_MUJOCO",
+        "validation_status": "NOT_PHYSICALLY_VALIDATED",
+        "expected_arm_count": 3,
+        "expected_episodes_per_arm": 30,
+        "retained_terminal_states": ["COMPLETED", "FAILED", "CANCELLED"],
+        "retained_outcome_states": ["OBSERVED", "NULL", "NONFINITE"],
+        "arms": [_raw_arm(index, arm_id, plan[arm_id]) for index, arm_id in enumerate(ARM_IDS)],
+        "paper_data_ready": False,
+        "claim_boundary": v7_pilot_replay.CLAIM_BOUNDARY,
+    }
+
+
+def _arm_layout(scale: int, steps: int, kind: str, overrides=None) -> dict[str, object]:
+    return {"scale": scale, "steps": steps, "kind": kind, "overrides": overrides or {}}
+
+
+def _force_nonfinite_primary(raw: dict[str, object]) -> None:
+    row = raw["arms"][2]["episodes"][0]
+    reason = "SOURCE_EVALUATOR_REPORTED_NAN"
+    row["outcome_state"] = "NONFINITE"
+    row["reason"] = reason
+    for measurement_id in ("saturation_duty_pct", "steady_speed_mps"):
+        row["measurements"][measurement_id] = {
+            "state": "NONFINITE",
+            "value": None,
+            "reason": reason,
+        }
+    row["trace_receipt"]["reported_saturation_duty_pct"] = None
+    row["trace_receipt"]["reported_absolute_delta"] = None
+    row["gates"] = v7_pilot_replay._gate_results(row["measurements"])
+
+
+# Step counts chosen to straddle every boundary at which the contract
+# start-of-step schedule and the reproduced recorder convention disagree.
+DIFFERENTIAL_CASES = (
+    ("phase_boundary_49", {"steps": 49, "kind": "EARLY_NULL", "scale": 5}, None),
+    ("phase_boundary_124", {"steps": 124, "kind": "EARLY_NULL", "scale": 11}, None),
+    ("phase_boundary_325", {"steps": 325, "kind": "EARLY_NULL", "scale": 1}, None),
+    ("final_stand_430", {"steps": 430, "kind": "FULL", "scale": 8}, None),
+    ("zero_saturation_60", {"steps": 60, "kind": "EARLY_NULL", "scale": 0}, None),
+    ("nonfinite_primary", {"steps": 450, "kind": "FULL", "scale": 5}, _force_nonfinite_primary),
+)
+
+
+@pytest.mark.parametrize("label,layout,mutate", DIFFERENTIAL_CASES, ids=[c[0] for c in DIFFERENTIAL_CASES])
+def test_contract_and_replay_builders_agree_exactly(label, layout, mutate):
+    """The two independent builders must agree, or refuse the same input."""
+    plan = {
+        "V7A_REWARD_ONLY": _arm_layout(8, FULL_STEPS, "FULL"),
+        "V7B_REDUCED_JOINT_ENVELOPE": _arm_layout(
+            int(layout["scale"]), int(layout["steps"]), str(layout["kind"])
+        ),
+        "V7C_FILTERED_ACTION": _arm_layout(
+            int(layout["scale"]), int(layout["steps"]), str(layout["kind"])
+        ),
+    }
+    raw = _raw_from_plan(plan)
+    if mutate is not None:
+        mutate(raw)
+    pilot_summary = v7_pilot_replay.build_summary(
+        json.loads(PILOT_PROTOCOL_PATH.read_text("utf-8")), raw
+    )
+    protocol = audit_module.load_audit_protocol(AUDIT_PROTOCOL_PATH)
+    kwargs = {
+        "source_bundle_class": SYNTHETIC_BUNDLE_CLASS,
+        "pilot_receipt_sha256": "sha256:" + "b" * 64,
+    }
+
+    def build(module):
+        try:
+            return ("OK", module.build_audit_summary(protocol, raw, pilot_summary, **kwargs))
+        except Exception as exc:  # noqa: BLE001 - both modules raise their own type
+            return ("REFUSED", type(exc).__name__)
+
+    contract_state, contract_value = build(audit_module)
+    replay_state, replay_value = build(v7_exposure_audit_replay)
+    assert contract_state == replay_state, (
+        f"{label}: one builder refused and the other accepted "
+        f"({contract_state} vs {replay_state})"
+    )
+    if contract_state == "OK":
+        assert contract_value == replay_value, (
+            f"{label}: builders disagree on "
+            f"{sorted(k for k in set(contract_value) | set(replay_value) if contract_value.get(k) != replay_value.get(k))}"
+        )
+
+
+def test_mixed_comparability_within_one_arm_is_retained_per_episode():
+    plan = {
+        "V7A_REWARD_ONLY": _arm_layout(8, FULL_STEPS, "FULL"),
+        "V7B_REDUCED_JOINT_ENVELOPE": _arm_layout(
+            5,
+            FULL_STEPS,
+            "FULL",
+            {
+                18000: {"steps": 60, "kind": "EARLY_NULL"},
+                18001: {"steps": 449, "kind": "FULL"},
+            },
+        ),
+        "V7C_FILTERED_ACTION": _arm_layout(0, 60, "EARLY_NULL"),
+    }
+    raw = _raw_from_plan(plan)
+    pilot_summary = v7_pilot_replay.build_summary(
+        json.loads(PILOT_PROTOCOL_PATH.read_text("utf-8")), raw
+    )
+    summary = audit_module.build_audit_summary(
+        audit_module.load_audit_protocol(AUDIT_PROTOCOL_PATH),
+        raw,
+        pilot_summary,
+        source_bundle_class=SYNTHETIC_BUNDLE_CLASS,
+        pilot_receipt_sha256="sha256:" + "b" * 64,
+    )
+    candidate = next(
+        arm for arm in summary["arm_exposure"] if arm["arm_id"] == "V7B_REDUCED_JOINT_ENVELOPE"
+    )
+    assert candidate["comparability_state_counts"] == {
+        "COMPARABLE": 28,
+        "EXPOSURE_CENSORED": 2,
+        "METHOD_FAILURE_NOT_CENSORING": 0,
+    }
+    # A 449-step episode reports every required numeric yet is still censored.
+    near_full = next(item for item in candidate["episodes"] if item["evaluation_seed"] == 18001)
+    assert near_full["observed_control_steps"] == 449
+    assert near_full["outcome_state"] == "OBSERVED"
+    assert near_full["comparability_state"] == "EXPOSURE_CENSORED"
+    assert near_full["full_horizon_duty_bound_pct"]["width_pct"] == round(100.0 * 10 / 4500, 6)
+
+
+def _all_comparable_plan() -> dict[str, dict[str, object]]:
+    """Every episode fully exposed; the pilot still selects nothing.
+
+    Each arm's saturation duty exceeds the frozen 30 percent gate, so no
+    candidate is eligible and the pilot selection stays null, while every
+    episode remains comparable. This is the only route to a zero-blocker audit.
+    """
+    return {arm_id: _arm_layout(8, FULL_STEPS, "FULL") for arm_id in ARM_IDS}
+
+
+def test_zero_blocker_audit_reports_clean_status_and_observed_aggregates(tmp_path):
+    source = _build_synthetic_pilot_bundle(
+        tmp_path / "source-bundle", plan=_all_comparable_plan()
+    )
+    paths = {"source": source, "output": tmp_path / "audit-bundle"}
+    receipt = _audit(paths)
+    assert receipt["audit_status"] == "AUDIT_COMPLETE_NO_CENSORING_BLOCKER"
+    assert receipt["censoring_blocker_count"] == 0
+    summary = _summary(paths)
+    assert summary["censoring_blockers"] == []
+    assert summary["audit_findings"]["zero_duty_interpretation"] == (
+        "NOT_APPLICABLE_ALL_ARMS_HAVE_COMPARABLE_EPISODES"
+    )
+    assert summary["audit_findings"]["non_comparable_arm_causes"] == {}
+    assert summary["audit_findings"]["arms_without_any_comparable_episode"] == []
+    for arm in summary["arm_exposure"]:
+        assert arm["comparability_state_counts"]["COMPARABLE"] == 30
+        assert arm["full_horizon_duty_bound_pct"]["state"] == "OBSERVED"
+    for block in summary["paired_comparability"]:
+        assert block["validity_verdict"] == "PAIRED_CONTRAST_COMPARABLE"
+        aggregate = block["audited_paired_difference_pct"]
+        assert aggregate["state"] == "OBSERVED"
+        assert aggregate["n_observed"] == 30
+        assert aggregate["mean_difference"] is not None
+        assert aggregate["reason"] is None
+        bound = block["paired_identification_bound_pct"]
+        assert bound["state"] == "OBSERVED"
+        assert bound["sign_identified_is_complete_case"] is True
+    # At full exposure every pair is matched over the whole horizon, so the
+    # descriptive matched difference must equal the audited paired difference.
+    for block, sensitivity in zip(
+        summary["paired_comparability"], summary["exposure_matched_sensitivity"], strict=True
+    ):
+        assert sensitivity["candidate_arm_id"] == block["candidate_arm_id"]
+        assert all(p["matched_exposure_control_steps"] == FULL_STEPS for p in sensitivity["pairs"])
+        assert (
+            sensitivity["matched_difference_pct"]["mean_difference"]
+            == block["audited_paired_difference_pct"]["mean_difference"]
+        )
+
+
+def test_clean_audit_returns_cli_exit_zero(tmp_path):
+    source = _build_synthetic_pilot_bundle(
+        tmp_path / "source-bundle", plan=_all_comparable_plan()
+    )
+    output = tmp_path / "audit-bundle"
+    completed = subprocess.run(
+        [
+            sys.executable, "-I", "-S", str(Path(audit_module.__file__)),
+            "audit", str(source), str(output),
+        ],
+        capture_output=True, text=True, check=False,
+    )
+    assert completed.returncode == 0
+    assert json.loads(completed.stdout)["audit_status"] == (
+        "AUDIT_COMPLETE_NO_CENSORING_BLOCKER"
+    )
+
+
+def test_partial_exposure_with_unobserved_primary_is_method_failure_not_censoring(tmp_path):
+    plan = _default_plan()
+    plan["V7B_REDUCED_JOINT_ENVELOPE"]["overrides"] = {
+        18007: {"steps": 200, "kind": "EARLY_METHOD_FAILURE"},
+    }
+    source = _build_synthetic_pilot_bundle(tmp_path / "source-bundle", plan=plan)
+    paths = {"source": source, "output": tmp_path / "audit-bundle"}
+    _audit(paths)
+    summary = _summary(paths)
+    arm = next(
+        item for item in summary["arm_exposure"]
+        if item["arm_id"] == "V7B_REDUCED_JOINT_ENVELOPE"
+    )
+    episode = next(item for item in arm["episodes"] if item["evaluation_seed"] == 18007)
+    # Partial exposure, so not NO_EXPOSURE, yet still a retained method failure.
+    assert episode["observed_control_steps"] == 200
+    assert episode["exposure_class"] == "EARLY_TERMINATED"
+    assert episode["comparability_state"] == "METHOD_FAILURE_NOT_CENSORING"
+    assert episode["comparability_reason"] == (
+        "REQUIRED_PRIMARY_OUTCOME_NOT_OBSERVED_METHOD_FAILURE"
+    )
+    assert episode["full_horizon_duty_bound_pct"]["state"] == "NULL"
+    # The descriptive sensitivity must not re-materialize it as observed.
+    sensitivity = next(
+        item for item in summary["exposure_matched_sensitivity"]
+        if item["candidate_arm_id"] == "V7B_REDUCED_JOINT_ENVELOPE"
+    )
+    pair = next(item for item in sensitivity["pairs"] if item["evaluation_seed"] == 18007)
+    assert pair["matched_exposure_control_steps"] == 200
+    assert pair["state"] == "NULL"
+    assert pair["candidate_matched_duty_pct"] is None
+    assert pair["reason"] == "REQUIRED_PRIMARY_OUTCOME_NOT_OBSERVED_METHOD_FAILURE"
+
+
+def test_method_failure_only_contrast_is_not_labelled_exposure_censored(tmp_path):
+    source = _build_synthetic_pilot_bundle(
+        tmp_path / "source-bundle", plan=_method_failure_plan()
+    )
+    paths = {"source": source, "output": tmp_path / "audit-bundle"}
+    _audit(paths)
+    summary = _summary(paths)
+    block = next(
+        item for item in summary["paired_comparability"]
+        if item["candidate_arm_id"] == "V7C_FILTERED_ACTION"
+    )
+    assert block["method_failure_pair_count"] == 30
+    assert block["exposure_censored_pair_count"] == 0
+    assert block["validity_verdict"] == "PAIRED_CONTRAST_NON_COMPARABLE_METHOD_FAILURE"
+    assert block["audited_paired_difference_pct"]["reason"] == (
+        "BLOCKED_METHOD_FAILURE_RETAINED_NO_COMPLETE_CASE_DELETION"
+    )
+    arm = next(
+        item for item in summary["arm_exposure"]
+        if item["arm_id"] == "V7C_FILTERED_ACTION"
+    )
+    assert arm["full_horizon_duty_bound_pct"]["reason"] == (
+        "BLOCKED_METHOD_FAILURE_RETAINED_NO_COMPLETE_CASE_DELETION"
+    )
+    assert summary["audit_findings"]["zero_duty_interpretation"] == (
+        "NON_COMPARABLE_RETAINED_METHOD_FAILURE"
+    )
+    assert summary["audit_findings"]["non_comparable_arm_causes"] == {
+        "V7C_FILTERED_ACTION": "METHOD_FAILURE_NOT_CENSORING"
+    }
+    # Blocker identifiers must name the arm and the state, with no doubled prefix.
+    assert f"V7C_FILTERED_ACTION:PAIRED_CONTRAST_NON_COMPARABLE_METHOD_FAILURE" in (
+        summary["censoring_blockers"]
+    )
+    assert not any("PAIRED_CONTRAST_PAIRED_CONTRAST" in b for b in summary["censoring_blockers"])
+    assert summary["censoring_blocker_count"] == len(summary["censoring_blockers"])
+
+
+def test_censoring_blocker_identifiers_are_exact(synthetic_bundle):
+    _audit(synthetic_bundle)
+    summary = _summary(synthetic_bundle)
+    blockers = summary["censoring_blockers"]
+    assert summary["censoring_blocker_count"] == len(blockers)
+    assert not any("PAIRED_CONTRAST_PAIRED_CONTRAST" in item for item in blockers)
+    assert blockers.count(
+        "V7C_FILTERED_ACTION:PAIRED_CONTRAST_NON_COMPARABLE_EXPOSURE_CENSORED"
+    ) == 1
+    assert (
+        "V7C_FILTERED_ACTION:SEED_18000_EXPOSURE_CENSORED" in blockers
+    )
+    assert sum(1 for item in blockers if item.startswith("V7C_FILTERED_ACTION:SEED_")) == 30
+
+
+def test_exposure_matched_duty_arithmetic_is_pinned(synthetic_bundle):
+    """Pin the prefix-sum index so an off-by-one cannot pass."""
+    _audit(synthetic_bundle)
+    summary = _summary(synthetic_bundle)
+    sensitivity = next(
+        item for item in summary["exposure_matched_sensitivity"]
+        if item["candidate_arm_id"] == "V7C_FILTERED_ACTION"
+    )
+    reference_index = ARM_IDS.index("V7A_REWARD_ONLY")
+    for pair in sensitivity["pairs"]:
+        seed = pair["evaluation_seed"]
+        matched = pair["matched_exposure_control_steps"]
+        assert matched == 60
+        over = sum(_over_count(reference_index, seed, step, 8) for step in range(matched))
+        expected = round(100.0 * over / (matched * SUBSTEPS_PER_STEP), 6)
+        assert pair["reference_matched_duty_pct"] == expected
+        assert pair["candidate_matched_duty_pct"] == 0.0
+        assert pair["matched_difference_pct"] == round(0.0 - expected, 6)
+
+
+def _reindex_output(root: Path) -> None:
+    """Recompute the audit receipt inventory so deeper checks can be reached."""
+    def mutate(receipt: dict[str, object]) -> None:
+        for record in receipt["artifacts"]:
+            target = root / record["path"]
+            record["bytes"] = target.stat().st_size
+            record["sha256"] = _sha256_file(target)
+
+    _rewrite(root / "audit_receipt.json", mutate)
+
+
+def test_validate_re_derives_the_blocker_list_from_retained_states(synthetic_bundle):
+    """A consistently re-stamped receipt must not certify a rewritten summary."""
+    _audit(synthetic_bundle)
+    output = synthetic_bundle["output"]
+
+    def clear_blockers(payload: dict[str, object]) -> None:
+        payload["censoring_blockers"] = []
+        payload["censoring_blocker_count"] = 0
+        payload["audit_status"] = "AUDIT_COMPLETE_NO_CENSORING_BLOCKER"
+
+    _rewrite(output / "audit_summary.json", clear_blockers)
+
+    def restamp(receipt: dict[str, object]) -> None:
+        receipt["censoring_blocker_count"] = 0
+        receipt["audit_status"] = "AUDIT_COMPLETE_NO_CENSORING_BLOCKER"
+
+    _rewrite(output / "audit_receipt.json", restamp)
+    _reindex_output(output)
+    with pytest.raises(V7ExposureAuditError, match="retained comparability states"):
+        validate_v7_exposure_audit_bundle(output / "audit_receipt.json")
+
+
+def test_validate_rejects_a_blocker_count_that_disagrees_with_its_own_list(synthetic_bundle):
+    _audit(synthetic_bundle)
+    output = synthetic_bundle["output"]
+    _rewrite(
+        output / "audit_summary.json",
+        lambda payload: payload.__setitem__("censoring_blocker_count", 999),
+    )
+    _rewrite(
+        output / "audit_receipt.json",
+        lambda payload: payload.__setitem__("censoring_blocker_count", 999),
+    )
+    _reindex_output(output)
+    with pytest.raises(V7ExposureAuditError, match="its own blocker list"):
+        validate_v7_exposure_audit_bundle(output / "audit_receipt.json")
+
+
+def test_validate_rejects_a_forged_applicability_flag(synthetic_bundle):
+    _audit(synthetic_bundle)
+    output = synthetic_bundle["output"]
+    _rewrite(
+        output / "audit_summary.json",
+        lambda payload: payload.__setitem__("audit_applies_to_frozen_v7_pilot", True),
+    )
+    _reindex_output(output)
+    with pytest.raises(V7ExposureAuditError, match="applicability flag mismatch"):
+        validate_v7_exposure_audit_bundle(output / "audit_receipt.json")
+
+
+def test_post_audit_readback_detects_source_drift(synthetic_bundle, monkeypatch):
+    """Prove the post-audit readback can actually fire, not just pass.
+
+    The drifted artifact is the audited bundle's retained protocol copy, which
+    _run_replay does not re-hash, so only the post-audit readback can catch it.
+    """
+    original_run = audit_module.subprocess.run
+    drifted = synthetic_bundle["source"] / "v7_action_interface_pilot_protocol.json"
+
+    def mutate_then_run(command, *args, **kwargs):
+        result = original_run(command, *args, **kwargs)
+        drifted.write_bytes(drifted.read_bytes() + b"\n")
+        return result
+
+    monkeypatch.setattr(audit_module.subprocess, "run", mutate_then_run)
+    with pytest.raises(V7ExposureAuditError, match="read-only contract violated"):
+        _audit(synthetic_bundle)
+
+
+def test_replay_input_hash_gate_also_detects_raw_drift(synthetic_bundle, monkeypatch):
+    """Raw-episode drift is caught independently of the post-audit readback."""
+    original_run = audit_module.subprocess.run
+    raw_path = synthetic_bundle["source"] / "raw_episodes.json"
+
+    def mutate_then_run(command, *args, **kwargs):
+        result = original_run(command, *args, **kwargs)
+        raw_path.write_text(raw_path.read_text("utf-8") + "\n", encoding="utf-8")
+        return result
+
+    monkeypatch.setattr(audit_module.subprocess, "run", mutate_then_run)
+    with pytest.raises(V7ExposureAuditError, match="raw_episodes_sha256 mismatch"):
+        _audit(synthetic_bundle)
+
+
+def test_file_added_to_the_audited_bundle_during_the_audit_is_detected(
+    synthetic_bundle, monkeypatch
+):
+    original_run = audit_module.subprocess.run
+    source = synthetic_bundle["source"]
+
+    def add_then_run(command, *args, **kwargs):
+        result = original_run(command, *args, **kwargs)
+        (source / "smuggled.json").write_text("{}", encoding="utf-8")
+        return result
+
+    monkeypatch.setattr(audit_module.subprocess, "run", add_then_run)
+    with pytest.raises(V7ExposureAuditError, match="gained or lost files"):
+        _audit(synthetic_bundle)
+
+
+def test_duplicate_evaluation_seed_fails_closed(synthetic_bundle):
+    def mutate(payload):
+        payload["arms"][0]["episodes"][1]["evaluation_seed"] = 18000
+
+    _rewrite(synthetic_bundle["source"] / "raw_episodes.json", mutate)
+    _reindex(synthetic_bundle["source"])
+    with pytest.raises(V7ExposureAuditError, match="duplicate evaluation seed"):
+        _audit(synthetic_bundle)
+
+
+def test_unexpected_evaluation_seed_fails_closed(synthetic_bundle):
+    def mutate(payload):
+        payload["arms"][0]["episodes"][0]["evaluation_seed"] = 18030
+
+    _rewrite(synthetic_bundle["source"] / "raw_episodes.json", mutate)
+    _reindex(synthetic_bundle["source"])
+    with pytest.raises(V7ExposureAuditError, match="missing or unexpected evaluation seed"):
+        _audit(synthetic_bundle)
+
+
+def test_arm_inventory_mismatch_fails_closed(synthetic_bundle):
+    def mutate(payload):
+        payload["arms"][2]["arm_id"] = "V7D_UNDECLARED_ARM"
+
+    _rewrite(synthetic_bundle["source"] / "raw_episodes.json", mutate)
+    _reindex(synthetic_bundle["source"])
+    with pytest.raises(V7ExposureAuditError, match="arm inventory mismatch"):
+        _audit(synthetic_bundle)
+
+
+def test_zero_exposure_episode_may_not_retain_an_observed_primary(synthetic_bundle):
+    def mutate(payload):
+        row = payload["arms"][0]["episodes"][0]
+        row["terminal_record_state"] = "FAILED"
+        row["outcome_state"] = "OBSERVED"
+        row["control_step_trace"] = []
+        row["trace_receipt"] = {
+            "sample_rate_hz": 500.0,
+            "control_step_count": 0,
+            "saturation_substeps_total": 0,
+            "saturation_substeps_over_threshold": 0,
+            "recomputed_saturation_duty_pct": None,
+            "reported_saturation_duty_pct": None,
+            "reported_absolute_delta": None,
+            "action_operator_state": "NULL",
+            "action_operator_max_abs_delta": None,
+        }
+
+    _rewrite(synthetic_bundle["source"] / "raw_episodes.json", mutate)
+    _reindex(synthetic_bundle["source"])
+    with pytest.raises(V7ExposureAuditError, match="no exposure but retains an observed"):
+        _audit(synthetic_bundle)
+
+
+def test_missing_selection_key_is_not_treated_as_a_null_selection(synthetic_bundle):
+    _rewrite(
+        synthetic_bundle["source"] / "pilot_summary.json",
+        lambda payload: payload.pop("selected_candidate_arm_id"),
+    )
+    _reindex(synthetic_bundle["source"])
+    with pytest.raises(V7ExposureAuditError, match="omits selected_candidate_arm_id"):
+        _audit(synthetic_bundle)
+
+
+def test_replay_staged_comparison_names_the_diverging_block(synthetic_bundle):
+    _audit(synthetic_bundle)
+    summary_path = synthetic_bundle["output"] / "audit_summary.json"
+    _rewrite(
+        summary_path,
+        lambda payload: payload["exposure_matched_sensitivity"][0].__setitem__(
+            "status", "CONFIRMATORY"
+        ),
+    )
+    completed = subprocess.run(
+        [
+            sys.executable, "-I", "-S", str(REPLAY_SCRIPT),
+            str(synthetic_bundle["output"] / "v7_exposure_audit_protocol.json"),
+            str(synthetic_bundle["source"] / "pilot_receipt.json"),
+            str(synthetic_bundle["source"] / "raw_episodes.json"),
+            str(synthetic_bundle["source"] / "pilot_summary.json"),
+            str(summary_path),
+        ],
+        capture_output=True, text=True, check=False,
+    )
+    assert completed.returncode == 2
+    error = json.loads(completed.stdout)["error"]
+    # The staged loop must name the block; the fallback prints a bracketed list.
+    assert "at exposure_matched_sensitivity" in error
+
+
+def test_forged_replay_receipt_with_a_short_check_inventory_is_rejected(
+    synthetic_bundle, monkeypatch
+):
+    original_run = audit_module.subprocess.run
+
+    def forge(command, *args, **kwargs):
+        result = original_run(command, *args, **kwargs)
+        receipt = json.loads(result.stdout)
+        receipt["checks"] = {"audit_summary_exact": True}
+        return subprocess.CompletedProcess(
+            command, 0, json.dumps(receipt), ""
+        )
+
+    monkeypatch.setattr(audit_module.subprocess, "run", forge)
+    with pytest.raises(V7ExposureAuditError, match="check inventory mismatch"):
+        _audit(synthetic_bundle)
+
+
+def test_replay_receipt_booleans_must_be_real_booleans(synthetic_bundle, monkeypatch):
+    original_run = audit_module.subprocess.run
+
+    def forge(command, *args, **kwargs):
+        result = original_run(command, *args, **kwargs)
+        receipt = json.loads(result.stdout)
+        receipt["exact_identity"] = 1
+        return subprocess.CompletedProcess(command, 0, json.dumps(receipt), "")
+
+    monkeypatch.setattr(audit_module.subprocess, "run", forge)
+    with pytest.raises(V7ExposureAuditError, match="exact_identity mismatch"):
+        _audit(synthetic_bundle)
+
+
+def test_replay_imports_no_process_or_argument_modules():
+    """The replay must stay an isolated reimplementation, not a driver."""
+    tree = ast.parse(REPLAY_SCRIPT.read_text("utf-8"))
+    roots: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            roots.update(alias.name.split(".")[0] for alias in node.names)
+        elif isinstance(node, ast.ImportFrom):
+            assert not node.level, "the replay must not use relative imports"
+            roots.add((node.module or "").split(".")[0])
+    assert roots <= STDLIB_IMPORTS, sorted(roots - STDLIB_IMPORTS)
+    for forbidden in ("subprocess", "os", "argparse"):
+        assert forbidden not in roots
+
+
+def test_replay_check_inventory_matches_the_contract_expectation():
+    assert (
+        v7_exposure_audit_replay.EXPECTED_REPLAY_CHECKS
+        == audit_module.EXPECTED_REPLAY_CHECKS
+    )
+    assert len(set(audit_module.EXPECTED_REPLAY_CHECKS)) == 14
+
+
+def test_synthetic_fixture_satisfies_the_frozen_pilot_raw_schema(synthetic_bundle):
+    """Guard against fixture drift: the pilot's own validator must accept it.
+
+    Without this the audit could be exercised only against input the real
+    pipeline would never produce, and a future pilot schema change would go
+    unnoticed here.
+    """
+    raw = json.loads((synthetic_bundle["source"] / "raw_episodes.json").read_text("utf-8"))
+    protocol = json.loads(PILOT_PROTOCOL_PATH.read_text("utf-8"))
+    v7_pilot_replay._validate_raw(raw, protocol, _sha256_file(PILOT_PROTOCOL_PATH))
+
+
+def test_replay_rejects_a_bundle_class_the_receipt_hash_contradicts(synthetic_bundle):
+    """Reach the replay's own copy of the class-binding gate.
+
+    The contract refuses such a bundle before spawning the replay, so the
+    replay is invoked directly to prove its independent gate also fires.
+    """
+    _audit(synthetic_bundle)
+    source = synthetic_bundle["source"]
+    forged = source.parent / "forged_receipt.json"
+    payload = json.loads((source / "pilot_receipt.json").read_text("utf-8"))
+    payload["audit_source_bundle_class"] = DEVELOPMENT_BUNDLE_CLASS
+    _write_json(forged, payload)
+    assert _sha256_file(forged) != FROZEN_PILOT_RECEIPT_SHA256
+    completed = subprocess.run(
+        [
+            sys.executable, "-I", "-S", str(REPLAY_SCRIPT),
+            str(synthetic_bundle["output"] / "v7_exposure_audit_protocol.json"),
+            str(forged),
+            str(source / "raw_episodes.json"),
+            str(source / "pilot_summary.json"),
+            str(synthetic_bundle["output"] / "audit_summary.json"),
+        ],
+        capture_output=True, text=True, check=False,
+    )
+    assert completed.returncode == 2
+    assert "class binding" in json.loads(completed.stdout)["error"]
+
+
+def test_replay_rejects_files_the_audited_receipt_does_not_index(synthetic_bundle, tmp_path):
+    """The replay must not mint a PASS receipt over unindexed data."""
+    _audit(synthetic_bundle)
+    source = synthetic_bundle["source"]
+    swapped = tmp_path / "swapped_raw_episodes.json"
+    payload = json.loads((source / "raw_episodes.json").read_text("utf-8"))
+    payload["arms"][0]["episodes"][0]["control_step_trace"] = []
+    _write_json(swapped, payload)
+    completed = subprocess.run(
+        [
+            sys.executable, "-I", "-S", str(REPLAY_SCRIPT),
+            str(synthetic_bundle["output"] / "v7_exposure_audit_protocol.json"),
+            str(source / "pilot_receipt.json"),
+            str(swapped),
+            str(source / "pilot_summary.json"),
+            str(synthetic_bundle["output"] / "audit_summary.json"),
+        ],
+        capture_output=True, text=True, check=False,
+    )
+    assert completed.returncode == 2
+    assert "not the indexed raw_episodes artifact" in json.loads(completed.stdout)["error"]
+
+
+def test_arm_rollups_retain_the_pilot_terminal_and_outcome_states(synthetic_bundle):
+    _audit(synthetic_bundle)
+    summary = _summary(synthetic_bundle)
+    censored = next(
+        arm for arm in summary["arm_exposure"] if arm["arm_id"] == "V7C_FILTERED_ACTION"
+    )
+    assert censored["terminal_record_state_counts"] == {
+        "COMPLETED": 30,
+        "FAILED": 0,
+        "CANCELLED": 0,
+    }
+    # Every censored episode here is also a retained pilot-level null outcome.
+    assert censored["outcome_state_counts"] == {"OBSERVED": 0, "NULL": 30, "NONFINITE": 0}
+    reference = next(
+        arm for arm in summary["arm_exposure"] if arm["arm_id"] == "V7A_REWARD_ONLY"
+    )
+    assert reference["outcome_state_counts"] == {"OBSERVED": 30, "NULL": 0, "NONFINITE": 0}
+
+
+def test_identification_bound_assumption_is_stated_in_the_summary(synthetic_bundle):
+    _audit(synthetic_bundle)
+    findings = _summary(synthetic_bundle)["audit_findings"]
+    assumption = findings["identification_bound_assumption"]
+    assert "ASSUMPTION_FREE_GIVEN_THE_CONTRACT_DEFINED_FULL_HORIZON" in assumption
+    assert "NOT_AN_OBSERVED_COUNTERFACTUAL" in assumption
+    assert findings["censored_estimator"] == "NOT_FROZEN_BOUNDS_ONLY"
