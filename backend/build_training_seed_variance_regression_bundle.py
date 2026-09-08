@@ -199,9 +199,10 @@ def _cell(
         "arm_id": arm_id,
         "audit_protocol_sha256": AUDIT_PROTOCOL_SHA256,
         "audit_summary_sha256": audit_summary_sha256,
-        "environment_lock_verified": True,
         "episodes": episodes,
+        "evaluation_environment_lock_verified": True,
         "realized_timesteps": design["expected_realized_timesteps"],
+        "training_environment_lock_verified": True,
         "training_terminal_state": "COMPLETED",
     }
 

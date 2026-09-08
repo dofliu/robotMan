@@ -140,10 +140,18 @@ CELL_FIELDS = (
     "arm_id",
     "audit_protocol_sha256",
     "audit_summary_sha256",
-    "environment_lock_verified",
     "episodes",
+    "evaluation_environment_lock_verified",
     "realized_timesteps",
+    "training_environment_lock_verified",
     "training_terminal_state",
+)
+# The spec requires the lock verified before *every* training and evaluation
+# run. One flag per cell would conflate two separate runs, so each cell carries
+# both and both must be true.
+CELL_LOCK_FIELDS = (
+    "training_environment_lock_verified",
+    "evaluation_environment_lock_verified",
 )
 REPLICATE_FIELDS = ("arms", "environment_seed_block", "replicate_index", "training_seed")
 RAW_FIELDS = (
@@ -741,7 +749,8 @@ def _validate_cell(cell: Any, design: dict[str, Any], context: str) -> dict[str,
     if payload["audit_protocol_sha256"] != AUDIT_PROTOCOL_SHA256:
         raise SeedVarianceError(f"{context}.audit_protocol_sha256 is not the frozen audit digest")
     _require_string(payload["audit_summary_sha256"], f"{context}.audit_summary_sha256")
-    _require_true(payload["environment_lock_verified"], f"{context}.environment_lock_verified")
+    for field in CELL_LOCK_FIELDS:
+        _require_true(payload[field], f"{context}.{field}")
     _require_string(
         payload["training_terminal_state"],
         f"{context}.training_terminal_state",
@@ -1450,6 +1459,9 @@ def analyse_seed_variance(
         "environment_lock_completeness": bundle["lock_status"]["environment_lock_completeness"],
         "environment_lock_threading": bundle["lock_status"]["environment_lock_threading"],
         "bundle_class_is_declared_not_derived": True,
+        "environment_lock_verified_runs": 2
+        * summary["replicate_count"]
+        * len(ARM_IDS),
         **inheritance,
         "source_git_sha_pre": summary["source_git_sha_pre"],
         "source_git_sha_post": summary["source_git_sha_post"],

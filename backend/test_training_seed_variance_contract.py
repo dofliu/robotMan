@@ -419,12 +419,25 @@ def test_audit_protocol_digest_must_be_the_frozen_one(raw: dict, protocol: dict)
         validate_raw_bundle(raw, protocol)
 
 
+@pytest.mark.parametrize(
+    "field",
+    ["training_environment_lock_verified", "evaluation_environment_lock_verified"],
+)
 def test_unverified_environment_lock_on_a_cell_fails_closed(
-    raw: dict, protocol: dict
+    raw: dict, protocol: dict, field: str
 ) -> None:
-    _cell(raw, 0, REFERENCE_ARM_ID)["environment_lock_verified"] = False
-    with pytest.raises(SeedVarianceError, match="environment_lock_verified"):
+    """Training and evaluation are separate runs, so each needs its own flag."""
+    _cell(raw, 0, REFERENCE_ARM_ID)[field] = False
+    with pytest.raises(SeedVarianceError, match=field):
         validate_raw_bundle(raw, protocol)
+
+
+def test_receipt_counts_both_lock_verifications_per_cell(
+    tmp_path: Path, raw: dict, pinned_lock: dict
+) -> None:
+    root, analysis = _bundle(tmp_path, raw, pinned_lock)
+    receipt = analyse_seed_variance(root, analysis)
+    assert receipt["environment_lock_verified_runs"] == 2 * 5 * len(ARM_IDS) == 30
 
 
 def test_undeclared_raw_field_fails_closed(raw: dict, protocol: dict) -> None:
