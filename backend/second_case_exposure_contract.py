@@ -72,6 +72,23 @@ OUTCOME_LABELS = (
     OUTCOME_BLOCKED,
 )
 
+# ---- V2: same design, plus a reference-adequacy precondition (P0) --------- #
+# V1 measured that with both arms censored the bound contains zero by
+# construction.  V2 therefore requires the reference arm to reach a frozen
+# full-exposure fraction before P1/P2 are even evaluated, and scopes P1 to the
+# candidate arm.  The V1 path is untouched: its summary must stay byte-identical
+# to the retained evidence, which a test asserts.
+PROTOCOL_SCHEMA_V2 = "SECOND_CASE_EXPOSURE_PROTOCOL_V2"
+PROTOCOL_SCHEMAS = (PROTOCOL_SCHEMA, PROTOCOL_SCHEMA_V2)
+PROTOCOL_ID_V2 = "SECONDCASE-EXPOSURE-CENSORING-WALKER2D-V2"
+PROTOCOL_V2_SHA256: str | None = None  # pinned at the V2 freeze; None means "not frozen, cannot load"
+PINNED_PROTOCOLS: dict[str, str | None] = {PROTOCOL_ID: PROTOCOL_SHA256, PROTOCOL_ID_V2: PROTOCOL_V2_SHA256}
+SUMMARY_SCHEMA_V2 = "SECOND_CASE_EXPOSURE_SUMMARY_V2"
+OUTCOME_REFERENCE_NOT_ADEQUATE = "SECOND_CASE_REFERENCE_NOT_ADEQUATE"
+OUTCOME_LABELS_V2 = OUTCOME_LABELS + (OUTCOME_REFERENCE_NOT_ADEQUATE,)
+P1_SCOPE_ANY = "ANY_ARM"
+P1_SCOPE_CANDIDATE = "CANDIDATE_ARM"
+
 OUTCOME_OBSERVED = "OBSERVED"
 OUTCOME_NONFINITE = "NONFINITE"
 TERMINAL_STATES = ("COMPLETED", "FAILED")
@@ -277,12 +294,16 @@ def protocol_digest(path: Path = DEFAULT_PROTOCOL) -> str:
 def load_protocol(path: Path = DEFAULT_PROTOCOL, *, require_pinned_digest: bool = True) -> dict[str, Any]:
     payload = Path(path).read_bytes()
     digest = sha256_bytes(payload)
-    if require_pinned_digest and digest != PROTOCOL_SHA256:
-        raise SecondCaseError(
-            f"SECONDCASE_PROTOCOL_DIGEST_MISMATCH: {digest} != pinned {PROTOCOL_SHA256}"
-        )
     protocol = _obj(load_json_bytes(payload, str(path)), "protocol")
     validate_protocol(protocol)
+    if require_pinned_digest:
+        pinned = PINNED_PROTOCOLS.get(protocol["protocol_id"])
+        if pinned is None:
+            raise SecondCaseError(
+                f"SECONDCASE_PROTOCOL_NOT_FROZEN: {protocol['protocol_id']} has no pinned digest yet"
+            )
+        if digest != pinned:
+            raise SecondCaseError(f"SECONDCASE_PROTOCOL_DIGEST_MISMATCH: {digest} != pinned {pinned}")
     return protocol
 
 
@@ -300,10 +321,14 @@ def _range_overlaps(seeds: list[int], ranges: dict[str, Any]) -> list[str]:
 def validate_protocol(protocol: dict[str, Any]) -> dict[str, Any]:
     """Return the frozen design or raise.  Every constant the analysis uses comes from here."""
     _exact_keys(protocol, PROTOCOL_FIELDS, "protocol")
-    if protocol["schema_version"] != PROTOCOL_SCHEMA:
+    schema = protocol["schema_version"]
+    if schema not in PROTOCOL_SCHEMAS:
         raise SecondCaseError("protocol schema_version mismatch")
-    if protocol["protocol_id"] != PROTOCOL_ID:
+    protocol_id = protocol["protocol_id"]
+    if protocol_id not in PINNED_PROTOCOLS:
         raise SecondCaseError("protocol_id mismatch")
+    if (schema == PROTOCOL_SCHEMA) != (protocol_id == PROTOCOL_ID):
+        raise SecondCaseError("protocol schema_version and protocol_id disagree about the version")
     if protocol["publication_gate"] != PUBLICATION_GATE:
         raise SecondCaseError("publication_gate mismatch")
 
@@ -405,11 +430,31 @@ def validate_protocol(protocol: dict[str, Any]) -> dict[str, Any]:
 
     predictions = _obj(protocol["predictions"], "predictions")
     labels = _lst(predictions.get("outcome_labels"), "predictions.outcome_labels")
-    if tuple(labels) != OUTCOME_LABELS:
-        raise SecondCaseError("predictions.outcome_labels must equal the contract's OUTCOME_LABELS in order")
+    expected_labels = OUTCOME_LABELS if schema == PROTOCOL_SCHEMA else OUTCOME_LABELS_V2
+    if tuple(labels) != expected_labels:
+        raise SecondCaseError("predictions.outcome_labels must equal the contract's labels for this schema, in order")
     _str(predictions.get("no_direction_prediction"), "predictions.no_direction_prediction")
     p1 = _obj(predictions.get("P1_censoring_present"), "predictions.P1_censoring_present")
     _str(p1.get("statement"), "P1.statement")
+    p1_scope = p1.get("arm_scope", P1_SCOPE_ANY)
+    if p1_scope not in (P1_SCOPE_ANY, P1_SCOPE_CANDIDATE):
+        raise SecondCaseError("P1.arm_scope must be ANY_ARM or CANDIDATE_ARM")
+    reference_adequacy: dict[str, int] | None = None
+    if schema == PROTOCOL_SCHEMA_V2:
+        p0 = _obj(predictions.get("P0_reference_adequacy"), "predictions.P0_reference_adequacy")
+        _str(p0.get("statement"), "P0.statement")
+        min_full = _int(p0.get("minimum_full_exposure_episodes"), "P0.minimum_full_exposure_episodes", minimum=1)
+        min_reps = _int(p0.get("minimum_adequate_replicates"), "P0.minimum_adequate_replicates", minimum=1)
+        if min_full > per_cell or min_reps > replicate_count:
+            raise SecondCaseError("P0 thresholds exceed the design")
+        if p1_scope != P1_SCOPE_CANDIDATE:
+            raise SecondCaseError("a V2 protocol must scope P1 to the candidate arm")
+        reference_adequacy = {
+            "minimum_full_exposure_episodes": min_full,
+            "minimum_adequate_replicates": min_reps,
+        }
+    elif "P0_reference_adequacy" in predictions:
+        raise SecondCaseError("P0_reference_adequacy is a V2 field")
 
     requirement = _obj(protocol["environment_lock_requirement"], "environment_lock_requirement")
     if requirement.get("required_lock_class") != MEASURED_LOCK_CLASS:
@@ -424,6 +469,10 @@ def validate_protocol(protocol: dict[str, Any]) -> dict[str, Any]:
         raise SecondCaseError("clean_git_required must be true")
 
     return {
+        "protocol_id": protocol_id,
+        "schema_version": schema,
+        "p1_arm_scope": p1_scope,
+        "reference_adequacy": reference_adequacy,
         "reference_arm_id": roles["REFERENCE"],
         "candidate_arm_id": roles["CANDIDATE"],
         "arm_ids": (roles["REFERENCE"], roles["CANDIDATE"]),
@@ -607,11 +656,11 @@ def validate_raw_bundle(raw: Any, protocol: dict[str, Any]) -> dict[str, Any]:
     _exact_keys(raw, RAW_FIELDS, "raw")
     if raw["schema_version"] != RAW_SCHEMA:
         raise SecondCaseError("raw schema_version mismatch")
-    if raw["protocol_id"] != PROTOCOL_ID:
+    if raw["protocol_id"] != design["protocol_id"]:
         raise SecondCaseError("raw protocol_id mismatch")
     bundle_class = _str(raw["bundle_class"], "raw.bundle_class", allowed=BUNDLE_CLASSES)
     _sha(raw["protocol_sha256"], "raw.protocol_sha256")
-    if bundle_class == DEVELOPMENT_BUNDLE_CLASS and raw["protocol_sha256"] != PROTOCOL_SHA256:
+    if bundle_class == DEVELOPMENT_BUNDLE_CLASS and raw["protocol_sha256"] != PINNED_PROTOCOLS.get(design["protocol_id"]):
         raise SecondCaseError("development bundle must bind the pinned protocol digest")
     _sha(raw["environment_lock_sha256"], "raw.environment_lock_sha256")
     if _sha(raw["plant_asset_sha256"], "raw.plant_asset_sha256") != design["plant_asset_sha256"]:
@@ -739,9 +788,13 @@ def build_summary(raw: dict[str, Any], protocol: dict[str, Any]) -> dict[str, An
     bound_differences: list[dict[str, Any] | None] = []
     naive_differences: list[float | None] = []
     censored_replicates = 0
+    adequate_reference_replicates = 0
     blocked_replicates = []
     early_total = 0
     early_observed_total = 0
+    per_cell = len(design["evaluation_seeds"])
+    adequacy = design["reference_adequacy"]
+    is_v2 = adequacy is not None
 
     for replicate in raw["replicates"]:
         cells = {cell["arm_id"]: _cell_summary(cell, design) for cell in replicate["arms"]}
@@ -753,6 +806,11 @@ def build_summary(raw: dict[str, Any], protocol: dict[str, Any]) -> dict[str, An
         any_censored = any(
             cell["exposure_counts"][ei.EXPOSURE_FULL] < len(design["evaluation_seeds"]) for cell in cells.values()
         )
+        candidate_censored = candidate["exposure_counts"][ei.EXPOSURE_FULL] < per_cell
+        censored_here = candidate_censored if design["p1_arm_scope"] == P1_SCOPE_CANDIDATE else any_censored
+        reference_adequate = (
+            None if not is_v2 else reference["exposure_counts"][ei.EXPOSURE_FULL] >= adequacy["minimum_full_exposure_episodes"]
+        )
         blocked = reference["cell_state"] == CELL_BLOCKED or candidate["cell_state"] == CELL_BLOCKED
         if blocked:
             blocked_replicates.append(replicate["replicate_index"])
@@ -761,8 +819,10 @@ def build_summary(raw: dict[str, Any], protocol: dict[str, Any]) -> dict[str, An
             bound_differences.append(None)
             naive_differences.append(None)
         else:
-            if any_censored:
+            if censored_here:
                 censored_replicates += 1
+            if reference_adequate:
+                adequate_reference_replicates += 1
             difference = ei.paired_difference_pp(candidate["mean_bound_pct"], reference["mean_bound_pct"])
             difference["reason"] = None
             naive_difference = ei.round_percent(candidate["naive_mean_duty_pct"] - reference["naive_mean_duty_pct"])
@@ -771,22 +831,25 @@ def build_summary(raw: dict[str, Any], protocol: dict[str, Any]) -> dict[str, An
         naive_sign = (
             None if naive_difference is None else ei.SIGN_NEGATIVE if naive_difference < 0.0 else ei.SIGN_POSITIVE if naive_difference > 0.0 else "ZERO"
         )
-        replicate_summaries.append(
-            {
-                "replicate_index": replicate["replicate_index"],
-                "training_seed": replicate["training_seed"],
-                "arms": [cells[reference_id], cells[candidate_id]],
-                "any_arm_censored": any_censored,
-                "paired_difference_bound_pp": difference,
-                "naive_paired_difference_pp": naive_difference,
-                "naive_sign": naive_sign,
-                "naive_and_bound_sign_agree": (
-                    None if naive_difference is None else difference["sign"] == naive_sign
-                ),
-            }
-        )
+        entry = {
+            "replicate_index": replicate["replicate_index"],
+            "training_seed": replicate["training_seed"],
+            "arms": [cells[reference_id], cells[candidate_id]],
+            "any_arm_censored": any_censored,
+            "paired_difference_bound_pp": difference,
+            "naive_paired_difference_pp": naive_difference,
+            "naive_sign": naive_sign,
+            "naive_and_bound_sign_agree": (
+                None if naive_difference is None else difference["sign"] == naive_sign
+            ),
+        }
+        if is_v2:
+            entry["candidate_censored"] = candidate_censored
+            entry["reference_adequate"] = reference_adequate
+        replicate_summaries.append(entry)
 
     p1_holds = censored_replicates >= design["p1_minimum_censored_replicates"]
+    p0_holds = None if not is_v2 else adequate_reference_replicates >= adequacy["minimum_adequate_replicates"]
     retained_blockers: list[dict[str, Any]] = []
     method_level: dict[str, Any] | None = None
     naive_method_level: dict[str, Any] | None = None
@@ -816,7 +879,21 @@ def build_summary(raw: dict[str, Any], protocol: dict[str, Any]) -> dict[str, An
             forbidden_denominators=design["forbidden_denominators"],
         )
         comparison = ei.compare_naive_to_bound(naive_method_level, method_level)
-        if not p1_holds:
+        if is_v2 and not p0_holds:
+            # The V1 lesson: with a censored reference the bound contains zero by
+            # construction, so P1/P2 would be decided by the reference, not the estimator.
+            outcome = OUTCOME_REFERENCE_NOT_ADEQUATE
+            retained_blockers.append(
+                {
+                    "blocker_id": "P0_FAILED_REFERENCE_NOT_ADEQUATE",
+                    "adequate_reference_replicates": adequate_reference_replicates,
+                    "required": adequacy["minimum_adequate_replicates"],
+                    "detail": "The reference arm did not reach the frozen full-exposure fraction in enough "
+                    "replicates; the paired bound is wide because of the reference, so no artifact "
+                    "decision is issued.",
+                }
+            )
+        elif not p1_holds:
             outcome = OUTCOME_UNINFORMATIVE
             retained_blockers.append(
                 {
@@ -847,12 +924,24 @@ def build_summary(raw: dict[str, Any], protocol: dict[str, Any]) -> dict[str, An
                 "detail": method_level["between_replicate_sd_reason"],
             }
         )
-    if outcome not in OUTCOME_LABELS:
+    if outcome not in (OUTCOME_LABELS_V2 if is_v2 else OUTCOME_LABELS):
         raise SecondCaseError("outcome label outside the frozen set")
 
+    v2_keys: dict[str, Any] = {}
+    if is_v2:
+        v2_keys = {
+            "p0_reference_adequacy": {
+                "holds": p0_holds,
+                "adequate_reference_replicate_count": adequate_reference_replicates,
+                "minimum_full_exposure_episodes": adequacy["minimum_full_exposure_episodes"],
+                "minimum_adequate_replicates": adequacy["minimum_adequate_replicates"],
+            },
+            "p1_arm_scope": design["p1_arm_scope"],
+        }
     return {
-        "schema_version": SUMMARY_SCHEMA,
-        "protocol_id": PROTOCOL_ID,
+        **v2_keys,
+        "schema_version": SUMMARY_SCHEMA_V2 if is_v2 else SUMMARY_SCHEMA,
+        "protocol_id": raw["protocol_id"],
         "protocol_sha256": raw["protocol_sha256"],
         "publication_gate": PUBLICATION_GATE,
         "bundle_class": raw["bundle_class"],
@@ -935,7 +1024,7 @@ def analyse(bundle_root: Path, output_root: Path) -> dict[str, Any]:
     else:
         raise SecondCaseError("output_root must not lie inside the bundle (the bundle is read-only)")
     design = validate_protocol(bundle["protocol"])
-    if bundle["raw"]["bundle_class"] == DEVELOPMENT_BUNDLE_CLASS and bundle["protocol_sha256"] != PROTOCOL_SHA256:
+    if bundle["raw"]["bundle_class"] == DEVELOPMENT_BUNDLE_CLASS and bundle["protocol_sha256"] != PINNED_PROTOCOLS.get(design["protocol_id"]):
         raise SecondCaseError("development bundle protocol copy is not the pinned protocol")
     lock = check_environment_lock(design, bundle["lock_record"])
     summary = build_summary(bundle["raw"], bundle["protocol"])
@@ -945,7 +1034,7 @@ def analyse(bundle_root: Path, output_root: Path) -> dict[str, Any]:
     summary_path.write_bytes(summary_bytes)
     receipt = {
         "schema_version": RECEIPT_SCHEMA,
-        "protocol_id": PROTOCOL_ID,
+        "protocol_id": summary["protocol_id"],
         "protocol_sha256": bundle["protocol_sha256"],
         "publication_gate": PUBLICATION_GATE,
         "bundle_class": summary["bundle_class"],
@@ -976,7 +1065,7 @@ def run_replay(bundle_root: Path, summary_path: Path) -> dict[str, Any]:
     identical = recomputed == retained
     result = {
         "schema_version": REPLAY_SCHEMA,
-        "protocol_id": PROTOCOL_ID,
+        "protocol_id": bundle["raw"]["protocol_id"],
         "recomputed_summary_sha256": sha256_bytes(recomputed),
         "retained_summary_sha256": sha256_bytes(retained),
         "identical": identical,

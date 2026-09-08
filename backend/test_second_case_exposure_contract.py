@@ -96,7 +96,7 @@ def _bundle(design, protocol_sha, lock_sha, reference_spec, candidate_spec, *, o
         )
     raw = {
         "schema_version": sc.RAW_SCHEMA,
-        "protocol_id": sc.PROTOCOL_ID,
+        "protocol_id": design["protocol_id"],
         "protocol_sha256": protocol_sha,
         "bundle_class": sc.SYNTHETIC_BUNDLE_CLASS,
         "environment_lock_sha256": lock_sha,
@@ -456,3 +456,144 @@ def test_retained_development_evidence_revalidates_and_replays_exactly():
     assert summary["direction_claim_permitted"] is False
     assert summary["preregistered"] is False
     assert summary["paper_data_ready"] is False
+
+
+# --------------------------------------------------------------------------- #
+# V2 schema: reference adequacy (P0) and candidate-scoped P1
+# --------------------------------------------------------------------------- #
+
+
+def _v2_protocol(v1: dict) -> dict:
+    p = copy.deepcopy(v1)
+    p["schema_version"] = sc.PROTOCOL_SCHEMA_V2
+    p["protocol_id"] = sc.PROTOCOL_ID_V2
+    p["training"]["training_seed_base"] = 44000
+    p["training"]["training_seeds"] = list(range(44000, 44005))
+    p["evaluation"]["evaluation_seed_first"] = 45000
+    p["evaluation"]["evaluation_seed_last"] = 45029
+    p["forbidden_seed_ranges"].update(
+        {"v1_training": [40000, 40004], "v1_evaluation": [41000, 41029], "probe_training": [42000, 42000], "probe_evaluation": [43000, 43029]}
+    )
+    p["predictions"]["outcome_labels"] = list(sc.OUTCOME_LABELS_V2)
+    p["predictions"]["P1_censoring_present"]["arm_scope"] = sc.P1_SCOPE_CANDIDATE
+    p["predictions"]["P0_reference_adequacy"] = {
+        "statement": "The reference arm reaches >= 27/30 FULL_EXPOSURE episodes in >= 4/5 replicates.",
+        "minimum_full_exposure_episodes": 27,
+        "minimum_adequate_replicates": 4,
+    }
+    return p
+
+
+@pytest.fixture(scope="module")
+def v2_protocol(protocol):
+    return _v2_protocol(protocol)
+
+
+@pytest.fixture(scope="module")
+def v2_design(v2_protocol):
+    return sc.validate_protocol(v2_protocol)
+
+
+def test_v2_protocol_validates_but_cannot_load_until_pinned(v2_protocol, tmp_path):
+    design = sc.validate_protocol(v2_protocol)
+    assert design["reference_adequacy"] == {"minimum_full_exposure_episodes": 27, "minimum_adequate_replicates": 4}
+    assert design["p1_arm_scope"] == sc.P1_SCOPE_CANDIDATE
+    path = tmp_path / "v2.json"
+    path.write_bytes(sc.json_bytes(v2_protocol))
+    if sc.PINNED_PROTOCOLS[sc.PROTOCOL_ID_V2] is None:
+        with pytest.raises(sc.SecondCaseError, match="NOT_FROZEN"):
+            sc.load_protocol(path)
+    else:
+        with pytest.raises(sc.SecondCaseError, match="DIGEST_MISMATCH"):
+            sc.load_protocol(path)
+
+
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        lambda p: p["predictions"].__setitem__("outcome_labels", list(sc.OUTCOME_LABELS)),  # V1 labels on V2
+        lambda p: p["predictions"]["P1_censoring_present"].__setitem__("arm_scope", sc.P1_SCOPE_ANY),
+        lambda p: p["predictions"].pop("P0_reference_adequacy"),
+        lambda p: p["predictions"]["P0_reference_adequacy"].__setitem__("minimum_full_exposure_episodes", 31),
+        lambda p: p.__setitem__("protocol_id", sc.PROTOCOL_ID),  # V2 schema with V1 id
+        lambda p: p["training"].__setitem__("training_seed_base", 40000),  # collides with V1 seeds
+    ],
+)
+def test_v2_protocol_mutations_are_refused(v2_protocol, mutate):
+    tampered = copy.deepcopy(v2_protocol)
+    mutate(tampered)
+    if tampered["training"].get("training_seed_base") == 40000:
+        tampered["training"]["training_seeds"] = list(range(40000, 40005))
+    with pytest.raises(sc.SecondCaseError):
+        sc.validate_protocol(tampered)
+
+
+def test_p0_on_a_v1_protocol_is_refused(protocol):
+    tampered = copy.deepcopy(protocol)
+    tampered["predictions"]["P0_reference_adequacy"] = {"statement": "x", "minimum_full_exposure_episodes": 27, "minimum_adequate_replicates": 4}
+    with pytest.raises(sc.SecondCaseError, match="V2 field"):
+        sc.validate_protocol(tampered)
+
+
+def _v2_bundle(v2_design, digests, reference_spec, candidate_spec):
+    return _bundle(v2_design, digests["protocol"], digests["lock"], reference_spec, candidate_spec)
+
+
+def test_v2_reference_not_adequate_blocks_the_decision(v2_protocol, v2_design, digests):
+    # Reference 20/30 full in every replicate; candidate falls at step 300.
+    def reference(_r):
+        return {"per_seed": lambda i: (1800, 1000) if i < 20 else (540, 300)}
+
+    summary = sc.build_summary(_v2_bundle(v2_design, digests, reference, lambda r: {"per_seed": lambda i: (0, 300)}), v2_protocol)
+    assert summary["schema_version"] == sc.SUMMARY_SCHEMA_V2
+    assert summary["p0_reference_adequacy"]["holds"] is False
+    assert summary["p0_reference_adequacy"]["adequate_reference_replicate_count"] == 0
+    assert summary["outcome"] == sc.OUTCOME_REFERENCE_NOT_ADEQUATE
+    assert any(b["blocker_id"] == "P0_FAILED_REFERENCE_NOT_ADEQUATE" for b in summary["retained_blockers"])
+    # method-level numbers are still reported; only the decision is withheld
+    assert summary["method_level_bound"] is not None
+
+
+def test_v2_asymmetric_censoring_reproduces_the_artifact(v2_protocol, v2_design, digests):
+    # Reference 28/30 full (two late falls at step 950); candidate falls at step 300 with no saturation.
+    def reference(_r):
+        return {"per_seed": lambda i: (1800, 1000) if i < 28 else (1710, 950)}
+
+    summary = sc.build_summary(_v2_bundle(v2_design, digests, reference, lambda r: {"per_seed": lambda i: (0, 300)}), v2_protocol)
+    assert summary["p0_reference_adequacy"]["holds"] is True
+    assert summary["p0_reference_adequacy"]["adequate_reference_replicate_count"] == 5
+    assert summary["p1_censoring_present"] is True and summary["p1_arm_scope"] == sc.P1_SCOPE_CANDIDATE
+    rep = summary["replicates"][0]
+    assert rep["reference_adequate"] is True and rep["candidate_censored"] is True
+    # Reference bound is narrow (two lightly censored episodes), candidate bound is [0, 70]: one-sided widening.
+    ref_bound = rep["arms"][0]["mean_bound_pct"]
+    assert ref_bound["width_pct"] < 1.0
+    assert summary["method_level_bound"]["sign"] == ei.SIGN_UNIDENTIFIED
+    assert summary["naive_method_level"]["asserts_direction"] is True
+    assert summary["outcome"] == sc.OUTCOME_REPRODUCED
+
+
+def test_v2_candidate_also_full_is_uninformative_even_with_adequate_reference(v2_protocol, v2_design, digests):
+    summary = sc.build_summary(_v2_bundle(v2_design, digests, REF_FULL_30, lambda r: {"per_seed": lambda i: (600, 1000)}), v2_protocol)
+    assert summary["p0_reference_adequacy"]["holds"] is True
+    assert summary["p1_censoring_present"] is False
+    assert summary["outcome"] == sc.OUTCOME_UNINFORMATIVE
+
+
+def test_v2_p1_is_scoped_to_the_candidate_not_the_reference(v2_protocol, v2_design, digests):
+    # Reference lightly censored (28/30) everywhere, candidate fully exposed: under V1's ANY_ARM
+    # scope this would count as censored; under V2 it must not.
+    def reference(_r):
+        return {"per_seed": lambda i: (1800, 1000) if i < 28 else (1710, 950)}
+
+    summary = sc.build_summary(_v2_bundle(v2_design, digests, reference, lambda r: {"per_seed": lambda i: (600, 1000)}), v2_protocol)
+    assert all(rep["any_arm_censored"] for rep in summary["replicates"])
+    assert summary["censored_replicate_count"] == 0
+    assert summary["outcome"] == sc.OUTCOME_UNINFORMATIVE
+
+
+def test_v1_summary_carries_no_v2_keys(protocol, design, digests):
+    summary = sc.build_summary(_good_raw(design, digests), protocol)
+    assert summary["schema_version"] == sc.SUMMARY_SCHEMA
+    assert "p0_reference_adequacy" not in summary and "p1_arm_scope" not in summary
+    assert "candidate_censored" not in summary["replicates"][0]
