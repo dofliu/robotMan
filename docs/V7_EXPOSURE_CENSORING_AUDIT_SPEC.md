@@ -2,7 +2,7 @@
 
 日期：2026-09-08
 
-狀態：`FROZEN BEFORE IMPLEMENTATION / INTERNAL DEVELOPMENT ONLY`
+狀態：`FROZEN BEFORE IMPLEMENTATION / AMENDED BEFORE EXECUTION / INTERNAL DEVELOPMENT ONLY`
 
 Protocol：`AUDIT-V7-EXPOSURE-CENSORING-V1`
 Machine-readable contract：
@@ -64,15 +64,44 @@ full_exposure_physics_substeps      = 450 * 10                         = 4500
 `3dd9a47b6798a2fba713eda3654b428377f3a75e825105b233a1da375d4215af`。上述每個商與積都
 必須是 exact integer，否則 fail closed。
 
-Frozen phase schedule同樣由既有 contract導出，並以 half-open control-step interval表示：
+Phase schedule需要兩個 convention，兩者都由既有 contract導出，並以 half-open
+control-step interval表示。
 
-| Phase | start_s | end_s | control steps |
+`contract convention`為 `START_OF_CONTROL_STEP_EXACT`，即
+`phase_first_control_step = start_s * control_rate_hz`：
+
+| Phase | start_s | end_s | contract control steps |
 |---|---:|---:|---|
 | `INITIAL_STAND` | 0.0 | 1.0 | 0–49 |
 | `START` | 1.0 | 2.5 | 50–124 |
 | `STEADY_WALK` | 2.5 | 6.5 | 125–324 |
 | `STOP` | 6.5 | 8.0 | 325–399 |
 | `FINAL_STAND` | 8.0 | 9.0 | 400–449 |
+
+`recorder convention`為 `END_OF_CONTROL_STEP_ACCUMULATED_SIM_TIME`。
+`backend/rl/humanoid_env.py`在 substep loop **之後**才執行
+`task_elapsed_s += CTRL_DT`並重新取樣 `command_phase`，因此 control step `k`保存的
+label是「累加 `k+1`次 control period後」的 phase。audit以相同的重複加法重現此
+accumulation，不得改用 exact product，因為兩者在 phase boundary不一致：
+
+| Phase | recorder control steps |
+|---|---|
+| `INITIAL_STAND` | 0–48 |
+| `START` | 49–123 |
+| `STEADY_WALK` | 124–324 |
+| `STOP` | 325–399 |
+| `FINAL_STAND` | 400–449 |
+
+`backend/rl/humanoid_env.py`必須維持 SHA-256
+`2fc224d67b15d1beb5ea4ffac9b921ce6dc8bf9ce0c87286490bbf655250055d`。
+
+[RESULT] 累加值在 50步為 `1.0000000000000004`、325步為 `6.499999999999949`、400步為
+`7.999999999999917`，因此只有 `INITIAL_STAND`／`START`／`STEADY_WALK`邊界位移，
+`STOP`與 `FINAL_STAND`恰好一致。exact multiplication會給出第三種答案，故不採用。
+
+[INFERENCE] 這是 recording convention差異，不是 data defect。audit因此把
+recorded label對照 **reproduced recorder convention**檢查，另把 contract與 recorder
+的逐 phase邊界差異原樣輸出為 `phase_convention` validity finding，不修改保存資料。
 
 每個 episode由 retained `control_step_trace`重建：
 
@@ -81,12 +110,14 @@ Frozen phase schedule同樣由既有 contract導出，並以 half-open control-s
   `observed_control_steps * 10`；
 - `termination_control_step` = `observed_control_steps - 1`，空 trace為 null；
 - `termination_sim_time_s` = `observed_control_steps * control_period_s`；
-- `termination_phase_id` = frozen schedule中包含 `termination_control_step`的 phase；
+- `termination_contract_phase_id` = contract schedule中包含 `termination_control_step`的 phase；
+- `termination_recorder_phase_id` = recorder convention對該 index的 phase；
 - `recorded_termination_command_phase` = trace最後一筆的 `command_phase`。
 
-每一筆 control-step record的 `command_phase`都必須等於 frozen schedule對該 index的 phase。
-任何 phase drift、未知 phase identifier或非 exact control-step的 phase boundary都是
-structural failure。`exposure_class`為 `FULL_EXPOSURE`、`EARLY_TERMINATED`或
+每一筆 control-step record的 `command_phase`都必須等於 reproduced recorder convention
+對該 index的 phase，且逐 phase的 recorded coverage必須等於 reproduced recorder coverage。
+任何 phase drift、未知 phase identifier或非 exact control-step的 contract phase boundary
+都是 structural failure。`exposure_class`為 `FULL_EXPOSURE`、`EARLY_TERMINATED`或
 `NO_EXPOSURE`；超過 450 steps是 `OVER_EXPOSURE`且 fail closed。
 
 ## 4. Censoring、identification bounds 與 comparability
@@ -157,7 +188,8 @@ sample-size決策。
 - `AX-02`：frozen task horizon與 rate quotient均為 exact integer，且 `motion_tasks.py` SHA-256 exact。
 - `AX-03`：逐 episode重建 exposure、termination control step/sim time/phase，且
   `observed_physics_substeps == observed_control_steps * 10`。
-- `AX-04`：每一筆 recorded `command_phase`等於 frozen schedule對該 control-step index的 phase。
+- `AX-04`：每一筆 recorded `command_phase`等於 reproduced recorder convention對該
+  control-step index的 phase；contract與 recorder的邊界差異輸出為 validity finding。
 - `AX-05`：`EXPOSURE_CENSORED`與 `METHOD_FAILURE_NOT_CENSORING`分開分類，兩者皆保留
   frequency與reason，不做 complete-case deletion或 imputation。
 - `AX-06`：輸出 assumption-free full-horizon與 paired identification bounds，並明示 sign是否 identified。
@@ -186,6 +218,27 @@ sample-size決策。
 
 Retain states為 `COMPLETED`、`FAILED`、`CANCELLED`、`NULL`、`NONFINITE`、
 `EXPOSURE_CENSORED`與 `METHOD_FAILURE_NOT_CENSORING`。threshold change為 `FORBIDDEN`。
+
+## 6.1 Amendment record（execution前）
+
+Freeze commit：`ee7321090089b186d847a958ae607478b6a12e6c`
+Amended date：2026-09-08
+`amended_before_any_audit_execution=true`
+
+Freeze commit原本規定 recorded `command_phase`對照 contract的 start-of-control-step
+schedule。直接檢視 recorder後確認 `backend/rl/humanoid_env.py:352-353`在 substep loop
+之後才推進 `task_elapsed_s`並重新取樣 phase，`:404`保存的是已推進後的 label，
+`:296-297`的 reset label不作為 control-step label保存。因此 recorded label採
+end-of-step accumulated-time convention。
+
+[RESULT] 若沿用 freeze commit的規則，`AX-04`會因 recording convention差異（而非 data
+defect）對既有 bundle fail closed，把有效 bundle誤報為 structurally invalid。
+
+[INFERENCE] 因此在任何 audit execution之前修正 AX-04的對照對象，並新增 reproduced
+recorder convention、phase-convention offset finding與 recorder source hash。修正時
+尚未執行任何 audit、也不存在任何 audit output，因此沒有依結果調整 threshold、envelope
+或 outcome。exposure horizon、task contract、primary outcome、censoring doctrine、
+identification bounds、descriptive sensitivity與所有數值門檻皆未變更。
 
 ## 7. Claim boundary and theory check
 
