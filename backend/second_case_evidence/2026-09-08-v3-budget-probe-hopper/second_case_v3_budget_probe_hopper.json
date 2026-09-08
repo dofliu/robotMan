@@ -1,0 +1,187 @@
+{
+  "adequacy_rule": {
+    "consecutive_checkpoints": 2,
+    "minimum_full_exposure_episodes": 27,
+    "rationale": "27/30 mirrors the v7 reference exposure (pilot 30/30, seed-variance 143/150 ~ 28.6/30); two consecutive checkpoints so a single lucky evaluation cannot set the budget.",
+    "selected_budget": "cumulative timesteps at the LATER of the first two consecutive checkpoints whose FULL_EXPOSURE count is >= minimum_full_exposure_episodes"
+  },
+  "arm_id": "W2D_A_DIRECT",
+  "base_protocol_id": "SECONDCASE-EXPOSURE-CENSORING-WALKER2D-V1",
+  "base_protocol_sha256": "sha256:45d1ec553a1124fd613f90a8034b27f10ef8f01f23a219cca216479fc4c5350c",
+  "checkpoint_interval_note": "480 rollouts x 512 steps under the tuned recipe; every checkpoint boundary is a rollout boundary.",
+  "checkpoint_interval_timesteps": 245760,
+  "claim_boundary": [
+    "Supports only the choice of a V2 training budget.",
+    "Does not support any statement about Walker2d locomotion quality, the artifact, or either arm's saturation."
+  ],
+  "disclosure": "Pilot. Authored after probes V1 and V2 returned negative. Its checkpoints, evaluations and traces may not be reused as evidence, may not be compared with any second-case cell, and its seed ranges are forbidden for the protocol it informs. Predecessor probes: SECONDCASE-V2-BUDGET-PROBE-V1, SECONDCASE-V2-BUDGET-PROBE-V2 sha256:70662db367b3dbaf8edbf18efa96a6e7faff4e6edfa43769ed0129728b7b36f7.",
+  "environment_lock_requirement": {
+    "contract_id": "ENVIRONMENT-LOCK-V1",
+    "required_lock_class": "MEASURED_ENVIRONMENT_LOCK",
+    "required_lock_completeness": "FULL_LOCK",
+    "required_threading_determinism": "AMBIENT_THREADING_PINNED",
+    "verified_before_every_cell": true
+  },
+  "environment_override": {
+    "action_dim": 3,
+    "base_observation_dim": 11,
+    "expected_defaults": {
+      "ctrl_cost_weight": 0.001,
+      "exclude_current_positions_from_observation": true,
+      "forward_reward_weight": 1.0,
+      "frame_skip": 4,
+      "healthy_angle_range": [
+        -0.2,
+        0.2
+      ],
+      "healthy_reward": 1.0,
+      "healthy_state_range": [
+        -100.0,
+        100.0
+      ],
+      "reset_noise_scale": 0.005,
+      "terminate_when_unhealthy": true
+    },
+    "gymnasium_env_id": "Hopper-v5",
+    "gymnasium_make_kwargs": {},
+    "horizon_control_steps": 1000,
+    "max_episode_steps": 1000,
+    "plant_asset_basename": "hopper.xml",
+    "plant_asset_sha256": "sha256:3ce93a055ffdcd83c0c701d2400768e40d2cbb9532f3c4ae33377c27f8b39f9e",
+    "rationale": "Planar legged locomotion with default fall termination, the closest easier analogue of Walker2d-v5; healthy_z_range (0.7, inf) is not listed because JSON cannot carry inf and the runner pins the plant by file digest anyway."
+  },
+  "evaluation_seed_first": 49000,
+  "evaluation_seed_last": 49029,
+  "evaluation_seeds_per_checkpoint": 30,
+  "forbidden_seed_ranges": {
+    "planned_v2_evaluation_seeds": [
+      45000,
+      45029
+    ],
+    "planned_v2_training_seeds": [
+      44000,
+      44004
+    ],
+    "secondcase_v1_evaluation_seeds": [
+      41000,
+      41029
+    ],
+    "secondcase_v1_training_seeds": [
+      40000,
+      40004
+    ],
+    "v2_budget_probe_v1_evaluation_seeds": [
+      43000,
+      43029
+    ],
+    "v2_budget_probe_v1_training_seed": [
+      42000,
+      42000
+    ],
+    "v2_budget_probe_v2_evaluation_seeds": [
+      47000,
+      47029
+    ],
+    "v2_budget_probe_v2_training_seed": [
+      46000,
+      46000
+    ],
+    "v7_development_evaluation": [
+      18000,
+      18029
+    ],
+    "v7_pilot_training_seed": [
+      8700,
+      8700
+    ],
+    "v7_retired_holdout": [
+      19000,
+      19029
+    ],
+    "v7_sealed_formal": [
+      20000,
+      20029
+    ],
+    "v7_seedvar_training_seeds": [
+      8720,
+      8724
+    ]
+  },
+  "if_negative": "No adequately exposed reference is available on Walker2d-v5 or Hopper-v5 with these recipes and budgets. Record the negative, do not raise this probe's maximum, and stop: the decision whether to spend more compute or change the second-case design is the project owner's.",
+  "inherits_from_base": [
+    "shared_action_interface",
+    "training.policy",
+    "training.device",
+    "training.parallel_envs",
+    "training.torch_threads",
+    "evaluation.saturation_threshold_abs_applied_action",
+    "evaluation.deterministic_policy",
+    "primary_measurement.definition",
+    "environment_lock_requirement",
+    "source_requirement"
+  ],
+  "low_pass_alpha": 1.0,
+  "max_checkpoints": 8,
+  "max_cumulative_timesteps": 1966080,
+  "outcome_labels": [
+    "PROBE_BUDGET_FOUND",
+    "PROBE_NEGATIVE_MAX_BUDGET_REACHED",
+    "PROBE_BLOCKED_METHOD_FAILURE"
+  ],
+  "planned_v2_seed_ranges": {
+    "evaluation": [
+      45000,
+      45029
+    ],
+    "training": [
+      44000,
+      44004
+    ]
+  },
+  "probe_id": "SECONDCASE-V3-BUDGET-PROBE-HOPPER-V1",
+  "purpose": "Third budget probe. Probe V1 (Walker2d-v5, SB3 PPO defaults, to 2,949,120 steps) and probe V2 (Walker2d-v5, rl-zoo tuned recipe, to 1,966,080 steps) both returned PROBE_NEGATIVE_MAX_BUDGET_REACHED: the reference arm never reached 27/30 full-horizon episodes at two consecutive checkpoints. This probe changes the PLANT to Hopper-v5 (planar legged locomotion with fall termination, like Walker2d, but easier) and uses the published rl-zoo tuned Hopper PPO recipe. Wrapper, arms, saturation threshold, evaluation rules and the adequacy rule are unchanged. Plants with no early termination (HalfCheetah, Swimmer) were excluded because there is nothing to censor; InvertedDoublePendulum was excluded because a balanced reference has ~0 saturation, which makes the naive and bounded contrasts agree by construction; Ant was excluded because it rarely terminates for either arm.",
+  "recipe_override": {
+    "hyperparameters": {
+      "batch_size": 32,
+      "clip_range": 0.2,
+      "ent_coef": 0.00229519,
+      "gae_lambda": 0.99,
+      "gamma": 0.999,
+      "learning_rate": 9.80828e-05,
+      "max_grad_norm": 0.7,
+      "n_epochs": 20,
+      "n_steps": 512,
+      "normalize_advantage": true,
+      "vf_coef": 0.835671
+    },
+    "normalize": {
+      "clip_obs": 10.0,
+      "norm_obs": true,
+      "norm_reward": true
+    },
+    "policy_kwargs": {
+      "activation_fn": "ReLU",
+      "log_std_init": -2.0,
+      "net_arch": {
+        "pi": [
+          256,
+          256
+        ],
+        "vf": [
+          256,
+          256
+        ]
+      },
+      "ortho_init": false
+    },
+    "source": "rl-baselines3-zoo, hyperparams/ppo.yml, Hopper entry (tuned PPO configuration)",
+    "verification_status": "U_VERIFIED_FROM_MEMORY: the execution environment cannot reach GitHub raw content; the values below are recalled from the zoo file and must be checked against the published file before any manuscript cites them."
+  },
+  "role": "PILOT_FOR_V2_BUDGET_ONLY",
+  "schema_version": "SECOND_CASE_V2_BUDGET_PROBE_V1",
+  "source_requirement": {
+    "clean_git_required": true,
+    "record_pre_and_post_sha": true
+  },
+  "training_seed": 48000
+}

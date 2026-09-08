@@ -95,7 +95,29 @@
 | Seeds | training `48000`，evaluation `49000–49029`；先前所有區段皆為禁區 |
 | 規則／上限 | 同前：≥ 27/30、連續兩個 checkpoint；8 × 245,760 = 1,966,080 |
 | 若負結果 | 記錄、不追加上限、**停止**——是否再投入算力或改第二案例設計，是專案負責人的決定 |
-| 結果 | **執行中／待補** |
+| 結果 JSON | `backend/second_case_evidence/2026-09-08-v3-budget-probe-hopper/probe_result.json` |
+| Source | `334efc391526d212c676960118a1379bed310732`，pre == post，clean |
+| Lock | 同一 `locked_sha256`，0 mismatch |
+| 結果 | **`PROBE_BUDGET_FOUND`：selected budget `1,474,560`**（ck5、ck6 連續 30/30） |
+
+### 4.1 曲線（Hopper-v5、tuned recipe、probe seed 48000、probe eval seeds 49000–49029）
+
+| ck | 累計 steps | FULL／30 | realized steps min／med／max | naive duty mean（min／med／max） | return min／med／max | 累計 wall |
+|---:|---:|---:|---|---|---|---:|
+| 1 | 245,760 | 30 | 1000／1000／1000 | 0.013%（0.00／0.00／0.13） | 1004／1013／1022 | 817 s |
+| 2 | 491,520 | 23 | 94／1000／1000 | 0.000% | 88／1006／1008 | 1,840 s |
+| 3 | 737,280 | 30 | 1000／1000／1000 | 0.000% | 1007／1008／1010 | 2,985 s |
+| 4 | 983,040 | 8 | 136／140／1000 | 6.968%（0.43／9.62／10.48） | 254／259／1019 | 4,148 s |
+| 5 | 1,228,800 | 30 | 1000／1000／1000 | 8.822%（7.87／8.77／9.67） | 1011／1013／1017 | 5,337 s |
+| **6** | **1,474,560** | **30** | 1000／1000／1000 | **2.712%（2.07／2.70／3.33）** | 1013／1014／1015 | 6,541 s |
+
+[RESULT] 規則於 ck6 觸發。選定 checkpoint 的 reference 曝露充足（30/30），primary measurement **非零但很小**（2.71%；ck5 為 8.82%）。
+[RESULT] **Reference 是「站著不動」的 hopper**：六個 checkpoint 的 return 中位數都在 1006–1014，≈ 每步 1.0 的 healthy reward × 1000 步，forward reward 幾乎為零；ck4 短暫開始跳躍（return 259、median 140 步、saturation 7–10%）後又退回站立。ck6 ep0 的 mean |applied| 0.285，saturated joint-step 比例 2.8%（第 2 關節 6.4%、其餘 ≤ 2%）。
+[BLOCKER] **規則的缺口**：adequacy 只檢查 exposure，沒有要求 primary measurement 非退化。ck1／ck3 的 30/30 是 saturation ≈ 0% 的站立 policy，若 ck2 也 ≥ 27/30，規則會在 491,520 就觸發並選出一個 artifact 在數學上不可能出現的 reference（reference 為 0% 時 naive 與 bound 的 contrast 必同號）。這次是運氣（ck2 = 23/30）讓規則越過了退化區。任何後續 probe 規則都應加上「reference saturation ≥ 門檻」的條件。
+[INFERENCE] 以 2.71% 的 reference rate，P2 要成立需要 naive t-interval（5 個 replicate）排除 0：候選臂觀察到的 rate 必須穩定低於 2.7 個百分點且跨 replicate 一致。這比 v7（36%）或 V1（36–64%）的 reference 難得多——**power 不確定**。
+[RESULT] 算力：probe 訓練 1,474,560 步約 101 分鐘（tuned recipe，單 env）。凍結後的 protocol 為 10 個 cell → 約 **17 小時**序列執行；4 核可 3–4 個 cell 並行（每個 process 單執行緒，lock 要求的 thread pin 不受影響）→ 約 **5–6 小時**。
+[BLOCKER] 依專案負責人指示，probe V3 完成後**停止並回報**：Hopper protocol **未凍結、未執行**。`SECONDCASE-EXPOSURE-CENSORING-HOPPER-V1` 在 contract 中仍為 unpinned（不可載入）。
+[BLOCKER] Probe 的 `vecnormalize.pkl` 每個 checkpoint 覆寫同一檔案（`normalizer_path_for(policy)` 以固定檔名存於 checkpoints 目錄），因此只有最後一個 checkpoint 的 normalizer 被保留；各 checkpoint 當時的評估使用的是**當時**剛存下的統計值，結果正確，但無法事後重評早期 checkpoint。V2 cell 各有獨立目錄，不受影響。列為 probe runner 的已知限制。
 
 ## 5. 程式變更（為 recipe 與 plant 支援）
 
