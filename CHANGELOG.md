@@ -2,6 +2,21 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-08 (d)
+
+- 修正 `geom_render_list()` 的 geom 型別查表：`MjModel.geom_type` 回傳 `numpy` 整數，而 MuJoCo 3.12 把 `mjtGeom` 實作為 native pybind11 enum —— 它與 `int` 相等但**與 `numpy.int32` 不相等**。以 enum 當 dict key 因此每一次查表都 miss，該函式回傳**空的 geom 清單**，`/ws/live` 的 scene payload 一個 geom 都不送，前端 3D 視圖實際上什麼都畫不出來。改為以 plain `int` 建表並以 `int(...)` 查表，與 `vv_oracles.py` 既有的正確寫法一致。修正後 minimum-config 模型的 25 個 geom 全部輸出（plane 1／box 5／sphere 11／capsule 8），`obstacle_0` 也回來了。
+- 這是先前在 PR #1／#2 被低估為「環境相關測試失敗」的兩項之一。成因確實是 dependency 變更，但實際影響是 user-visible 的 live 視圖全黑，不是測試細節；該描述已在此更正。
+- 新增 `test_geom_render_list_maps_every_supported_geom_type`：直接對 `geom_render_list` 斷言 `len(rendered) == model.ngeom > 0`，因此**部分**或**全空**清單都會被抓到。原有的 `obstacle_0` 斷言無法區分「只掉了障礙物」與「整個 scene 是空的」。該測試已驗證具鑑別力：把修正還原後它會失敗，套用修正後通過。
+- 全庫掃描確認這是此 bug class 的**唯一**一處；`vv_oracles.py` 的 `mjtObj` 用法是把 enum 當函式引數傳給 `mj_id2name`，屬正確用法。前端 `Viewport.tsx` 對 plane／box／sphere／capsule 四型皆有分支，因此恢復清單不會觸發未處理的型別。
+
+### Provenance 後果（必須記錄，不可默默吸收）
+
+- `backend/model_builder.py` 的 SHA-256 由 `0beabfa2df6fde118dc2dfaea94a22da9af42c69c49ee2290993322cf96aab29` 變為 `09163a81a9dfef363a88424f98e4506e81be7639689aaa3fd66e6505ccb98a5e`。
+- Frozen 的 `PILOT-V7-ACTION-INTERFACE-DEV-V1` protocol 仍 pin 舊值，且**刻意不改**：該 protocol 自身的 SHA `719b70a2…` 同時被 `v7_pilot_contract.py` 與 exposure-censoring audit protocol pin 住，改它會破壞既有 evidence chain。
+- 因此語意是：**v7 pilot 已無法從目前這棵樹 byte-reproducible 重建**。這是事實，應該可見而非隱藏。
+- 已逐項驗證受影響範圍：`validate_v7_pilot_bundle` 經 `_validate_source_index_deep` 一律以 `verify_repository=False` 呼叫 `_validate_source_files`，因此**保存的 pilot bundle 仍可從本樹通過驗證**；exposure-censoring audit protocol 只 pin pilot receipt、pilot protocol、`motion_tasks.py` 與 `humanoid_env.py`，**完全未提及 `model_builder.py`**（已以程式確認），因此 audit 與其 receipt 不受影響；只有帶預設 `verify_repository=True` 的**未來** `build_v7_pilot_bundle` 重建會 fail closed。
+- `test_v7_pilot_contract.py` 的 synthetic `_source_files()` 仍寫舊值，這是正確的：它必須對齊 frozen protocol 的 pin，且該路徑以 `verify_repository=False` 執行，不觸碰磁碟檔案。
+
 ## Unreleased — 2026-09-08 (c)
 
 - 對 2026-09-06 保存的 `V7_PILOT_DEVELOPMENT_BUNDLE` 執行 `AUDIT-V7-EXPOSURE-CENSORING-V1` 的第一次 read-only run，完成 exposure-censoring validity audit V1 的 data 部分。`audit_applies_to_frozen_v7_pilot=true`、`AX-01..AX-12` 全通過、14 個 artifact／`109520182` bytes 在前後 readback 一致且 file set 不變，`source_bundle_read_only_verified=true`，CLI 依 frozen semantics 回傳 exit `1` 並保留 35 個 censoring blocker。

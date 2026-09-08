@@ -22,6 +22,7 @@ from config_schema import (
     SimRequest,
     default_robot,
 )
+from model_builder import geom_render_list, make_model
 from simulator import _actual_motion_metrics, run_simulation
 
 
@@ -194,6 +195,41 @@ def test_all_minimum_physical_config_has_positive_exact_dynamic_actuator_caps():
     assert np.all(model.actuator_forcerange[:, 1] > 0.0)
     np.testing.assert_allclose(model.actuator_ctrlrange[:, 1], expected, rtol=1e-12)
     np.testing.assert_allclose(model.actuator_forcerange[:, 1], expected, rtol=1e-12)
+
+
+def test_geom_render_list_maps_every_supported_geom_type():
+    """A numpy geom_type must not miss the render type table.
+
+    ``MjModel.geom_type`` yields ``numpy`` integers while MuJoCo exposes
+    ``mjtGeom`` as a native pybind11 enum that compares equal to ``int`` but
+    not to ``numpy.int32``.  Keying the table by the enum therefore missed
+    every lookup and shipped an empty scene to the viewport, which the
+    obstacle-only assertion elsewhere could not distinguish from a scene that
+    merely lost its obstacle.
+    """
+    model = make_model(
+        _minimum_robot(),
+        [Obstacle(x=2.0, depth=0.2, height=0.2, width=0.2)],
+        dynamic=True,
+    )
+    # The scene here contains only supported geom types, so none may be
+    # dropped: a partial list is the failure this test exists to catch.
+    rendered = geom_render_list(model)
+    assert len(rendered) == model.ngeom > 0
+
+    # Guard the precondition the bug depended on, so the test keeps its
+    # meaning if the bindings ever return a plain int instead.
+    assert type(model.geom_type[0]).__module__ == "numpy"
+
+    supported = {"plane", "box", "sphere", "capsule"}
+    assert {item["type"] for item in rendered} <= supported
+    for expected in ("box", "sphere", "capsule"):
+        assert any(item["type"] == expected for item in rendered), expected
+    assert any(item["name"] == "obstacle_0" for item in rendered)
+    for item in rendered:
+        assert len(item["size"]) == 3 and len(item["pos"]) == 3
+        assert len(item["quat"]) == 4 and len(item["rgba"]) == 4
+        assert 0 <= item["body"] < model.nbody
 
 
 def test_all_minimum_physical_config_compiles_through_rest_and_live_init():
