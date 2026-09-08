@@ -104,8 +104,14 @@ censoring，也不取得 bound。
 
 [SOURCE] 本 repo [Paired Statistics and Paper Export Contract V1](PAIRED_STATISTICS_CONTRACT.md)
 已凍結「未凍結 censored estimator前只保存 bound並阻擋一般 mean/bootstrap」。
-[RESULT] 本 audit因此對 `COMPARABLE`與 `EXPOSURE_CENSORED` episode輸出 assumption-free
-worst-case bounds，不輸出 censored point estimate：
+[RESULT] 本 audit因此對 `COMPARABLE`與 `EXPOSURE_CENSORED` episode輸出 worst-case
+identification bounds，不輸出 censored point estimate。此處「assumption-free」限定於：
+estimand已由 frozen task contract定義為 full-horizon duty時，bound不再需要任何 censoring
+分布假設。
+
+[BLOCKER] estimand本身的存在性仍是 contract約定：對提早終止的 episode，full-horizon duty
+是 contract定義的 target，不是「該 episode若能繼續」的可觀測 counterfactual。summary以
+`audit_findings.identification_bound_assumption`明示此點。
 
 ```text
 lower_pct = 100 * over / 4500
@@ -131,7 +137,12 @@ bytes，package receipt SHA-256
 `source_bundle_read_only_verified=true`、`AUDIT_BUNDLE_VALID`，且
 `python -I -S` replay exact重建 audit summary。
 
-`exposure-censored-case`：
+[BLOCKER] 以下兩個 case的 bundle皆為 synthetic。為維持 schema fidelity，它們沿用
+`V7A`／`V7B`／`V7C`這三個 frozen arm identifier，但其 episode長度與 saturation counts都是
+本 builder以固定整數算式構造的，**不是** 2026-09-06 pilot的實測值。下列所有數值只描述
+audit software的行為，不描述 v7 pilot的實際 exposure分布。
+
+`exposure-censored-case`（synthetic）：
 
 | Arm | exposure steps mean ± SD | comparability | retained bound mean |
 |---|---:|---|---|
@@ -158,7 +169,7 @@ exposure時的描述性差異，`informative_censoring=SUSPECTED_DEPENDENT_ON_AR
 保留，不得用於 candidate selection、CI、p-value、hypothesis test、恢復 comparability或
 sample-size決策。
 
-`method-failure-case`：V7C的 30個 episode為 `FAILED` / `NO_EXPOSURE`，全部歸入
+`method-failure-case`（synthetic）：V7C的 30個 episode為 `FAILED` / `NO_EXPOSURE`，全部歸入
 `METHOD_FAILURE_NOT_CENSORING`（`EXPOSURE_CENSORED=0`），bound為 `NULL`，
 `method_failure_pair_count=30`。
 
@@ -213,16 +224,25 @@ Wünsch et al.（Statistics in Medicine 2025）指出 comparison study的 method
 並分開 agent/environment RNG；Agarwal et al.（NeurIPS 2021）指出少量 runs只報 point
 estimate會低估 statistical uncertainty。
 
-[INFERENCE] 本 audit把「V7C的 0%不是改善」從敘述改為可檢查的結果：assumption-free
-bound重疊且 sign不可識別。這只成立於本 frozen plant、v5 warm start、單一 training seed
-與 DEV evaluation seeds。
+[INFERENCE] 本 audit提供把「截斷後的 0% duty不是改善」從敘述改為可檢查結果的機制：
+對 exposure-censored episode輸出 worst-case bound，並以 paired bound是否含 0判定 sign是否
+可識別。上述 bound重疊與 0/30 sign-unidentified是 **synthetic** case的數值；2026-09-06
+pilot的實際 exposure、bound與 sign identification尚未量測，因此本次不產生任何關於 v7
+pilot的數值結論。
 
 [BLOCKER] 沒有 independent training-seed variance、full 11-criterion Live evidence、
 actual Study A、frozen censored estimator、binary paired CI、complete environment lock、
 immutable storage、HIL、bench或robot evidence；frozen pilot bundle也不在本 checkout。
 
-因此允許的結論只到：exposure-censoring audit software已實作並在 synthetic regression上
-驗證，且 v7 pilot的 primary-outcome contrast在 realized exposure不相等時不具內部可比性。
+因此允許的結論只到兩點：(1) exposure-censoring audit software已實作，並在 synthetic
+regression上通過 read-only、identity、censoring分類、bounds與 exact replay檢查；(2) 就
+`saturation_duty_pct`這個 rate的定義而言，當兩臂 realized exposure不相等時，逐 seed算術差
+不落在同一 measurement support上。
+
+[BLOCKER] 第 (2) 點是 metric定義的性質，不是對 2026-09-06 pilot的量測。pilot自身 receipt
+已記錄 V7C為 30/30 early fall，但本次未對該 bundle執行 audit，因此其實際 exposure、
+identification bounds與 sign identification皆未量測；不得據本 receipt對 v7 pilot的 contrast
+下數值結論或可比性判定。
 不得宣稱 controller superiority、method-level effect、sample-size adequacy、paper
 readiness、physical torque/thermal margin、安全、sim-to-real或實體機器人效能。
 `pilot_planning_ready=false`、`method_level_power_ready=false`、`statistics_ready=false`、
@@ -236,7 +256,6 @@ Primary/official sources：
 - [Deep RL at the Edge of the Statistical Precipice, NeurIPS 2021](https://proceedings.neurips.cc/paper/2021/hash/f514cec81cb148559cf475e7426eed5e-Abstract.html)
 - [IETF RFC 8259 — JSON](https://www.rfc-editor.org/rfc/rfc8259.html)
 - [NASA-STD-7009B](https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf)
-- [MuJoCo Actuation Model](https://mujoco.readthedocs.io/en/stable/computation/index.html#actuation-model)
 
 ## 10. 下一步
 

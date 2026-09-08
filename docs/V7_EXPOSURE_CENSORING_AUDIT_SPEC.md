@@ -2,7 +2,7 @@
 
 日期：2026-09-08
 
-狀態：`FROZEN BEFORE IMPLEMENTATION / AMENDED BEFORE EXECUTION / INTERNAL DEVELOPMENT ONLY`
+狀態：`FROZEN BEFORE IMPLEMENTATION / AMENDED BEFORE EXECUTION / NARROWED AFTER REVIEW / INTERNAL DEVELOPMENT ONLY`
 
 Protocol：`AUDIT-V7-EXPOSURE-CENSORING-V1`
 Machine-readable contract：
@@ -109,7 +109,8 @@ recorded label對照 **reproduced recorder convention**檢查，另把 contract�
 - `observed_physics_substeps` = 逐 step `saturation_substeps_total`之和，且必須等於
   `observed_control_steps * 10`；
 - `termination_control_step` = `observed_control_steps - 1`，空 trace為 null；
-- `termination_sim_time_s` = `observed_control_steps * control_period_s`；
+- `termination_sim_time_s` = `round(observed_control_steps / control_rate_hz, 9)`，以除法
+  而非乘 `control_period_s`，避免兩種寫法在小數位上產生不同 round-off；
 - `termination_contract_phase_id` = contract schedule中包含 `termination_control_step`的 phase；
 - `termination_recorder_phase_id` = recorder convention對該 index的 phase；
 - `recorded_termination_command_phase` = trace最後一筆的 `command_phase`。
@@ -148,7 +149,10 @@ lower_pct = 100 * observed_over_threshold_substeps / 4500
 upper_pct = 100 * (observed_over_threshold_substeps + 4500 - observed_substeps) / 4500
 ```
 
-lower假設所有未觀測 substep都未超過 threshold，upper假設全部超過。`FULL_EXPOSURE`時
+lower假設所有未觀測 substep都未超過 threshold，upper假設全部超過。此處「assumption-free」
+限定於：estimand已由 frozen task contract定義為 full-horizon duty時，bound不需要任何
+censoring分布假設；estimand的存在性本身仍是 contract約定，對提早終止的 episode並非可觀測
+counterfactual。`FULL_EXPOSURE`時
 `observed_substeps = 4500`，上下界收斂到 recorded value。paired bound為
 
 ```text
@@ -240,6 +244,41 @@ recorder convention、phase-convention offset finding與 recorder source hash。
 或 outcome。exposure horizon、task contract、primary outcome、censoring doctrine、
 identification bounds、descriptive sensitivity與所有數值門檻皆未變更。
 
+## 6.2 Amendment record 2（narrowing only）
+
+Prior source commit：`c7852ccfce217ac20f5aaabbc5837665b44c7d8d`
+Amended date：2026-09-08
+方向：`NARROWING_ONLY`
+
+觸發來源是一次針對實作的多面向 adversarial review，以及一次 contract／replay builder的
+differential sweep。sweep先發現兩個同名 builder的 precondition不一致（contract驗證 raw、
+pilot summary與 bundle-class binding，replay不驗證），已改為完全一致。
+
+本次修正一律是「命名更精確、增加檢查、或縮小主張」，不放寬任何門檻：
+
+- non-comparable verdict與 blocked-aggregate reason改為指出實際成因，不再一律歸因於
+  exposure censoring；
+- 一個 arm是否「沒有任何 comparable episode」只由 comparability states決定，exposure class
+  不再遮蔽它；
+- retained method-failure doctrine在 descriptive sensitivity內強制執行：method-failure pair
+  不再輸出 observed matched duty；
+- 沒有 exposure的 episode不得保留 observed primary outcome；
+- identification bounds的 estimand存在性約定改為明示，不再由「assumption-free」一詞暗示；
+- replay的 check inventory凍結並要求完全相符，replay另把輸入檔綁定到 audited receipt
+  inventory，replay receipt的 boolean改為型別嚴格比較；
+- 宣告 `V7_PILOT_DEVELOPMENT_BUNDLE`的 bundle必須保留 pinned audited protocol hash；
+- validation改為由 summary自身 retained states重新導出 blocker list，因此一份一致地重新
+  蓋章的 receipt無法為被改寫的 summary背書；
+- audited bundle的 file set在 audit前後比對，directory scan對不可讀子樹 fail closed，
+  輸出寫入拒絕跟隨 link；
+- 缺少 selection key不再被當成「保留 null selection」。
+
+[RESULT] 沒有任何既有數值結果改變。exposure horizon、phase conventions、primary outcome、
+gate thresholds、bound formulae與 seed inventory皆未變更。
+
+[BLOCKER] receipt原本的 allowed-conclusion句子曾斷言 v7 pilot的 contrast不具內部可比性；
+該斷言未經本次 run量測，已收斂為「metric定義層面的性質」加上明示的未量測 blocker。
+
 ## 7. Claim boundary and theory check
 
 [SOURCE] NIST/SEMATECH把 censoring定義為只知 bound或interval的觀察機制；Wünsch et al.
@@ -278,4 +317,3 @@ Primary/official sources：
 - [Deep RL at the Edge of the Statistical Precipice, NeurIPS 2021](https://proceedings.neurips.cc/paper/2021/hash/f514cec81cb148559cf475e7426eed5e-Abstract.html)
 - [IETF RFC 8259 — JSON](https://www.rfc-editor.org/rfc/rfc8259.html)
 - [NASA-STD-7009B](https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf)
-- [MuJoCo Actuation Model](https://mujoco.readthedocs.io/en/stable/computation/index.html#actuation-model)

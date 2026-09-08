@@ -2,10 +2,18 @@
 
 The process imports neither the audit contract nor the pilot pipeline.  It
 re-validates the frozen audit protocol, re-derives the exposure horizon and the
-phase schedule from that protocol, independently reconstructs every exposure,
-termination, censoring, identification-bound, paired-comparability and
-descriptive sensitivity value from the canonical raw episode rows, and requires
-exact JSON identity with the primary audit summary.
+phase schedule from that protocol, reconstructs every exposure, termination,
+censoring, identification-bound, paired-comparability and descriptive
+sensitivity value from the canonical raw episode rows, and requires exact JSON
+identity with the primary audit summary.
+
+What that identity does and does not establish: it establishes that the written
+summary is a faithful function of the retained raw rows under a separate
+interpreter with no project imports and no site-packages, so a transport,
+serialization or bundle-assembly defect cannot hide in it. It does not
+establish that the shared derivation is scientifically correct -- the two
+implementations deliberately encode the same frozen rules, so agreement is
+evidence about faithfulness, not about the rules themselves.
 """
 
 from __future__ import annotations
@@ -24,7 +32,7 @@ from typing import Any
 AUDIT_PROTOCOL_SCHEMA = "V7_EXPOSURE_CENSORING_AUDIT_PROTOCOL_V1"
 AUDIT_PROTOCOL_ID = "AUDIT-V7-EXPOSURE-CENSORING-V1"
 AUDIT_PROTOCOL_SHA256 = (
-    "sha256:ab40cb577b43c9befbc6c0d2850bc98b8d5ba89e93acb0b7804dce6aafb109dd"
+    "sha256:b15505b73f3745141c2dfa31cf57564b0863242949f5d1ad4d351dfb96dec6ce"
 )
 SUMMARY_SCHEMA = "V7_EXPOSURE_AUDIT_SUMMARY_V1"
 REPLAY_SCHEMA = "V7_EXPOSURE_AUDIT_REPLAY_RECEIPT_V1"
@@ -71,8 +79,14 @@ REASON_METHOD_FAILURE_OUTCOME = "REQUIRED_PRIMARY_OUTCOME_NOT_OBSERVED_METHOD_FA
 REASON_METHOD_FAILURE_NO_EXPOSURE = "NO_EXPOSURE_TERMINAL_FAILURE_METHOD_FAILURE"
 PAIR_REASON_CENSORED = "CENSORED_UNEQUAL_EXPOSURE_NON_COMPARABLE"
 PAIR_REASON_METHOD_FAILURE = "METHOD_FAILURE_NOT_CENSORING_NON_COMPARABLE"
-BLOCKED_AGGREGATE_REASON = (
+BLOCKED_CENSORED_REASON = (
     "BLOCKED_EXPOSURE_CENSORED_PAIRS_RETAINED_NO_COMPLETE_CASE_DELETION"
+)
+BLOCKED_METHOD_FAILURE_REASON = (
+    "BLOCKED_METHOD_FAILURE_RETAINED_NO_COMPLETE_CASE_DELETION"
+)
+BLOCKED_MIXED_REASON = (
+    "BLOCKED_EXPOSURE_CENSORED_AND_METHOD_FAILURE_RETAINED_NO_COMPLETE_CASE_DELETION"
 )
 FORMAL_SAMPLE_SIZE_DECISION = (
     "BLOCKED_INDEPENDENT_TRAINING_SEED_VARIANCE_NOT_ESTIMATED"
@@ -102,7 +116,11 @@ BOUND_PROHIBITED_USES = (
 AUDIT_STATUS_CLEAN = "AUDIT_COMPLETE_NO_CENSORING_BLOCKER"
 AUDIT_STATUS_BLOCKED = "AUDIT_COMPLETE_RETAINED_CENSORING_BLOCKER"
 VERDICT_COMPARABLE = "PAIRED_CONTRAST_COMPARABLE"
-VERDICT_NON_COMPARABLE = "PAIRED_CONTRAST_NON_COMPARABLE_EXPOSURE_CENSORED"
+VERDICT_NON_COMPARABLE_CENSORED = "PAIRED_CONTRAST_NON_COMPARABLE_EXPOSURE_CENSORED"
+VERDICT_NON_COMPARABLE_METHOD_FAILURE = "PAIRED_CONTRAST_NON_COMPARABLE_METHOD_FAILURE"
+VERDICT_NON_COMPARABLE_MIXED = (
+    "PAIRED_CONTRAST_NON_COMPARABLE_EXPOSURE_CENSORED_AND_METHOD_FAILURE"
+)
 EXPECTED_ACCEPTANCE = (
     "AX-01_READ_ONLY_SOURCE_BUNDLE_PRE_POST_IDENTITY",
     "AX-02_FROZEN_TASK_HORIZON_AND_RATE_INTEGRALITY",
@@ -116,6 +134,25 @@ EXPECTED_ACCEPTANCE = (
     "AX-10_SAFE_ARTIFACT_PATH_BYTES_AND_SHA256_INVENTORY",
     "AX-11_STDLIB_ONLY_RAW_TO_AUDIT_SUMMARY_EXACT_REPLAY",
     "AX-12_SIM_ONLY_CLAIM_BOUNDARY_AND_PAPER_DATA_FALSE",
+)
+EXPECTED_REPLAY_CHECKS = (
+    "audit_findings_exact",
+    "audit_summary_exact",
+    "censoring_blockers_exact",
+    "contract_phase_schedule_exact",
+    "exact_three_arm_seed_inventory",
+    "exposure_and_censoring_exact",
+    "exposure_matched_sensitivity_exact",
+    "frozen_audit_protocol_exact",
+    "frozen_task_horizon_exact",
+    "identification_bounds_exact",
+    "original_pilot_selection_preserved",
+    "paired_comparability_exact",
+    "phase_convention_offset_exact",
+    "recorder_phase_convention_exact",
+)
+AUDITED_PROTOCOL_SHA256 = (
+    "sha256:719b70a2bdf8d23af5f4ec5dff51a6099e88d6de4e2221fa74f6f7464cdfcb96"
 )
 MAX_JSON_BYTES = 256 * 1024 * 1024
 MAX_JSON_DEPTH = 96
@@ -290,6 +327,24 @@ def _state_counts(values: list[str], states: tuple[str, ...]) -> dict[str, int]:
     if unexpected:
         raise V7ExposureAuditReplayError(f"unexpected retained state: {unexpected[0]}")
     return {state: counts[state] for state in states}
+
+
+def _non_comparable_verdict(censored: int, method_failure: int) -> str:
+    """Name the actual cause instead of always blaming exposure censoring."""
+    if censored and method_failure:
+        return VERDICT_NON_COMPARABLE_MIXED
+    if method_failure:
+        return VERDICT_NON_COMPARABLE_METHOD_FAILURE
+    return VERDICT_NON_COMPARABLE_CENSORED
+
+
+def _blocked_reason(censored: int, method_failure: int) -> str:
+    """Name the actual cause of a blocked aggregate."""
+    if censored and method_failure:
+        return BLOCKED_MIXED_REASON
+    if method_failure:
+        return BLOCKED_METHOD_FAILURE_REASON
+    return BLOCKED_CENSORED_REASON
 
 
 def _validate_audit_protocol(protocol: dict[str, Any], protocol_sha256: str) -> None:
@@ -620,7 +675,11 @@ def _validate_pilot_summary(pilot_summary: dict[str, Any], raw: dict[str, Any]) 
     for key in ("source_git_sha_pre", "source_git_sha_post"):
         if pilot_summary.get(key) != raw.get(key):
             raise V7ExposureAuditReplayError(f"audited pilot summary {key} drift")
-    if pilot_summary.get("selected_candidate_arm_id") is not None:
+    if "selected_candidate_arm_id" not in pilot_summary:
+        raise V7ExposureAuditReplayError(
+            "audited pilot summary omits selected_candidate_arm_id"
+        )
+    if pilot_summary["selected_candidate_arm_id"] is not None:
         raise V7ExposureAuditReplayError("audited pilot summary selected a candidate")
     _require_false(pilot_summary.get("paper_data_ready"), "pilot_summary.paper_data_ready")
     _require_string(pilot_summary.get("selection_status"), "pilot_summary.selection_status")
@@ -652,6 +711,45 @@ def _validate_pilot_summary(pilot_summary: dict[str, Any], raw: dict[str, Any]) 
         raise V7ExposureAuditReplayError("audited pilot summary contrast inventory mismatch")
 
 
+def _bind_receipt_artifacts(
+    receipt: dict[str, Any],
+    *,
+    raw_sha256: str,
+    pilot_summary_sha256: str,
+    audited_protocol_sha256: str,
+) -> None:
+    """Require the handed files to be the ones the pilot receipt indexes.
+
+    Without this the replay would happily mint a PASS receipt asserting a
+    bundle class over files that the audited receipt never indexed.
+    """
+    artifacts = _require_list(receipt.get("artifacts"), "pilot_receipt.artifacts")
+    by_role: dict[str, str] = {}
+    for position, record_value in enumerate(artifacts):
+        context = f"pilot_receipt.artifacts[{position}]"
+        record = _require_object(record_value, context)
+        role = _require_string(record.get("role"), context + ".role")
+        digest = _require_string(
+            record.get("sha256"), context + ".sha256", pattern=SHA256_PATTERN
+        )
+        if role in by_role:
+            raise V7ExposureAuditReplayError(f"duplicate audited inventory role: {role}")
+        by_role[role] = digest
+    for role, actual in (
+        ("raw_episodes", raw_sha256),
+        ("pilot_summary", pilot_summary_sha256),
+        ("protocol", audited_protocol_sha256),
+    ):
+        if role not in by_role:
+            raise V7ExposureAuditReplayError(
+                f"audited bundle receipt does not index the {role} role"
+            )
+        if by_role[role] != actual:
+            raise V7ExposureAuditReplayError(
+                f"file handed to the replay is not the indexed {role} artifact"
+            )
+
+
 def _validate_pilot_receipt(receipt: dict[str, Any], receipt_sha256: str) -> str:
     if receipt.get("schema_version") != PILOT_RECEIPT_SCHEMA:
         raise V7ExposureAuditReplayError("audited bundle receipt schema mismatch")
@@ -659,8 +757,14 @@ def _validate_pilot_receipt(receipt: dict[str, Any], receipt_sha256: str) -> str
         raise V7ExposureAuditReplayError("audited bundle receipt protocol mismatch")
     if receipt.get("contract_valid") is not True:
         raise V7ExposureAuditReplayError("audited bundle receipt is not contract valid")
-    if receipt.get("selected_candidate_arm_id") is not None:
+    if "selected_candidate_arm_id" not in receipt:
+        raise V7ExposureAuditReplayError(
+            "audited bundle receipt omits selected_candidate_arm_id"
+        )
+    if receipt["selected_candidate_arm_id"] is not None:
         raise V7ExposureAuditReplayError("audited bundle receipt selected a candidate")
+    if receipt.get("evidence_complete") is not True:
+        raise V7ExposureAuditReplayError("audited bundle receipt is not evidence complete")
     _require_false(receipt.get("paper_data_ready"), "pilot_receipt.paper_data_ready")
     declared = receipt.get("audit_source_bundle_class")
     if declared is None:
@@ -781,6 +885,17 @@ def _episode_exposure(
             f"{context} exposure denominator disagrees with the retained control steps"
         )
     trace_receipt = _require_object(row.get("trace_receipt"), context + ".trace_receipt")
+    for counter in (
+        "control_step_count",
+        "saturation_substeps_total",
+        "saturation_substeps_over_threshold",
+    ):
+        _require_int(
+            trace_receipt.get(counter),
+            f"{context}.trace_receipt.{counter}",
+            minimum=0,
+            maximum=full_substeps,
+        )
     if (
         trace_receipt.get("control_step_count") != observed_steps
         or trace_receipt.get("saturation_substeps_total") != substep_total
@@ -799,6 +914,10 @@ def _episode_exposure(
             )
     else:
         truncated_duty = None
+        if primary["state"] == "OBSERVED":
+            raise V7ExposureAuditReplayError(
+                f"{context} has no exposure but retains an observed primary outcome"
+            )
         if trace_receipt.get("recomputed_saturation_duty_pct") is not None:
             raise V7ExposureAuditReplayError(
                 f"{context}.trace_receipt.recomputed_saturation_duty_pct must be null"
@@ -1023,7 +1142,9 @@ def _arm_exposure(
             "n_observed": len(bounded),
             "mean_lower_pct": None,
             "mean_upper_pct": None,
-            "reason": BLOCKED_AGGREGATE_REASON,
+            # An episode lacks a bound only when it is a retained method
+            # failure, so naming exposure censoring here would misattribute it.
+            "reason": BLOCKED_METHOD_FAILURE_REASON,
         }
     termination_contract_phase_counts = {entry["phase_id"]: 0 for entry in schedule}
     termination_contract_phase_counts["NO_EXPOSURE"] = 0
@@ -1055,6 +1176,12 @@ def _arm_exposure(
             block.get("evaluation_terminal_state"),
             context + ".evaluation_terminal_state",
             choices=set(RETAINED_TERMINAL_STATES),
+        ),
+        "terminal_record_state_counts": _state_counts(
+            [item["terminal_record_state"] for item in records], RETAINED_TERMINAL_STATES
+        ),
+        "outcome_state_counts": _state_counts(
+            [item["outcome_state"] for item in records], RETAINED_OUTCOME_STATES
         ),
         "exposure_class_counts": _state_counts(
             [item["exposure_class"] for item in records], EXPOSURE_CLASSES
@@ -1229,6 +1356,15 @@ def _paired_comparability(
     comparable_count = sum(
         1 for item in pairs if item["pair_comparability_state"] == "COMPARABLE"
     )
+    censored_count = sum(
+        1 for item in pairs if item["pair_comparability_state"] == "EXPOSURE_CENSORED"
+    )
+    method_failure_count = sum(
+        1
+        for item in pairs
+        if item["pair_comparability_state"] == "METHOD_FAILURE_NOT_CENSORING"
+    )
+    blocked_reason = _blocked_reason(censored_count, method_failure_count)
     if comparable_count == len(EXPECTED_SEEDS):
         audited_difference = {
             "state": "OBSERVED",
@@ -1245,7 +1381,7 @@ def _paired_comparability(
             "n_observed": comparable_count,
             "mean_difference": None,
             "sample_standard_deviation": None,
-            "reason": BLOCKED_AGGREGATE_REASON,
+            "reason": blocked_reason,
         }
     if len(bound_lowers) == len(EXPECTED_SEEDS):
         bound_aggregate = {
@@ -1255,6 +1391,7 @@ def _paired_comparability(
             "mean_lower_pct": statistics.fmean(bound_lowers),
             "mean_upper_pct": statistics.fmean(bound_uppers),
             "sign_identified_pair_count": sign_identified_count,
+            "sign_identified_is_complete_case": True,
             "reason": None,
         }
     else:
@@ -1265,25 +1402,20 @@ def _paired_comparability(
             "mean_lower_pct": None,
             "mean_upper_pct": None,
             "sign_identified_pair_count": sign_identified_count,
-            "reason": BLOCKED_AGGREGATE_REASON,
+            "sign_identified_is_complete_case": False,
+            "reason": BLOCKED_METHOD_FAILURE_REASON,
         }
     return {
         "reference_arm_id": reference["arm_id"],
         "candidate_arm_id": candidate["arm_id"],
         "contrast": "candidate_minus_reference_by_evaluation_seed",
         "comparable_pair_count": comparable_count,
-        "exposure_censored_pair_count": sum(
-            1 for item in pairs if item["pair_comparability_state"] == "EXPOSURE_CENSORED"
-        ),
-        "method_failure_pair_count": sum(
-            1
-            for item in pairs
-            if item["pair_comparability_state"] == "METHOD_FAILURE_NOT_CENSORING"
-        ),
+        "exposure_censored_pair_count": censored_count,
+        "method_failure_pair_count": method_failure_count,
         "validity_verdict": (
             VERDICT_COMPARABLE
             if comparable_count == len(EXPECTED_SEEDS)
-            else VERDICT_NON_COMPARABLE
+            else _non_comparable_verdict(censored_count, method_failure_count)
         ),
         "audited_paired_difference_pct": audited_difference,
         "paired_identification_bound_pct": bound_aggregate,
@@ -1310,8 +1442,15 @@ def _exposure_matched_sensitivity(
     reference_internals: dict[str, dict[str, Any]],
     candidate_internals: dict[str, dict[str, Any]],
 ) -> dict[str, Any]:
+    reference_states = {
+        item["evaluation_seed"]: item["comparability_state"] for item in reference["episodes"]
+    }
+    candidate_states = {
+        item["evaluation_seed"]: item["comparability_state"] for item in candidate["episodes"]
+    }
     pairs: list[dict[str, Any]] = []
     differences: list[float] = []
+    method_failure_pairs = 0
     for seed in EXPECTED_SEEDS:
         key = str(seed)
         reference_internal = reference_internals[key]
@@ -1320,9 +1459,16 @@ def _exposure_matched_sensitivity(
             reference_internal["observed_control_steps"],
             candidate_internal["observed_control_steps"],
         )
-        reference_duty = _matched_duty(reference_internal, matched)
-        candidate_duty = _matched_duty(candidate_internal, matched)
+        # A retained method failure is never re-materialized as an observed
+        # matched duty, even when its trace still carries usable counts.
+        method_failure = "METHOD_FAILURE_NOT_CENSORING" in {
+            reference_states[seed],
+            candidate_states[seed],
+        }
+        reference_duty = None if method_failure else _matched_duty(reference_internal, matched)
+        candidate_duty = None if method_failure else _matched_duty(candidate_internal, matched)
         if reference_duty is None or candidate_duty is None:
+            method_failure_pairs += 1
             pairs.append({
                 "evaluation_seed": seed,
                 "matched_exposure_control_steps": matched,
@@ -1330,7 +1476,11 @@ def _exposure_matched_sensitivity(
                 "reference_matched_duty_pct": None,
                 "candidate_matched_duty_pct": None,
                 "matched_difference_pct": None,
-                "reason": REASON_METHOD_FAILURE_NO_EXPOSURE,
+                "reason": (
+                    REASON_METHOD_FAILURE_OUTCOME
+                    if method_failure
+                    else REASON_METHOD_FAILURE_NO_EXPOSURE
+                ),
             })
             continue
         difference = _round_percent(candidate_duty - reference_duty)
@@ -1360,7 +1510,10 @@ def _exposure_matched_sensitivity(
             "n_observed": len(differences),
             "mean_difference": None,
             "sample_standard_deviation": None,
-            "reason": BLOCKED_AGGREGATE_REASON,
+            "reason": _blocked_reason(
+                len(EXPECTED_SEEDS) - len(differences) - method_failure_pairs,
+                method_failure_pairs,
+            ),
         }
     return {
         "reference_arm_id": reference["arm_id"],
@@ -1387,9 +1540,7 @@ def _censoring_blockers(
                 )
     for block in paired_blocks:
         if block["validity_verdict"] != VERDICT_COMPARABLE:
-            blockers.append(
-                f"{block['candidate_arm_id']}:PAIRED_CONTRAST_{block['validity_verdict']}"
-            )
+            blockers.append(f"{block['candidate_arm_id']}:{block['validity_verdict']}")
     return blockers
 
 
@@ -1401,7 +1552,33 @@ def build_audit_summary(
     source_bundle_class: str,
     pilot_receipt_sha256: str,
 ) -> dict[str, Any]:
-    """Independently reconstruct the audit summary from canonical raw rows."""
+    """Independently reconstruct the audit summary from canonical raw rows.
+
+    The preconditions are deliberately identical to the contract module's
+    builder so that the two implementations cannot diverge on which inputs
+    they accept, not only on what they compute.
+    """
+    if source_bundle_class not in BUNDLE_CLASSES:
+        raise V7ExposureAuditReplayError(
+            f"unsupported source bundle class: {source_bundle_class}"
+        )
+    _require_string(pilot_receipt_sha256, "pilot_receipt_sha256", pattern=SHA256_PATTERN)
+    if (pilot_receipt_sha256 == FROZEN_PILOT_RECEIPT_SHA256) != (
+        source_bundle_class == DEVELOPMENT_BUNDLE_CLASS
+    ):
+        raise V7ExposureAuditReplayError(
+            "source bundle class binding disagrees with the pilot receipt SHA-256"
+        )
+    _validate_raw(raw)
+    _validate_pilot_summary(pilot_summary, raw)
+    if (
+        source_bundle_class == DEVELOPMENT_BUNDLE_CLASS
+        and raw["protocol_sha256"] != AUDITED_PROTOCOL_SHA256
+    ):
+        raise V7ExposureAuditReplayError(
+            "a frozen v7 pilot bundle must retain the pinned audited protocol "
+            f"SHA-256, found {raw['protocol_sha256']}"
+        )
     contract = _exposure_contract(protocol)
     schedule = _phase_schedule(protocol)
     recorder_schedule = _recorder_phase_schedule(protocol, contract)
@@ -1441,12 +1618,36 @@ def build_audit_summary(
         for candidate_id in CANDIDATE_ARM_IDS
     ]
     blockers = _censoring_blockers(arm_blocks, paired_blocks)
-    zero_duty_arms = sorted(
-        arm["arm_id"]
-        for arm in arm_blocks
-        if arm["exposure_class_counts"]["FULL_EXPOSURE"] == 0
-        and arm["comparability_state_counts"]["COMPARABLE"] == 0
-    )
+    # An arm is non-comparable when it has no comparable episode at all; full
+    # exposure elsewhere in the arm does not excuse that, so exposure class is
+    # deliberately not part of the condition.
+    non_comparable_arms: list[str] = []
+    non_comparable_causes: dict[str, str] = {}
+    for arm in arm_blocks:
+        counts = arm["comparability_state_counts"]
+        if counts["COMPARABLE"]:
+            continue
+        non_comparable_arms.append(arm["arm_id"])
+        censored = counts["EXPOSURE_CENSORED"]
+        failed = counts["METHOD_FAILURE_NOT_CENSORING"]
+        if censored and failed:
+            non_comparable_causes[arm["arm_id"]] = "EXPOSURE_CENSORED_AND_METHOD_FAILURE"
+        elif failed:
+            non_comparable_causes[arm["arm_id"]] = "METHOD_FAILURE_NOT_CENSORING"
+        else:
+            non_comparable_causes[arm["arm_id"]] = "EXPOSURE_CENSORED"
+    non_comparable_arms.sort()
+    causes = set(non_comparable_causes.values())
+    if not causes:
+        zero_duty_interpretation = "NOT_APPLICABLE_ALL_ARMS_HAVE_COMPARABLE_EPISODES"
+    elif causes == {"EXPOSURE_CENSORED"}:
+        zero_duty_interpretation = "NON_COMPARABLE_EXPOSURE_CENSORED"
+    elif causes == {"METHOD_FAILURE_NOT_CENSORING"}:
+        zero_duty_interpretation = "NON_COMPARABLE_RETAINED_METHOD_FAILURE"
+    else:
+        zero_duty_interpretation = (
+            "NON_COMPARABLE_EXPOSURE_CENSORED_AND_RETAINED_METHOD_FAILURE"
+        )
     return {
         "schema_version": SUMMARY_SCHEMA,
         "audit_protocol_id": AUDIT_PROTOCOL_ID,
@@ -1472,13 +1673,15 @@ def build_audit_summary(
         "audit_findings": {
             "primary_outcome_measurement_id": PRIMARY_MEASUREMENT_ID,
             "target_estimand": "FULL_HORIZON_SATURATION_DUTY_PCT",
-            "arms_without_any_comparable_episode": zero_duty_arms,
-            "zero_duty_interpretation": (
-                "NON_COMPARABLE_EXPOSURE_CENSORED"
-                if zero_duty_arms
-                else "NOT_APPLICABLE_ALL_ARMS_HAVE_COMPARABLE_EPISODES"
-            ),
+            "arms_without_any_comparable_episode": non_comparable_arms,
+            "non_comparable_arm_causes": non_comparable_causes,
+            "zero_duty_interpretation": zero_duty_interpretation,
             "censored_estimator": "NOT_FROZEN_BOUNDS_ONLY",
+            "identification_bound_assumption": (
+                "THE_BOUNDS_ARE_ASSUMPTION_FREE_GIVEN_THE_CONTRACT_DEFINED_FULL_HORIZON"
+                "_ESTIMAND; FOR_AN_EARLY_TERMINATED_EPISODE_THAT_ESTIMAND_IS_A_FROZEN"
+                "_TASK_TARGET_AND_NOT_AN_OBSERVED_COUNTERFACTUAL_OF_A_CONTINUABLE_EPISODE"
+            ),
             "method_failure_doctrine": (
                 "METHOD_FAILURE_IS_RETAINED_AND_IS_NOT_TREATED_AS_CENSORING"
             ),
@@ -1497,6 +1700,9 @@ def build_audit_summary(
         "pilot_planning_ready": False,
         "method_level_power_ready": False,
         "formal_sample_size_decision": FORMAL_SAMPLE_SIZE_DECISION,
+        "statistics_ready": False,
+        "pilot_planning_ready": False,
+        "method_level_power_ready": False,
         "statistics_ready": False,
         "paper_data_ready": False,
         "claim_boundary": CLAIM_BOUNDARY,
@@ -1519,8 +1725,16 @@ def replay_audit(
     """Validate inputs, reconstruct the audit summary, and require exact identity."""
     _validate_audit_protocol(protocol, protocol_sha256)
     bundle_class = _validate_pilot_receipt(pilot_receipt, receipt_sha256)
-    _validate_raw(raw)
-    _validate_pilot_summary(pilot_summary, raw)
+    _bind_receipt_artifacts(
+        pilot_receipt,
+        raw_sha256=raw_sha256,
+        pilot_summary_sha256=pilot_summary_sha256,
+        audited_protocol_sha256=_require_string(
+            raw.get("protocol_sha256"), "raw.protocol_sha256", pattern=SHA256_PATTERN
+        ),
+    )
+    # build_audit_summary re-validates raw and the pilot summary itself, so the
+    # builder's preconditions stay identical to the contract module's.
     expected = build_audit_summary(
         protocol,
         raw,
@@ -1559,6 +1773,11 @@ def replay_audit(
     checks["exact_three_arm_seed_inventory"] = True
     checks["identification_bounds_exact"] = True
     checks["audit_summary_exact"] = True
+    if tuple(sorted(checks)) != EXPECTED_REPLAY_CHECKS:
+        raise V7ExposureAuditReplayError(
+            "replay check inventory drifted from the frozen set: "
+            f"{sorted(set(checks) ^ set(EXPECTED_REPLAY_CHECKS))}"
+        )
     return {
         "schema_version": REPLAY_SCHEMA,
         "status": "PASS",
@@ -1573,6 +1792,9 @@ def replay_audit(
         "raw_episodes_sha256": raw_sha256,
         "pilot_summary_sha256": pilot_summary_sha256,
         "audit_summary_sha256": audit_summary_sha256,
+        "pilot_planning_ready": False,
+        "method_level_power_ready": False,
+        "statistics_ready": False,
         "paper_data_ready": False,
         "claim_boundary": CLAIM_BOUNDARY,
     }
@@ -1604,6 +1826,9 @@ def main() -> None:
                 "expected audit protocol, pilot receipt, raw episodes, pilot "
                 "summary, and audit summary paths"
             ),
+            "pilot_planning_ready": False,
+            "method_level_power_ready": False,
+            "statistics_ready": False,
             "paper_data_ready": False,
             "claim_boundary": CLAIM_BOUNDARY,
         }
@@ -1617,6 +1842,9 @@ def main() -> None:
             "status": "ERROR",
             "exact_identity": False,
             "error": f"{type(exc).__name__}: {exc}"[:1000],
+            "pilot_planning_ready": False,
+            "method_level_power_ready": False,
+            "statistics_ready": False,
             "paper_data_ready": False,
             "claim_boundary": CLAIM_BOUNDARY,
         }
