@@ -149,7 +149,9 @@ v3 由 v2 做 fail-closed input expansion；新增輸入權重從零開始，其
 
 接續的 **`SEEDVAR-V7-TRAINING-REPLICATE-DEV-V1`** 已凍結並完成 evidence contract、獨立 `python -I -S` replay 與 synthetic regression（見 [TRAINING_SEED_VARIANCE_SPEC](TRAINING_SEED_VARIANCE_SPEC.md)）。它把 analysis unit 固定在 training replicate（method-level 分母恆為 `5`；`150`／`450` 為 enforced forbidden denominators），把 exposure censoring 逐層組合為 tight intervals，並在任一 replicate difference 不可點識別時封鎖 `between_replicate_sd`。Selection 在該 protocol 內永久禁止，`replicate_count` 不得事後上調。
 
-下一個唯一優先目標是**實際執行**該 protocol：需 `3 arms × 5 replicates × 122,880 = 1,843,200` timesteps，且必須在具名 `MEASURED_ENVIRONMENT_LOCK`（`OMP_NUM_THREADS=1`）下進行。在它完成前不做 selection、不調 alpha/envelope/threshold、不開啟 FORMAL/HOLDOUT，也不得因算力不足而減少 replicate 數。
+該 protocol **已實際執行完成**：`1,843,200` realized timesteps、450 個 terminal records、0 失敗、獨立 replay exact。V7B 相對 V7A 的 method-level bound 為 `[-13.503408, -12.435259]` pp（排除 0、sign NEGATIVE、5/5 replicates 可識別），但 `between_replicate_sd` 因每個 replicate 都有 exposure censoring 而為 `null`，故 sample-size 決策仍 blocked；V7C 為 `[-37.195407, +27.315704]` pp 含 0、0/5 可識別。另外量到 pilot 那個乾淨的 reference exposure 是 seed `8700` 的性質而非 V7A 的性質（V7A 在 3 個 replicate 出現 early termination），而 V7C 的崩潰在 5 個獨立 seeds 上完全重現。
+
+下一個唯一優先目標是 independent **pretraining**-seed variance，或另立 selection protocol。V7B 的方向穩健性**不構成 selection**：用同一批資料先估變異再據以選擇，會把選擇條件建立在被選中的雜訊上；且本結果已公開，任何新 selection protocol 必須明示它是在已知 V7B 為負的情況下設計的。在那之前不調 alpha/envelope/threshold、不開啟 FORMAL/HOLDOUT，`replicate_count` 亦不得回溯調整。
 
 ## 5. Study A 的方法組與公平比較
 

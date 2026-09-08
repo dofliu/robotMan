@@ -1,0 +1,1055 @@
+{
+  "analysis_unit": "TRAINING_REPLICATE",
+  "audit_protocol_sha256": "sha256:b15505b73f3745141c2dfa31cf57564b0863242949f5d1ad4d351dfb96dec6ce",
+  "bundle_class": "SEED_VARIANCE_DEVELOPMENT_BUNDLE",
+  "candidates": [
+    {
+      "candidate_arm_id": "V7B_REDUCED_JOINT_ENVELOPE",
+      "method_level": {
+        "analysis_unit": "TRAINING_REPLICATE",
+        "between_replicate_sd_pp": null,
+        "between_replicate_sd_reason": "BLOCKED_PARTIALLY_IDENTIFIED_REPLICATE_DIFFERENCES",
+        "blocked_replicate_indices": [],
+        "mean_within_replicate_paired_sd_pp": null,
+        "method_level_n": 5,
+        "sample_size_decision_input_ready": false,
+        "sign": "NEGATIVE",
+        "sign_identified_replicate_count": 5,
+        "theta_bound_pp": {
+          "lower_pp": -13.503408,
+          "reason": null,
+          "state": "OBSERVED",
+          "upper_pp": -12.435259,
+          "width_pp": 1.068149
+        },
+        "variance_ratio_between_over_within": null
+      },
+      "reference_arm_id": "V7A_REWARD_ONLY",
+      "replicate_paired_differences": [
+        {
+          "lower_pp": -13.962963,
+          "point_identified": false,
+          "reason": null,
+          "replicate_index": 0,
+          "sign": "NEGATIVE",
+          "state": "OBSERVED",
+          "upper_pp": -12.77037,
+          "width_pp": 1.192593
+        },
+        {
+          "lower_pp": -12.63037,
+          "point_identified": false,
+          "reason": null,
+          "replicate_index": 1,
+          "sign": "NEGATIVE",
+          "state": "OBSERVED",
+          "upper_pp": -12.037778,
+          "width_pp": 0.592592
+        },
+        {
+          "lower_pp": -14.868148,
+          "point_identified": false,
+          "reason": null,
+          "replicate_index": 2,
+          "sign": "NEGATIVE",
+          "state": "OBSERVED",
+          "upper_pp": -13.845926,
+          "width_pp": 1.022222
+        },
+        {
+          "lower_pp": -11.750371,
+          "point_identified": false,
+          "reason": null,
+          "replicate_index": 3,
+          "sign": "NEGATIVE",
+          "state": "OBSERVED",
+          "upper_pp": -10.661482,
+          "width_pp": 1.088889
+        },
+        {
+          "lower_pp": -14.305186,
+          "point_identified": false,
+          "reason": null,
+          "replicate_index": 4,
+          "sign": "NEGATIVE",
+          "state": "OBSERVED",
+          "upper_pp": -12.86074,
+          "width_pp": 1.444446
+        }
+      ],
+      "within_replicate_paired_sd": [
+        {
+          "paired_sd_pp": null,
+          "reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES",
+          "replicate_index": 0
+        },
+        {
+          "paired_sd_pp": null,
+          "reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES",
+          "replicate_index": 1
+        },
+        {
+          "paired_sd_pp": null,
+          "reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES",
+          "replicate_index": 2
+        },
+        {
+          "paired_sd_pp": null,
+          "reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES",
+          "replicate_index": 3
+        },
+        {
+          "paired_sd_pp": null,
+          "reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES",
+          "replicate_index": 4
+        }
+      ]
+    },
+    {
+      "candidate_arm_id": "V7C_FILTERED_ACTION",
+      "method_level": {
+        "analysis_unit": "TRAINING_REPLICATE",
+        "between_replicate_sd_pp": null,
+        "between_replicate_sd_reason": "BLOCKED_PARTIALLY_IDENTIFIED_REPLICATE_DIFFERENCES",
+        "blocked_replicate_indices": [],
+        "mean_within_replicate_paired_sd_pp": null,
+        "method_level_n": 5,
+        "sample_size_decision_input_ready": false,
+        "sign": "UNIDENTIFIED",
+        "sign_identified_replicate_count": 0,
+        "theta_bound_pp": {
+          "lower_pp": -37.195407,
+          "reason": null,
+          "state": "OBSERVED",
+          "upper_pp": 27.315704,
+          "width_pp": 64.511111
+        },
+        "variance_ratio_between_over_within": null
+      },
+      "reference_arm_id": "V7A_REWARD_ONLY",
+      "replicate_paired_differences": [
+        {
+          "lower_pp": -37.598518,
+          "point_identified": false,
+          "reason": null,
+          "replicate_index": 0,
+          "sign": "UNIDENTIFIED",
+          "state": "OBSERVED",
+          "upper_pp": 26.757038,
+          "width_pp": 64.355556
+        },
+        {
+          "lower_pp": -35.456296,
+          "point_identified": false,
+          "reason": null,
+          "replicate_index": 1,
+          "sign": "UNIDENTIFIED",
+          "state": "OBSERVED",
+          "upper_pp": 28.736297,
+          "width_pp": 64.192593
+        },
+        {
+          "lower_pp": -38.677778,
+          "point_identified": false,
+          "reason": null,
+          "replicate_index": 2,
+          "sign": "UNIDENTIFIED",
+          "state": "OBSERVED",
+          "upper_pp": 25.633333,
+          "width_pp": 64.311111
+        },
+        {
+          "lower_pp": -36.491852,
+          "point_identified": false,
+          "reason": null,
+          "replicate_index": 3,
+          "sign": "UNIDENTIFIED",
+          "state": "OBSERVED",
+          "upper_pp": 28.382222,
+          "width_pp": 64.874074
+        },
+        {
+          "lower_pp": -37.752593,
+          "point_identified": false,
+          "reason": null,
+          "replicate_index": 4,
+          "sign": "UNIDENTIFIED",
+          "state": "OBSERVED",
+          "upper_pp": 27.06963,
+          "width_pp": 64.822223
+        }
+      ],
+      "within_replicate_paired_sd": [
+        {
+          "paired_sd_pp": null,
+          "reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES",
+          "replicate_index": 0
+        },
+        {
+          "paired_sd_pp": null,
+          "reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES",
+          "replicate_index": 1
+        },
+        {
+          "paired_sd_pp": null,
+          "reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES",
+          "replicate_index": 2
+        },
+        {
+          "paired_sd_pp": null,
+          "reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES",
+          "replicate_index": 3
+        },
+        {
+          "paired_sd_pp": null,
+          "reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES",
+          "replicate_index": 4
+        }
+      ]
+    }
+  ],
+  "claim_boundary": "SIM_ONLY_MUJOCO / NOT_PHYSICALLY_VALIDATED / DEVELOPMENT_ONLY. This protocol may support only a statement about the conditional magnitude of replicate-level variation in the frozen v7 action-interface contrast, under a fixed v5 warm start and DEVELOPMENT evaluation seeds. It selects no candidate and supports no claim of controller superiority, sample-size adequacy, paper readiness, physical torque or thermal margin, safety, or sim-to-real performance.",
+  "cross_protocol_comparability": "NON_VERIFIABLE_ENVIRONMENT",
+  "environment_lock_sha256": "sha256:93d23a2703adc86a1394eacf5dece8d7229fdf742857f1a271656aa1cfeac72d",
+  "evaluation_seed_first": 18000,
+  "evaluation_seed_last": 18029,
+  "forbidden_denominators": [
+    150,
+    450
+  ],
+  "method_level_power_ready": false,
+  "paper_data_ready": false,
+  "primary_measurement_id": "saturation_duty_pct",
+  "protocol_id": "SEEDVAR-V7-TRAINING-REPLICATE-DEV-V1",
+  "protocol_sha256": "sha256:9ab17c74ddb021f9b69b1df843f9fa49ea45ecf790837204270d8bc01046b359",
+  "replicate_count": 5,
+  "replicates": [
+    {
+      "arms": [
+        {
+          "arm_id": "V7A_REWARD_ONLY",
+          "cell_state": "POINT_IDENTIFIED",
+          "comparability_counts": {
+            "COMPARABLE": 30,
+            "EXPOSURE_CENSORED": 0,
+            "METHOD_FAILURE_NOT_CENSORING": 0
+          },
+          "episode_count": 30,
+          "evaluation_output_sha256": "sha256:9ce6f90aebea7d56343831d6707e5e76bae817b6982b6d73de63df2b88eab4a2",
+          "exposure_counts": {
+            "EARLY_TERMINATED": 0,
+            "FULL_EXPOSURE": 30,
+            "NO_EXPOSURE": 0
+          },
+          "mean_bound_pct": {
+            "lower_pct": 37.598518,
+            "reason": null,
+            "state": "OBSERVED",
+            "upper_pct": 37.598518,
+            "width_pct": 0.0
+          },
+          "outcome_counts": {
+            "NONFINITE": 0,
+            "NULL": 0,
+            "OBSERVED": 30
+          },
+          "realized_timesteps": 122880,
+          "terminal_counts": {
+            "CANCELLED": 0,
+            "COMPLETED": 30,
+            "FAILED": 0
+          },
+          "training_terminal_state": "COMPLETED",
+          "within_replicate_level_sd_pct": 1.091723,
+          "within_replicate_level_sd_reason": null
+        },
+        {
+          "arm_id": "V7B_REDUCED_JOINT_ENVELOPE",
+          "cell_state": "PARTIALLY_IDENTIFIED",
+          "comparability_counts": {
+            "COMPARABLE": 23,
+            "EXPOSURE_CENSORED": 7,
+            "METHOD_FAILURE_NOT_CENSORING": 0
+          },
+          "episode_count": 30,
+          "evaluation_output_sha256": "sha256:be93e7045279a0a402df33319a7df432c7e4e08b17bf2bf13322d661a3e114f2",
+          "exposure_counts": {
+            "EARLY_TERMINATED": 7,
+            "FULL_EXPOSURE": 23,
+            "NO_EXPOSURE": 0
+          },
+          "mean_bound_pct": {
+            "lower_pct": 23.635555,
+            "reason": null,
+            "state": "OBSERVED",
+            "upper_pct": 24.828148,
+            "width_pct": 1.192593
+          },
+          "outcome_counts": {
+            "NONFINITE": 0,
+            "NULL": 0,
+            "OBSERVED": 30
+          },
+          "realized_timesteps": 122880,
+          "terminal_counts": {
+            "CANCELLED": 0,
+            "COMPLETED": 30,
+            "FAILED": 0
+          },
+          "training_terminal_state": "COMPLETED",
+          "within_replicate_level_sd_pct": null,
+          "within_replicate_level_sd_reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES"
+        },
+        {
+          "arm_id": "V7C_FILTERED_ACTION",
+          "cell_state": "PARTIALLY_IDENTIFIED",
+          "comparability_counts": {
+            "COMPARABLE": 0,
+            "EXPOSURE_CENSORED": 30,
+            "METHOD_FAILURE_NOT_CENSORING": 0
+          },
+          "episode_count": 30,
+          "evaluation_output_sha256": "sha256:2ffef7c9218ccbc4120949eed935374c47f4b741cce357508510e36d39c1fec8",
+          "exposure_counts": {
+            "EARLY_TERMINATED": 30,
+            "FULL_EXPOSURE": 0,
+            "NO_EXPOSURE": 0
+          },
+          "mean_bound_pct": {
+            "lower_pct": 0.0,
+            "reason": null,
+            "state": "OBSERVED",
+            "upper_pct": 64.355556,
+            "width_pct": 64.355556
+          },
+          "outcome_counts": {
+            "NONFINITE": 0,
+            "NULL": 30,
+            "OBSERVED": 0
+          },
+          "realized_timesteps": 122880,
+          "terminal_counts": {
+            "CANCELLED": 0,
+            "COMPLETED": 30,
+            "FAILED": 0
+          },
+          "training_terminal_state": "COMPLETED",
+          "within_replicate_level_sd_pct": null,
+          "within_replicate_level_sd_reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES"
+        }
+      ],
+      "environment_seed_block": [
+        8720,
+        8731
+      ],
+      "replicate_index": 0,
+      "training_seed": 8720
+    },
+    {
+      "arms": [
+        {
+          "arm_id": "V7A_REWARD_ONLY",
+          "cell_state": "POINT_IDENTIFIED",
+          "comparability_counts": {
+            "COMPARABLE": 30,
+            "EXPOSURE_CENSORED": 0,
+            "METHOD_FAILURE_NOT_CENSORING": 0
+          },
+          "episode_count": 30,
+          "evaluation_output_sha256": "sha256:9c62182cfc4f60c34f2fbbbc2adf87ee9c45cec1da53479cfe4d261692ba2a0f",
+          "exposure_counts": {
+            "EARLY_TERMINATED": 0,
+            "FULL_EXPOSURE": 30,
+            "NO_EXPOSURE": 0
+          },
+          "mean_bound_pct": {
+            "lower_pct": 35.456296,
+            "reason": null,
+            "state": "OBSERVED",
+            "upper_pct": 35.456296,
+            "width_pct": 0.0
+          },
+          "outcome_counts": {
+            "NONFINITE": 0,
+            "NULL": 0,
+            "OBSERVED": 30
+          },
+          "realized_timesteps": 122880,
+          "terminal_counts": {
+            "CANCELLED": 0,
+            "COMPLETED": 30,
+            "FAILED": 0
+          },
+          "training_terminal_state": "COMPLETED",
+          "within_replicate_level_sd_pct": 1.103957,
+          "within_replicate_level_sd_reason": null
+        },
+        {
+          "arm_id": "V7B_REDUCED_JOINT_ENVELOPE",
+          "cell_state": "PARTIALLY_IDENTIFIED",
+          "comparability_counts": {
+            "COMPARABLE": 25,
+            "EXPOSURE_CENSORED": 5,
+            "METHOD_FAILURE_NOT_CENSORING": 0
+          },
+          "episode_count": 30,
+          "evaluation_output_sha256": "sha256:a7fb985f914e7fc4a1820795bb8794bb3a4346de9c65d2047371bced45c36768",
+          "exposure_counts": {
+            "EARLY_TERMINATED": 5,
+            "FULL_EXPOSURE": 25,
+            "NO_EXPOSURE": 0
+          },
+          "mean_bound_pct": {
+            "lower_pct": 22.825926,
+            "reason": null,
+            "state": "OBSERVED",
+            "upper_pct": 23.418518,
+            "width_pct": 0.592592
+          },
+          "outcome_counts": {
+            "NONFINITE": 0,
+            "NULL": 0,
+            "OBSERVED": 30
+          },
+          "realized_timesteps": 122880,
+          "terminal_counts": {
+            "CANCELLED": 0,
+            "COMPLETED": 30,
+            "FAILED": 0
+          },
+          "training_terminal_state": "COMPLETED",
+          "within_replicate_level_sd_pct": null,
+          "within_replicate_level_sd_reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES"
+        },
+        {
+          "arm_id": "V7C_FILTERED_ACTION",
+          "cell_state": "PARTIALLY_IDENTIFIED",
+          "comparability_counts": {
+            "COMPARABLE": 0,
+            "EXPOSURE_CENSORED": 30,
+            "METHOD_FAILURE_NOT_CENSORING": 0
+          },
+          "episode_count": 30,
+          "evaluation_output_sha256": "sha256:3415cd3bc5c222a99dbbebb7b80e8ea531eecb5f504240b440204d4f2c5f9726",
+          "exposure_counts": {
+            "EARLY_TERMINATED": 30,
+            "FULL_EXPOSURE": 0,
+            "NO_EXPOSURE": 0
+          },
+          "mean_bound_pct": {
+            "lower_pct": 0.0,
+            "reason": null,
+            "state": "OBSERVED",
+            "upper_pct": 64.192593,
+            "width_pct": 64.192593
+          },
+          "outcome_counts": {
+            "NONFINITE": 0,
+            "NULL": 30,
+            "OBSERVED": 0
+          },
+          "realized_timesteps": 122880,
+          "terminal_counts": {
+            "CANCELLED": 0,
+            "COMPLETED": 30,
+            "FAILED": 0
+          },
+          "training_terminal_state": "COMPLETED",
+          "within_replicate_level_sd_pct": null,
+          "within_replicate_level_sd_reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES"
+        }
+      ],
+      "environment_seed_block": [
+        8740,
+        8751
+      ],
+      "replicate_index": 1,
+      "training_seed": 8740
+    },
+    {
+      "arms": [
+        {
+          "arm_id": "V7A_REWARD_ONLY",
+          "cell_state": "PARTIALLY_IDENTIFIED",
+          "comparability_counts": {
+            "COMPARABLE": 29,
+            "EXPOSURE_CENSORED": 1,
+            "METHOD_FAILURE_NOT_CENSORING": 0
+          },
+          "episode_count": 30,
+          "evaluation_output_sha256": "sha256:22189b584c59ca97fc092ee6e5e3ffb5251955fb149f9bd9c99565ac5625a233",
+          "exposure_counts": {
+            "EARLY_TERMINATED": 1,
+            "FULL_EXPOSURE": 29,
+            "NO_EXPOSURE": 0
+          },
+          "mean_bound_pct": {
+            "lower_pct": 38.5,
+            "reason": null,
+            "state": "OBSERVED",
+            "upper_pct": 38.677778,
+            "width_pct": 0.177778
+          },
+          "outcome_counts": {
+            "NONFINITE": 0,
+            "NULL": 0,
+            "OBSERVED": 30
+          },
+          "realized_timesteps": 122880,
+          "terminal_counts": {
+            "CANCELLED": 0,
+            "COMPLETED": 30,
+            "FAILED": 0
+          },
+          "training_terminal_state": "COMPLETED",
+          "within_replicate_level_sd_pct": null,
+          "within_replicate_level_sd_reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES"
+        },
+        {
+          "arm_id": "V7B_REDUCED_JOINT_ENVELOPE",
+          "cell_state": "PARTIALLY_IDENTIFIED",
+          "comparability_counts": {
+            "COMPARABLE": 26,
+            "EXPOSURE_CENSORED": 4,
+            "METHOD_FAILURE_NOT_CENSORING": 0
+          },
+          "episode_count": 30,
+          "evaluation_output_sha256": "sha256:cc92e470fcac2e0e0025ea359d4a9524690ebe88da0e10891a5b4210fa73aeee",
+          "exposure_counts": {
+            "EARLY_TERMINATED": 4,
+            "FULL_EXPOSURE": 26,
+            "NO_EXPOSURE": 0
+          },
+          "mean_bound_pct": {
+            "lower_pct": 23.80963,
+            "reason": null,
+            "state": "OBSERVED",
+            "upper_pct": 24.654074,
+            "width_pct": 0.844444
+          },
+          "outcome_counts": {
+            "NONFINITE": 0,
+            "NULL": 0,
+            "OBSERVED": 30
+          },
+          "realized_timesteps": 122880,
+          "terminal_counts": {
+            "CANCELLED": 0,
+            "COMPLETED": 30,
+            "FAILED": 0
+          },
+          "training_terminal_state": "COMPLETED",
+          "within_replicate_level_sd_pct": null,
+          "within_replicate_level_sd_reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES"
+        },
+        {
+          "arm_id": "V7C_FILTERED_ACTION",
+          "cell_state": "PARTIALLY_IDENTIFIED",
+          "comparability_counts": {
+            "COMPARABLE": 0,
+            "EXPOSURE_CENSORED": 30,
+            "METHOD_FAILURE_NOT_CENSORING": 0
+          },
+          "episode_count": 30,
+          "evaluation_output_sha256": "sha256:b1bdfd5ce688c5fc0fff0812e8f5d4360fe45d54926f9b37630307d0e1fc4c15",
+          "exposure_counts": {
+            "EARLY_TERMINATED": 30,
+            "FULL_EXPOSURE": 0,
+            "NO_EXPOSURE": 0
+          },
+          "mean_bound_pct": {
+            "lower_pct": 0.0,
+            "reason": null,
+            "state": "OBSERVED",
+            "upper_pct": 64.133333,
+            "width_pct": 64.133333
+          },
+          "outcome_counts": {
+            "NONFINITE": 0,
+            "NULL": 30,
+            "OBSERVED": 0
+          },
+          "realized_timesteps": 122880,
+          "terminal_counts": {
+            "CANCELLED": 0,
+            "COMPLETED": 30,
+            "FAILED": 0
+          },
+          "training_terminal_state": "COMPLETED",
+          "within_replicate_level_sd_pct": null,
+          "within_replicate_level_sd_reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES"
+        }
+      ],
+      "environment_seed_block": [
+        8760,
+        8771
+      ],
+      "replicate_index": 2,
+      "training_seed": 8760
+    },
+    {
+      "arms": [
+        {
+          "arm_id": "V7A_REWARD_ONLY",
+          "cell_state": "PARTIALLY_IDENTIFIED",
+          "comparability_counts": {
+            "COMPARABLE": 25,
+            "EXPOSURE_CENSORED": 5,
+            "METHOD_FAILURE_NOT_CENSORING": 0
+          },
+          "episode_count": 30,
+          "evaluation_output_sha256": "sha256:f4c0ba329d0532f062e627d9d8919f40e611fb6d2fb40c00a6db3b9834654f45",
+          "exposure_counts": {
+            "EARLY_TERMINATED": 5,
+            "FULL_EXPOSURE": 25,
+            "NO_EXPOSURE": 0
+          },
+          "mean_bound_pct": {
+            "lower_pct": 36.084445,
+            "reason": null,
+            "state": "OBSERVED",
+            "upper_pct": 36.491852,
+            "width_pct": 0.407407
+          },
+          "outcome_counts": {
+            "NONFINITE": 0,
+            "NULL": 0,
+            "OBSERVED": 30
+          },
+          "realized_timesteps": 122880,
+          "terminal_counts": {
+            "CANCELLED": 0,
+            "COMPLETED": 30,
+            "FAILED": 0
+          },
+          "training_terminal_state": "COMPLETED",
+          "within_replicate_level_sd_pct": null,
+          "within_replicate_level_sd_reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES"
+        },
+        {
+          "arm_id": "V7B_REDUCED_JOINT_ENVELOPE",
+          "cell_state": "PARTIALLY_IDENTIFIED",
+          "comparability_counts": {
+            "COMPARABLE": 24,
+            "EXPOSURE_CENSORED": 6,
+            "METHOD_FAILURE_NOT_CENSORING": 0
+          },
+          "episode_count": 30,
+          "evaluation_output_sha256": "sha256:8491ea9a3da4be6f420815aa67df1f2755127edde8858b0526394a00fbd55e8c",
+          "exposure_counts": {
+            "EARLY_TERMINATED": 6,
+            "FULL_EXPOSURE": 24,
+            "NO_EXPOSURE": 0
+          },
+          "mean_bound_pct": {
+            "lower_pct": 24.741481,
+            "reason": null,
+            "state": "OBSERVED",
+            "upper_pct": 25.422963,
+            "width_pct": 0.681482
+          },
+          "outcome_counts": {
+            "NONFINITE": 0,
+            "NULL": 0,
+            "OBSERVED": 30
+          },
+          "realized_timesteps": 122880,
+          "terminal_counts": {
+            "CANCELLED": 0,
+            "COMPLETED": 30,
+            "FAILED": 0
+          },
+          "training_terminal_state": "COMPLETED",
+          "within_replicate_level_sd_pct": null,
+          "within_replicate_level_sd_reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES"
+        },
+        {
+          "arm_id": "V7C_FILTERED_ACTION",
+          "cell_state": "PARTIALLY_IDENTIFIED",
+          "comparability_counts": {
+            "COMPARABLE": 0,
+            "EXPOSURE_CENSORED": 30,
+            "METHOD_FAILURE_NOT_CENSORING": 0
+          },
+          "episode_count": 30,
+          "evaluation_output_sha256": "sha256:1cc81c498e2394410ef817f716c62d87137a0cf7b35c8523508653fe231a1136",
+          "exposure_counts": {
+            "EARLY_TERMINATED": 30,
+            "FULL_EXPOSURE": 0,
+            "NO_EXPOSURE": 0
+          },
+          "mean_bound_pct": {
+            "lower_pct": 0.0,
+            "reason": null,
+            "state": "OBSERVED",
+            "upper_pct": 64.466667,
+            "width_pct": 64.466667
+          },
+          "outcome_counts": {
+            "NONFINITE": 0,
+            "NULL": 30,
+            "OBSERVED": 0
+          },
+          "realized_timesteps": 122880,
+          "terminal_counts": {
+            "CANCELLED": 0,
+            "COMPLETED": 30,
+            "FAILED": 0
+          },
+          "training_terminal_state": "COMPLETED",
+          "within_replicate_level_sd_pct": null,
+          "within_replicate_level_sd_reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES"
+        }
+      ],
+      "environment_seed_block": [
+        8780,
+        8791
+      ],
+      "replicate_index": 3,
+      "training_seed": 8780
+    },
+    {
+      "arms": [
+        {
+          "arm_id": "V7A_REWARD_ONLY",
+          "cell_state": "PARTIALLY_IDENTIFIED",
+          "comparability_counts": {
+            "COMPARABLE": 29,
+            "EXPOSURE_CENSORED": 1,
+            "METHOD_FAILURE_NOT_CENSORING": 0
+          },
+          "episode_count": 30,
+          "evaluation_output_sha256": "sha256:aa6129bddcb3ee970331f262393986dcdd752345d81e961f1958088d8a7aeed7",
+          "exposure_counts": {
+            "EARLY_TERMINATED": 1,
+            "FULL_EXPOSURE": 29,
+            "NO_EXPOSURE": 0
+          },
+          "mean_bound_pct": {
+            "lower_pct": 37.567407,
+            "reason": null,
+            "state": "OBSERVED",
+            "upper_pct": 37.752593,
+            "width_pct": 0.185186
+          },
+          "outcome_counts": {
+            "NONFINITE": 0,
+            "NULL": 0,
+            "OBSERVED": 30
+          },
+          "realized_timesteps": 122880,
+          "terminal_counts": {
+            "CANCELLED": 0,
+            "COMPLETED": 30,
+            "FAILED": 0
+          },
+          "training_terminal_state": "COMPLETED",
+          "within_replicate_level_sd_pct": null,
+          "within_replicate_level_sd_reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES"
+        },
+        {
+          "arm_id": "V7B_REDUCED_JOINT_ENVELOPE",
+          "cell_state": "PARTIALLY_IDENTIFIED",
+          "comparability_counts": {
+            "COMPARABLE": 22,
+            "EXPOSURE_CENSORED": 8,
+            "METHOD_FAILURE_NOT_CENSORING": 0
+          },
+          "episode_count": 30,
+          "evaluation_output_sha256": "sha256:bf2f935d2e988f696502883700f3a4c4d42bd8d5bf5834aec9b54693c2ad534a",
+          "exposure_counts": {
+            "EARLY_TERMINATED": 8,
+            "FULL_EXPOSURE": 22,
+            "NO_EXPOSURE": 0
+          },
+          "mean_bound_pct": {
+            "lower_pct": 23.447407,
+            "reason": null,
+            "state": "OBSERVED",
+            "upper_pct": 24.706667,
+            "width_pct": 1.25926
+          },
+          "outcome_counts": {
+            "NONFINITE": 0,
+            "NULL": 0,
+            "OBSERVED": 30
+          },
+          "realized_timesteps": 122880,
+          "terminal_counts": {
+            "CANCELLED": 0,
+            "COMPLETED": 30,
+            "FAILED": 0
+          },
+          "training_terminal_state": "COMPLETED",
+          "within_replicate_level_sd_pct": null,
+          "within_replicate_level_sd_reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES"
+        },
+        {
+          "arm_id": "V7C_FILTERED_ACTION",
+          "cell_state": "PARTIALLY_IDENTIFIED",
+          "comparability_counts": {
+            "COMPARABLE": 0,
+            "EXPOSURE_CENSORED": 30,
+            "METHOD_FAILURE_NOT_CENSORING": 0
+          },
+          "episode_count": 30,
+          "evaluation_output_sha256": "sha256:5dd501b2108c047b921fd5e5729928df8a30a11caeda2f17672bd04ea533beb8",
+          "exposure_counts": {
+            "EARLY_TERMINATED": 30,
+            "FULL_EXPOSURE": 0,
+            "NO_EXPOSURE": 0
+          },
+          "mean_bound_pct": {
+            "lower_pct": 0.0,
+            "reason": null,
+            "state": "OBSERVED",
+            "upper_pct": 64.637037,
+            "width_pct": 64.637037
+          },
+          "outcome_counts": {
+            "NONFINITE": 0,
+            "NULL": 30,
+            "OBSERVED": 0
+          },
+          "realized_timesteps": 122880,
+          "terminal_counts": {
+            "CANCELLED": 0,
+            "COMPLETED": 30,
+            "FAILED": 0
+          },
+          "training_terminal_state": "COMPLETED",
+          "within_replicate_level_sd_pct": null,
+          "within_replicate_level_sd_reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES"
+        }
+      ],
+      "environment_seed_block": [
+        8800,
+        8811
+      ],
+      "replicate_index": 4,
+      "training_seed": 8800
+    }
+  ],
+  "retained_blockers": [
+    {
+      "arm_id": "V7A_REWARD_ONLY",
+      "reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES",
+      "replicate_index": 2,
+      "scope": "cell",
+      "state": "PARTIALLY_IDENTIFIED"
+    },
+    {
+      "arm_id": "V7A_REWARD_ONLY",
+      "reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES",
+      "replicate_index": 3,
+      "scope": "cell",
+      "state": "PARTIALLY_IDENTIFIED"
+    },
+    {
+      "arm_id": "V7A_REWARD_ONLY",
+      "reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES",
+      "replicate_index": 4,
+      "scope": "cell",
+      "state": "PARTIALLY_IDENTIFIED"
+    },
+    {
+      "arm_id": "V7B_REDUCED_JOINT_ENVELOPE",
+      "reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES",
+      "replicate_index": 0,
+      "scope": "cell",
+      "state": "PARTIALLY_IDENTIFIED"
+    },
+    {
+      "arm_id": "V7B_REDUCED_JOINT_ENVELOPE",
+      "reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES",
+      "replicate_index": 1,
+      "scope": "cell",
+      "state": "PARTIALLY_IDENTIFIED"
+    },
+    {
+      "arm_id": "V7B_REDUCED_JOINT_ENVELOPE",
+      "reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES",
+      "replicate_index": 2,
+      "scope": "cell",
+      "state": "PARTIALLY_IDENTIFIED"
+    },
+    {
+      "arm_id": "V7B_REDUCED_JOINT_ENVELOPE",
+      "reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES",
+      "replicate_index": 3,
+      "scope": "cell",
+      "state": "PARTIALLY_IDENTIFIED"
+    },
+    {
+      "arm_id": "V7B_REDUCED_JOINT_ENVELOPE",
+      "reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES",
+      "replicate_index": 4,
+      "scope": "cell",
+      "state": "PARTIALLY_IDENTIFIED"
+    },
+    {
+      "arm_id": "V7C_FILTERED_ACTION",
+      "reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES",
+      "replicate_index": 0,
+      "scope": "cell",
+      "state": "PARTIALLY_IDENTIFIED"
+    },
+    {
+      "arm_id": "V7C_FILTERED_ACTION",
+      "reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES",
+      "replicate_index": 1,
+      "scope": "cell",
+      "state": "PARTIALLY_IDENTIFIED"
+    },
+    {
+      "arm_id": "V7C_FILTERED_ACTION",
+      "reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES",
+      "replicate_index": 2,
+      "scope": "cell",
+      "state": "PARTIALLY_IDENTIFIED"
+    },
+    {
+      "arm_id": "V7C_FILTERED_ACTION",
+      "reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES",
+      "replicate_index": 3,
+      "scope": "cell",
+      "state": "PARTIALLY_IDENTIFIED"
+    },
+    {
+      "arm_id": "V7C_FILTERED_ACTION",
+      "reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES",
+      "replicate_index": 4,
+      "scope": "cell",
+      "state": "PARTIALLY_IDENTIFIED"
+    },
+    {
+      "arm_id": "V7B_REDUCED_JOINT_ENVELOPE",
+      "reason": "BLOCKED_PARTIALLY_IDENTIFIED_REPLICATE_DIFFERENCES",
+      "replicate_index": null,
+      "scope": "method_level",
+      "state": "BETWEEN_REPLICATE_SD_WITHHELD"
+    },
+    {
+      "arm_id": "V7C_FILTERED_ACTION",
+      "reason": "BLOCKED_PARTIALLY_IDENTIFIED_REPLICATE_DIFFERENCES",
+      "replicate_index": null,
+      "scope": "method_level",
+      "state": "BETWEEN_REPLICATE_SD_WITHHELD"
+    },
+    {
+      "arm_id": "V7C_FILTERED_ACTION",
+      "reason": "METHOD_LEVEL_BOUND_CONTAINS_ZERO",
+      "replicate_index": null,
+      "scope": "method_level",
+      "state": "SIGN_UNIDENTIFIED"
+    }
+  ],
+  "schema_version": "TRAINING_SEED_VARIANCE_SUMMARY_V1",
+  "seed_variance_status": "SEED_VARIANCE_EVIDENCE_COMPLETE_WITH_RETAINED_BLOCKERS",
+  "selected_candidate_arm_id": null,
+  "selection_permitted": false,
+  "source_git_sha_post": "12bfddfc5143298d43db6b3a2e477c5e05e2856d",
+  "source_git_sha_pre": "12bfddfc5143298d43db6b3a2e477c5e05e2856d",
+  "statistics_ready": false,
+  "terminal_record_count": 450,
+  "training_replicate_scope": "CONDITIONAL_ON_FIXED_WARM_START",
+  "training_seeds": [
+    8720,
+    8740,
+    8760,
+    8780,
+    8800
+  ],
+  "within_replicate_level_sd": {
+    "V7A_REWARD_ONLY": {
+      "mean_level_sd_pct": null,
+      "per_replicate": [
+        {
+          "level_sd_pct": 1.091723,
+          "reason": null,
+          "replicate_index": 0
+        },
+        {
+          "level_sd_pct": 1.103957,
+          "reason": null,
+          "replicate_index": 1
+        },
+        {
+          "level_sd_pct": null,
+          "reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES",
+          "replicate_index": 2
+        },
+        {
+          "level_sd_pct": null,
+          "reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES",
+          "replicate_index": 3
+        },
+        {
+          "level_sd_pct": null,
+          "reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES",
+          "replicate_index": 4
+        }
+      ]
+    },
+    "V7B_REDUCED_JOINT_ENVELOPE": {
+      "mean_level_sd_pct": null,
+      "per_replicate": [
+        {
+          "level_sd_pct": null,
+          "reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES",
+          "replicate_index": 0
+        },
+        {
+          "level_sd_pct": null,
+          "reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES",
+          "replicate_index": 1
+        },
+        {
+          "level_sd_pct": null,
+          "reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES",
+          "replicate_index": 2
+        },
+        {
+          "level_sd_pct": null,
+          "reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES",
+          "replicate_index": 3
+        },
+        {
+          "level_sd_pct": null,
+          "reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES",
+          "replicate_index": 4
+        }
+      ]
+    },
+    "V7C_FILTERED_ACTION": {
+      "mean_level_sd_pct": null,
+      "per_replicate": [
+        {
+          "level_sd_pct": null,
+          "reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES",
+          "replicate_index": 0
+        },
+        {
+          "level_sd_pct": null,
+          "reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES",
+          "replicate_index": 1
+        },
+        {
+          "level_sd_pct": null,
+          "reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES",
+          "replicate_index": 2
+        },
+        {
+          "level_sd_pct": null,
+          "reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES",
+          "replicate_index": 3
+        },
+        {
+          "level_sd_pct": null,
+          "reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES",
+          "replicate_index": 4
+        }
+      ]
+    }
+  }
+}

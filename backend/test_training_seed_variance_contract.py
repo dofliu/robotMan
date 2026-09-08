@@ -413,10 +413,40 @@ def test_realized_budget_must_match_the_frozen_expectation(raw: dict, protocol: 
         validate_raw_bundle(raw, protocol)
 
 
-def test_audit_protocol_digest_must_be_the_frozen_one(raw: dict, protocol: dict) -> None:
-    _cell(raw, 0, REFERENCE_ARM_ID)["audit_protocol_sha256"] = "sha256:" + "0" * 64
-    with pytest.raises(SeedVarianceError, match="frozen audit digest"):
+@pytest.mark.parametrize(
+    ("field", "message"),
+    [
+        ("audit_protocol_sha256", "frozen audit digest"),
+        ("audit_contract_source_sha256", "pinned audit implementation"),
+        ("pilot_contract_source_sha256", "pinned pilot implementation"),
+    ],
+)
+def test_inherited_classification_provenance_must_match(
+    raw: dict, protocol: dict, field: str, message: str
+) -> None:
+    """The protocol says which rules; the source pins say which code applied them."""
+    _cell(raw, 0, REFERENCE_ARM_ID)[field] = "sha256:" + "0" * 64
+    with pytest.raises(SeedVarianceError, match=message):
         validate_raw_bundle(raw, protocol)
+
+
+def test_pinned_implementations_are_re_hashed_against_disk(raw: dict) -> None:
+    """A pin copied into a field is only a string until it is checked."""
+    assert svc.verify_inherited_implementations()["inherited_implementations_verified"] is True
+
+
+def test_evaluation_output_digest_is_carried_into_the_summary(
+    raw: dict, protocol: dict
+) -> None:
+    digest = "sha256:" + "7" * 64
+    _cell(raw, 0, REFERENCE_ARM_ID)["evaluation_output_sha256"] = digest
+    summary = build_summary(raw, protocol)
+    cell = next(
+        item
+        for item in summary["replicates"][0]["arms"]
+        if item["arm_id"] == REFERENCE_ARM_ID
+    )
+    assert cell["evaluation_output_sha256"] == digest
 
 
 @pytest.mark.parametrize(
@@ -1114,3 +1144,113 @@ def test_fixture_paired_differences_vary_between_replicates(
         # spread, not orders of magnitude below it.
         assert method_level["between_replicate_sd_pp"] > 0.5
         assert method_level["variance_ratio_between_over_within"] > 0.5
+
+
+# --------------------------------------------------------------------------- #
+# amendments may only narrow, and only before execution
+# --------------------------------------------------------------------------- #
+
+
+def test_frozen_protocol_carries_the_pre_execution_driver_amendment(protocol: dict) -> None:
+    amendment = protocol["amendment"]
+    assert amendment["amendment_id"] == "SEEDVAR-AMENDMENT-01-DRIVER-IDENTITY"
+    assert amendment["applied_before_any_execution"] is True
+    assert amendment["narrowing_only"] is True
+    assert amendment["superseded_pins"]["training_driver_source_sha256"].startswith("sha256:")
+    for item in (
+        "training seed schedule and environment seed blocks",
+        "analysis unit and forbidden denominators",
+        "exposure censoring composition rules",
+        "the prohibition on selection",
+    ):
+        assert item in amendment["unchanged_by_this_amendment"]
+
+
+@pytest.mark.parametrize(
+    ("mutate", "message"),
+    [
+        (
+            lambda payload: payload["amendment"].update({"narrowing_only": False}),
+            "must be narrowing only",
+        ),
+        (
+            lambda payload: payload["amendment"].update(
+                {"applied_before_any_execution": False}
+            ),
+            "before any execution",
+        ),
+        (
+            lambda payload: payload["amendment"].update({"defect": ""}),
+            "defect",
+        ),
+        (
+            lambda payload: payload["amendment"].update({"resolution": ""}),
+            "resolution",
+        ),
+    ],
+)
+def test_widening_or_post_hoc_amendment_fails_closed(
+    protocol: dict, mutate, message: str
+) -> None:
+    """A post-hoc amendment would let the design be rewritten around the data."""
+    payload = deepcopy(protocol)
+    mutate(payload)
+    with pytest.raises(SeedVarianceError, match=message):
+        svc.validate_protocol(payload)
+
+
+# --------------------------------------------------------------------------- #
+# the retained execution evidence
+# --------------------------------------------------------------------------- #
+
+EVIDENCE_ROOTS = sorted((BACKEND_ROOT / "seed_variance_evidence").glob("*/"))
+
+
+def test_execution_evidence_is_retained() -> None:
+    assert EVIDENCE_ROOTS, "no seed-variance execution evidence is committed"
+
+
+@pytest.mark.parametrize("root", EVIDENCE_ROOTS, ids=lambda item: item.name)
+def test_retained_evidence_revalidates_and_replays_exactly(root: Path) -> None:
+    """The committed evidence must stand on its own, off the machine that made it."""
+    receipt_path = root / "analysis" / svc.RECEIPT_ARTIFACT
+    validation = validate_seed_variance_bundle(receipt_path)
+    assert validation["contract_valid"] is True
+    assert validation["analysis_unit"] == "TRAINING_REPLICATE"
+    assert validation["selected_candidate_arm_id"] is None
+    assert validation["method_level_power_ready"] is False
+    assert validation["paper_data_ready"] is False
+
+    summary = json.loads(
+        (root / "analysis" / SUMMARY_ARTIFACT).read_text(encoding="utf-8")
+    )
+    assert summary["bundle_class"] == DEVELOPMENT_BUNDLE_CLASS
+    assert summary["terminal_record_count"] == 450
+    assert summary["replicate_count"] == 5
+    for candidate in summary["candidates"]:
+        method_level = candidate["method_level"]
+        # The whole point of the protocol: the denominator is the replicate
+        # count, never the episode-pair count.
+        assert method_level["method_level_n"] == 5
+        assert method_level["method_level_n"] not in summary["forbidden_denominators"]
+
+    replay = svc.run_replay(root / "bundle", root / "analysis" / SUMMARY_ARTIFACT)
+    assert replay["replay_exact"] is True
+
+
+@pytest.mark.parametrize("root", EVIDENCE_ROOTS, ids=lambda item: item.name)
+def test_retained_evidence_keeps_every_censored_episode(root: Path) -> None:
+    """187 of 450 episodes are censored; none of them may be dropped."""
+    raw = json.loads(
+        (root / "bundle" / RAW_ARTIFACT).read_text(encoding="utf-8")
+    )
+    states: dict[str, int] = {}
+    for replicate in raw["replicates"]:
+        for cell in replicate["arms"]:
+            assert len(cell["episodes"]) == 30
+            for episode in cell["episodes"]:
+                states[episode["comparability_state"]] = (
+                    states.get(episode["comparability_state"], 0) + 1
+                )
+    assert sum(states.values()) == 450
+    assert states.get("EXPOSURE_CENSORED", 0) > 0

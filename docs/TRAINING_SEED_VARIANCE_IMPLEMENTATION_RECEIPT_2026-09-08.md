@@ -25,12 +25,19 @@ Machine-readable protocol：
 [RESULT] 完成：protocol 凍結（spec + machine-readable contract）、evidence
 contract 實作、獨立 stdlib-only replay、synthetic regression 驗證。
 
-[BLOCKER] 未完成：**實際訓練沒有執行**。protocol 要求
-`3 arms × 5 replicates × 122,880 = 1,843,200` timesteps，是 v7 pilot
-（`368,640`）的 5 倍，需要算力。因此本 receipt 不含任何 v7 method-level
-variance 數值，`method_level_power_ready` 維持 `false`，
-`formal_sample_size_decision` 維持
-`BLOCKED_UNTIL_THIS_PROTOCOL_EXECUTES`。
+[RESULT] 本 receipt 記錄的是**軟體與 synthetic regression**。實際執行已於同日
+完成，數值與保留證據見
+[execution receipt](TRAINING_SEED_VARIANCE_EXECUTION_RECEIPT_2026-09-08.md)：
+`1,843,200` realized timesteps、450 個 terminal records、0 失敗。
+
+[BLOCKER] 執行完成不解除 blockers。`between_replicate_sd` 因每個 replicate 都有
+exposure censoring 而為 `null`，`method_level_power_ready` 與
+`sample_size_decision_input_ready` 維持 `false`，`selected_candidate_arm_id`
+維持 `null`。
+
+[BLOCKER] 本 protocol 凍結時**無法執行**：兩個被 pin 住的 driver 分別鎖定單一
+seed 與 pilot 自己的 artifact 目錄。詳見
+[Amendment 01](TRAINING_SEED_VARIANCE_SPEC.md)。
 
 ## 2. Plant identity：一個附帶量到的事實
 
@@ -97,17 +104,25 @@ reason `BLOCKED_PARTIALLY_IDENTIFIED_REPLICATE_DIFFERENCES`。Sample SD 沒有
 
 ## 4. Synthetic regression 結果
 
-[RESULT] Clean source `7d961cbf767447ae967d4e2264b460e20c0595ee`，
-19 artifacts / `978501` bytes。Environment lock 以 `OMP_NUM_THREADS=1` 實際
-設定後 capture，`locked_sha256`
-`sha256:3c48f040ee3b104f7e543f3366830e692dafa24645c083f6823a74463fcb7642`
-（`MEASURED_ENVIRONMENT_LOCK` / `FULL_LOCK` / `AMBIENT_THREADING_PINNED`）。
+[RESULT] Case 行為如下表，可由
 
-| Case | Status | Blockers | Summary SHA-256 | Replay |
-| --- | --- | --- | --- | --- |
-| `all-comparable` | `SEED_VARIANCE_EVIDENCE_COMPLETE` | `0` | `61561d8500ff94615030dc3a10ec8766b01be6e9ec0f90f7c2b6cf988c3d6632` | exact |
-| `censored-candidate` | `..._WITH_RETAINED_BLOCKERS` | `7` | `80433015a9d659cfe88f0fd35a61412f3c52b6e1d9c65cf90bf02e8b07ac0d72` | exact |
-| `method-failure` | `..._WITH_RETAINED_BLOCKERS` | `2` | `de9670dbcf9348c670dd2a84ec9050d9e2a1e21f7e317a76a607ba4e5210092c` | exact |
+```text
+python backend/build_training_seed_variance_regression_bundle.py <out>
+```
+
+在 clean worktree 上重現；Environment lock 以 `OMP_NUM_THREADS=1` 實際設定後
+capture，為 `MEASURED_ENVIRONMENT_LOCK` / `FULL_LOCK` /
+`AMBIENT_THREADING_PINNED`。
+
+Summary digest 不列在此：`protocol_sha256` 是 summary 的一個欄位，所以每次
+protocol re-freeze（如 Amendment 01）都會改變它。穩定且值得檢核的是行為，
+數值 digest 見該指令輸出的 package receipt。
+
+| Case | Status | Blockers | Replay |
+| --- | --- | --- | --- |
+| `all-comparable` | `SEED_VARIANCE_EVIDENCE_COMPLETE` | `0` | exact |
+| `censored-candidate` | `..._WITH_RETAINED_BLOCKERS` | `7` | exact |
+| `method-failure` | `..._WITH_RETAINED_BLOCKERS` | `2` | exact |
 
 逐 case 的 method-level 輸出：
 

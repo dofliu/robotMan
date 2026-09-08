@@ -28,7 +28,16 @@ from rl.action_interface_v7 import (
     resolve_v7_action_interface,
 )
 from rl.policy_registry import sha256_file
-from rl.train_ppo import git_source_identity, make_env, resolve_profile
+from rl.train_ppo import (
+    SEEDVAR_PROFILE_SUFFIX,
+    SEEDVAR_PROTOCOL_ID,
+    SEEDVAR_PROTOCOL_PATH,
+    git_source_identity,
+    load_seedvar_protocol,
+    make_env,
+    resolve_profile,
+    seedvar_run_id,
+)
 
 
 SOURCE_FILES = (
@@ -77,6 +86,7 @@ def evaluate(
     seed_base: int,
     *,
     pilot_arm_id: str | None = None,
+    seedvar_replicate_index: int | None = None,
 ) -> dict:
     from stable_baselines3 import PPO
 
@@ -87,8 +97,54 @@ def evaluate(
         raise FileNotFoundError("evaluation policy artifact 不存在或不是 .zip")
     profile = resolve_profile(profile_id)
     pilot_protocol = None
+    seedvar_protocol = None
     pilot_interface = None
-    if pilot_arm_id is not None:
+    if seedvar_replicate_index is not None and pilot_arm_id is None:
+        raise ValueError("SEEDVAR_EVALUATION_ARM_REQUIRED")
+    if pilot_arm_id is not None and seedvar_replicate_index is not None:
+        # A replicate evaluation needs the same trace-emitting path as the
+        # pilot's, because the exposure audit consumes control_step_trace; what
+        # it must not inherit is the pilot's single-run identity.
+        protocol = load_seedvar_protocol()
+        design = protocol["evaluation_design"]
+        pilot_interface = resolve_v7_action_interface(pilot_arm_id)
+        expected_seeds = list(
+            range(design["evaluation_seed_start"], design["evaluation_seed_end"] + 1)
+        )
+        replicate_count = protocol["training_design"]["replicate_count"]
+        if not 0 <= seedvar_replicate_index < replicate_count:
+            raise ValueError("SEEDVAR_EVALUATION_REPLICATE_INDEX_OUT_OF_RANGE")
+        if profile.seedvar_protocol_id != SEEDVAR_PROTOCOL_ID:
+            raise ValueError("SEEDVAR_EVALUATION_PROFILE_PROTOCOL_MISMATCH")
+        if profile.pilot_arm_id != pilot_arm_id:
+            raise ValueError("SEEDVAR_EVALUATION_ARM_MISMATCH")
+        if profile_id != pilot_interface.profile_id + SEEDVAR_PROFILE_SUFFIX:
+            raise ValueError("SEEDVAR_EVALUATION_PROFILE_MISMATCH")
+        if episodes != len(expected_seeds) or seed_base != expected_seeds[0]:
+            raise ValueError("SEEDVAR_EVALUATION_SEED_SCHEDULE_OVERRIDE_FORBIDDEN")
+        expected_model_path = (
+            Path(__file__).parent
+            / "artifacts"
+            / seedvar_run_id(profile, seedvar_replicate_index)
+            / "policy.zip"
+        ).resolve()
+        if model_path != expected_model_path:
+            raise ValueError("SEEDVAR_EVALUATION_POLICY_PATH_MISMATCH")
+        seedvar_protocol = {
+            "protocol_id": SEEDVAR_PROTOCOL_ID,
+            "arm_id": pilot_arm_id,
+            "replicate_index": seedvar_replicate_index,
+            "training_seed": protocol["training_design"]["training_seeds"][
+                seedvar_replicate_index
+            ],
+            "path": str(
+                SEEDVAR_PROTOCOL_PATH.relative_to(Path(__file__).parents[2])
+            ).replace("\\", "/"),
+            "bytes": SEEDVAR_PROTOCOL_PATH.stat().st_size,
+            "sha256": f"sha256:{sha256_file(SEEDVAR_PROTOCOL_PATH)}",
+            "inherited_pilot_protocol_sha256": f"sha256:{sha256_file(V7_PROTOCOL_PATH)}",
+        }
+    elif pilot_arm_id is not None:
         protocol = load_v7_protocol()
         pilot_interface = resolve_v7_action_interface(pilot_arm_id)
         arm = next(
@@ -508,6 +564,8 @@ def evaluate(
     }
     if pilot_protocol is not None:
         result["pilot_protocol"] = pilot_protocol
+    if seedvar_protocol is not None:
+        result["seedvar_protocol"] = seedvar_protocol
         result["action_interface"] = action_interface_contract
     return result
 
@@ -524,6 +582,14 @@ def main() -> None:
         "V7B_REDUCED_JOINT_ENVELOPE",
         "V7C_FILTERED_ACTION",
     ])
+    parser.add_argument(
+        "--seedvar-replicate-index",
+        type=int,
+        help=(
+            "SEEDVAR-V7-TRAINING-REPLICATE-DEV-V1 replicate index. Selects the "
+            "replicate's own artifact directory instead of the pilot's."
+        ),
+    )
     args = parser.parse_args()
     repository = Path(__file__).parents[2]
     if args.episodes <= 0 or args.seed_base < 0:
@@ -531,7 +597,24 @@ def main() -> None:
     output_path = args.output.resolve() if args.output is not None else None
     if output_path is not None and output_path.exists():
         raise FileExistsError("evaluation output 已存在，禁止覆寫")
-    if args.pilot_arm is not None:
+    if args.seedvar_replicate_index is not None and args.pilot_arm is None:
+        raise ValueError("SEEDVAR_EVALUATION_ARM_REQUIRED")
+    if args.pilot_arm is not None and args.seedvar_replicate_index is not None:
+        if output_path is None:
+            raise ValueError("seed-variance evaluation 必須指定 --output")
+        profile = resolve_profile(args.profile)
+        expected_dir = (
+            Path(__file__).parent
+            / "artifacts"
+            / seedvar_run_id(profile, args.seedvar_replicate_index)
+        ).resolve()
+        expected_model = expected_dir / "policy.zip"
+        expected_output = expected_dir / "evaluation_dev18000_18029.json"
+        if args.model_path.resolve() != expected_model:
+            raise ValueError("SEEDVAR_EVALUATION_POLICY_PATH_MISMATCH")
+        if output_path != expected_output:
+            raise ValueError("SEEDVAR_EVALUATION_OUTPUT_PATH_MISMATCH")
+    elif args.pilot_arm is not None:
         if output_path is None:
             raise ValueError("v7 pilot evaluation 必須指定 --output")
         protocol = load_v7_protocol()
@@ -555,6 +638,7 @@ def main() -> None:
             args.episodes,
             args.seed_base,
             pilot_arm_id=args.pilot_arm,
+            seedvar_replicate_index=args.seedvar_replicate_index,
         )
     except BaseException as exc:
         if output_path is not None and not output_path.exists():

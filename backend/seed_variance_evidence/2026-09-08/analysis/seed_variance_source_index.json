@@ -1,0 +1,23 @@
+{
+  "artifact_count": 3,
+  "artifacts": [
+    {
+      "bytes": 18600,
+      "path": "training_seed_variance_protocol.json",
+      "sha256": "sha256:9ab17c74ddb021f9b69b1df843f9fa49ea45ecf790837204270d8bc01046b359"
+    },
+    {
+      "bytes": 4233,
+      "path": "environment_lock.json",
+      "sha256": "sha256:3a6fb310750dc84f46d65df72d9ea43663b24c97778f81312efdcea1dcfff604"
+    },
+    {
+      "bytes": 276673,
+      "path": "raw_replicates.json",
+      "sha256": "sha256:0fe9c0b9e8cc81446f64c9522bb5c64ef5b1c4bc2ea054f3ef651ac859ff4535"
+    }
+  ],
+  "protocol_id": "SEEDVAR-V7-TRAINING-REPLICATE-DEV-V1",
+  "schema_version": "TRAINING_SEED_VARIANCE_SOURCE_INDEX_V1",
+  "total_bytes": 299506
+}

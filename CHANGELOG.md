@@ -2,6 +2,31 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-08 (f)
+
+### `SEEDVAR-V7-TRAINING-REPLICATE-DEV-V1` 實際執行完成
+
+- **凍結的 protocol 一開始是無法執行的**，而 freeze 沒有抓到這件事。`train_ppo.py` 對任何 v7 profile 硬性要求 `seed_base == 8700`，`eval_policy.py` 只在 pilot 路徑輸出 `control_step_trace` 且該路徑強制 pilot 自己的 artifact 目錄。凍結時把兩個 driver 都以 digest pin 住，卻沒有檢查它們能不能跑本設計。記錄為 [Amendment 01](docs/TRAINING_SEED_VARIANCE_SPEC.md)（執行前、narrowing-only），並在 `validate_protocol` 強制 amendment 必須同時聲明 narrowing-only 與 applied-before-any-execution——事後的 amendment 等於讓設計繞著資料重寫。
+- 兩個 driver 各加一個**互斥**的 frozen identity：v7 profile 必須且只能宣告一個 governing protocol；replicate 的 training seed 由 protocol 依 index 解析，**永遠不能**由 CLI 提供。Pilot branch 的檢查順序原樣保留——我第一版把共用檢查上提，害得 arm 換掉時先觸發的 rejection 從 `V7_PROFILE_ID_MISMATCH` 變成 `V7_ENVIRONMENT_ID_MISMATCH`，被 pilot 自己的測試抓到並還原。
+- 選擇擴充而非另寫 driver：另寫會複製 PPO geometry、warm-start transplant 與 artifact 寫入，而與 pilot 的可比性正建立在這些**完全相同**之上，兩份副本無聲分歧的風險更大。
+
+### 實測結果
+
+- [RESULT] `3 arms × 5 replicates × 122,880 = 1,843,200` realized timesteps、**450 個 terminal records、0 失敗**、獨立 `python -I -S` replay exact。每 run 約 `73` s（4 cores、`OMP_NUM_THREADS=1`）。證據保留於 `backend/seed_variance_evidence/2026-09-08/`。
+- [RESULT] **V7B 相對 V7A 的方向跨獨立 seed 成立**：method-level bound `[-13.503408, -12.435259]` pp，**排除 0**，sign `NEGATIVE`，`5/5` replicates 方向可識別。這比 pilot 的單一 checkpoint 證據更強。
+- [BLOCKER] **但 `between_replicate_sd` 仍是 `null`**（`BLOCKED_PARTIALLY_IDENTIFIED_REPLICATE_DIFFERENCES`）：每個 replicate 至少有一臂被 censored，5 個 paired difference 全是 interval，sample SD 沒有定義在 interval 上。`sample_size_decision_input_ready = false`，**sample-size 決策仍然 blocked**。方向可識別與變異可估計是兩件事，本次同時給出前者、拒絕後者。
+- [RESULT] **第一個新發現：pilot 那個乾淨的 reference 是 seed 的性質，不是 arm 的性質。** Pilot 的 V7A 在 seed `8700` 上是 30/30 full exposure、sd `0`；在 5 個獨立 seeds 上 V7A 有 3 個 replicate 出現 early termination（r2 `{18013}`、r3 `{18001,18004,18005,18014,18016}`、r4 `{18000}`，共 7/150）。reference cell 一旦被 censored，paired bound 兩端都會變寬——這只有在有獨立 replicates 之後才看得見。
+- [RESULT] **V7C 的崩潰跨 seed 完全重現**：5 個獨立 seeds 全部 30/30 early termination、30/30 `NULL` outcomes，method-level bound `[-37.195407, +27.315704]` pp 含 0、`0/5` 方向可識別。它表面上的 `-37` pp 再次被量測確認為 exposure artifact，而且現在證明那不是單一 seed 的壞運氣。
+- [RESULT] 450 個 episodes 全部落在 `COMPARABLE`（`263`）或 `EXPOSURE_CENSORED`（`187`），**零 method failure**。15 個 cell 只有 2 個 `POINT_IDENTIFIED`（V7A r0/r1，level SD `1.091723`/`1.103957`%），因此三臂的 `mean_level_sd_pct` 皆為 `null`——fail-closed 的正確輸出。
+- [BLOCKER] `selected_candidate_arm_id` 維持 `null`。**V7B 的方向穩健性不構成 selection**：用同一批資料先估變異再據以選擇，會把選擇條件建立在被選中的雜訊上。要選必須另立 protocol version，且因為本結果已公開，任何新 selection protocol 都必須明示它是在已知 V7B 為負的情況下設計的。
+
+### Provenance 與過程中的自我修正
+
+- 每個 cell 綁定四項：frozen audit protocol digest（哪些規則）、`v7_exposure_audit_contract.py` 與 `v7_pilot_contract.py` 的 source digest（哪些實作套用了規則）、以及該 cell 的 `evaluation_output_sha256`（套用在哪一份 raw 輸出上）。原本設計的 `audit_summary_sha256` 無法使用：audit 的 frozen bundle classes 只有 pilot bundle 與 synthetic regression bundle，而本資料兩者皆非；把真實量測稱為 synthetic 以便重用 CLI 會敗壞該 class 存在的目的。兩個 implementation pin 在分析時對磁碟重新 hash。
+- Bundle adapter 重用 `v7_pilot_contract` 的 canonicalisation 與 audit 的 `_episode_exposure`。重用在這裡正確、在 replay 裡錯誤：audit 是 exposure 的 frozen 上游權威，而 replay 存在的目的是檢查本 contract 的算術，因此不得共用任何東西。
+- [RESULT] **Guard 抓到的是我自己。** 第一次執行跑完 2 個 replicate 後，其餘 13 個全部以 `SEEDVAR_SOURCE_GIT_NOT_CLEAN` 拒絕——因為我在 runs 進行中修改 tracked files。這是 guard 按設計運作：source identity 釘不住的 training run 作為 evidence 一文不值。修正是把程式修改先 commit 完再跑，不是放寬 guard。（另外我自己的 runner script 在失敗路徑 `mkdir -p` 了 run 目錄，於是 driver 的 `exist_ok=False` 防覆寫 gate 正確擋下重試。）
+- 新增 [execution receipt](docs/TRAINING_SEED_VARIANCE_EXECUTION_RECEIPT_2026-09-08.md)。保留證據會從 repository 重新驗證並 exact replay，由測試斷言。
+
 ## Unreleased — 2026-09-08 (e)
 
 ### `ENVIRONMENT-LOCK-V1`：把 environment identity 從 floor 變成量測

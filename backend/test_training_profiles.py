@@ -44,9 +44,12 @@ def test_fixed_speed_and_motion_task_profiles_are_versioned_and_not_marked_train
         "stand_start_walk_stop_0p7_action_reward_v7a",
         "stand_start_walk_stop_0p7_reduced_joint_envelope_v7b",
         "stand_start_walk_stop_0p7_filtered_action_v7c",
+        "stand_start_walk_stop_0p7_action_reward_v7a_seedvar",
+        "stand_start_walk_stop_0p7_reduced_joint_envelope_v7b_seedvar",
+        "stand_start_walk_stop_0p7_filtered_action_v7c_seedvar",
     ]
     assert [item.speed_mps for item in profiles.profiles] == pytest.approx(
-        [0.4, 0.7, 1.0] + [0.7] * 9
+        [0.4, 0.7, 1.0] + [0.7] * 12
     )
     by_id = {item.profile_id: item for item in profiles.profiles}
     assert by_id["stand_start_walk_stop_0p7_v1"].status == (
@@ -106,12 +109,24 @@ def test_public_training_inventory_is_read_only_and_explicit():
     body = public_training_inventory()
     assert body["schema_version"] == "RL_TRAINING_PROFILES_V4"
     assert body["execution_mode"] == "OFFLINE_EXPLICIT_COMMAND_ONLY"
-    assert len(body["profiles"]) == 12
+    assert len(body["profiles"]) == 15
+    # The three seed-variance replicate profiles sit last, and every one of
+    # them declares the seed-variance protocol rather than the pilot's.
     assert [item["pilot_arm_id"] for item in body["profiles"][-3:]] == [
         "V7A_REWARD_ONLY",
         "V7B_REDUCED_JOINT_ENVELOPE",
         "V7C_FILTERED_ACTION",
     ]
+    assert [item["seedvar_protocol_id"] for item in body["profiles"][-3:]] == [
+        "SEEDVAR-V7-TRAINING-REPLICATE-DEV-V1"
+    ] * 3
+    assert [item["pilot_protocol_id"] for item in body["profiles"][-3:]] == [None] * 3
+    assert [item["pilot_arm_id"] for item in body["profiles"][-6:-3]] == [
+        "V7A_REWARD_ONLY",
+        "V7B_REDUCED_JOINT_ENVELOPE",
+        "V7C_FILTERED_ACTION",
+    ]
+    assert [item["seedvar_protocol_id"] for item in body["profiles"][-6:-3]] == [None] * 3
 
 
 def test_training_profile_api_exposes_inventory_without_starting_a_run():
