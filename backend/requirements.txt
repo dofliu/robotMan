@@ -1,3 +1,7 @@
+# [BLOCKER] 這些 >= floors 描述的是一個無上界的環境集合，不是一個環境，因此不能用來
+# 重驗任何數值結果。實際量測到的 exact versions 與 numeric/plant/learning
+# fingerprints 見 requirements-lock-2026-09-08.txt 與
+# environment_locks/，contract 見 ../docs/ENVIRONMENT_LOCK_SPEC.md。
 fastapi>=0.110
 uvicorn>=0.29
 mujoco>=3.1
