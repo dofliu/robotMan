@@ -32,15 +32,17 @@
     "training_environment_source": "backend/rl/humanoid_env.py",
     "training_environment_source_sha256": "sha256:2fc224d67b15d1beb5ea4ffac9b921ce6dc8bf9ce0c87286490bbf655250055d",
     "training_driver_source": "backend/rl/train_ppo.py",
-    "training_driver_source_sha256": "sha256:83cd260bd4fd437ff98adbab95ccc167b485e30b9faf5bc100bf3303ce4d2f3c",
+    "training_driver_source_sha256": "sha256:877da3b41e7c44ce73758877f40e257e45c6203b045eb9e2d3cd5aa6f606f6ce",
     "evaluation_driver_source": "backend/rl/eval_policy.py",
-    "evaluation_driver_source_sha256": "sha256:fef998b24d4a302f589ba9bb74561265a31e1009948b26724c24992093e88f5f",
+    "evaluation_driver_source_sha256": "sha256:0cf274341a10a56fbf544d86eab4bfbfd6f630056689280af51aff111b0058d4",
     "motion_task_source": "backend/motion_tasks.py",
     "motion_task_source_sha256": "sha256:3dd9a47b6798a2fba713eda3654b428377f3a75e825105b233a1da375d4215af",
     "config_schema_source": "backend/config_schema.py",
     "config_schema_source_sha256": "sha256:426ce01561284dc84f50018c6f2558951c9dd820a7cf2756ac2ae8ee728ed298",
     "model_builder_source": "backend/model_builder.py",
-    "model_builder_source_sha256": "sha256:09163a81a9dfef363a88424f98e4506e81be7639689aaa3fd66e6505ccb98a5e"
+    "model_builder_source_sha256": "sha256:09163a81a9dfef363a88424f98e4506e81be7639689aaa3fd66e6505ccb98a5e",
+    "training_profiles_source": "backend/rl/training_profiles.json",
+    "training_profiles_source_sha256": "sha256:28846d740ffb20991afcc3b6567c824fddd14c5ffc4329091c714d70a8c4d463"
   },
   "plant_identity": {
     "builder": "model_builder.build_mjcf(default_robot(), [], dynamic=True)",
@@ -90,16 +92,40 @@
   ],
   "training_design": {
     "replicate_count": 5,
-    "training_seeds": [8720, 8740, 8760, 8780, 8800],
+    "training_seeds": [
+      8720,
+      8740,
+      8760,
+      8780,
+      8800
+    ],
     "parallel_envs": 12,
     "environment_seed_blocks": [
-      [8720, 8731],
-      [8740, 8751],
-      [8760, 8771],
-      [8780, 8791],
-      [8800, 8811]
+      [
+        8720,
+        8731
+      ],
+      [
+        8740,
+        8751
+      ],
+      [
+        8760,
+        8771
+      ],
+      [
+        8780,
+        8791
+      ],
+      [
+        8800,
+        8811
+      ]
     ],
-    "pilot_environment_seed_block": [8700, 8711],
+    "pilot_environment_seed_block": [
+      8700,
+      8711
+    ],
     "seed_disjointness_rule": "Every environment seed block must be pairwise disjoint and disjoint from the pilot block 8700-8711.",
     "shared_seed_across_arms": true,
     "pairing_level": "replicate_index",
@@ -127,8 +153,14 @@
     "pairs_per_candidate": 150,
     "evaluation_seed_status": "DEVELOPMENT_EXHAUSTED",
     "evaluation_seed_status_reason": "18000-18029 were already inspected in the v7 pilot and the exposure audit. Reusing them keeps the evaluation distribution comparable but permanently disqualifies them as a holdout.",
-    "retired_seed_range": [19000, 19029],
-    "sealed_formal_seed_range": [20000, 20029],
+    "retired_seed_range": [
+      19000,
+      19029
+    ],
+    "sealed_formal_seed_range": [
+      20000,
+      20029
+    ],
     "forbidden_seed_policy": "Any access to retired or sealed seeds invalidates the receipt."
   },
   "estimand": {
@@ -141,7 +173,10 @@
     "pilot_estimated": "inner expectation only",
     "analysis_unit": "TRAINING_REPLICATE",
     "method_level_denominator": 5,
-    "forbidden_denominators": [150, 450],
+    "forbidden_denominators": [
+      150,
+      450
+    ],
     "pseudo_replication_rule": "Treating the 150 episode-level pairs as 150 independent units passes evaluation-seed variation off as training-seed variation and shrinks the standard error by roughly sqrt(30). Any episode-level method-level denominator is a structural failure named PSEUDO_REPLICATION_FORBIDDEN.",
     "reported_statistics": [
       "replicate_level_mean_per_arm",
@@ -220,5 +255,35 @@
     "SV-11 a separate python -I -S stdlib-only process exactly reconstructs the summary from the raw replicate and episode rows",
     "SV-12 the receipt retains selected_candidate_arm_id=null, method_level_power_ready=false, paper_data_ready=false and this protocol's claim boundary"
   ],
-  "claim_boundary": "SIM_ONLY_MUJOCO / NOT_PHYSICALLY_VALIDATED / DEVELOPMENT_ONLY. This protocol may support only a statement about the conditional magnitude of replicate-level variation in the frozen v7 action-interface contrast, under a fixed v5 warm start and DEVELOPMENT evaluation seeds. It selects no candidate and supports no claim of controller superiority, sample-size adequacy, paper readiness, physical torque or thermal margin, safety, or sim-to-real performance."
+  "claim_boundary": "SIM_ONLY_MUJOCO / NOT_PHYSICALLY_VALIDATED / DEVELOPMENT_ONLY. This protocol may support only a statement about the conditional magnitude of replicate-level variation in the frozen v7 action-interface contrast, under a fixed v5 warm start and DEVELOPMENT evaluation seeds. It selects no candidate and supports no claim of controller superiority, sample-size adequacy, paper readiness, physical torque or thermal margin, safety, or sim-to-real performance.",
+  "amendment": {
+    "amendment_id": "SEEDVAR-AMENDMENT-01-DRIVER-IDENTITY",
+    "amended_date": "2026-09-08",
+    "applied_before_any_execution": true,
+    "narrowing_only": true,
+    "defect": "The protocol as frozen was unexecutable. backend/rl/train_ppo.py pins seed_base to 8700 for any v7 profile (V7_TRAINING_SEED_OR_ENV_COUNT_MISMATCH), so a v7 arm could only ever be trained on the pilot's single seed, and backend/rl/eval_policy.py emits control_step_trace only on the pilot evaluation path, which forces the pilot's own artifact directory. The freeze pinned both drivers by digest without checking that either could run this design at all.",
+    "resolution": "Both drivers gained a second, mutually exclusive frozen identity for SEEDVAR-V7-TRAINING-REPLICATE-DEV-V1. A v7 training profile must declare exactly one governing protocol, so no profile can satisfy both and be reported under either. The replicate's training seed is resolved from this protocol by replicate index and can never be supplied on the command line (SEEDVAR_SEED_OVERRIDE_FORBIDDEN). The pilot branch keeps its original check sequence in its original order, because which rejection fires first is itself observable behaviour.",
+    "why_not_a_separate_driver": "A dedicated seed-variance driver would leave the pilot's guard untouched, but it would duplicate the PPO geometry, warm-start transplant and artifact writing. Comparability with the pilot rests on those being identical rather than merely similar, so silent divergence between two copies is the larger hazard.",
+    "superseded_pins": {
+      "training_driver_source_sha256": "sha256:83cd260bd4fd437ff98adbab95ccc167b485e30b9faf5bc100bf3303ce4d2f3c",
+      "evaluation_driver_source_sha256": "sha256:fef998b24d4a302f589ba9bb74561265a31e1009948b26724c24992093e88f5f"
+    },
+    "unchanged_by_this_amendment": [
+      "arms and action math",
+      "warm start identity",
+      "training seed schedule and environment seed blocks",
+      "evaluation seed range",
+      "replicate count",
+      "analysis unit and forbidden denominators",
+      "exposure censoring composition rules",
+      "the prohibition on selection"
+    ],
+    "new_frozen_identifiers": {
+      "training_profile_suffix": "_seedvar",
+      "profile_field": "seedvar_protocol_id",
+      "run_id_form": "<profile_id>-r<replicate_index>",
+      "training_cli": "--replicate-index",
+      "evaluation_cli": "--seedvar-replicate-index"
+    }
+  }
 }

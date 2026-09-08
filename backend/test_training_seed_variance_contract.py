@@ -1114,3 +1114,56 @@ def test_fixture_paired_differences_vary_between_replicates(
         # spread, not orders of magnitude below it.
         assert method_level["between_replicate_sd_pp"] > 0.5
         assert method_level["variance_ratio_between_over_within"] > 0.5
+
+
+# --------------------------------------------------------------------------- #
+# amendments may only narrow, and only before execution
+# --------------------------------------------------------------------------- #
+
+
+def test_frozen_protocol_carries_the_pre_execution_driver_amendment(protocol: dict) -> None:
+    amendment = protocol["amendment"]
+    assert amendment["amendment_id"] == "SEEDVAR-AMENDMENT-01-DRIVER-IDENTITY"
+    assert amendment["applied_before_any_execution"] is True
+    assert amendment["narrowing_only"] is True
+    assert amendment["superseded_pins"]["training_driver_source_sha256"].startswith("sha256:")
+    for item in (
+        "training seed schedule and environment seed blocks",
+        "analysis unit and forbidden denominators",
+        "exposure censoring composition rules",
+        "the prohibition on selection",
+    ):
+        assert item in amendment["unchanged_by_this_amendment"]
+
+
+@pytest.mark.parametrize(
+    ("mutate", "message"),
+    [
+        (
+            lambda payload: payload["amendment"].update({"narrowing_only": False}),
+            "must be narrowing only",
+        ),
+        (
+            lambda payload: payload["amendment"].update(
+                {"applied_before_any_execution": False}
+            ),
+            "before any execution",
+        ),
+        (
+            lambda payload: payload["amendment"].update({"defect": ""}),
+            "defect",
+        ),
+        (
+            lambda payload: payload["amendment"].update({"resolution": ""}),
+            "resolution",
+        ),
+    ],
+)
+def test_widening_or_post_hoc_amendment_fails_closed(
+    protocol: dict, mutate, message: str
+) -> None:
+    """A post-hoc amendment would let the design be rewritten around the data."""
+    payload = deepcopy(protocol)
+    mutate(payload)
+    with pytest.raises(SeedVarianceError, match=message):
+        svc.validate_protocol(payload)

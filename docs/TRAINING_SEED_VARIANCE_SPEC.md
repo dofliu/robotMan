@@ -241,6 +241,49 @@ stopping；要加必須另立新 protocol version，並且新舊 replicates 不�
 `SV-01..SV-12` 全部通過才是完整 seed-variance evidence。全部 arms 都
 performance FAIL 或全部 blocked 仍可構成完整負結果。
 
+## 6.1 Amendment 01：driver identity（執行前）
+
+日期：2026-09-08　狀態：`APPLIED_BEFORE_ANY_EXECUTION / NARROWING_ONLY`
+ID：`SEEDVAR-AMENDMENT-01-DRIVER-IDENTITY`
+
+[BLOCKER] **本 protocol 凍結時是無法執行的。** 凍結後首次嘗試執行才發現：
+
+- `backend/rl/train_ppo.py` 對任何 v7 profile 硬性要求 `seed_base == 8700`
+  （`V7_TRAINING_SEED_OR_ENV_COUNT_MISMATCH`），所以一個 v7 arm 永遠只能用
+  pilot 那一個 training seed 訓練；
+- `backend/rl/eval_policy.py` 只在 pilot evaluation 路徑上輸出
+  `control_step_trace`，而該路徑又強制使用 pilot 自己的 artifact 目錄。
+
+Freeze 當時把兩個 driver 都以 digest pin 住，卻沒有檢查它們**能不能**跑本
+設計。這是 freeze 程序本身的缺陷，記錄於此而非事後淡化。
+
+修正方式：兩個 driver 各增加一個**互斥**的 frozen identity。
+
+- v7 training profile 必須且只能宣告一個 governing protocol
+  （`pilot_protocol_id` 或 `seedvar_protocol_id`）；兩者皆宣告即
+  `V7_PROFILE_AMBIGUOUS_PROTOCOL_IDENTITY`。因此沒有任何 profile 能同時滿足
+  兩者而被任意一方回報。
+- Replicate 的 training seed 由本 protocol 依 replicate index 解析，**永遠不能**
+  由 command line 提供（`SEEDVAR_SEED_OVERRIDE_FORBIDDEN`）。
+- Pilot branch 的檢查順序原樣保留：哪一個 rejection 先觸發本身就是可觀測行為。
+
+新增的 frozen identifiers：profile 後綴 `_seedvar`、profile 欄位
+`seedvar_protocol_id`、run id 形式 `<profile_id>-r<replicate_index>`、
+CLI `--replicate-index`（training）與 `--seedvar-replicate-index`（evaluation）。
+
+[INFERENCE] 另一個選項是另寫一支 seed-variance driver，完全不動 pilot 的
+guard。但那會複製 PPO geometry、warm-start transplant 與 artifact 寫入；本
+protocol 與 pilot 的可比性建立在這些**完全相同**而非「相似」之上，兩份副本
+無聲分歧的風險更大。
+
+本 amendment **不改變**：arms 與 action math、warm start identity、training
+seed schedule 與 environment seed blocks、evaluation seed range、replicate
+count、analysis unit 與 forbidden denominators、exposure censoring 組合規則、
+以及禁止 selection。
+
+被取代的 pin 值原樣記錄在 protocol JSON 的
+`amendment.superseded_pins` 內。
+
 ## 7. Failure semantics
 
 - Structural failure：invalid/duplicate-key/non-finite JSON、identity drift、

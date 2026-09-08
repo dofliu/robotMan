@@ -38,6 +38,15 @@ from rl.policy_registry import resolve_policy, sha256_file
 
 RL_DIR = Path(__file__).resolve().parent
 PROFILE_PATH = RL_DIR / "training_profiles.json"
+
+# SEEDVAR-V7-TRAINING-REPLICATE-DEV-V1 reuses the pilot's arms, plant, PPO
+# geometry and warm start, and differs only in the training seed. The pilot's
+# own guard pins seed_base to 8700, so a second, mutually exclusive frozen
+# identity is required: without it a v7 arm can only ever be trained on one
+# seed and independent training-seed variance cannot be measured at all.
+SEEDVAR_PROTOCOL_PATH = RL_DIR / "training_seed_variance_protocol.json"
+SEEDVAR_PROTOCOL_ID = "SEEDVAR-V7-TRAINING-REPLICATE-DEV-V1"
+SEEDVAR_PROFILE_SUFFIX = "_seedvar"
 SOURCE_FILES = (
     Path(__file__).resolve(),
     RL_DIR / "humanoid_env.py",
@@ -50,6 +59,28 @@ SOURCE_FILES = (
     RL_DIR.parent / "model_builder.py",
     RL_DIR.parent / "config_schema.py",
 )
+
+
+def load_seedvar_protocol(path: Path = SEEDVAR_PROTOCOL_PATH) -> dict:
+    """Load the frozen seed-variance protocol; the seed schedule lives there.
+
+    The schedule is deliberately not restated in the training profile: two
+    sources for the same frozen list is how they drift apart.
+    """
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if payload.get("protocol_id") != SEEDVAR_PROTOCOL_ID:
+        raise ValueError("SEEDVAR_PROTOCOL_ID_MISMATCH")
+    design = payload.get("training_design", {})
+    seeds = design.get("training_seeds")
+    if not isinstance(seeds, list) or not seeds:
+        raise ValueError("SEEDVAR_PROTOCOL_MISSING_TRAINING_SEEDS")
+    if len(seeds) != design.get("replicate_count"):
+        raise ValueError("SEEDVAR_PROTOCOL_SEED_COUNT_MISMATCH")
+    return payload
+
+
+def seedvar_training_seeds(path: Path = SEEDVAR_PROTOCOL_PATH) -> list[int]:
+    return [int(seed) for seed in load_seedvar_protocol(path)["training_design"]["training_seeds"]]
 
 
 class ProfileModel(BaseModel):
@@ -81,6 +112,7 @@ class TrainingProfile(ProfileModel):
     task_id: str | None = None
     warm_start_policy_id: str | None = None
     pilot_protocol_id: str | None = None
+    seedvar_protocol_id: str | None = None
     pilot_arm_id: Literal[
         "V7A_REWARD_ONLY",
         "V7B_REDUCED_JOINT_ENVELOPE",
@@ -91,12 +123,52 @@ class TrainingProfile(ProfileModel):
     def validate_pilot_identity(self):
         is_v7 = self.environment_id.startswith("motion_task_v7_")
         if not is_v7:
-            if self.pilot_protocol_id is not None or self.pilot_arm_id is not None:
+            if (
+                self.pilot_protocol_id is not None
+                or self.seedvar_protocol_id is not None
+                or self.pilot_arm_id is not None
+            ):
                 raise ValueError("NON_V7_PROFILE_HAS_PILOT_IDENTITY")
             return self
-        if self.pilot_protocol_id != V7_PROTOCOL_ID or self.pilot_arm_id is None:
+        # Exactly one governing protocol. A profile that satisfied both could be
+        # reported under either, which is precisely the confusion these guards
+        # exist to prevent.
+        declared = [
+            item
+            for item in (self.pilot_protocol_id, self.seedvar_protocol_id)
+            if item is not None
+        ]
+        if len(declared) != 1:
+            raise ValueError("V7_PROFILE_AMBIGUOUS_PROTOCOL_IDENTITY")
+        if self.pilot_arm_id is None:
             raise ValueError("V7_PROFILE_MISSING_FROZEN_IDENTITY")
         interface = resolve_v7_action_interface(self.pilot_arm_id)
+
+        if self.seedvar_protocol_id is not None:
+            if self.seedvar_protocol_id != SEEDVAR_PROTOCOL_ID:
+                raise ValueError("SEEDVAR_PROFILE_MISSING_FROZEN_IDENTITY")
+            if self.profile_id != interface.profile_id + SEEDVAR_PROFILE_SUFFIX:
+                raise ValueError("SEEDVAR_PROFILE_ID_MISMATCH")
+            if interface.environment_id != self.environment_id:
+                raise ValueError("V7_ENVIRONMENT_ID_MISMATCH")
+            if self.task_id != "stand_start_walk_stop_v1":
+                raise ValueError("V7_TASK_ID_MISMATCH")
+            if self.warm_start_policy_id != "stand_start_walk_stop_0p7_phase_observable_v5":
+                raise ValueError("V7_WARM_START_ID_MISMATCH")
+            seeds = seedvar_training_seeds()
+            # The profile anchors the schedule at replicate 0; the per-run seed
+            # is resolved from the protocol by replicate index, never from CLI.
+            if self.seed_base != seeds[0] or self.parallel_envs != 12:
+                raise ValueError("SEEDVAR_PROFILE_SEED_ANCHOR_MISMATCH")
+            if self.planned_timesteps != 100_000:
+                raise ValueError("V7_TRAINING_BUDGET_MISMATCH")
+            return self
+
+        # The pilot branch below is the original check sequence, in the original
+        # order. Which rejection fires first is itself observable behaviour, so
+        # the shared checks are deliberately not hoisted above it.
+        if self.pilot_protocol_id != V7_PROTOCOL_ID:
+            raise ValueError("V7_PROFILE_MISSING_FROZEN_IDENTITY")
         if interface.profile_id != self.profile_id:
             raise ValueError("V7_PROFILE_ID_MISMATCH")
         if interface.environment_id != self.environment_id:
@@ -240,6 +312,65 @@ def git_source_identity() -> dict:
     }
 
 
+def seedvar_run_id(profile: TrainingProfile, replicate_index: int) -> str:
+    return f"{profile.profile_id}-r{replicate_index}"
+
+
+def validate_v7_seedvar_request(
+    *,
+    profile: TrainingProfile,
+    run_id: str,
+    total: int,
+    n_envs: int,
+    seed_base: int,
+    replicate_index: int | None,
+    seed_base_from_cli: bool,
+    device: str,
+    resume_from: Path | None,
+    warm_start_from: Path | None,
+    smoke: bool,
+    preflight: bool,
+    source_git: dict,
+) -> None:
+    """Fail closed on any drift from the frozen seed-variance design.
+
+    Structurally the same discipline as the pilot guard, with one difference
+    that matters: the seed is not a CLI input at all. It is resolved from the
+    frozen protocol by replicate index, so no invocation can train a replicate
+    on a seed the protocol does not schedule.
+    """
+    protocol = load_seedvar_protocol()
+    design = protocol["training_design"]
+    seeds = [int(seed) for seed in design["training_seeds"]]
+    if replicate_index is None:
+        raise ValueError("SEEDVAR_REPLICATE_INDEX_REQUIRED")
+    if not 0 <= replicate_index < len(seeds):
+        raise ValueError("SEEDVAR_REPLICATE_INDEX_OUT_OF_RANGE")
+    if seed_base_from_cli:
+        raise ValueError("SEEDVAR_SEED_OVERRIDE_FORBIDDEN")
+    if seed_base != seeds[replicate_index]:
+        raise ValueError("SEEDVAR_TRAINING_SEED_MISMATCH")
+    if run_id != seedvar_run_id(profile, replicate_index):
+        raise ValueError("SEEDVAR_RUN_ID_OVERRIDE_FORBIDDEN")
+    if (
+        total != design["requested_timesteps"]
+        or n_envs != design["parallel_envs"]
+    ):
+        raise ValueError("SEEDVAR_TRAINING_OVERRIDE_FORBIDDEN")
+    if device != design["device"]:
+        raise ValueError("SEEDVAR_DEVICE_OVERRIDE_FORBIDDEN")
+    if resume_from is not None or warm_start_from is not None:
+        raise ValueError("SEEDVAR_CHECKPOINT_OVERRIDE_FORBIDDEN")
+    if smoke or preflight:
+        raise ValueError("SEEDVAR_RUN_KIND_OVERRIDE_FORBIDDEN")
+    if (
+        source_git.get("available") is not True
+        or source_git.get("working_tree_dirty") is not False
+        or not source_git.get("git_sha")
+    ):
+        raise ValueError("SEEDVAR_SOURCE_GIT_NOT_CLEAN")
+
+
 def validate_v7_training_request(
     *,
     profile: TrainingProfile,
@@ -253,10 +384,33 @@ def validate_v7_training_request(
     smoke: bool,
     preflight: bool,
     source_git: dict,
+    replicate_index: int | None = None,
+    seed_base_from_cli: bool = False,
 ) -> None:
     """Fail closed on any CLI or source drift from the frozen v7 design."""
     if profile.pilot_arm_id is None:
+        if replicate_index is not None:
+            raise ValueError("SEEDVAR_REPLICATE_INDEX_ON_NON_V7_PROFILE")
         return
+    if profile.seedvar_protocol_id is not None:
+        validate_v7_seedvar_request(
+            profile=profile,
+            run_id=run_id,
+            total=total,
+            n_envs=n_envs,
+            seed_base=seed_base,
+            replicate_index=replicate_index,
+            seed_base_from_cli=seed_base_from_cli,
+            device=device,
+            resume_from=resume_from,
+            warm_start_from=warm_start_from,
+            smoke=smoke,
+            preflight=preflight,
+            source_git=source_git,
+        )
+        return
+    if replicate_index is not None:
+        raise ValueError("V7_PILOT_REPLICATE_INDEX_FORBIDDEN")
     protocol = load_v7_protocol()
     design = protocol["training_design"]
     arm = next(
@@ -351,6 +505,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--total-timesteps", type=int)
     parser.add_argument("--n-envs", type=int)
     parser.add_argument("--seed-base", type=int)
+    parser.add_argument(
+        "--replicate-index",
+        type=int,
+        help=(
+            "SEEDVAR-V7-TRAINING-REPLICATE-DEV-V1 replicate index; the training "
+            "seed is resolved from the frozen protocol, never from the CLI."
+        ),
+    )
     parser.add_argument("--device", default="cpu")
     parser.add_argument("--resume-from", type=Path)
     parser.add_argument("--warm-start-from", type=Path)
@@ -363,7 +525,13 @@ def main():
     args = parse_args()
     profile = resolve_profile(args.profile)
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    run_id = args.run_id or f"{profile.profile_id}-{timestamp}"
+    is_seedvar = profile.seedvar_protocol_id is not None
+    if is_seedvar and args.replicate_index is not None:
+        # A deterministic run id per replicate, so the artifact directory is
+        # itself part of the frozen identity rather than a timestamp.
+        run_id = args.run_id or seedvar_run_id(profile, args.replicate_index)
+    else:
+        run_id = args.run_id or f"{profile.profile_id}-{timestamp}"
     if not run_id.replace("-", "").replace("_", "").isalnum():
         raise ValueError("run-id 只允許英數字、-、_")
 
@@ -382,6 +550,11 @@ def main():
         n_envs = args.n_envs or profile.parallel_envs
         run_kind = "development_training"
     seed_base = profile.seed_base if args.seed_base is None else args.seed_base
+    if is_seedvar and args.replicate_index is not None:
+        seeds = seedvar_training_seeds()
+        if not 0 <= args.replicate_index < len(seeds):
+            raise ValueError("SEEDVAR_REPLICATE_INDEX_OUT_OF_RANGE")
+        seed_base = seeds[args.replicate_index]
     if total <= 0 or n_envs <= 0 or seed_base < 0:
         raise ValueError("total-timesteps/n-envs 必須 > 0，seed-base 必須 >= 0")
 
@@ -398,6 +571,8 @@ def main():
         smoke=args.smoke,
         preflight=args.preflight,
         source_git=source_git_pre,
+        replicate_index=args.replicate_index,
+        seed_base_from_cli=args.seed_base is not None,
     )
     run_dir = RL_DIR / "artifacts" / run_id
     # exist_ok=False 是防覆寫 gate；重跑時必須提供新 run-id。
@@ -442,7 +617,28 @@ def main():
         "source_git_pre": source_git_pre,
         "source_git_post": None,
     }
-    if profile.pilot_arm_id is not None:
+    if is_seedvar and profile.pilot_arm_id is not None:
+        interface = resolve_v7_action_interface(profile.pilot_arm_id)
+        manifest["seedvar_protocol"] = {
+            "protocol_id": SEEDVAR_PROTOCOL_ID,
+            "pilot_arm_id": profile.pilot_arm_id,
+            "replicate_index": args.replicate_index,
+            "training_seed": seed_base,
+            "environment_seed_block": [seed_base, seed_base + n_envs - 1],
+            "path": str(
+                SEEDVAR_PROTOCOL_PATH.relative_to(RL_DIR.parent.parent)
+            ).replace("\\", "/"),
+            "bytes": SEEDVAR_PROTOCOL_PATH.stat().st_size,
+            "sha256": f"sha256:{sha256_file(SEEDVAR_PROTOCOL_PATH)}",
+            "inherited_pilot_protocol_sha256": f"sha256:{sha256_file(V7_PROTOCOL_PATH)}",
+            "action_interface": {
+                "action_interface_id": interface.interface_id,
+                "action_scale_rad": list(interface.action_scale_rad),
+                "low_pass_alpha": interface.low_pass_alpha,
+                "rate_limit_normalized_per_control_step": interface.rate_limit_per_step,
+            },
+        }
+    elif profile.pilot_arm_id is not None:
         interface = resolve_v7_action_interface(profile.pilot_arm_id)
         manifest["pilot_protocol"] = {
             "protocol_id": V7_PROTOCOL_ID,

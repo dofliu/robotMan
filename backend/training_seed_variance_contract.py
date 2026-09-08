@@ -56,7 +56,7 @@ from environment_lock import (
 PROTOCOL_SCHEMA = "TRAINING_SEED_VARIANCE_PROTOCOL_V1"
 PROTOCOL_ID = "SEEDVAR-V7-TRAINING-REPLICATE-DEV-V1"
 PROTOCOL_SHA256 = (
-    "sha256:56c51e2ab37c4777c0c0434d60cdf73c9835489704d7ec439c684c0e0a86d5a5"
+    "sha256:9ab17c74ddb021f9b69b1df843f9fa49ea45ecf790837204270d8bc01046b359"
 )
 RAW_SCHEMA = "TRAINING_SEED_VARIANCE_RAW_V1"
 SUMMARY_SCHEMA = "TRAINING_SEED_VARIANCE_SUMMARY_V1"
@@ -394,6 +394,20 @@ def validate_protocol(protocol: dict[str, Any]) -> dict[str, Any]:
     )
     if prerequisites.get("audit_protocol_sha256") != AUDIT_PROTOCOL_SHA256:
         raise SeedVarianceError("protocol pins an unexpected audit protocol digest")
+    amendment = protocol.get("amendment")
+    if amendment is not None:
+        # An amendment may only narrow, and only before any execution. A
+        # post-hoc or widening amendment would let the design be rewritten
+        # around whatever the data turned out to be.
+        entry = _require_object(amendment, "protocol.amendment")
+        if entry.get("narrowing_only") is not True:
+            raise SeedVarianceError("protocol amendment must be narrowing only")
+        if entry.get("applied_before_any_execution") is not True:
+            raise SeedVarianceError(
+                "protocol amendment must be applied before any execution"
+            )
+        _require_string(entry.get("defect"), "protocol.amendment.defect")
+        _require_string(entry.get("resolution"), "protocol.amendment.resolution")
     return _protocol_design(protocol)
 
 
