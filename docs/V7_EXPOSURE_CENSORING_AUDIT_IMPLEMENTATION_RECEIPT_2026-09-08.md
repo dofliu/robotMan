@@ -1,0 +1,246 @@
+# V7 Early-Termination / Exposure-Censoring Validity Audit V1 Implementation Receipt
+
+日期：2026-09-08
+
+Protocol：`AUDIT-V7-EXPOSURE-CENSORING-V1`
+
+狀態：`SOFTWARE_CONTRACT_IMPLEMENTED / SYNTHETIC_REGRESSION_PASS / FROZEN_PILOT_BUNDLE_NOT_PRESENT`
+
+證據邊界：`SIM_ONLY_MUJOCO / NOT_PHYSICALLY_VALIDATED / DEVELOPMENT_ONLY`
+
+## 1. 本次唯一目標
+
+依 [V7 Exposure-Censoring Validity Audit Specification](V7_EXPOSURE_CENSORING_AUDIT_SPEC.md)
+建立一個只讀的 exposure-censoring validity audit：由 retained 500 Hz control-step traces
+重建每 episode的 termination control step、termination sim time與 termination phase，導出
+realized exposure，並明示哪些 primary-outcome值與 paired contrast可比較、哪些是
+exposure-censored、哪些是保留的 method failure。
+
+Acceptance criteria、failure semantics與 claim boundary已先在 Git
+`ee7321090089b186d847a958ae607478b6a12e6c`凍結；實作與實驗 source為 Git
+`428ba214ec7d9e85c254b3b4f85d2c417094d202`。`19000–19029`未讀取且維持退役，
+`20000–20029`未讀取且維持 sealed FORMAL range。Motion Task thresholds未變，
+2026-09-06 pilot receipt原文未改。
+
+## 2. 完成內容
+
+- 新增 `backend/v7_exposure_audit_protocol.json`：frozen machine-readable audit protocol，
+  含 read-only contract、bundle class binding、exposure horizon derivation、兩個 phase
+  convention、censoring/method-failure vocabulary、identification bounds與 `AX-01..AX-12`。
+- 新增 `backend/v7_exposure_audit_contract.py`：stdlib-only fail-closed audit。刻意不從
+  `v7_pilot_contract` import任何東西，因為沿用被 audit pipeline自身的 validator只會重述
+  它的假設。
+- 新增 `backend/v7_exposure_audit_replay.py`：獨立 `python -I -S` process，由 raw episode
+  rows重建 audit summary並要求 exact identity，逐 block回報 mismatch位置。
+- 新增 `backend/test_v7_exposure_audit_contract.py`：38個 synthetic fail-closed tests。
+- 新增 `backend/build_v7_exposure_audit_regression_bundle.py`：clean-source synthetic
+  regression evidence builder。
+
+本次沒有修改 policy registry、Live adapter、frontend、Motion Task thresholds或任何
+既有 receipt。
+
+## 3. Exposure 重建方式
+
+[RESULT] canonical episode row沒有 end-step、elapsed-time或 termination-reason欄位；
+episode length只能由 `control_step_trace`長度（等價於 `trace_receipt.control_step_count`）
+取得。因此 audit由 trace本身重建 exposure，再與 `trace_receipt` counts及由既有 task
+contract導出的 frozen horizon交叉檢查：
+
+```text
+control_period_s                  = 1 / 50.0  = 0.02 s
+physics_substeps_per_control_step = 500 / 50  = 10
+full_exposure_control_steps       = 9.0 * 50  = 450
+full_exposure_physics_substeps    = 450 * 10  = 4500
+```
+
+每個商與積都必須是 exact integer。`backend/motion_tasks.py`維持 bytes `8892`、SHA-256
+`3dd9a47b6798a2fba713eda3654b428377f3a75e825105b233a1da375d4215af`；
+`backend/rl/humanoid_env.py`維持 bytes `26277`、SHA-256
+`2fc224d67b15d1beb5ea4ffac9b921ce6dc8bf9ce0c87286490bbf655250055d`。
+
+[RESULT] `saturation_duty_pct`的分母與 realized exposure成正比，因此截斷 episode上的
+duty不在 full-horizon estimand的同一 measurement support上。這是 measurement-support
+問題，不是 statistical-power問題，增加 seeds無法解決。
+
+[RESULT] `outcome_state == OBSERVED`並不代表 full exposure。結束於 `FINAL_STAND`內的
+episode仍會回報全部 required numerics，因此在算術上看起來乾淨卻已被 censored。本
+receipt以 `18011`（430 steps、全部 required outcomes OBSERVED、仍判為
+`EXPOSURE_CENSORED`）保留此 case，並有專屬 test。
+
+## 4. Phase convention amendment（execution前）
+
+[RESULT] Freeze commit規定 recorded `command_phase`對照 contract的
+start-of-control-step schedule。`backend/rl/humanoid_env.py:352-353`在 substep loop之後
+才推進 `task_elapsed_s`並重新取樣 phase，`:404`保存已推進後的 label，因此 recorded label
+採 end-of-step accumulated-time convention。
+
+| Phase | contract control steps | recorder control steps |
+|---|---|---|
+| `INITIAL_STAND` | 0–49 | 0–48 |
+| `START` | 50–124 | 49–123 |
+| `STEADY_WALK` | 125–324 | 124–324 |
+| `STOP` | 325–399 | 325–399 |
+| `FINAL_STAND` | 400–449 | 400–449 |
+
+[RESULT] 累加值在 50步為 `1.0000000000000004`、325步為 `6.499999999999949`、400步為
+`7.999999999999917`；`0.002 * 10`、literal `0.02`與 `1.0 / 50.0`是同一個 IEEE 754 double，
+所以 accumulation可精確重現。exact multiplication會給出第三種答案，故不採用。
+
+[INFERENCE] 若沿用 freeze commit規則，`AX-04`會因 recording convention差異（而非 data
+defect）把有效 bundle誤報為 structurally invalid。因此在任何 audit execution前修正
+`AX-04`的對照對象為 reproduced recorder convention，並把 contract與 recorder的逐 phase
+邊界差異原樣輸出為 `phase_convention` validity finding，不修改保存資料。修正時尚未執行
+任何 audit、也不存在任何 audit output，因此沒有依結果調整 threshold、envelope或 outcome。
+
+## 5. Censoring、bounds 與 comparability
+
+`comparability_state`依固定順序判定：`METHOD_FAILURE_NOT_CENSORING`→
+`EXPOSURE_CENSORED`→`COMPARABLE`。
+
+[SOURCE] NIST/SEMATECH把 censoring定義為只知 bound或interval的觀察機制；Wünsch et al.
+（Statistics in Medicine 2025）要求保存 method failure的 frequency、reason與 handling。
+[RESULT] 因此 non-finite、terminal failure與 no-exposure保留為 method failure而不是
+censoring，也不取得 bound。
+
+[SOURCE] 本 repo [Paired Statistics and Paper Export Contract V1](PAIRED_STATISTICS_CONTRACT.md)
+已凍結「未凍結 censored estimator前只保存 bound並阻擋一般 mean/bootstrap」。
+[RESULT] 本 audit因此對 `COMPARABLE`與 `EXPOSURE_CENSORED` episode輸出 assumption-free
+worst-case bounds，不輸出 censored point estimate：
+
+```text
+lower_pct = 100 * over / 4500
+upper_pct = 100 * (over + 4500 - observed_substeps) / 4500
+paired_lower = candidate_lower - reference_upper
+paired_upper = candidate_upper - reference_lower
+```
+
+只有 paired bound不含 0時 contrast的 sign才算 identified。aggregate只在 30個 pair全部
+`COMPARABLE`時輸出，否則為 null並記
+`BLOCKED_EXPOSURE_CENSORED_PAIRS_RETAINED_NO_COMPLETE_CASE_DELETION`；禁止只取
+comparable subset，因為 censoring indicator由該臂自身的 early-termination行為產生。
+
+## 6. Synthetic regression 執行結果
+
+Clean-source run：Git pre/post皆為 `428ba214ec7d9e85c254b3b4f85d2c417094d202`，
+worktree clean。Package root
+`backend/run_traces/v7-exposure-audit-clean-20260908/`，18個 artifacts共 `68338712`
+bytes，package receipt SHA-256
+`15c2aef746edc2976a30f186180f32ba3c2c2ebcb6e30f1e08a5a2bf1a4b1415`。
+
+兩個 case皆回傳 `AUDIT_COMPLETE_RETAINED_CENSORING_BLOCKER`、
+`source_bundle_read_only_verified=true`、`AUDIT_BUNDLE_VALID`，且
+`python -I -S` replay exact重建 audit summary。
+
+`exposure-censored-case`：
+
+| Arm | exposure steps mean ± SD | comparability | retained bound mean |
+|---|---:|---|---|
+| V7A | 450.0000 ± 0.0000 | 30 `COMPARABLE` | `[34.974074, 34.974074]%` |
+| V7B | 438.3333 ± 60.2342 | 28 `COMPARABLE` / 2 `EXPOSURE_CENSORED` | `[19.594074, 22.186667]%` |
+| V7C | 60.0000 ± 0.0000 | 30 `EXPOSURE_CENSORED` | `[0.000000, 86.666667]%` |
+
+| Candidate | pilot reported paired diff | audited paired diff | paired bound mean | sign identified |
+|---|---:|---|---|---:|
+| V7B | `-14.8712489 ± 0.7032924` pp | `NULL` blocked | `[-15.380000, -12.787407]` pp | 29/30 |
+| V7C | `-34.9740740 ± 0.1643473` pp | `NULL` blocked | `[-34.974074, +51.692593]` pp | 0/30 |
+
+[RESULT] V7C的 full-horizon bound寬達 `86.666667` percentage points，其 paired bound
+`[-34.974074, +51.692593]` pp包含 0，30個 pair全部 sign-unidentified。因此 0% duty與
+其算術 contrast被明示為 `NON_COMPARABLE_EXPOSURE_CENSORED`，`valid_contrast=false`。
+
+[RESULT] V7B有 29/30 pair sign-identified NEGATIVE，但 aggregate仍為 `NULL`，因為 2個
+pair被 censored且禁止 complete-case deletion。
+
+[RESULT] `DESCRIPTIVE_ONLY` exposure-matched sensitivity：V7B matched difference
+`-14.8783635 ± 0.7127955` pp（matched steps 120/430/450），V7C
+`-34.9333334 ± 1.3105817` pp（matched steps全為 60）。此值只顯示 reference被截到同一
+exposure時的描述性差異，`informative_censoring=SUSPECTED_DEPENDENT_ON_ARM_BEHAVIOUR`
+保留，不得用於 candidate selection、CI、p-value、hypothesis test、恢復 comparability或
+sample-size決策。
+
+`method-failure-case`：V7C的 30個 episode為 `FAILED` / `NO_EXPOSURE`，全部歸入
+`METHOD_FAILURE_NOT_CENSORING`（`EXPOSURE_CENSORED=0`），bound為 `NULL`，
+`method_failure_pair_count=30`。
+
+## 7. 範圍邊界：frozen pilot bundle 不在本 checkout
+
+[BLOCKER] 2026-09-06的 pilot bundle（14 artifacts / `109520182` bytes / receipt
+`sha256:ed3e3eaa7c86f2b855d24aca68b09ce45bce61ac2fb6e573328b12157d758435`）位於
+`.gitignore`的 local versioned artifact root，不在 clean checkout內。因此本次無法對
+`V7_PILOT_DEVELOPMENT_BUNDLE`執行 audit。
+
+Bundle class以 pilot receipt SHA-256雙向綁定：hash等於上述 frozen值者必須宣告
+`V7_PILOT_DEVELOPMENT_BUNDLE`，其他一律必須宣告 `SYNTHETIC_REGRESSION_BUNDLE`，任一
+方向不符即 structural failure。本次所有 bundle皆為 synthetic，
+`audit_applies_to_frozen_v7_pilot=false`。
+
+[RESULT] 因此本 receipt只支持「audit software在 schema-exact synthetic bundle上行為正確」，
+不支持任何關於 frozen v7 pilot實際 exposure分布的敘述。在保有該 bundle的機器上執行：
+
+```text
+python backend/v7_exposure_audit_contract.py audit \
+  backend/run_traces/v7-action-interface-pilot-clean-20260906 \
+  backend/run_traces/v7-exposure-audit-<date>
+```
+
+該次執行會自動解析為 `V7_PILOT_DEVELOPMENT_BUNDLE`並使
+`audit_applies_to_frozen_v7_pilot=true`；完成後才可把本 audit的結論套用到 v7 pilot。
+
+## 8. 程式驗證與失敗保留
+
+| 驗證 | 結果 |
+|---|---|
+| 新增 audit targeted suite | `38 passed` |
+| Full backend suite | `337 passed, 2 failed` |
+| Clean-tree 重現 2個 failure（`ee73210`，無本次程式） | `2 failed`，確認為既有環境問題 |
+| JSON、Python compile、protocol self-consistency | PASS |
+| Artifact tracking policy | PASS；無 runtime artifact被 tracked |
+| Frontend | 未受影響，`npm run check`不適用 |
+
+[RESULT] `test_p0_contract.py::test_all_minimum_physical_config_compiles_through_rest_and_live_init`
+與 `test_v1_analytical_suite.py::test_stdlib_replay_passes_exact_synthetic_fixture`在
+clean tree `ee7321090089b186d847a958ae607478b6a12e6c`（不含本次任何程式）同樣失敗。
+本容器的 numpy／MuJoCo／pydantic版本高於 pinned set，屬既有
+`complete environment lock`缺口，原樣保留，未在本次修改，也未以任何方式繞過。
+
+## 9. 理論與 validity boundary
+
+[SOURCE] NIST/SEMATECH的 censoring只涵蓋「只知 bound或interval」的觀察機制；
+Wünsch et al.（Statistics in Medicine 2025）指出 comparison study的 method failure不應
+被 silent deletion或一般 missing-data imputation處理。
+
+[SOURCE] Patterson et al.（JMLR 2024）要求 fully specified methods使用 paired differences
+並分開 agent/environment RNG；Agarwal et al.（NeurIPS 2021）指出少量 runs只報 point
+estimate會低估 statistical uncertainty。
+
+[INFERENCE] 本 audit把「V7C的 0%不是改善」從敘述改為可檢查的結果：assumption-free
+bound重疊且 sign不可識別。這只成立於本 frozen plant、v5 warm start、單一 training seed
+與 DEV evaluation seeds。
+
+[BLOCKER] 沒有 independent training-seed variance、full 11-criterion Live evidence、
+actual Study A、frozen censored estimator、binary paired CI、complete environment lock、
+immutable storage、HIL、bench或robot evidence；frozen pilot bundle也不在本 checkout。
+
+因此允許的結論只到：exposure-censoring audit software已實作並在 synthetic regression上
+驗證，且 v7 pilot的 primary-outcome contrast在 realized exposure不相等時不具內部可比性。
+不得宣稱 controller superiority、method-level effect、sample-size adequacy、paper
+readiness、physical torque/thermal margin、安全、sim-to-real或實體機器人效能。
+`pilot_planning_ready=false`、`method_level_power_ready=false`、`statistics_ready=false`、
+`paper_data_ready=false`、`selected_candidate_arm_id=null`。
+
+Primary/official sources：
+
+- [NIST/SEMATECH Censoring](https://www.itl.nist.gov/div898/handbook/apr/section1/apr131.htm)
+- [Rethinking the Handling of Method Failure in Comparison Studies, Statistics in Medicine 2025](https://doi.org/10.1002/sim.70257)
+- [Empirical Design in Reinforcement Learning, JMLR 2024](https://www.jmlr.org/papers/v25/23-0183.html)
+- [Deep RL at the Edge of the Statistical Precipice, NeurIPS 2021](https://proceedings.neurips.cc/paper/2021/hash/f514cec81cb148559cf475e7426eed5e-Abstract.html)
+- [IETF RFC 8259 — JSON](https://www.rfc-editor.org/rfc/rfc8259.html)
+- [NASA-STD-7009B](https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf)
+- [MuJoCo Actuation Model](https://mujoco.readthedocs.io/en/stable/computation/index.html#actuation-model)
+
+## 10. 下一步
+
+下一次唯一優先目標是在保有 2026-09-06 bundle的機器上，用本 audit對
+`V7_PILOT_DEVELOPMENT_BUNDLE`執行一次 read-only run，記錄真實 exposure分布、
+`phase_convention` finding與 identification bounds，並保留原 receipt不回改。該 run完成後，
+才另立 fresh DEVELOPMENT protocol考慮 independent training-seed variance。

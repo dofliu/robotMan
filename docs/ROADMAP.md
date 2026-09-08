@@ -1,6 +1,6 @@
 # Gate-first 工作規劃
 
-最後更新：2026-09-06
+最後更新：2026-09-08
 
 專案成熟度改以 **evidence gate** 表示，不再以 UI 或 feature count 換算完成百分比。既有 M1–M6 代表 prototype feature inventory，並非 verification 或 physical validation 已完成。
 
@@ -89,7 +89,7 @@
 - 回報 raw episode values、effect size、confidence interval 與 censored/failed cases；
 - push test 以 impulse、application point、gait phase、direction、duration 與 recovery criterion 完整定義。
 
-Paired statistics/export V1已完成 synthetic software precursor：continuous paired effect/bootstrap CI、binary 2×2 counts/Wilson marginal descriptions、failure/null/censoring retention、hash-bound table/figure inputs與 stdlib-only exact replay均已驗證。v7 action-interface DEVELOPMENT pilot另完成 clean-source三臂/30 DEV seeds bundle與 raw-to-summary replay，但每臂只有一個 training seed；V7B有4個 negative，V7C有30個 early-fall NULL且 exposure不相等，沒有 selected candidate。`statistics_ready=false`、binary paired CI blocker與 `paper_data_ready=false`均保留，不構成 V3 PASS。
+Paired statistics/export V1已完成 synthetic software precursor：continuous paired effect/bootstrap CI、binary 2×2 counts/Wilson marginal descriptions、failure/null/censoring retention、hash-bound table/figure inputs與 stdlib-only exact replay均已驗證。v7 action-interface DEVELOPMENT pilot另完成 clean-source三臂/30 DEV seeds bundle與 raw-to-summary replay，但每臂只有一個 training seed；V7B有4個 negative，V7C有30個 early-fall NULL且 exposure不相等，沒有 selected candidate。`statistics_ready=false`、binary paired CI blocker與 `paper_data_ready=false`均保留，不構成 V3 PASS。接續的 exposure-censoring validity audit V1已實作並以 synthetic regression驗證：它把 method failure與 exposure censoring分開保留，對 exposure-censored primary outcome只輸出 assumption-free worst-case full-horizon與 paired identification bounds，並在30個 pair未全部 comparable時 blocked aggregate。Synthetic case顯示截斷臂的 paired bound包含 0、sign不可識別，因此截斷後的0% duty不可解讀為改善。frozen v7 bundle不在 clean checkout內，`audit_applies_to_frozen_v7_pilot=false`，仍不構成 V3 PASS。
 
 ### Development precursor：三機同步觀察
 

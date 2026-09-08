@@ -1,6 +1,6 @@
 # Paper Data Readiness Architecture
 
-最後更新：2026-09-06
+最後更新：2026-09-08
 
 狀態：`ARCHITECTURE FROZEN V1 / SOFTWARE PIPELINE PARTIAL`
 
@@ -123,8 +123,8 @@ Regression bundle 可通過 integrity validation，但只能標為 `REGRESSION_B
 | PDR-2 Run identity | manifest schema、source/model/controller/environment hashes | IN PROGRESS / content-sensitive pre/post Git、exact MJCF/model package與 clean-source identity PASS；v7另綁定 protocol/profile/checkpoint/evaluation/source identities；full environment lock missing |
 | PDR-3 Raw integrity | required artifacts、inventory、SHA-256、failure retention | IN PROGRESS / static與analytical 10-role及 v7 14-role bundle的 path、bytes與SHA-256 readback PASS；v7保留4個 negative與30個 NULL early-termination outcomes |
 | PDR-4 Matrix completeness | controller × seed × scenario expected cells exact | SOFTWARE VALIDATOR IMPLEMENTED / ACTUAL STUDY MATRIX NOT RUN；strict spec/index、derived seed-schedule hash、bounded no-follow root scan、bundle identity、missing/duplicate/unexpected/unindexed與 FAILED/CANCELLED retention covered |
-| PDR-5 Independent metrics | raw-only evaluator覆蓋 primary/secondary outcomes | PARTIAL / static、analytical與 v7 action/raw-summary已有 stdlib-only exact replay；V7C exposure-censoring語意尚待 audit，Study A outcomes未覆蓋 |
-| PDR-6 Statistics | paired effects、CI、binary intervals、censoring | SOFTWARE CONTRACT PARTIAL / continuous paired mean、median、Cohen dz與 deterministic bootstrap CI已實作；v7僅有單一 training seed的 conditional paired descriptive difference，未算CI，V7C contrast不具可比性；binary paired CI與 actual Study A仍 blocked |
+| PDR-5 Independent metrics | raw-only evaluator覆蓋 primary/secondary outcomes | PARTIAL / static、analytical與 v7 action/raw-summary已有 stdlib-only exact replay；exposure-censoring audit software已實作並在 synthetic regression通過，另發現 recorded phase convention offset；對 frozen v7 bundle的實際 audit run與 Study A outcomes未覆蓋 |
+| PDR-6 Statistics | paired effects、CI、binary intervals、censoring | SOFTWARE CONTRACT PARTIAL / continuous paired mean、median、Cohen dz與 deterministic bootstrap CI已實作；exposure-censoring audit另加入 method-failure與 censoring分離、assumption-free full-horizon/paired identification bounds與 blocked aggregate；v7僅有單一 training seed，V7C contrast不具可比性；binary paired CI與 actual Study A仍 blocked |
 | PDR-7 Reproduction | clean checkout可重建 selected table/figure | SOFTWARE PARTIAL / synthetic raw table及 v7 raw episode summary已由 `python -I -S` stdlib-only process exact重建；formal clean-checkout reproduction未做 |
 | PDR-8 Paper export | machine-readable table/figure inputs與 appendix receipts | SOFTWARE PARTIAL / synthetic JSON table/figure inputs與hash-bound receipt已實作；無 formal data或 paper-ready export |
 
@@ -144,6 +144,31 @@ payload mass error為 `0 kg`、paired GRF increment relative error為
 [RESULT] [V7 action-interface pilot receipt](V7_ACTION_INTERFACE_PILOT_IMPLEMENTATION_RECEIPT_2026-09-06.md)在 clean Git `058657dd43d28a9175e54362cf4d0a0618507c38`完成三臂各一個 training seed與 exact 30個 DEVELOPMENT evaluation seeds。14個 indexed artifacts共 `109520182` bytes，receipt為 `sha256:ed3e3eaa7c86f2b855d24aca68b09ce45bce61ac2fb6e573328b12157d758435`；`python -I -S`從 raw episodes exact重建 summary。V7B相對V7A的 conditional saturation paired difference為 `-12.8288921 ± 1.0720320` percentage points，但V7B有4個 negative episodes，不符合 frozen eligibility。
 
 [BLOCKER] V7C為30/30 early fall，required outcomes全數保留為 NULL。其倒下前 saturation arithmetic值為0%，但 exposure明顯不同，不能解讀為改善或與V7A形成有效 method contrast；下一個 validity audit將重建 termination time／phase與有效 exposure，原始 receipt不回改。
+
+[RESULT] [V7 exposure-censoring audit receipt](V7_EXPOSURE_CENSORING_AUDIT_IMPLEMENTATION_RECEIPT_2026-09-08.md)在 clean Git
+`428ba214ec7d9e85c254b3b4f85d2c417094d202`實作 `AUDIT-V7-EXPOSURE-CENSORING-V1`並以 synthetic
+regression驗證。canonical episode row沒有 end-step／elapsed-time／termination-reason欄位，因此 audit
+由 retained 500 Hz `control_step_trace`重建 termination control step、sim time與 phase，再與
+`trace_receipt` counts及由既有 task contract導出的 `9.0 s / 450 steps / 4500 substeps` horizon交叉檢查。
+Method failure（`NULL`、`NONFINITE`、terminal failure、no exposure）與 exposure censoring分開保留；
+exposure-censored primary outcome只輸出 assumption-free worst-case bounds。18個 artifacts共
+`68338712` bytes，package receipt `sha256:15c2aef746edc2976a30f186180f32ba3c2c2ebcb6e30f1e08a5a2bf1a4b1415`。
+
+[RESULT] Synthetic case中 60/450 steps且零 saturated substeps的臂 full-horizon bound為
+`[0.000000, 86.666667]%`，其 paired bound `[-34.974074, +51.692593]` percentage points包含 0，
+30個 pair全部 sign-unidentified；另一臂29/30 pair sign-identified NEGATIVE，但因2個 pair被 censored，
+aggregate仍為 null並記 `BLOCKED_EXPOSURE_CENSORED_PAIRS_RETAINED_NO_COMPLETE_CASE_DELETION`。
+這把「V7C的0%不是改善」從敘述改為可檢查的 identification結果。
+
+[BLOCKER] 2026-09-06 pilot bundle位於 `.gitignore`的 local artifact root、不在 clean checkout內，
+因此尚未對 `V7_PILOT_DEVELOPMENT_BUNDLE`執行 audit。Bundle class以 pilot receipt SHA-256雙向綁定，
+本次所有 bundle皆為 `SYNTHETIC_REGRESSION_BUNDLE`且 `audit_applies_to_frozen_v7_pilot=false`，
+`paper_data_ready=false`。
+
+[RESULT] Audit另保留一個 validity finding：`backend/rl/humanoid_env.py`在 substep loop之後才推進
+`task_elapsed_s`並重新取樣 phase，因此 recorded `command_phase`採 end-of-step accumulated-time
+convention（邊界 `0–48 / 49–123 / 124–324`），與 contract的 start-of-step schedule
+（`0–49 / 50–124 / 125–324`）相差一個 control step。此差異原樣輸出，不修改保存資料。
 
 [INFERENCE] 本次 bundle可支持「action-interface pipeline可追溯且在指定單一 checkpoint/DEV seeds下觀察到 conditional outcomes」，不能支持 candidate selection、method-level variance/power、controller superiority或 Study A readiness。`selected_candidate_arm_id=null`、`pilot_planning_ready=false`、`paper_data_ready=false`。
 
@@ -209,6 +234,7 @@ Primary sources：
 5. [DONE-SOFTWARE] 建立 [Experiment Matrix Completeness Contract V1](EXPERIMENT_MATRIX_CONTRACT.md)與 strict fail-closed validator；actual Study A matrix/orchestrator仍未執行，PDR-4不視為 scientific coverage PASS。
 6. [DONE-SOFTWARE] 建立 [Paired Statistics and Paper Export Contract V1](PAIRED_STATISTICS_CONTRACT.md)；synthetic regression已驗證 failure/cancellation、negative/null/non-finite/censoring retention、continuous CI與 raw-to-export replay，binary paired CI仍 blocked，不視為 PDR-6/7/8 scientific PASS。
 7. [DONE-EVIDENCE / BLOCKED-PLANNING] 完成 frozen v7 action-interface DEVELOPMENT pilot、14-artifact bundle與 stdlib-only replay；V7B有4個 negative episodes，V7C 30/30 early fall且 required outcomes為 NULL，因此沒有 selected candidate、不能做 method-level power/sample-size決策。
-8. [NEXT] 只讀既有 v7 bundle執行 early-termination / exposure-censoring validity audit V1：重建 termination time／phase與有效 exposure，將V7C 0% duty及其 paired contrast明示為 non-comparable/censored；不重訓、不新增 seed、不調 alpha/envelope/threshold、不開啟 FORMAL/HOLDOUT。
+8. [DONE-SOFTWARE / BLOCKED-DATA] 完成 early-termination / exposure-censoring validity audit V1的 frozen protocol、read-only contract、獨立 `python -I -S` replay、38個 fail-closed tests與 clean-source synthetic regression；method failure與 censoring分離、assumption-free identification bounds與 blocked aggregate均已驗證，並保留 recorded phase-convention offset finding。frozen pilot bundle不在 clean checkout內，因此 `audit_applies_to_frozen_v7_pilot=false`。
+9. [NEXT] 在保有 2026-09-06 bundle的機器上對 `V7_PILOT_DEVELOPMENT_BUNDLE`執行一次 read-only audit run，記錄真實 exposure分布、phase-convention finding與 identification bounds，原 receipt不回改；不重訓、不新增 seed、不調 alpha/envelope/threshold、不選 candidate、不開啟 FORMAL/HOLDOUT。完成後才另立 fresh DEVELOPMENT protocol考慮 independent training-seed variance。
 
 隨研究規模增加時再評估 Parquet/object storage、distributed queue與 GPU worker；現階段 Windows單機、JSON/NPZ與 versioned local artifact root 已足夠，先避免引入不必要的分散式複雜度。
