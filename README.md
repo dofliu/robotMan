@@ -128,6 +128,9 @@ comparison_report.md 保留既有 deterministic nominal snapshot，供回歸診�
 | [ENVIRONMENT_LOCK_SPEC](docs/ENVIRONMENT_LOCK_SPEC.md) | locked/observed 分界、behaviour fingerprints、缺失 lock 的表述與 verification semantics |
 | [ENVIRONMENT_LOCK_IMPLEMENTATION_RECEIPT_2026-09-08](docs/ENVIRONMENT_LOCK_IMPLEMENTATION_RECEIPT_2026-09-08.md) | 實測 lock record、reduction-order 差異、v7 的 ABSENT_UNRECOVERABLE 判定與 EL-01..EL-10 |
 | [TRAINING_SEED_VARIANCE_SPEC](docs/TRAINING_SEED_VARIANCE_SPEC.md) | independent training replicates、replicate-level analysis unit、censoring 向上組合、禁止 selection 與 SV-01..SV-12 |
+| [V7_PRETRAINING_SEED_VARIANCE_INFEASIBILITY_RECEIPT_2026-09-08](docs/V7_PRETRAINING_SEED_VARIANCE_INFEASIBILITY_RECEIPT_2026-09-08.md) | 為何 pretraining-seed variance 對 v7 line 不可量測，以及 profile／registry 的矛盾為何記錄而不修 |
+| [V7_CANDIDATE_SELECTION_SPEC](docs/V7_CANDIDATE_SELECTION_SPEC.md) | 凍結的 selection 規則、post-hoc 揭露義務、只用 sealed FORMAL 的理由、`SEL-C1..SEL-C6` 與授權閘 |
+| [V7_CANDIDATE_SELECTION_IMPLEMENTATION_RECEIPT_2026-09-08](docs/V7_CANDIDATE_SELECTION_IMPLEMENTATION_RECEIPT_2026-09-08.md) | 規則自檢實測、凍結前量到的三項執行前置條件，與 self-check 曾經恆真的那個洞 |
 | [TRAINING_SEED_VARIANCE_EXECUTION_RECEIPT_2026-09-08](docs/TRAINING_SEED_VARIANCE_EXECUTION_RECEIPT_2026-09-08.md) | 實際執行的 1,843,200 timesteps、450 records、method-level bounds、保留的 16 個 blockers 與過程中的自我修正 |
 | [TRAINING_SEED_VARIANCE_IMPLEMENTATION_RECEIPT_2026-09-08](docs/TRAINING_SEED_VARIANCE_IMPLEMENTATION_RECEIPT_2026-09-08.md) | plant identity 量測、三條結構性規則的實作、synthetic regression 結果與未執行訓練的邊界 |
 | [V7_EXPOSURE_CENSORING_AUDIT_SPEC](docs/V7_EXPOSURE_CENSORING_AUDIT_SPEC.md) | read-only exposure-censoring audit的 frozen horizon、phase conventions、censoring vocabulary、identification bounds與 acceptance |
@@ -159,7 +162,11 @@ comparison_report.md 保留既有 deterministic nominal snapshot，供回歸診�
 前置的 `ENVIRONMENT-LOCK-V1` 量測行為而非相信 version string（含實跑 `500` 步的 MuJoCo contact state digest 與實際執行的 torch optimiser step），並實測到同一組 1000 個 reciprocal 在同一環境下依 stdlib 順序相加得 `7.485470860550343`、交給 `numpy.ndarray.sum` 得 `7.485470860550345` —— 兩者都符合 IEEE 754。v7 的兩個 retained bundle 都在此 contract 之前產生，其 environment 狀態為 `ABSENT_UNRECOVERABLE`，因此
 `cross_protocol_comparability = NON_VERIFIABLE_ENVIRONMENT`：seed-variance 的數值不得與 pilot receipt 的數值相減或並排成趨勢。
 
-**下一個唯一優先目標是 independent pretraining-seed variance，或另立 selection protocol。** 5 個 replicate 共用同一個 v5 warm start，所以量到的是 fine-tuning 階段的 seed 變異，系統性**低估**完整 method variance。`selected_candidate_arm_id` 維持 `null`：V7B 的方向穩健性**不構成 selection** —— 用同一批資料先估變異再據以選擇，會把選擇條件建立在被選中的雜訊上；且本結果已公開，任何新 selection protocol 都必須明示它是在已知 V7B 為負的情況下設計的。`pilot_planning_ready`、`method_level_power_ready`、`statistics_ready`、`paper_data_ready` 全部維持 false。Study A actual matrix、binary paired CI、lock record 綁進 run manifest、immutable storage 與 formal authorization 仍未完成；這些 development evidence 不解除 V0/V1/V3 gate。
+**Independent pretraining-seed variance 經查證不可量測** —— 是 provenance，不是算力。v5 warm start 自一個位於 gitignored `backend/rl/artifacts/` 的 v4 local artifact，版本控制中只有 3 個 policy artifact（無 v3、無 v4），v5 自己的 training profile 寫 `warm_start_policy_id: null`，而其 `122,880`-step checkpoint 是在另一個 `516,096`-step run regressed 之後選出來的。因此 `training_replicate_scope = CONDITIONAL_ON_FIXED_WARM_START` 對 v7 line 是**永久的**，V7B 的方向結論永遠附帶那個條件。詳見 [pretraining infeasibility receipt](docs/V7_PRETRAINING_SEED_VARIANCE_INFEASIBILITY_RECEIPT_2026-09-08.md)。
+
+**Candidate selection 已凍結，並且自己承認不是 preregistered。** `SELECT-V7-CANDIDATE-FORMAL-V1` 是在已看過 seed-variance 結果之後寫的，因此 `preregistered=false` 與四項揭露由 `validate_protocol` 強制，改成 `true` 的版本無法載入。它只能在 sealed FORMAL `20000–20029` 上決策（`18000–18029` 已 `DEVELOPMENT_EXHAUSTED` 且被作者看過，`19000–19029` 已退役且曾作 v5 HOLDOUT），只套用一次，且 eligible 需要 `SEL-C1..SEL-C6` 六個明確的 PASS —— `NOT_REACHED` 與 `NOT_APPLICABLE` 都不算同意。最關鍵的保護是：規則套在已看過的 DEV evidence 上選不出任何 candidate（`SEL-C2` 擋下：V7B comparable `120/150`、V7C `0/150`，reference V7A `143/150`）。如果規則是為了讓 V7B 通過而設計，它在唯一看過的資料上就會讓 V7B 通過。
+
+**但它不可執行，也不得執行。** 三項執行前置條件在凍結前先量測並全部 `BLOCKING`：`EP-01` audit contract 對 `SEALED_SEED_RANGE` 的 seed 直接 raise；`EP-02` `eval_policy.py` 兩個 branch 都把 evaluation seed schedule 釘死；`EP-03` formal authorization 尚未取得。解除順序是**授權在前、解封在後**。`selected_candidate_arm_id` 維持 `null`，`pilot_planning_ready`、`method_level_power_ready`、`statistics_ready`、`paper_data_ready` 全部維持 false。Study A actual matrix、binary paired CI、lock record 綁進 run manifest、immutable storage 與 formal authorization 仍未完成；這些 development evidence 不解除 V0/V1/V3 gate。
 
 ## 資料聲明
 

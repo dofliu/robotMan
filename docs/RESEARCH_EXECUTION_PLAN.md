@@ -151,7 +151,7 @@ v3 由 v2 做 fail-closed input expansion；新增輸入權重從零開始，其
 
 該 protocol **已實際執行完成**：`1,843,200` realized timesteps、450 個 terminal records、0 失敗、獨立 replay exact。V7B 相對 V7A 的 method-level bound 為 `[-13.503408, -12.435259]` pp（排除 0、sign NEGATIVE、5/5 replicates 可識別），但 `between_replicate_sd` 因每個 replicate 都有 exposure censoring 而為 `null`，故 sample-size 決策仍 blocked；V7C 為 `[-37.195407, +27.315704]` pp 含 0、0/5 可識別。另外量到 pilot 那個乾淨的 reference exposure 是 seed `8700` 的性質而非 V7A 的性質（V7A 在 3 個 replicate 出現 early termination），而 V7C 的崩潰在 5 個獨立 seeds 上完全重現。
 
-下一個唯一優先目標是 independent **pretraining**-seed variance，或另立 selection protocol。V7B 的方向穩健性**不構成 selection**：用同一批資料先估變異再據以選擇，會把選擇條件建立在被選中的雜訊上；且本結果已公開，任何新 selection protocol 必須明示它是在已知 V7B 為負的情況下設計的。在那之前不調 alpha/envelope/threshold、不開啟 FORMAL/HOLDOUT，`replicate_count` 亦不得回溯調整。
+Independent **pretraining**-seed variance 經查證不可量測（provenance，不是算力），因此 `CONDITIONAL_ON_FIXED_WARM_START` 對 v7 line 永久成立。`SELECT-V7-CANDIDATE-FORMAL-V1` 已凍結並自陳 `preregistered=false`，且在已看過的 DEV evidence 上選不出 candidate；但它**不可執行**（audit contract 拒絕 sealed seeds、eval driver 釘死 seed schedule、授權未取得）。下一個唯一優先目標是取得 formal authorization，再依「授權在前、解封在後」解除那兩項。V7B 的方向穩健性**不構成 selection**：用同一批資料先估變異再據以選擇，會把選擇條件建立在被選中的雜訊上；且本結果已公開，任何新 selection protocol 必須明示它是在已知 V7B 為負的情況下設計的。在那之前不調 alpha/envelope/threshold、不開啟 FORMAL/HOLDOUT，`replicate_count` 亦不得回溯調整。
 
 ## 5. Study A 的方法組與公平比較
 

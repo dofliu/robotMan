@@ -1,0 +1,170 @@
+{
+  "schema_version": "V7_CANDIDATE_SELECTION_PROTOCOL_V1",
+  "protocol_id": "SELECT-V7-CANDIDATE-FORMAL-V1",
+  "protocol_status": "FROZEN_EXECUTION_BLOCKED",
+  "frozen_date": "2026-09-08",
+  "freeze_parent_git_sha": "f72814765a49e4f7141cf5482c8d029e3488f27d",
+  "specification": "docs/V7_CANDIDATE_SELECTION_SPEC.md",
+  "specification_sha256": "sha256:bab998579bdb4f260d5c46405ad54dfc105dab975a9f78ea729aab71d3c8afb3",
+  "run_class": "FORMAL_CANDIDATE_SELECTION",
+  "evidence_scope": "SIM_ONLY_MUJOCO",
+  "validation_status": "NOT_PHYSICALLY_VALIDATED",
+  "paper_data_ready": false,
+  "preregistered": false,
+  "post_hoc_disclosure": {
+    "authored_after_seeing": "SEEDVAR-V7-TRAINING-REPLICATE-DEV-V1 development results on DEV seeds 18000-18029",
+    "known_at_freeze_time": "V7B minus V7A method-level identification bound [-13.503408, -12.435259] pp, excludes zero, sign NEGATIVE, 5/5 replicates sign-identified; V7C minus V7A [-37.195407, +27.315704] pp, contains zero, 0/5 sign-identified.",
+    "consequence": "This protocol must never be described as preregistered, blinded, or a confirmatory design. Any document citing it must cite this disclosure with it.",
+    "mitigation": "The rule decides only on evaluation seeds never inspected for this contrast, applies once, and - decisively - selects no candidate when applied to the already-seen development evidence. A rule written to let V7B through would not have stopped V7B."
+  },
+  "prerequisite_contracts": {
+    "pilot_protocol_id": "PILOT-V7-ACTION-INTERFACE-DEV-V1",
+    "pilot_protocol_sha256": "sha256:719b70a2bdf8d23af5f4ec5dff51a6099e88d6de4e2221fa74f6f7464cdfcb96",
+    "audit_protocol_id": "AUDIT-V7-EXPOSURE-CENSORING-V1",
+    "audit_protocol_sha256": "sha256:b15505b73f3745141c2dfa31cf57564b0863242949f5d1ad4d351dfb96dec6ce",
+    "seedvar_protocol_id": "SEEDVAR-V7-TRAINING-REPLICATE-DEV-V1",
+    "seedvar_protocol_sha256": "sha256:9ab17c74ddb021f9b69b1df843f9fa49ea45ecf790837204270d8bc01046b359",
+    "environment_lock_contract_id": "ENVIRONMENT-LOCK-V1"
+  },
+  "arms": {
+    "reference_arm_id": "V7A_REWARD_ONLY",
+    "candidate_arm_ids": [
+      "V7B_REDUCED_JOINT_ENVELOPE",
+      "V7C_FILTERED_ACTION"
+    ],
+    "arm_definitions_inherited_from": "PILOT-V7-ACTION-INTERFACE-DEV-V1",
+    "arm_definition_change_policy": "FORBIDDEN_WITHOUT_NEW_PROTOCOL_VERSION"
+  },
+  "evaluation_data": {
+    "permitted_seed_class": "SEALED_FORMAL",
+    "formal_seed_range": [
+      20000,
+      20029
+    ],
+    "development_exhausted_seed_range": [
+      18000,
+      18029
+    ],
+    "retired_seed_range": [
+      19000,
+      19029
+    ],
+    "why_only_formal": "18000-18029 were inspected by the pilot, the exposure audit and the seed-variance run, and by this protocol's own author; 19000-19029 are retired and were used as v5 HOLDOUT. Selecting on inspected data conditions the choice on the noise selected for, so the sealed range is the only remaining option, not a preference.",
+    "forbidden_substitution": "Development or retired seed results may never supplement or stand in for FORMAL results."
+  },
+  "authorization": {
+    "required": true,
+    "state": "NOT_OBTAINED",
+    "blocker": "formal authorization is a named missing V0 blocker for this project",
+    "effect": "This protocol is frozen but must not be executed.",
+    "ordering_rule": "Authorization comes before unsealing. Removing the sealed-seed guard while authorization is still absent reverses the intended order and is forbidden."
+  },
+  "decision_rule": {
+    "primary_outcome": "saturation_duty_pct",
+    "paired_contrast": "candidate_minus_reference",
+    "analysis_unit": "TRAINING_REPLICATE",
+    "default_outcome": "SELECTION_COMPLETE_NO_CANDIDATE",
+    "eligibility_conditions": [
+      {
+        "id": "SEL-C1",
+        "requirement": "complete FORMAL terminal-record inventory with no missing, duplicate, unexpected, development or retired seed"
+      },
+      {
+        "id": "SEL-C2",
+        "requirement": "every episode of the candidate and of the reference is COMPARABLE; any EXPOSURE_CENSORED or METHOD_FAILURE_NOT_CENSORING makes the candidate ineligible",
+        "rationale": "The exposure audit measured that all three of V7B's censored pilot episodes carried outcome_state OBSERVED with every required numeric present and a null reason. Observed outcomes therefore do not imply full exposure, and duty under censored exposure is not point-identified."
+      },
+      {
+        "id": "SEL-C3",
+        "requirement": "the method-level paired identification bound excludes zero and is negative"
+      },
+      {
+        "id": "SEL-C4",
+        "requirement": "between_replicate_sd is a point value, not null",
+        "rationale": "Selection exists to start formal planning, planning needs a sample size, and a sample size needs the between-replicate variance. An identified direction with an unestimable variance is a premature commitment, not a decision."
+      },
+      {
+        "id": "SEL-C5",
+        "requirement": "the pilot's frozen six-gate subset passes per episode with no required null or non-finite value; threshold values may not be changed"
+      },
+      {
+        "id": "SEL-C6",
+        "requirement": "MEASURED_ENVIRONMENT_LOCK plus FULL_LOCK plus AMBIENT_THREADING_PINNED, verified before every run"
+      }
+    ],
+    "tie_break": "Among eligible candidates select the lower method-level upper bound. Exact equality selects neither.",
+    "single_application": true,
+    "post_result_change_policy": "After FORMAL results are seen: no re-run, no threshold change, no replicate_count change, no arm redefinition, no primary-outcome change. Any of these requires a new protocol version carrying the same post-hoc disclosure obligation as this one."
+  },
+  "rule_self_check_on_development_evidence": {
+    "purpose": "Applying the frozen rule to the already-seen development evidence, to test the rule rather than to select. This is not an execution of the protocol.",
+    "evidence": "backend/seed_variance_evidence/2026-09-08/",
+    "expected_outcome": "SELECTION_COMPLETE_NO_CANDIDATE",
+    "per_candidate": {
+      "V7B_REDUCED_JOINT_ENVELOPE": {
+        "SEL-C1": "PASS: 450 terminal records over seeds 18000-18029; seed-class clause not applicable in a self-check",
+        "SEL-C2": "FAIL: comparable 120/150, with the V7A reference at 143/150",
+        "SEL-C3": "NOT_REACHED",
+        "SEL-C4": "NOT_REACHED",
+        "SEL-C5": "NOT_REACHED",
+        "SEL-C6": "NOT_REACHED"
+      },
+      "V7C_FILTERED_ACTION": {
+        "SEL-C1": "PASS: 450 terminal records over seeds 18000-18029; seed-class clause not applicable in a self-check",
+        "SEL-C2": "FAIL: comparable 0/150, with the V7A reference at 143/150",
+        "SEL-C3": "NOT_REACHED",
+        "SEL-C4": "NOT_REACHED",
+        "SEL-C5": "NOT_REACHED",
+        "SEL-C6": "NOT_REACHED"
+      }
+    },
+    "interpretation": "SEL-C2 is what actually stops both candidates, and SEL-C4 would have stopped V7B as well. Both come directly from upstream audit and seed-variance findings rather than being invented here. A rule designed to pass V7B would have passed it on the only data its author has seen.",
+    "condition_chain": "Conditions are evaluated in order and the remainder are reported NOT_REACHED after the first failure. NOT_REACHED is never treated as PASS: eligibility needs six explicit passes. The self-check disables only SEL-C1's seed-class clause, because a check that stopped at 'development seeds are not FORMAL' would test nothing substantive.",
+    "facts_read_directly_from_the_summary": "Independently of the chain: V7B's method-level bound [-13.503408, -12.435259] pp excludes zero, so SEL-C3 would have passed, and its between_replicate_sd is null, so SEL-C4 would have failed. Neither was evaluated because SEL-C2 failed first."
+  },
+  "execution_preconditions": [
+    {
+      "id": "EP-01",
+      "state": "BLOCKING",
+      "finding": "backend/v7_exposure_audit_contract.py _episode_exposure raises on any seed in SEALED_SEED_RANGE = range(20000, 20030), so FORMAL episodes cannot be classified at all. Exposure classification is the input to SEL-C2.",
+      "resolution": "An amendment to the merged audit contract permitting FORMAL seeds only when authorization evidence is present. Not in scope here, and not to be done before authorization exists."
+    },
+    {
+      "id": "EP-02",
+      "state": "BLOCKING",
+      "finding": "Both branches of backend/rl/eval_policy.py pin the evaluation seed schedule (V7_EVALUATION_SEED_SCHEDULE_OVERRIDE_FORBIDDEN and SEEDVAR_EVALUATION_SEED_SCHEDULE_OVERRIDE_FORBIDDEN), so no path accepts 20000-20029.",
+      "resolution": "A third mutually exclusive evaluation identity for FORMAL selection runs."
+    },
+    {
+      "id": "EP-03",
+      "state": "BLOCKING",
+      "finding": "formal authorization has not been obtained",
+      "resolution": "Out of scope for any protocol; requires the project owner."
+    }
+  ],
+  "execution_precondition_source_digests": {
+    "audit_contract_source": "backend/v7_exposure_audit_contract.py",
+    "audit_contract_source_sha256": "sha256:365d7669f0f5a388d34afe8f4960e39d533c43b35c733a4f5852546d7957c376",
+    "evaluation_driver_source": "backend/rl/eval_policy.py",
+    "evaluation_driver_source_sha256": "sha256:0cf274341a10a56fbf544d86eab4bfbfd6f630056689280af51aff111b0058d4",
+    "verified_before_freeze": true,
+    "lesson_applied": "SEEDVAR-AMENDMENT-01-DRIVER-IDENTITY was needed because that freeze pinned two drivers by digest without checking either could run the design. These preconditions were measured before this freeze rather than discovered during execution."
+  },
+  "acceptance_criteria": [
+    "SEL-01 the protocol declares preregistered=false and carries the post-hoc disclosure; a missing field fails closed",
+    "SEL-02 only SEALED_FORMAL evaluation seeds are accepted; a development or retired seed is a structural failure",
+    "SEL-03 without formal authorization evidence the contract refuses to emit any selection",
+    "SEL-04 any unmet condition among SEL-C1..SEL-C6 yields SELECTION_COMPLETE_NO_CANDIDATE and reports no candidate",
+    "SEL-05 an exact tie between eligible candidates selects neither",
+    "SEL-06 the contract refuses to run while any execution precondition is unresolved, naming each one",
+    "SEL-07 applying the rule to the retained development evidence yields SELECTION_COMPLETE_NO_CANDIDATE",
+    "SEL-08 the rule applies once; re-applying it to the same FORMAL evidence is a structural failure",
+    "SEL-09 the receipt retains paper_data_ready=false and this protocol's claim boundary"
+  ],
+  "selected_candidate_arm_id": null,
+  "method_level_power_ready": false,
+  "statistics_ready": false,
+  "training_replicate_scope": "CONDITIONAL_ON_FIXED_WARM_START",
+  "training_replicate_scope_permanence": "PERMANENT_FOR_THE_V7_LINE: the v5 warm start came from a v4 local artifact under gitignored backend/rl/artifacts/, only three policy artifacts are tracked, v5's own training profile records no warm start, and its 122,880-step checkpoint was selected over a 516,096-step run that regressed. See docs/V7_PRETRAINING_SEED_VARIANCE_INFEASIBILITY_RECEIPT_2026-09-08.md.",
+  "claim_boundary": "SIM_ONLY_MUJOCO / NOT_PHYSICALLY_VALIDATED. This protocol has not been executed, has not accessed seeds 20000-20029, has produced no FORMAL data and has selected no candidate. Even once authorized and executed, it may support only a statement about which frozen action-interface candidate passes the frozen eligibility conditions under this plant, this warm start and this task. It supports no claim of controller superiority, sample-size adequacy, paper readiness, physical torque or thermal margin, safety, or sim-to-real performance, and every result it could produce remains conditional on the one v5 warm start whose provenance is unrecoverable."
+}
