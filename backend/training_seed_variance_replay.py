@@ -229,7 +229,7 @@ def _cell(cell: dict[str, Any], seeds) -> dict[str, Any]:
     )
     common = {
         "arm_id": cell["arm_id"],
-        "audit_summary_sha256": cell["audit_summary_sha256"],
+        "evaluation_output_sha256": cell["evaluation_output_sha256"],
         "realized_timesteps": cell["realized_timesteps"],
         "training_terminal_state": cell["training_terminal_state"],
         "episode_count": len(episodes),

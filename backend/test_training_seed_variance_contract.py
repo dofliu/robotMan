@@ -413,10 +413,40 @@ def test_realized_budget_must_match_the_frozen_expectation(raw: dict, protocol: 
         validate_raw_bundle(raw, protocol)
 
 
-def test_audit_protocol_digest_must_be_the_frozen_one(raw: dict, protocol: dict) -> None:
-    _cell(raw, 0, REFERENCE_ARM_ID)["audit_protocol_sha256"] = "sha256:" + "0" * 64
-    with pytest.raises(SeedVarianceError, match="frozen audit digest"):
+@pytest.mark.parametrize(
+    ("field", "message"),
+    [
+        ("audit_protocol_sha256", "frozen audit digest"),
+        ("audit_contract_source_sha256", "pinned audit implementation"),
+        ("pilot_contract_source_sha256", "pinned pilot implementation"),
+    ],
+)
+def test_inherited_classification_provenance_must_match(
+    raw: dict, protocol: dict, field: str, message: str
+) -> None:
+    """The protocol says which rules; the source pins say which code applied them."""
+    _cell(raw, 0, REFERENCE_ARM_ID)[field] = "sha256:" + "0" * 64
+    with pytest.raises(SeedVarianceError, match=message):
         validate_raw_bundle(raw, protocol)
+
+
+def test_pinned_implementations_are_re_hashed_against_disk(raw: dict) -> None:
+    """A pin copied into a field is only a string until it is checked."""
+    assert svc.verify_inherited_implementations()["inherited_implementations_verified"] is True
+
+
+def test_evaluation_output_digest_is_carried_into_the_summary(
+    raw: dict, protocol: dict
+) -> None:
+    digest = "sha256:" + "7" * 64
+    _cell(raw, 0, REFERENCE_ARM_ID)["evaluation_output_sha256"] = digest
+    summary = build_summary(raw, protocol)
+    cell = next(
+        item
+        for item in summary["replicates"][0]["arms"]
+        if item["arm_id"] == REFERENCE_ARM_ID
+    )
+    assert cell["evaluation_output_sha256"] == digest
 
 
 @pytest.mark.parametrize(

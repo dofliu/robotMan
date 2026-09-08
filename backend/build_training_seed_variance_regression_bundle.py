@@ -42,11 +42,13 @@ from environment_lock import (
 )
 from training_seed_variance_contract import (
     ARM_IDS,
+    AUDIT_CONTRACT_SOURCE_SHA256,
     AUDIT_PROTOCOL_SHA256,
     CANDIDATE_ARM_IDS,
     DEFAULT_PROTOCOL,
     LOCK_ARTIFACT,
     PROTOCOL_ARTIFACT,
+    PILOT_CONTRACT_SOURCE_SHA256,
     PROTOCOL_ID,
     RAW_ARTIFACT,
     RAW_SCHEMA,
@@ -171,7 +173,7 @@ def _cell(
     arm_id: str,
     replicate_index: int,
     design: dict[str, Any],
-    audit_summary_sha256: str,
+    evaluation_output_sha256: str,
     *,
     censored: bool = False,
     method_failure_seeds: tuple[int, ...] = (),
@@ -197,10 +199,12 @@ def _cell(
             episodes.append(_episode(seed, duty, comparability_state="COMPARABLE"))
     return {
         "arm_id": arm_id,
+        "audit_contract_source_sha256": AUDIT_CONTRACT_SOURCE_SHA256,
         "audit_protocol_sha256": AUDIT_PROTOCOL_SHA256,
-        "audit_summary_sha256": audit_summary_sha256,
         "episodes": episodes,
         "evaluation_environment_lock_verified": True,
+        "evaluation_output_sha256": evaluation_output_sha256,
+        "pilot_contract_source_sha256": PILOT_CONTRACT_SOURCE_SHA256,
         "realized_timesteps": design["expected_realized_timesteps"],
         "training_environment_lock_verified": True,
         "training_terminal_state": "COMPLETED",
@@ -221,13 +225,15 @@ def build_raw_bundle(
     for index in range(design["replicate_count"]):
         arms = []
         for arm_id in ARM_IDS:
-            audit_digest = "sha256:" + f"{index:02d}{ARM_IDS.index(arm_id):02d}".ljust(64, "e")
+            evaluation_digest = (
+                "sha256:" + f"{index:02d}{ARM_IDS.index(arm_id):02d}".ljust(64, "e")
+            )
             arms.append(
                 _cell(
                     arm_id,
                     index,
                     design,
-                    audit_digest,
+                    evaluation_digest,
                     censored=arm_id in censored_arms,
                     method_failure_seeds=failures.get((arm_id, index), ()),
                 )

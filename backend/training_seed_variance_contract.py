@@ -69,6 +69,18 @@ ERROR_SCHEMA = "TRAINING_SEED_VARIANCE_ERROR_RECEIPT_V1"
 AUDIT_PROTOCOL_SHA256 = (
     "sha256:b15505b73f3745141c2dfa31cf57564b0863242949f5d1ad4d351dfb96dec6ce"
 )
+# The two implementations whose frozen derivations produce the inherited
+# episode classification. Pinning them is what makes "the audit rules were
+# applied" checkable rather than asserted: a drifted audit implementation would
+# otherwise silently reclassify exposure under an unchanged protocol digest.
+AUDIT_CONTRACT_SOURCE = Path(__file__).resolve().parent / "v7_exposure_audit_contract.py"
+AUDIT_CONTRACT_SOURCE_SHA256 = (
+    "sha256:365d7669f0f5a388d34afe8f4960e39d533c43b35c733a4f5852546d7957c376"
+)
+PILOT_CONTRACT_SOURCE = Path(__file__).resolve().parent / "v7_pilot_contract.py"
+PILOT_CONTRACT_SOURCE_SHA256 = (
+    "sha256:ee920fba5b75e2570831381dbb460d25c4d0a96a3c2fac9631b29591434ccbc5"
+)
 
 DEVELOPMENT_BUNDLE_CLASS = "SEED_VARIANCE_DEVELOPMENT_BUNDLE"
 SYNTHETIC_BUNDLE_CLASS = "SYNTHETIC_REGRESSION_BUNDLE"
@@ -138,13 +150,25 @@ EPISODE_FIELDS = (
 BOUND_FIELDS = ("lower_pct", "reason", "state", "upper_pct", "width_pct")
 CELL_FIELDS = (
     "arm_id",
+    "audit_contract_source_sha256",
     "audit_protocol_sha256",
-    "audit_summary_sha256",
     "episodes",
     "evaluation_environment_lock_verified",
+    "evaluation_output_sha256",
+    "pilot_contract_source_sha256",
     "realized_timesteps",
     "training_environment_lock_verified",
     "training_terminal_state",
+)
+# Provenance for the inherited classification. The audit protocol says which
+# rules applied, the two source digests say which implementations applied them,
+# and the evaluation digest says which raw output they were applied to. That
+# last one is the binding that matters: it reaches the actual measured episodes
+# rather than a derived summary of them.
+CELL_PROVENANCE_FIELDS = (
+    "audit_contract_source_sha256",
+    "evaluation_output_sha256",
+    "pilot_contract_source_sha256",
 )
 # The spec requires the lock verified before *every* training and evaluation
 # run. One flag per cell would conflate two separate runs, so each cell carries
@@ -409,6 +433,34 @@ def validate_protocol(protocol: dict[str, Any]) -> dict[str, Any]:
         _require_string(entry.get("defect"), "protocol.amendment.defect")
         _require_string(entry.get("resolution"), "protocol.amendment.resolution")
     return _protocol_design(protocol)
+
+
+def verify_inherited_implementations() -> dict[str, Any]:
+    """Re-hash the reused implementations against their pins.
+
+    The cell fields record which implementation was claimed; this checks the
+    claim against the file actually importable here. Without it a pin is only
+    a copied string.
+    """
+    findings = []
+    for path, expected in (
+        (AUDIT_CONTRACT_SOURCE, AUDIT_CONTRACT_SOURCE_SHA256),
+        (PILOT_CONTRACT_SOURCE, PILOT_CONTRACT_SOURCE_SHA256),
+    ):
+        actual = sha256_file(path)
+        if actual != expected:
+            findings.append(
+                f"{path.name}: pinned {expected}, read {actual}"
+            )
+    if findings:
+        raise SeedVarianceError(
+            "inherited implementation drift: " + "; ".join(findings)
+        )
+    return {
+        "audit_contract_source_sha256": AUDIT_CONTRACT_SOURCE_SHA256,
+        "pilot_contract_source_sha256": PILOT_CONTRACT_SOURCE_SHA256,
+        "inherited_implementations_verified": True,
+    }
 
 
 def verify_pilot_inheritance(
@@ -762,7 +814,16 @@ def _validate_cell(cell: Any, design: dict[str, Any], context: str) -> dict[str,
     _require_string(payload["arm_id"], f"{context}.arm_id", allowed=ARM_IDS)
     if payload["audit_protocol_sha256"] != AUDIT_PROTOCOL_SHA256:
         raise SeedVarianceError(f"{context}.audit_protocol_sha256 is not the frozen audit digest")
-    _require_string(payload["audit_summary_sha256"], f"{context}.audit_summary_sha256")
+    if payload["audit_contract_source_sha256"] != AUDIT_CONTRACT_SOURCE_SHA256:
+        raise SeedVarianceError(
+            f"{context}.audit_contract_source_sha256 is not the pinned audit implementation"
+        )
+    if payload["pilot_contract_source_sha256"] != PILOT_CONTRACT_SOURCE_SHA256:
+        raise SeedVarianceError(
+            f"{context}.pilot_contract_source_sha256 is not the pinned pilot implementation"
+        )
+    for field in CELL_PROVENANCE_FIELDS:
+        _require_string(payload[field], f"{context}.{field}")
     for field in CELL_LOCK_FIELDS:
         _require_true(payload[field], f"{context}.{field}")
     _require_string(
@@ -872,7 +933,7 @@ def _cell_summary(cell: dict[str, Any], context: str) -> dict[str, Any]:
     terminals = Counter(item["terminal_record_state"] for item in episodes)
     common = {
         "arm_id": cell["arm_id"],
-        "audit_summary_sha256": cell["audit_summary_sha256"],
+        "evaluation_output_sha256": cell["evaluation_output_sha256"],
         "realized_timesteps": cell["realized_timesteps"],
         "training_terminal_state": cell["training_terminal_state"],
         "episode_count": len(episodes),
@@ -1445,6 +1506,7 @@ def analyse_seed_variance(
         )
     bundle = read_source_bundle(source)
     inheritance = verify_pilot_inheritance(bundle["protocol"])
+    implementations = verify_inherited_implementations()
     if protocol_path is not None:
         # An explicitly supplied protocol must still be the frozen one; this is
         # only a path override, never a contract override.
@@ -1473,6 +1535,7 @@ def analyse_seed_variance(
         "environment_lock_completeness": bundle["lock_status"]["environment_lock_completeness"],
         "environment_lock_threading": bundle["lock_status"]["environment_lock_threading"],
         "bundle_class_is_declared_not_derived": True,
+        **implementations,
         "environment_lock_verified_runs": 2
         * summary["replicate_count"]
         * len(ARM_IDS),
