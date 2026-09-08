@@ -308,3 +308,56 @@ def test_probe_v2_recipe_override_is_validated_and_effective(protocol, design):
     bad["recipe_override"]["device"] = "cuda"
     with pytest.raises(probe_mod.ProbeError, match="may not set"):
         probe_mod.validate_probe(bad, protocol, design)
+
+
+# --------------------------------------------------------------------------- #
+# probe V3: plant change via environment_override (Hopper-v5)
+# --------------------------------------------------------------------------- #
+
+
+def test_probe_v3_environment_override_repins_the_plant(runner, protocol, design):
+    probe_mod = _load_probe_module()
+    path = HERE / "rl" / "second_case_v3_budget_probe_hopper.json"
+    if not path.exists():
+        pytest.skip("probe V3 not written yet")
+    probe = probe_mod.load_probe(path)
+    pdesign = probe_mod.validate_probe(probe, protocol, design)
+    assert pdesign["environment"]["gymnasium_env_id"] == "Hopper-v5"
+    assert pdesign["design_overrides"] == {
+        "plant_asset_sha256": probe["environment_override"]["plant_asset_sha256"],
+        "horizon_steps": 1000,
+        "joints": 3,
+        "horizon_units": 3000,
+    }
+    assert pdesign["training_seed"] == 48000 and pdesign["evaluation_seeds"] == list(range(49000, 49030))
+    # The runner builds the overridden plant and pins it by digest; the shared wrapper appends 3 previous actions.
+    eval_protocol = dict(protocol)
+    eval_protocol["environment"] = pdesign["environment"]
+    eval_design = dict(design)
+    eval_design.update(pdesign["design_overrides"])
+    env = runner.make_env(eval_protocol, eval_design, 1.0)
+    assert env.observation_space.shape == (14,) and env.action_space.shape == (3,)
+    env.close()
+    bad = copy.deepcopy(probe)
+    bad["environment_override"]["gymnasium_make_kwargs"] = {"terminate_when_unhealthy": False}
+    with pytest.raises(probe_mod.ProbeError, match="must be empty"):
+        probe_mod.validate_probe(bad, protocol, design)
+    bad = copy.deepcopy(probe)
+    bad["environment_override"]["plant_asset_sha256"] = "sha256:" + "00" * 32
+    eval_design2 = dict(design)
+    eval_design2.update(probe_mod.validate_probe(bad, protocol, design)["design_overrides"])
+    with pytest.raises(runner.SecondCaseRunError, match="PLANT_MISMATCH"):
+        runner.make_env(eval_protocol, eval_design2, 1.0)
+
+
+def test_probe_v3_seeds_are_disjoint_from_every_earlier_range(protocol, design):
+    probe_mod = _load_probe_module()
+    path = HERE / "rl" / "second_case_v3_budget_probe_hopper.json"
+    if not path.exists():
+        pytest.skip("probe V3 not written yet")
+    probe = probe_mod.load_probe(path)
+    seeds = list(range(probe["evaluation_seed_first"], probe["evaluation_seed_last"] + 1)) + [probe["training_seed"]]
+    ranges = dict(probe["forbidden_seed_ranges"])
+    ranges.update({"v1_training": [40000, 40004], "v1_evaluation": [41000, 41029], "probe_v1_train": [42000, 42000], "probe_v1_eval": [43000, 43029], "planned_v2_train": [44000, 44004], "planned_v2_eval": [45000, 45029], "probe_v2_train": [46000, 46000], "probe_v2_eval": [47000, 47029]})
+    for name, (lo, hi) in ranges.items():
+        assert not any(lo <= s <= hi for s in seeds), name

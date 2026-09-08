@@ -53,14 +53,59 @@
 | 項目 | 值 |
 |---|---|
 | Probe JSON | `backend/rl/second_case_v2_budget_probe_v2.json` `sha256:70662db367b3dbaf8edbf18efa96a6e7faff4e6edfa43769ed0129728b7b36f7` |
-| 結果 | **執行中／待補**（本節於 probe V2 完成後更新） |
+| 結果 JSON | `backend/second_case_evidence/2026-09-08-v2-budget-probe-v2/probe_result.json` |
+| Source | `a6508ac3c292c6e4bec5dde56c1583460793c9a9`，pre == post，clean（tree 與 merge 後的 `7091545` 相同） |
+| Lock | 同一 `locked_sha256`，0 mismatch |
+| 結果 | **`PROBE_NEGATIVE_MAX_BUDGET_REACHED`** |
 
-## 4. 程式變更（為 recipe 支援）
+### 3.1 曲線（tuned recipe、probe seed 46000、probe eval seeds 47000–47029）
+
+| ck | 累計 steps | FULL／30 | realized steps min／med／max | naive duty | 累計 wall |
+|---:|---:|---:|---|---:|---:|
+| 1 | 245,760 | 0 | 23／24／568 | 13.714% | 689 s |
+| 2 | 491,520 | 0 | 187／202／206 | 6.517% | 1,440 s |
+| 3 | 737,280 | 0 | 68／194／209 | 2.596% | 2,222 s |
+| 4 | 983,040 | **5** | 48／304／1000 | 3.769% | 3,023 s |
+| 5 | 1,228,800 | 0 | 152／173／194 | 3.415% | 3,847 s |
+| 6 | 1,474,560 | 0 | 150／156／165 | 1.639% | 4,764 s |
+| 7 | 1,720,320 | 0 | 116／139／155 | 2.884% | 5,740 s |
+| 8 | 1,966,080 | 0 | 81／144／154 | 3.407% | 6,714 s |
+
+[RESULT] 240 個 probe episode 中 **5 個**跑完 horizon，全部在 checkpoint 4；之後 policy 退化到 median ~140–170 步的一致早跌。0 個 `NONFINITE`。
+[INFERENCE] 兩種 recipe（SB3 預設到 2.95M、zoo tuned 到 1.97M）在 Walker2d-v5 單次訓練下都沒有形成能穩定跑完 horizon 的 reference。tuned recipe 的 saturation 也低得多（1.6–13.7% vs 預設的 44–63%），這與 VecNormalize＋小 `log_std_init` 一致。
+[BLOCKER] 依規則，probe V2 上限不追加；V2 在 Walker2d 上不凍結。
+
+## 4. 決定：換 plant（probe V3，`SECONDCASE-V3-BUDGET-PROBE-HOPPER-V1`）
+
+在 probe V2 結果**之前**（ck6 時）寫下的下一步：只換 plant，wrapper、兩臂、threshold、規則不動。
+
+| 候選 | 判定 |
+|---|---|
+| **Hopper-v5** | **採用**：平面腿式、預設跌倒即終止（`healthy_z_range (0.7, ∞)`、`healthy_angle_range ±0.2`），比 Walker2d 容易；3 actuators、gear 200，saturation 非退化 |
+| InvertedDoublePendulum-v5 | 排除：reference 站穩後 saturation ≈ 0%，naive 與 bound 的 contrast 必同號，artifact 在數學上不可能出現 |
+| HalfCheetah／Swimmer | 排除：無 termination，無可 censor |
+| Ant-v5 | 排除：兩臂幾乎都不會終止，P1 必失敗 |
+| Humanoid-v5 | 排除：預設 recipe 在數 M 步內站不起來，與 Walker2d 同病 |
+
+| 項目 | 值 |
+|---|---|
+| Probe JSON | `backend/rl/second_case_v3_budget_probe_hopper.json` `sha256:0e291db1bd4e3b8ebd16d9143d73a0a9b9c05580b965743f938b28bbd093a2ef` |
+| Plant | `hopper.xml` `sha256:3ce93a055ffdcd83c0c701d2400768e40d2cbb9532f3c4ae33377c27f8b39f9e`，horizon 1000，obs 11（wrapper 後 14），`H·J = 3000` |
+| Recipe | rl-zoo Hopper tuned PPO（VecNormalize、`n_steps 512`、`batch 32`、`n_epochs 20`、γ 0.999、λ 0.99、lr 9.80828e-05、clip 0.2、ent 0.00229519、vf 0.835671、max_grad_norm 0.7、ReLU 256×256、`log_std_init −2`）——**`U_VERIFIED_FROM_MEMORY`** |
+| Seeds | training `48000`，evaluation `49000–49029`；先前所有區段皆為禁區 |
+| 規則／上限 | 同前：≥ 27/30、連續兩個 checkpoint；8 × 245,760 = 1,966,080 |
+| 若負結果 | 記錄、不追加上限、**停止**——是否再投入算力或改第二案例設計，是專案負責人的決定 |
+| 結果 | **執行中／待補** |
+
+## 5. 程式變更（為 recipe 與 plant 支援）
 
 - `rl/second_case_runner.py`：`build_model()`／`wrap_normalizer()` 共用建構、`policy_kwargs`（activation 限 Tanh／ReLU）、VecNormalize 訓練後存 `vecnormalize.pkl` 並記 digest；評估在有 normalizer 時經 `VecNormalize.load(training=False, norm_reward=False)`，recorder 仍在 raw env 層，記錄的 action／reward 為未正規化值。
 - `rl/second_case_budget_probe.py`：`recipe_override`（只允許 hyperparameters／normalize／policy_kwargs／source／verification_status），`effective_training()`。
 - `second_case_exposure_contract.py`：`CELL_SCHEMA_V2` 多一欄 `normalizer_sha256`（recipe 有 normalize 時必填，無則必為 null）；V2 protocol 可帶 `training.normalize`／`training.policy_kwargs`，V1 帶則拒。V1 retained evidence 仍 bit-exact replay（測試固定）。
 
-## 5. Claim boundary
+- `rl/second_case_budget_probe.py`：`environment_override`（plant 換置，`make_kwargs` 必須為空、plant 以 digest 重釘、`H·J` 重算）；`effective_environment()`。
+- `second_case_exposure_contract.py`：pinned map 新增 `SECONDCASE-EXPOSURE-CENSORING-HOPPER-V1`（尚未凍結，digest 為 None，不可載入）。
 
-只支持「V2 的 budget 該選多少」這一件事。不支持任何關於 Walker2d、兩臂、artifact 的陳述。Probe 資料不得與 V1、V2 或彼此比較。
+## 6. Claim boundary
+
+只支持「第二案例的 budget（與可用的 plant／recipe）該選多少」這一件事。不支持任何關於 Walker2d、兩臂、artifact 的陳述。Probe 資料不得與 V1、V2 或彼此比較。
