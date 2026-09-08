@@ -1,0 +1,244 @@
+{
+  "adequacy_rule": {
+    "consecutive_checkpoints": 2,
+    "minimum_full_exposure_episodes": 27,
+    "rationale": "27/30 mirrors the v7 reference exposure (pilot 30/30, seed-variance 143/150 ~ 28.6/30); two consecutive checkpoints so a single lucky evaluation cannot set the budget.",
+    "selected_budget": "cumulative timesteps at the LATER of the first two consecutive checkpoints whose FULL_EXPOSURE count is >= minimum_full_exposure_episodes"
+  },
+  "arm_id": "W2D_A_DIRECT",
+  "base_protocol_id": "SECONDCASE-EXPOSURE-CENSORING-WALKER2D-V1",
+  "base_protocol_sha256": "sha256:45d1ec553a1124fd613f90a8034b27f10ef8f01f23a219cca216479fc4c5350c",
+  "checkpoints": [
+    {
+      "adequate": false,
+      "checkpoint_index": 1,
+      "cumulative_timesteps": 245760,
+      "early_terminated_count": 30,
+      "elapsed_s": 251.7,
+      "episodes_sha256": "sha256:11fa352fc15451af0fff88ca1eac3714176c7c0b0a0809aa872de6933244c8e7",
+      "full_exposure_count": 0,
+      "naive_mean_duty_pct": 44.604437,
+      "nonfinite_count": 0,
+      "policy_sha256": "sha256:c9baf8b97a332dbcb9fbd62c2580b19a0fbd0f5aecb68e5359b31c5b290f5b2f",
+      "realized_steps_min_median_max": [
+        358,
+        558,
+        739
+      ]
+    },
+    {
+      "adequate": false,
+      "checkpoint_index": 2,
+      "cumulative_timesteps": 491520,
+      "early_terminated_count": 30,
+      "elapsed_s": 501.5,
+      "episodes_sha256": "sha256:435d1c150378258c39ca8aac171dfab820d67405008decfc0b2f10c3cf4a2d38",
+      "full_exposure_count": 0,
+      "naive_mean_duty_pct": 54.00511,
+      "nonfinite_count": 0,
+      "policy_sha256": "sha256:63c1894e4977bc42ba6e8ce90e88388e64407769b2681704e915fc83dc436287",
+      "realized_steps_min_median_max": [
+        203,
+        263,
+        436
+      ]
+    },
+    {
+      "adequate": false,
+      "checkpoint_index": 3,
+      "cumulative_timesteps": 737280,
+      "early_terminated_count": 30,
+      "elapsed_s": 751.3,
+      "episodes_sha256": "sha256:f433653537f56a2e8fbde89308cdea127167e1c66571f73fde8250fe57fa1f8c",
+      "full_exposure_count": 0,
+      "naive_mean_duty_pct": 58.795541,
+      "nonfinite_count": 0,
+      "policy_sha256": "sha256:4e9359b0857e078a3672c80a09c1cb0fdec067b841c6106cc7aa4fc92ec72248",
+      "realized_steps_min_median_max": [
+        261,
+        291,
+        378
+      ]
+    },
+    {
+      "adequate": false,
+      "checkpoint_index": 4,
+      "cumulative_timesteps": 983040,
+      "early_terminated_count": 30,
+      "elapsed_s": 995.6,
+      "episodes_sha256": "sha256:ecba6a5f9e1e98bf71486e7124d27690f90288f336cad3129195badc04ccc2dd",
+      "full_exposure_count": 0,
+      "naive_mean_duty_pct": 55.919004,
+      "nonfinite_count": 0,
+      "policy_sha256": "sha256:567874638b382ebfb10bec2520d46f3656ac05c206f613e75eda28a4dfce2f9c",
+      "realized_steps_min_median_max": [
+        272,
+        304,
+        376
+      ]
+    },
+    {
+      "adequate": false,
+      "checkpoint_index": 5,
+      "cumulative_timesteps": 1228800,
+      "early_terminated_count": 30,
+      "elapsed_s": 1242.3,
+      "episodes_sha256": "sha256:f1c36d78aead43ae153fa997348bfcad4fac6ebbb403f506bffc14e8289f5f9b",
+      "full_exposure_count": 0,
+      "naive_mean_duty_pct": 55.110528,
+      "nonfinite_count": 0,
+      "policy_sha256": "sha256:ca4ff3cdc8ad65b45e06f8902336ea9834392beb82547af663c6fd907c14fc71",
+      "realized_steps_min_median_max": [
+        332,
+        349,
+        449
+      ]
+    },
+    {
+      "adequate": false,
+      "checkpoint_index": 6,
+      "cumulative_timesteps": 1474560,
+      "early_terminated_count": 30,
+      "elapsed_s": 1491.9,
+      "episodes_sha256": "sha256:85dba0cedde362b363687157cdbe7f3a6067dae63407bd3c135c348744f67418",
+      "full_exposure_count": 0,
+      "naive_mean_duty_pct": 55.691536,
+      "nonfinite_count": 0,
+      "policy_sha256": "sha256:ecaae400607eda9901acd9cdc9f5f8a3e3d900720fe3f9717b4f08c84b8a584b",
+      "realized_steps_min_median_max": [
+        319,
+        349,
+        441
+      ]
+    },
+    {
+      "adequate": false,
+      "checkpoint_index": 7,
+      "cumulative_timesteps": 1720320,
+      "early_terminated_count": 30,
+      "elapsed_s": 1736.4,
+      "episodes_sha256": "sha256:da73adc9d42d169b3697d1bb12c301665a208675daea0c9304382b7381f8b325",
+      "full_exposure_count": 0,
+      "naive_mean_duty_pct": 55.989893,
+      "nonfinite_count": 0,
+      "policy_sha256": "sha256:8b1fde5630eee75cdc9414d89d6be46acf216d84d2a372b16909505c6aff336a",
+      "realized_steps_min_median_max": [
+        193,
+        339,
+        540
+      ]
+    },
+    {
+      "adequate": false,
+      "checkpoint_index": 8,
+      "cumulative_timesteps": 1966080,
+      "early_terminated_count": 30,
+      "elapsed_s": 1987.3,
+      "episodes_sha256": "sha256:6a451fb251b200d2d749776445af1e03e2347a22938f7178a79703cc734aa98c",
+      "full_exposure_count": 0,
+      "naive_mean_duty_pct": 58.412192,
+      "nonfinite_count": 0,
+      "policy_sha256": "sha256:db67b917234b775c7cdf134e8caa52603adb2a0712ba6ef53dd06e8802dde567",
+      "realized_steps_min_median_max": [
+        221,
+        270,
+        695
+      ]
+    },
+    {
+      "adequate": false,
+      "checkpoint_index": 9,
+      "cumulative_timesteps": 2211840,
+      "early_terminated_count": 30,
+      "elapsed_s": 2238.4,
+      "episodes_sha256": "sha256:452f208f1c4f9014e1771378dbf0349876c38cd3f14c236868708e25d20dc8ee",
+      "full_exposure_count": 0,
+      "naive_mean_duty_pct": 62.861574,
+      "nonfinite_count": 0,
+      "policy_sha256": "sha256:aee681f348c888a8e257df85d32e1828884eb11e820a6af53392ac8485e6c5b0",
+      "realized_steps_min_median_max": [
+        167,
+        258,
+        414
+      ]
+    },
+    {
+      "adequate": false,
+      "checkpoint_index": 10,
+      "cumulative_timesteps": 2457600,
+      "early_terminated_count": 30,
+      "elapsed_s": 2485.6,
+      "episodes_sha256": "sha256:9c87c4bcf69389f5f1f9ae63619eae728e7c255a33ebd006ac27928b2e5b23ff",
+      "full_exposure_count": 0,
+      "naive_mean_duty_pct": 60.361494,
+      "nonfinite_count": 0,
+      "policy_sha256": "sha256:b70ea00991d16f301736b32c294ebc8822552174889959f08dfa820420bc02fd",
+      "realized_steps_min_median_max": [
+        231,
+        433,
+        800
+      ]
+    },
+    {
+      "adequate": false,
+      "checkpoint_index": 11,
+      "cumulative_timesteps": 2703360,
+      "early_terminated_count": 30,
+      "elapsed_s": 2726.2,
+      "episodes_sha256": "sha256:97b7e721b8e1597bc0004d43a5566e321653a6eaa70ade9362464b0660c1deea",
+      "full_exposure_count": 0,
+      "naive_mean_duty_pct": 61.075166,
+      "nonfinite_count": 0,
+      "policy_sha256": "sha256:3a0b9eb46f4a0c8b49806cdf5c636083f5247f4572816e29a84e113a50a37319",
+      "realized_steps_min_median_max": [
+        203,
+        375,
+        468
+      ]
+    },
+    {
+      "adequate": false,
+      "checkpoint_index": 12,
+      "cumulative_timesteps": 2949120,
+      "early_terminated_count": 29,
+      "elapsed_s": 2967.6,
+      "episodes_sha256": "sha256:946afe42132014123b7f3c276a5ba3b580a0813fc7b39e65fc671d44923ddf87",
+      "full_exposure_count": 1,
+      "naive_mean_duty_pct": 54.5277,
+      "nonfinite_count": 0,
+      "policy_sha256": "sha256:a62f42136ab71ee67b6184c5207b66f78b595ed1567bbc26cd85cc15ee31cade",
+      "realized_steps_min_median_max": [
+        133,
+        240,
+        1000
+      ]
+    }
+  ],
+  "claim_boundary": [
+    "Supports only the choice of a V2 training budget.",
+    "Does not support any statement about Walker2d locomotion quality, the artifact, or either arm's saturation."
+  ],
+  "disclosure": "This probe is a pilot. Its checkpoints, evaluations and traces may not be reused as V2 evidence, may not be compared with V1 or V2 cells, and its seed ranges are forbidden for V2. It was authored after the V1 result was known.",
+  "environment_lock": {
+    "environment_locked_sha256": "sha256:93d23a2703adc86a1394eacf5dece8d7229fdf742857f1a271656aa1cfeac72d",
+    "lock_record_sha256": "sha256:911b436231c8e0b1d7a3d07bca6894ce4c42c517c4a5cbbbdd0f9dff694ff631",
+    "mismatch_count": 0,
+    "retained_finding_count": 1
+  },
+  "evaluation_seed_first": 43000,
+  "evaluation_seed_last": 43029,
+  "finished_at_unix": 1788885312.2381833,
+  "outcome": "PROBE_NEGATIVE_MAX_BUDGET_REACHED",
+  "plant_asset_sha256": "sha256:6bed53a6cc3ca73c4fe8ac3486d3b4228927264a6454f4ef16d3eed3c58bc09d",
+  "probe_id": "SECONDCASE-V2-BUDGET-PROBE-V1",
+  "probe_sha256": "sha256:8f20535c43157169026ff26dcf7c825334e4889b8ed687b8e61477cc6bf01370",
+  "role": "PILOT_FOR_V2_BUDGET_ONLY",
+  "schema_version": "SECOND_CASE_V2_BUDGET_PROBE_RESULT_V1",
+  "selected_budget_timesteps": null,
+  "source_dirty_post": false,
+  "source_dirty_pre": false,
+  "source_git_sha_post": "e11463482765aa774446a0aa59706bdc5d8a6700",
+  "source_git_sha_pre": "e11463482765aa774446a0aa59706bdc5d8a6700",
+  "started_at_unix": 1788882344.4259784,
+  "training_seed": 42000
+}

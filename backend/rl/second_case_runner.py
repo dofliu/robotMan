@@ -196,17 +196,52 @@ def make_env(protocol: dict[str, Any], design: dict[str, Any], alpha: float, rec
 # --------------------------------------------------------------------------- #
 
 
-def train_cell(protocol: dict[str, Any], design: dict[str, Any], alpha: float, training_seed: int, policy_path: Path) -> dict[str, Any]:
-    import torch
-    from stable_baselines3 import PPO
-    from stable_baselines3.common.vec_env import DummyVecEnv
+_ACTIVATIONS = ("Tanh", "ReLU")
 
-    torch.set_num_threads(int(protocol["training"]["torch_threads"]))
-    torch.use_deterministic_algorithms(True, warn_only=True)
-    hyper = protocol["training"]["hyperparameters"]
-    vec = DummyVecEnv([lambda: make_env(protocol, design, alpha)])
-    model = PPO(
-        protocol["training"]["policy"],
+
+def wrap_normalizer(training: dict[str, Any], vec):
+    """Optionally wrap a vec env in VecNormalize as the frozen recipe demands.
+
+    ``training.normalize`` is absent for the SB3-default recipe (V1) and present
+    for a tuned recipe.  Normalization statistics are part of the policy for
+    evaluation purposes, so the caller saves them next to ``policy.zip``.
+    """
+    spec = training.get("normalize")
+    if not spec:
+        return vec, False
+    from stable_baselines3.common.vec_env import VecNormalize
+
+    return (
+        VecNormalize(
+            vec,
+            norm_obs=bool(spec["norm_obs"]),
+            norm_reward=bool(spec["norm_reward"]),
+            clip_obs=float(spec["clip_obs"]),
+            gamma=float(training["hyperparameters"]["gamma"]),
+        ),
+        True,
+    )
+
+
+def build_model(training: dict[str, Any], vec, seed: int):
+    """Construct PPO from the frozen training block only; no value comes from anywhere else."""
+    import torch.nn as nn
+    from stable_baselines3 import PPO
+
+    hyper = training["hyperparameters"]
+    policy_kwargs = None
+    spec = training.get("policy_kwargs")
+    if spec:
+        if spec["activation_fn"] not in _ACTIVATIONS:
+            raise SecondCaseRunError(f"unsupported activation {spec['activation_fn']!r}")
+        policy_kwargs = {
+            "log_std_init": float(spec["log_std_init"]),
+            "ortho_init": bool(spec["ortho_init"]),
+            "activation_fn": getattr(nn, spec["activation_fn"]),
+            "net_arch": {"pi": [int(v) for v in spec["net_arch"]["pi"]], "vf": [int(v) for v in spec["net_arch"]["vf"]]},
+        }
+    return PPO(
+        training["policy"],
         vec,
         learning_rate=hyper["learning_rate"],
         n_steps=hyper["n_steps"],
@@ -219,17 +254,43 @@ def train_cell(protocol: dict[str, Any], design: dict[str, Any], alpha: float, t
         vf_coef=hyper["vf_coef"],
         max_grad_norm=hyper["max_grad_norm"],
         normalize_advantage=hyper["normalize_advantage"],
-        seed=training_seed,
-        device=protocol["training"]["device"],
+        policy_kwargs=policy_kwargs,
+        seed=seed,
+        device=training["device"],
         verbose=0,
     )
+
+
+def normalizer_path_for(policy_path: Path) -> Path:
+    return policy_path.with_name("vecnormalize.pkl")
+
+
+def train_cell(protocol: dict[str, Any], design: dict[str, Any], alpha: float, training_seed: int, policy_path: Path) -> dict[str, Any]:
+    import torch
+    from stable_baselines3.common.vec_env import DummyVecEnv
+
+    training = protocol["training"]
+    torch.set_num_threads(int(training["torch_threads"]))
+    torch.use_deterministic_algorithms(True, warn_only=True)
+    vec = DummyVecEnv([lambda: make_env(protocol, design, alpha)])
+    vec, normalized = wrap_normalizer(training, vec)
+    model = build_model(training, vec, training_seed)
     started = time.time()
-    model.learn(total_timesteps=int(protocol["training"]["requested_timesteps"]))
+    model.learn(total_timesteps=int(training["requested_timesteps"]))
     wall = time.time() - started
     realized = int(model.num_timesteps)
     model.save(policy_path)
+    normalizer_sha = None
+    if normalized:
+        vec.save(str(normalizer_path_for(policy_path)))
+        normalizer_sha = sha256_file(normalizer_path_for(policy_path))
     vec.close()
-    return {"realized_timesteps": realized, "training_wall_time_s": round(wall, 3), "policy_sha256": sha256_file(policy_path)}
+    return {
+        "realized_timesteps": realized,
+        "training_wall_time_s": round(wall, 3),
+        "policy_sha256": sha256_file(policy_path),
+        "normalizer_sha256": normalizer_sha,
+    }
 
 
 def evaluate_cell(protocol: dict[str, Any], design: dict[str, Any], alpha: float, policy_path: Path, trace_dir: Path) -> list[dict[str, Any]]:
@@ -237,20 +298,44 @@ def evaluate_cell(protocol: dict[str, Any], design: dict[str, Any], alpha: float
     from stable_baselines3 import PPO
 
     model = PPO.load(policy_path, device=protocol["training"]["device"])
+    normalizer = normalizer_path_for(policy_path)
+    normalized = bool(protocol["training"].get("normalize"))
+    if normalized and not normalizer.is_file():
+        raise SecondCaseRunError("SECONDCASE_NORMALIZER_MISSING: recipe trained with VecNormalize but no statistics were saved")
     rows = []
     for seed in design["evaluation_seeds"]:
         recorder = {"raw": [], "applied": [], "saturated": [], "reward": [], "terminated": [], "truncated": []}
-        env = make_env(protocol, design, alpha, recorder)
-        obs, _ = env.reset(seed=int(seed))
-        terminated = truncated = False
-        steps = 0
-        while not (terminated or truncated):
-            action, _ = model.predict(obs, deterministic=True)
-            obs, _, terminated, truncated, _ = env.step(action)
-            steps += 1
-            if steps > design["horizon_steps"]:
-                raise SecondCaseRunError("SECONDCASE_TRACE_INCONSISTENT: episode exceeded the horizon")
-        env.close()
+        if normalized:
+            from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
+
+            venv = DummyVecEnv([lambda: make_env(protocol, design, alpha, recorder)])
+            venv = VecNormalize.load(str(normalizer), venv)
+            venv.training = False
+            venv.norm_reward = False
+            venv.seed(int(seed))
+            obs = venv.reset()
+            done = False
+            steps = 0
+            while not done:
+                action, _ = model.predict(obs, deterministic=True)
+                obs, _, dones, _ = venv.step(action)
+                done = bool(dones[0])
+                steps += 1
+                if steps > design["horizon_steps"]:
+                    raise SecondCaseRunError("SECONDCASE_TRACE_INCONSISTENT: episode exceeded the horizon")
+            venv.close()
+        else:
+            env = make_env(protocol, design, alpha, recorder)
+            obs, _ = env.reset(seed=int(seed))
+            terminated = truncated = False
+            steps = 0
+            while not (terminated or truncated):
+                action, _ = model.predict(obs, deterministic=True)
+                obs, _, terminated, truncated, _ = env.step(action)
+                steps += 1
+                if steps > design["horizon_steps"]:
+                    raise SecondCaseRunError("SECONDCASE_TRACE_INCONSISTENT: episode exceeded the horizon")
+            env.close()
         raw = np.asarray(recorder["raw"], dtype=np.float64)
         applied = np.asarray(recorder["applied"], dtype=np.float64)
         saturated = np.asarray(recorder["saturated"], dtype=bool)
@@ -319,7 +404,7 @@ def run_cell(args: argparse.Namespace) -> dict[str, Any]:
         "started_at_unix": time.time(),
     }
     cell: dict[str, Any] = {
-        "schema_version": sc.CELL_SCHEMA,
+        "schema_version": sc.CELL_SCHEMA_V2 if design["schema_version"] == sc.PROTOCOL_SCHEMA_V2 else sc.CELL_SCHEMA,
         "arm_id": args.arm,
         "low_pass_alpha": alpha,
         "realized_timesteps": 0,
@@ -332,12 +417,16 @@ def run_cell(args: argparse.Namespace) -> dict[str, Any]:
         "evaluation_output_sha256": sc.sha256_bytes(sc.json_bytes([])),
         "episodes": [],
     }
+    if design["schema_version"] == sc.PROTOCOL_SCHEMA_V2:
+        cell["normalizer_sha256"] = None
     try:
         policy_path = cell_dir / "policy.zip"
         training = train_cell(protocol, design, alpha, training_seed, policy_path)
         provenance["training"] = training
         cell["realized_timesteps"] = training["realized_timesteps"]
         cell["policy_sha256"] = training["policy_sha256"]
+        if design["schema_version"] == sc.PROTOCOL_SCHEMA_V2:
+            cell["normalizer_sha256"] = training["normalizer_sha256"]
         if training["realized_timesteps"] != design["expected_realized_timesteps"]:
             raise SecondCaseRunError("SECONDCASE_REALIZED_TIMESTEPS_MISMATCH")
         cell["training_terminal_state"] = "COMPLETED"

@@ -51,6 +51,7 @@ PUBLICATION_GATE = "PUB-A1"
 
 RAW_SCHEMA = "SECOND_CASE_EXPOSURE_RAW_V1"
 CELL_SCHEMA = "SECOND_CASE_EXPOSURE_CELL_V1"
+CELL_SCHEMA_V2 = "SECOND_CASE_EXPOSURE_CELL_V2"
 SUMMARY_SCHEMA = "SECOND_CASE_EXPOSURE_SUMMARY_V1"
 RECEIPT_SCHEMA = "SECOND_CASE_EXPOSURE_RECEIPT_V1"
 REPLAY_SCHEMA = "SECOND_CASE_EXPOSURE_REPLAY_RECEIPT_V1"
@@ -144,6 +145,7 @@ CELL_FIELDS = (
     "training_environment_lock_verified",
     "training_terminal_state",
 )
+CELL_FIELDS_V2 = tuple(sorted(CELL_FIELDS + ("normalizer_sha256",)))
 REPLICATE_FIELDS = ("arms", "replicate_index", "training_seed")
 RAW_FIELDS = (
     "bundle_class",
@@ -391,6 +393,24 @@ def validate_protocol(protocol: dict[str, Any]) -> dict[str, Any]:
         raise SecondCaseError("warm_start must be null: this line is from scratch")
     if training.get("device") != "cpu":
         raise SecondCaseError("device must be cpu")
+    normalize_spec = training.get("normalize")
+    if normalize_spec is not None:
+        normalize_spec = _obj(normalize_spec, "training.normalize")
+        for key in ("norm_obs", "norm_reward"):
+            _bool(normalize_spec.get(key), f"training.normalize.{key}")
+        _num(normalize_spec.get("clip_obs"), "training.normalize.clip_obs")
+    policy_spec = training.get("policy_kwargs")
+    if policy_spec is not None:
+        policy_spec = _obj(policy_spec, "training.policy_kwargs")
+        _num(policy_spec.get("log_std_init"), "training.policy_kwargs.log_std_init")
+        _bool(policy_spec.get("ortho_init"), "training.policy_kwargs.ortho_init")
+        _str(policy_spec.get("activation_fn"), "training.policy_kwargs.activation_fn", allowed=("Tanh", "ReLU"))
+        arch = _obj(policy_spec.get("net_arch"), "training.policy_kwargs.net_arch")
+        for side in ("pi", "vf"):
+            for width in _lst(arch.get(side), f"training.policy_kwargs.net_arch.{side}"):
+                _int(width, "net_arch width", minimum=1)
+    if schema == PROTOCOL_SCHEMA and (normalize_spec is not None or policy_spec is not None):
+        raise SecondCaseError("normalize / policy_kwargs are recipe fields for V2 protocols only")
 
     evaluation = _obj(protocol["evaluation"], "evaluation")
     seed_first = _int(evaluation.get("evaluation_seed_first"), "evaluation.evaluation_seed_first", minimum=0)
@@ -471,6 +491,8 @@ def validate_protocol(protocol: dict[str, Any]) -> dict[str, Any]:
     return {
         "protocol_id": protocol_id,
         "schema_version": schema,
+        "normalize": normalize_spec,
+        "policy_kwargs": policy_spec,
         "p1_arm_scope": p1_scope,
         "reference_adequacy": reference_adequacy,
         "reference_arm_id": roles["REFERENCE"],
@@ -613,9 +635,18 @@ def check_environment_lock(design: dict[str, Any], record: Any) -> dict[str, Any
 
 def _validate_cell(cell: Any, design: dict[str, Any], expected_arm: str, context: str) -> dict[str, Any]:
     cell = _obj(cell, context)
-    _exact_keys(cell, CELL_FIELDS, context)
-    if cell["schema_version"] != CELL_SCHEMA:
+    is_v2 = design["schema_version"] == PROTOCOL_SCHEMA_V2
+    _exact_keys(cell, CELL_FIELDS_V2 if is_v2 else CELL_FIELDS, context)
+    if cell["schema_version"] != (CELL_SCHEMA_V2 if is_v2 else CELL_SCHEMA):
         raise SecondCaseError(f"{context} schema_version mismatch")
+    if is_v2:
+        normalized = bool(design.get("normalize"))
+        if cell["normalizer_sha256"] is not None:
+            _sha(cell["normalizer_sha256"], f"{context}.normalizer_sha256")
+        if normalized and cell["training_terminal_state"] == "COMPLETED" and cell["normalizer_sha256"] is None:
+            raise SecondCaseError(f"{context} recipe normalizes but no normalizer digest was recorded")
+        if not normalized and cell["normalizer_sha256"] is not None:
+            raise SecondCaseError(f"{context} records a normalizer the recipe does not use")
     if cell["arm_id"] != expected_arm:
         raise SecondCaseError(f"{context} arm_id {cell['arm_id']} != expected {expected_arm}")
     if _num(cell["low_pass_alpha"], f"{context}.low_pass_alpha") != design["alphas"][expected_arm]:

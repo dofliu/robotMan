@@ -232,3 +232,79 @@ def test_probe_tiny_loop_records_checkpoints_and_applies_the_rule(protocol, desi
         assert result["selected_budget_timesteps"] is None
     else:
         assert result["selected_budget_timesteps"] == 4096
+
+
+# --------------------------------------------------------------------------- #
+# recipe support: policy kwargs and VecNormalize round trip
+# --------------------------------------------------------------------------- #
+
+TUNED = {
+    "hyperparameters": {"learning_rate": 5.05041e-05, "n_steps": 512, "batch_size": 32, "n_epochs": 2, "gamma": 0.99, "gae_lambda": 0.95, "clip_range": 0.1, "ent_coef": 0.000585045, "vf_coef": 0.871923, "max_grad_norm": 1.0, "normalize_advantage": True},
+    "normalize": {"norm_obs": True, "norm_reward": True, "clip_obs": 10.0},
+    "policy_kwargs": {"log_std_init": -2.0, "ortho_init": False, "activation_fn": "ReLU", "net_arch": {"pi": [64, 64], "vf": [64, 64]}},
+}
+
+
+def test_tuned_recipe_trains_saves_normalizer_and_evaluates_through_it(runner, protocol, design, tmp_path):
+    tuned = copy.deepcopy(protocol)
+    tuned["training"].update(copy.deepcopy(TUNED))
+    tuned["training"]["requested_timesteps"] = 2048
+    tuned["training"]["expected_realized_timesteps"] = 2048
+    small_design = dict(design)
+    small_design["expected_realized_timesteps"] = 2048
+    small_design["evaluation_seeds"] = design["evaluation_seeds"][:2]
+    policy_path = tmp_path / "policy.zip"
+    training = runner.train_cell(tuned, small_design, 1.0, training_seed=46000, policy_path=policy_path)
+    assert training["realized_timesteps"] == 2048
+    assert training["normalizer_sha256"] is not None
+    assert runner.normalizer_path_for(policy_path).is_file()
+    rows = runner.evaluate_cell(tuned, small_design, 1.0, policy_path, tmp_path / "traces")
+    assert len(rows) == 2
+    for row in rows:
+        assert 1 <= row["realized_steps"] <= 1000
+        # recorder sits below VecNormalize: rewards and actions are raw env-level values
+        with np.load(tmp_path / "traces" / f"seed_{row['evaluation_seed']}.npz") as data:
+            assert np.all(np.abs(data["applied_action"]) <= 1.0)
+
+
+def test_default_recipe_records_no_normalizer(runner, protocol, design, tmp_path):
+    small = copy.deepcopy(protocol)
+    small["training"]["requested_timesteps"] = 2048
+    small["training"]["expected_realized_timesteps"] = 2048
+    small_design = dict(design)
+    small_design["expected_realized_timesteps"] = 2048
+    training = runner.train_cell(small, small_design, 1.0, training_seed=40000, policy_path=tmp_path / "p.zip")
+    assert training["normalizer_sha256"] is None
+    assert not runner.normalizer_path_for(tmp_path / "p.zip").exists()
+
+
+def test_build_model_applies_policy_kwargs(runner, protocol, design):
+    import torch.nn as nn
+    from stable_baselines3.common.vec_env import DummyVecEnv
+
+    tuned = copy.deepcopy(protocol["training"])
+    tuned.update(copy.deepcopy(TUNED))
+    vec = DummyVecEnv([lambda: runner.make_env(protocol, design, 1.0)])
+    vec, normalized = runner.wrap_normalizer(tuned, vec)
+    assert normalized
+    model = runner.build_model(tuned, vec, 1)
+    assert model.n_steps == 512 and model.batch_size == 32
+    assert isinstance(model.policy.mlp_extractor.policy_net[1], nn.ReLU)
+    vec.close()
+
+
+def test_probe_v2_recipe_override_is_validated_and_effective(protocol, design):
+    probe_mod = _load_probe_module()
+    path = HERE / "rl" / "second_case_v2_budget_probe_v2.json"
+    if not path.exists():
+        pytest.skip("probe V2 not written yet")
+    probe = probe_mod.load_probe(path)
+    pdesign = probe_mod.validate_probe(probe, protocol, design)
+    assert pdesign["training"]["hyperparameters"]["n_steps"] == 512
+    assert pdesign["training"]["normalize"]["norm_obs"] is True
+    assert pdesign["interval"] % 512 == 0
+    assert pdesign["training_seed"] == 46000 and pdesign["evaluation_seeds"] == list(range(47000, 47030))
+    bad = copy.deepcopy(probe)
+    bad["recipe_override"]["device"] = "cuda"
+    with pytest.raises(probe_mod.ProbeError, match="may not set"):
+        probe_mod.validate_probe(bad, protocol, design)
