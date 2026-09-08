@@ -1,0 +1,215 @@
+{
+  "schema_version": "V7_EXPOSURE_CENSORING_AUDIT_PROTOCOL_V1",
+  "protocol_id": "AUDIT-V7-EXPOSURE-CENSORING-V1",
+  "protocol_status": "FROZEN_INTERNAL_DEVELOPMENT",
+  "frozen_date": "2026-09-08",
+  "run_class": "DEVELOPMENT",
+  "audit_class": "READ_ONLY_VALIDITY_AUDIT",
+  "evidence_scope": "SIM_ONLY_MUJOCO",
+  "validation_status": "NOT_PHYSICALLY_VALIDATED",
+  "paper_data_ready": false,
+  "objective": "Reconstruct per-episode termination control step, termination sim time, and termination phase from the retained v7 action-interface pilot raw traces; derive realized exposure against the already frozen task horizon; and state explicitly which primary-outcome values and which paired contrasts are comparable, which are exposure-censored, and which are retained method failures.",
+  "audited_protocol": {
+    "protocol_id": "PILOT-V7-ACTION-INTERFACE-DEV-V1",
+    "protocol_path": "backend/rl/v7_action_interface_pilot_protocol.json",
+    "protocol_bytes": 9753,
+    "protocol_sha256": "sha256:719b70a2bdf8d23af5f4ec5dff51a6099e88d6de4e2221fa74f6f7464cdfcb96",
+    "frozen_pilot_receipt_sha256": "sha256:ed3e3eaa7c86f2b855d24aca68b09ce45bce61ac2fb6e573328b12157d758435",
+    "frozen_pilot_source_git_sha": "058657dd43d28a9175e54362cf4d0a0618507c38",
+    "frozen_pilot_receipt_document": "docs/V7_ACTION_INTERFACE_PILOT_IMPLEMENTATION_RECEIPT_2026-09-06.md",
+    "receipt_mutation_policy": "FORBIDDEN_ORIGINAL_RECEIPT_IS_PRESERVED_VERBATIM"
+  },
+  "read_only_contract": {
+    "source_bundle_write_policy": "FORBIDDEN",
+    "output_root_containment_policy": "AUDIT_OUTPUT_ROOT_MUST_NOT_BE_INSIDE_OR_EQUAL_TO_SOURCE_BUNDLE_ROOT",
+    "source_identity_readback": "EVERY_CONSUMED_SOURCE_ARTIFACT_IS_HASHED_BEFORE_AND_AFTER_THE_AUDIT",
+    "post_audit_drift_policy": "ANY_SOURCE_BYTES_OR_SHA256_DRIFT_IS_A_STRUCTURAL_FAILURE",
+    "forbidden_actions": [
+      "retraining",
+      "new_training_seed",
+      "new_evaluation_seed",
+      "alpha_change",
+      "joint_envelope_change",
+      "rate_limit_change",
+      "motion_task_threshold_change",
+      "candidate_selection",
+      "confidence_interval",
+      "p_value",
+      "hypothesis_test",
+      "formal_partition_access",
+      "holdout_partition_access"
+    ]
+  },
+  "source_bundle_classes": {
+    "V7_PILOT_DEVELOPMENT_BUNDLE": "The retained 2026-09-06 three-arm DEVELOPMENT pilot bundle whose receipt SHA-256 equals audited_protocol.frozen_pilot_receipt_sha256.",
+    "SYNTHETIC_REGRESSION_BUNDLE": "A schema-exact synthetic bundle used only to exercise the audit software. It never supports any statement about the frozen v7 pilot.",
+    "class_binding_rule": "A bundle whose receipt SHA-256 equals the frozen pilot receipt SHA-256 must declare V7_PILOT_DEVELOPMENT_BUNDLE; any other bundle must declare SYNTHETIC_REGRESSION_BUNDLE. A mismatch in either direction is a structural failure.",
+    "synthetic_claim_rule": "audit_applies_to_frozen_v7_pilot is true only for V7_PILOT_DEVELOPMENT_BUNDLE."
+  },
+  "frozen_task_horizon": {
+    "task_id": "stand_start_walk_stop_v1",
+    "motion_task_source": "backend/motion_tasks.py",
+    "motion_task_source_sha256": "sha256:3dd9a47b6798a2fba713eda3654b428377f3a75e825105b233a1da375d4215af",
+    "duration_s": 9.0,
+    "physics_rate_hz": 500.0,
+    "control_rate_hz": 50.0,
+    "derivation_rule": "control_period_s = 1 / control_rate_hz; physics_substeps_per_control_step = physics_rate_hz / control_rate_hz; full_exposure_control_steps = duration_s * control_rate_hz; full_exposure_physics_substeps = full_exposure_control_steps * physics_substeps_per_control_step. Every quotient and product must be an exact integer or the audit fails closed.",
+    "control_period_s": 0.02,
+    "physics_substeps_per_control_step": 10,
+    "full_exposure_control_steps": 450,
+    "full_exposure_physics_substeps": 4500,
+    "no_new_constant_rule": "The horizon is derived from the already frozen task contract and the already frozen pilot protocol. The audit introduces no new numerical threshold and changes none."
+  },
+  "frozen_phase_schedule": [
+    {"phase_id": "INITIAL_STAND", "start_s": 0.0, "end_s": 1.0, "first_control_step": 0, "last_control_step": 49, "control_steps": 50},
+    {"phase_id": "START", "start_s": 1.0, "end_s": 2.5, "first_control_step": 50, "last_control_step": 124, "control_steps": 75},
+    {"phase_id": "STEADY_WALK", "start_s": 2.5, "end_s": 6.5, "first_control_step": 125, "last_control_step": 324, "control_steps": 200},
+    {"phase_id": "STOP", "start_s": 6.5, "end_s": 8.0, "first_control_step": 325, "last_control_step": 399, "control_steps": 75},
+    {"phase_id": "FINAL_STAND", "start_s": 8.0, "end_s": 9.0, "first_control_step": 400, "last_control_step": 449, "control_steps": 50}
+  ],
+  "phase_schedule_contract": {
+    "phase_of_control_step_rule": "phase_first_control_step = start_s * control_rate_hz and phase_end_control_step_exclusive = end_s * control_rate_hz; control step k belongs to the phase whose half-open control-step interval contains k.",
+    "recorded_phase_cross_check": "Every retained control-step record carries command_phase. The audit requires the recorded command_phase to equal the frozen schedule phase for that control-step index.",
+    "drift_policy": "Any recorded phase that disagrees with the frozen schedule, any unknown phase identifier, and any phase-boundary that is not an exact control-step index are structural failures."
+  },
+  "arms": {
+    "reference_arm_id": "V7A_REWARD_ONLY",
+    "candidate_arm_ids": ["V7B_REDUCED_JOINT_ENVELOPE", "V7C_FILTERED_ACTION"],
+    "all_arm_ids": ["V7A_REWARD_ONLY", "V7B_REDUCED_JOINT_ENVELOPE", "V7C_FILTERED_ACTION"],
+    "pair_key": "evaluation_seed",
+    "episodes_per_arm": 30,
+    "expected_evaluation_seeds": [
+      18000, 18001, 18002, 18003, 18004, 18005, 18006, 18007, 18008, 18009,
+      18010, 18011, 18012, 18013, 18014, 18015, 18016, 18017, 18018, 18019,
+      18020, 18021, 18022, 18023, 18024, 18025, 18026, 18027, 18028, 18029
+    ],
+    "retired_seed_range": [19000, 19029],
+    "sealed_formal_seed_range": [20000, 20029],
+    "forbidden_seed_policy": "Observing a retired or sealed seed in any audited artifact is a structural failure."
+  },
+  "primary_outcome": {
+    "measurement_id": "saturation_duty_pct",
+    "definition": "100 * saturation_substeps_over_threshold / saturation_substeps_total accumulated over the retained control steps of one episode.",
+    "exposure_denominator": "saturation_substeps_total summed over the retained control steps of the episode",
+    "target_estimand": "FULL_HORIZON_SATURATION_DUTY_PCT over full_exposure_physics_substeps",
+    "audit_finding": "The denominator is proportional to realized exposure. A duty value accumulated over a truncated episode is a functional of a shorter measurement window and is not on the same support as the full-horizon estimand."
+  },
+  "exposure_classes": {
+    "FULL_EXPOSURE": "observed_control_steps equals full_exposure_control_steps.",
+    "EARLY_TERMINATED": "observed_control_steps is greater than zero and less than full_exposure_control_steps.",
+    "NO_EXPOSURE": "observed_control_steps equals zero, which is the retained terminal-failure case.",
+    "OVER_EXPOSURE": "observed_control_steps exceeds full_exposure_control_steps and is a structural failure."
+  },
+  "comparability_states": {
+    "COMPARABLE": "The primary outcome is OBSERVED and the episode reached FULL_EXPOSURE, so the recorded value is the full-horizon estimand itself.",
+    "EXPOSURE_CENSORED": "The primary outcome is arithmetically OBSERVED but the episode is EARLY_TERMINATED, so only a truncated window of the intended measurement support was realized.",
+    "METHOD_FAILURE_NOT_CENSORING": "The primary outcome is NULL or NONFINITE, or the terminal record state is not COMPLETED, or the episode has NO_EXPOSURE.",
+    "classification_order": "METHOD_FAILURE_NOT_CENSORING is decided first, then EXPOSURE_CENSORED, then COMPARABLE.",
+    "method_failure_doctrine": "Following the project position already recorded in the paired statistics contract, a non-finite value, a solver or process error, a terminal failure, and a cancellation are method failures, not censoring. They are retained with frequency and reason and are never imputed, deleted, or silently converted into an observed value.",
+    "retention_rule": "No episode is deleted, imputed, or re-run. Every retained arithmetic value stays in the audit output beside its comparability state and reason.",
+    "reasons": [
+      "FULL_EXPOSURE_OBSERVED_COMPARABLE",
+      "EARLY_TERMINATION_EXPOSURE_CENSORED",
+      "REQUIRED_PRIMARY_OUTCOME_NOT_OBSERVED_METHOD_FAILURE",
+      "NO_EXPOSURE_TERMINAL_FAILURE_METHOD_FAILURE"
+    ]
+  },
+  "identification_bounds": {
+    "status": "ASSUMPTION_FREE_WORST_CASE_BOUNDS",
+    "applies_to": "EXPOSURE_CENSORED and COMPARABLE episodes only; a METHOD_FAILURE_NOT_CENSORING episode has no bound and is retained as null.",
+    "lower_bound_rule": "full_horizon_duty_lower_pct = 100 * observed_over_threshold_substeps / full_exposure_physics_substeps, which assumes every unobserved substep is below the saturation threshold.",
+    "upper_bound_rule": "full_horizon_duty_upper_pct = 100 * (observed_over_threshold_substeps + full_exposure_physics_substeps - observed_substeps) / full_exposure_physics_substeps, which assumes every unobserved substep is above the saturation threshold.",
+    "degenerate_case": "A FULL_EXPOSURE episode has observed_substeps equal to full_exposure_physics_substeps, so the lower and upper bounds coincide with the recorded value.",
+    "paired_bound_rule": "paired_difference_lower = candidate_lower - reference_upper and paired_difference_upper = candidate_upper - reference_lower.",
+    "sign_identification_rule": "The paired contrast sign is identified only when the paired difference bound excludes zero. A bound that contains zero leaves the direction of the effect unidentified without an additional, currently unfrozen, censoring assumption.",
+    "rationale": "The project position already recorded in the paired statistics contract is that until a censored estimator is frozen, only bounds are retained and ordinary mean and bootstrap procedures are blocked. This audit follows that rule and therefore reports bounds instead of a censored point estimate.",
+    "prohibited_uses": ["confidence_interval", "p_value", "hypothesis_test", "candidate_selection", "sample_size_decision"]
+  },
+  "paired_comparability": {
+    "contrast": "candidate_minus_reference_by_evaluation_seed",
+    "comparable_rule": "A pair is COMPARABLE only if both sides are COMPARABLE.",
+    "non_comparable_reasons": [
+      "CENSORED_UNEQUAL_EXPOSURE_NON_COMPARABLE",
+      "METHOD_FAILURE_NOT_CENSORING_NON_COMPARABLE"
+    ],
+    "retained_arithmetic_difference": "The raw candidate-minus-reference arithmetic difference is retained for every pair whose two primary-outcome values are OBSERVED, including non-comparable pairs, and is explicitly labelled as not a valid contrast.",
+    "aggregate_rule": "The audited paired mean and sample standard deviation are reported only when all 30 pairs are COMPARABLE. Otherwise the aggregate is null with reason BLOCKED_EXPOSURE_CENSORED_PAIRS_RETAINED_NO_COMPLETE_CASE_DELETION.",
+    "no_complete_case_deletion": "Restricting the aggregate to the comparable subset is forbidden, because the censoring indicator is produced by the arm's own early-termination behaviour and is therefore not independent of the outcome."
+  },
+  "exposure_matched_sensitivity": {
+    "status": "DESCRIPTIVE_ONLY",
+    "matched_exposure_rule": "For each evaluation seed the matched exposure k is min(reference observed_control_steps, candidate observed_control_steps).",
+    "recomputation_rule": "matched_duty_pct = 100 * sum(saturation_substeps_over_threshold[0:k]) / sum(saturation_substeps_total[0:k]) using only the retained per-control-step counts; k equal to zero yields a null matched value.",
+    "purpose": "Show whether a candidate zero or near-zero duty survives once the reference arm is truncated to the same realized exposure.",
+    "informative_censoring": "SUSPECTED_DEPENDENT_ON_ARM_BEHAVIOUR",
+    "prohibited_uses": [
+      "candidate_selection",
+      "confidence_interval",
+      "p_value",
+      "hypothesis_test",
+      "restoring_comparability",
+      "sample_size_decision"
+    ],
+    "interpretation_limit": "Truncation matching equalizes the measurement denominator only. It does not remove informative censoring, because the truncation point is produced by the arm's own early termination, and it does not recover the full-horizon estimand."
+  },
+  "acceptance_criteria": [
+    "AX-01_READ_ONLY_SOURCE_BUNDLE_PRE_POST_IDENTITY",
+    "AX-02_FROZEN_TASK_HORIZON_AND_RATE_INTEGRALITY",
+    "AX-03_PER_EPISODE_EXPOSURE_AND_TERMINATION_RECONSTRUCTION",
+    "AX-04_RECORDED_COMMAND_PHASE_MATCHES_FROZEN_PHASE_SCHEDULE",
+    "AX-05_EXPOSURE_CENSORING_AND_METHOD_FAILURE_CLASSIFIED_SEPARATELY",
+    "AX-06_ASSUMPTION_FREE_FULL_HORIZON_AND_PAIRED_IDENTIFICATION_BOUNDS",
+    "AX-07_PAIRED_COMPARABILITY_WITH_RETAINED_ARITHMETIC_DIFFERENCE_AND_BLOCKED_AGGREGATE",
+    "AX-08_EXPOSURE_MATCHED_DESCRIPTIVE_SENSITIVITY_WITH_INFORMATIVE_CENSORING_BLOCKER",
+    "AX-09_ORIGINAL_PILOT_RECEIPT_AND_NULL_SELECTION_PRESERVED",
+    "AX-10_SAFE_ARTIFACT_PATH_BYTES_AND_SHA256_INVENTORY",
+    "AX-11_STDLIB_ONLY_RAW_TO_AUDIT_SUMMARY_EXACT_REPLAY",
+    "AX-12_SIM_ONLY_CLAIM_BOUNDARY_AND_PAPER_DATA_FALSE"
+  ],
+  "failure_semantics": {
+    "retain_states": ["COMPLETED", "FAILED", "CANCELLED", "NULL", "NONFINITE", "EXPOSURE_CENSORED", "METHOD_FAILURE_NOT_CENSORING"],
+    "audit_finding_is_not_a_failure": "Concluding that a contrast is exposure-censored or non-comparable is a valid audit result, not a software failure.",
+    "retained_censoring_blocker": "At least one non-comparable pair or censored primary-outcome value is retained, so pilot_planning_ready stays false.",
+    "structural_failure": "Source bundle drift, an output root inside or equal to the source bundle root, missing or duplicate or unexpected arm or seed, forbidden seed access, invalid JSON, duplicate JSON key, non-finite JSON number, path escape, bytes or SHA-256 mismatch, phase-schedule drift, exposure or denominator inconsistency, over-exposure, a non-null pilot selection, a source bundle class binding mismatch, or a replay mismatch.",
+    "cli_exit_codes": {
+      "audit_complete_no_censoring_blocker": 0,
+      "audit_complete_retained_censoring_blocker": 1,
+      "structural_failure": 2
+    },
+    "non_finite_policy": "NaN and Infinity are never written as JSON numbers; they are retained as a typed NONFINITE state with a reason.",
+    "threshold_change": "FORBIDDEN"
+  },
+  "outputs": {
+    "audit_summary": "audit_summary.json",
+    "audit_receipt": "audit_receipt.json",
+    "source_index": "source_index.json",
+    "replay_receipt": "audit_replay_receipt.json",
+    "protocol_copy": "v7_exposure_audit_protocol.json",
+    "overwrite_policy": "FORBIDDEN_ATOMIC_WRITE_ONLY"
+  },
+  "replay_contract": {
+    "interpreter_flags": ["-I", "-S"],
+    "script": "backend/v7_exposure_audit_replay.py",
+    "standard_library_only": true,
+    "independent_reconstruction": "The replay recomputes exposure, termination, censoring classification, identification bounds, paired comparability, and the descriptive exposure-matched sensitivity from raw episode rows, and requires exact identity with the audit summary.",
+    "mismatch_policy": "STRUCTURAL_FAILURE"
+  },
+  "claim_boundary": "SIM_ONLY_MUJOCO / NOT_PHYSICALLY_VALIDATED / DEVELOPMENT_ONLY. This audit may support only a statement about the internal validity of the retained v7 pilot contrast under unequal realized exposure. It creates no new performance result, selects no candidate arm, and does not support controller superiority, method-population power, formal sample-size adequacy, paper readiness, physical torque or thermal margins, safety, or sim-to-real claims.",
+  "retained_blockers": {
+    "pilot_planning_ready": false,
+    "method_level_power_ready": false,
+    "formal_sample_size_decision": "BLOCKED_INDEPENDENT_TRAINING_SEED_VARIANCE_NOT_ESTIMATED",
+    "statistics_ready": false,
+    "paper_data_ready": false,
+    "selected_candidate_arm_id": null
+  },
+  "primary_sources": [
+    "https://www.itl.nist.gov/div898/handbook/apr/section1/apr131.htm",
+    "https://doi.org/10.1002/sim.70257",
+    "https://www.jmlr.org/papers/v25/23-0183.html",
+    "https://proceedings.neurips.cc/paper/2021/hash/f514cec81cb148559cf475e7426eed5e-Abstract.html",
+    "https://www.rfc-editor.org/rfc/rfc8259.html",
+    "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf",
+    "https://mujoco.readthedocs.io/en/stable/computation/index.html#actuation-model"
+  ]
+}
