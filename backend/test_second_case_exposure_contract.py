@@ -424,3 +424,35 @@ def test_summary_never_permits_a_direction_claim_or_selection(protocol, design, 
         assert summary["selection_permitted"] is False
         assert summary["preregistered"] is False
         assert summary["paper_data_ready"] is False
+
+
+# --------------------------------------------------------------------------- #
+# retained development evidence
+# --------------------------------------------------------------------------- #
+
+EVIDENCE = HERE / "second_case_evidence" / "2026-09-08"
+
+
+@pytest.mark.skipif(not EVIDENCE.exists(), reason="retained second-case evidence not present")
+def test_retained_development_evidence_revalidates_and_replays_exactly():
+    bundle = sc.read_bundle(EVIDENCE / "bundle")
+    assert bundle["protocol_sha256"] == sc.PROTOCOL_SHA256
+    stats = sc.validate_raw_bundle(bundle["raw"], bundle["protocol"])
+    assert stats["bundle_class"] == sc.DEVELOPMENT_BUNDLE_CLASS
+    assert stats["terminal_record_count"] == 300
+    summary_path = EVIDENCE / "analysis" / "second_case_summary.json"
+    assert sc.run_replay(EVIDENCE / "bundle", summary_path)["identical"] is True
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    receipt = json.loads((EVIDENCE / "analysis" / "second_case_receipt.json").read_text(encoding="utf-8"))
+    assert receipt["summary_sha256"] == sc.sha256_file(summary_path)
+    # The frozen decision, as recorded.
+    assert summary["outcome"] == sc.OUTCOME_REPRODUCED == receipt["outcome"]
+    assert summary["p1_censoring_present"] is True and summary["censored_replicate_count"] == 5
+    assert summary["p3_observed_does_not_imply_full_exposure"] is True
+    assert summary["naive_method_level"]["asserts_direction"] is True
+    assert summary["method_level_bound"]["sign"] == ei.SIGN_UNIDENTIFIED
+    assert summary["method_level_bound"]["sign_identified_replicate_count"] == 0
+    # And what it never permits.
+    assert summary["direction_claim_permitted"] is False
+    assert summary["preregistered"] is False
+    assert summary["paper_data_ready"] is False

@@ -2,6 +2,17 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-08 (i)
+
+### `PUB-A1` 第二案例：凍結、push、執行完成
+
+- **凍結先於資料。** `SECONDCASE-EXPOSURE-CENSORING-WALKER2D-V1`（[spec](docs/SECOND_CASE_EXPOSURE_CENSORING_SPEC.md)，protocol `sha256:45d1ec55…`）在任何 Walker2d run 之前 commit 並 push（PR #7）。Gymnasium `Walker2d-v5` **全預設**，兩臂共用一個 wrapper 只差 `alpha`（1.0 vs 0.25），5 × 30 配對 seeds，PPO from scratch 精確 `301,056` 步。**不預測方向**；P1／P2 與五個 outcome label 由 contract 強制。`preregistered=false` 由 contract 強制。
+- **通用模組 `exposure_identification.py`。** stdlib-only；對 v7 seed-variance 的 retained evidence 重算全部 10 個 replicate bound 與兩個 method-level θ，**bit-exact**。兩套實作、同一份資料、同一個答案。
+- [RESULT] 執行：10/10 cells `COMPLETED`、300 terminal records、0 method failure、每 cell realized 精確 301,056、environment lock 20 次驗證 0 mismatch（`locked_sha256` 與 seed-variance 執行**相同**）、`python -I -S` replay bytes 一致。證據保留於 `backend/second_case_evidence/2026-09-08/`。
+- [RESULT] **`SECOND_CASE_ARTIFACT_REPRODUCED`**：naive `W2D_C − W2D_A` = `−28.795138` pp、95% t-interval `[−46.698919, −10.891357]`（排除 0）；identification bound θ = `[−79.118, +55.913333]` pp（含 0、0/5 可識別）。同一份資料、兩種 estimator、相反結論——v7 的機制在第二個 plant 上重現。P3：284/284 early-terminated episode 的 `outcome_state` 皆 `OBSERVED`。
+- [BLOCKER] **gate 仍未 PASS。** 只有 16/300 episode 跑完 horizon，reference 本身 4/5 replicate 30/30 早跌；bound 因兩臂皆 censored 而必然含 0。這證明「對稱 censoring 下 naive 會偽造方向」，但沒有重現 v7 的關鍵形狀（reference 近乎 full、bound 單側變寬）。budget 選擇的後果，如實記錄；**不得**回頭調 budget 重跑 V1。下一步凍結 V2（reference 達事先凍結的 full-exposure 比例）。詳見 [execution receipt](docs/SECOND_CASE_EXPOSURE_CENSORING_EXECUTION_RECEIPT_2026-09-08.md)。
+- [BLOCKER] `direction_claim_permitted=false`；`paper_data_ready` 等 flag 不變；NPZ trace 與 checkpoint 為 gitignored 本機 artifact，digest 保留於 raw bundle，且本次沒有任何主張依賴它們。
+
 ## Unreleased — 2026-09-08 (h)
 
 ### 文件重整與學術產出規劃

@@ -73,7 +73,7 @@
 | Gate | Exit condition | 狀態 | 備註 |
 |---|---|---|---|
 | `PUB-A0` Novelty | 文獻地圖中所有 `U` 條目經原文核對改為 `[SOURCE]` 或刪除；§4 gap 判定重寫並仍成立 | `IN_PROGRESS` — `SCAN_COMPLETE / PRIMARY_SOURCES_UNVERIFIED` | 需可存取出版方的環境。關鍵兩篇：arXiv 2606.10229、1911.05728 |
-| `PUB-A1` Second case | 在第二個 task／公開 benchmark 上，以**凍結的** protocol 重現 exposure-censoring artifact，含 receipt 與 stdlib-only replay | `IN_PROGRESS` — `FROZEN_NOT_EXECUTED` | [SECOND_CASE_EXPOSURE_CENSORING_SPEC](SECOND_CASE_EXPOSURE_CENSORING_SPEC.md)：Walker2d-v5 預設、2 arms × 5 replicates × 30 paired seeds、P1/P2 與五個 outcome label 已凍結；通用 `exposure_identification.py` 對 v7 evidence bit-exact；執行前先 commit |
+| `PUB-A1` Second case | 在第二個 task／公開 benchmark 上，以**凍結的** protocol 重現 exposure-censoring artifact，含 receipt 與 stdlib-only replay | `EXECUTED` — `SECOND_CASE_ARTIFACT_REPRODUCED`；**gate 仍未 PASS**（見備註） | [execution receipt](SECOND_CASE_EXPOSURE_CENSORING_EXECUTION_RECEIPT_2026-09-08.md)：10/10 cells、300 episodes、replay exact。P1 成立、P2 依凍結規則成立，但**兩臂皆重度 censored**（reference 亦 30/30 早跌），bound 寬到必然含 0——是 estimator 的正確陳述，卻是比 v7 弱的示範。PASS 需要一個 reference 近乎 full exposure 的 V2 protocol（新版本，不重跑 V1） |
 | `PUB-A2` Claim freeze | A-C1..A-C4 每一條都能只由 hash-bound receipts 推出；figure／table 清單凍結；不可宣稱清單寫入稿件 | `NOT_STARTED` | 依賴 A0、A1 |
 | `PUB-A3` Reproduction | clean checkout 以 `python -I -S` 重建稿件每一張 table／figure 的輸入；受 `ENVIRONMENT-LOCK-V1` record 比對 | `NOT_STARTED` | 現有 replay 已覆蓋大部分；缺 formal clean-checkout 一次性執行 |
 | `PUB-A4` Internal review | 至少一輪對抗式內部審查（含統計與 RL 評估兩個視角），所有 blocking 意見有回應 | `NOT_STARTED` | |
@@ -154,6 +154,6 @@
 ## 8. 立即下一步
 
 1. **`PUB-A0`**：在可存取出版方的環境讀 [LITERATURE_MAP §4](LITERATURE_MAP_2026-09-08_EVALUATION_VALIDITY.md) 點名的兩篇與 §1.2–§1.4 的 `U` 條目；更新地圖。
-2. **`PUB-A1`**：凍結第二案例 protocol（task、policy、seeds、rate 型 outcome、預期的 artifact 方向、acceptance）；凍結後才跑。
+2. **`PUB-A1`**：V1 已執行完成（見 receipt）。下一步是凍結 **V2**：budget 提高到 Walker2d PPO 能穩定存活的量級，使 reference 近乎 full exposure、censoring 不對稱——那才是與 v7 同構、對審稿人有說服力的第二案例。V1 的結果保留為「兩臂皆 censored 時 bound 必然無資訊」的邊界案例。
 3. **`PUB-B0`**：專案負責人決策（§5）。
 4. 工程：ROADMAP §9 第 1、2 項並行。

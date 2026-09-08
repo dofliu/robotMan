@@ -145,6 +145,7 @@
 | 2026-09-08 | `SEEDVAR` 凍結 → Amendment 01 → **執行完成** | V7B 方向 5/5；variance null |
 | 2026-09-08 | Pretraining-seed variance 結案（不可量測）；`SELECT` 凍結 | 授權成為唯一前置 |
 | 2026-09-08 | 文件重整；[PUBLICATION_PLAN](PUBLICATION_PLAN.md) 建立 | 學術產出路線凍結 V1 |
+| 2026-09-08 | `PUB-A1` 第二案例凍結 → push → **執行完成** | `SECOND_CASE_ARTIFACT_REPRODUCED`；兩臂皆 censored，gate 未 PASS，需 V2 |
 
 ## 8. 下一步
 
@@ -153,7 +154,7 @@
 **學術（見 [PUBLICATION_PLAN](PUBLICATION_PLAN.md)）**
 
 1. `PUB-A0` 文獻 novelty check：exposure censoring／partial identification 在 RL 評估中的既有工作。
-2. `PUB-A1` 在第二個 task 或公開 benchmark 上重現 exposure-censoring artifact（generalizability）。
+2. `PUB-A1` V1 已執行（Walker2d-v5，見 [receipt](SECOND_CASE_EXPOSURE_CENSORING_EXECUTION_RECEIPT_2026-09-08.md)）；下一步凍結 V2：budget 提高到 reference 近乎 full exposure，使 censoring 不對稱。
 3. 專案負責人決定 Track B 的 formal authorization 與 OSF preregistration。
 
 **工程（見 [ROADMAP](ROADMAP.md) §9）**

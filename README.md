@@ -23,7 +23,7 @@ Repository：[github.com/dofliu/robotMan](https://github.com/dofliu/robotMan) �
 | Paper-data gates | PDR-0..8 無一 PASS；`paper_data_ready = false` | [PAPER_DATA_READINESS](docs/PAPER_DATA_READINESS.md) |
 | 最強的一個結果 | V7B 相對 V7A 的 saturation duty method-level bound `[-13.503408, -12.435259]` pp，排除 0，5/5 independent training replicates 方向可識別；**條件於一個不可重建的 warm start** | [PROJECT_STATUS §4](docs/PROJECT_STATUS.md) |
 | 被推翻的一個結果 | V7C 表面上的 `-36` pp 改善經量測確認為 exposure artifact | [PROJECT_STATUS §4.2](docs/PROJECT_STATUS.md) |
-| 學術產出 | 三條路線已規劃；Track A（評估效度／可重現性方法論）建議優先 | [PUBLICATION_PLAN](docs/PUBLICATION_PLAN.md) |
+| 學術產出 | 三條路線已規劃；Track A 建議優先；`PUB-A1` 第二案例已執行（`SECOND_CASE_ARTIFACT_REPRODUCED`），但因兩臂皆 censored 而未 PASS，需 V2 | [PUBLICATION_PLAN](docs/PUBLICATION_PLAN.md) |
 | 下一個決策 | 專案負責人決定是否授權 formal evaluation；授權在前、解封在後 | [PUBLICATION_PLAN §5](docs/PUBLICATION_PLAN.md) |
 | 測試 | `backend/` 1 failed / 640 passed；那一個是在具名 environment lock 下記錄的 reduction-order 差異，未放寬 | [PROJECT_STATUS §9](docs/PROJECT_STATUS.md) |
 
@@ -151,6 +151,7 @@ python -m pytest backend -q
 | [V7_EXPOSURE_CENSORING_AUDIT_SPEC](docs/V7_EXPOSURE_CENSORING_AUDIT_SPEC.md) | read-only audit 的 horizon、censoring vocabulary、identification bounds |
 | [TRAINING_SEED_VARIANCE_SPEC](docs/TRAINING_SEED_VARIANCE_SPEC.md) | independent training replicates、replicate-level analysis unit、禁止 selection |
 | [V7_CANDIDATE_SELECTION_SPEC](docs/V7_CANDIDATE_SELECTION_SPEC.md) | 凍結的 selection 規則、post-hoc 揭露、sealed FORMAL、授權閘 |
+| [SECOND_CASE_EXPOSURE_CENSORING_SPEC](docs/SECOND_CASE_EXPOSURE_CENSORING_SPEC.md) | PUB-A1 第二案例：Walker2d-v5 上 exposure-censoring 機制的凍結 protocol、預測與 falsifier |
 
 ### 文獻
 
@@ -182,6 +183,7 @@ python -m pytest backend -q
 | [TRAINING_SEED_VARIANCE_EXECUTION_RECEIPT_2026-09-08](docs/TRAINING_SEED_VARIANCE_EXECUTION_RECEIPT_2026-09-08.md) | 1,843,200 timesteps 的實際執行與 method-level bounds |
 | [V7_PRETRAINING_SEED_VARIANCE_INFEASIBILITY_RECEIPT_2026-09-08](docs/V7_PRETRAINING_SEED_VARIANCE_INFEASIBILITY_RECEIPT_2026-09-08.md) | 為何 pretraining-seed variance 不可量測 |
 | [V7_CANDIDATE_SELECTION_IMPLEMENTATION_RECEIPT_2026-09-08](docs/V7_CANDIDATE_SELECTION_IMPLEMENTATION_RECEIPT_2026-09-08.md) | selection rule 自檢、三項執行前置條件 |
+| [SECOND_CASE_EXPOSURE_CENSORING_EXECUTION_RECEIPT_2026-09-08](docs/SECOND_CASE_EXPOSURE_CENSORING_EXECUTION_RECEIPT_2026-09-08.md) | 第二案例的 10 cells 執行、method-level 結果、兩臂皆 censored 的保留發現 |
 
 ## 下一階段
 

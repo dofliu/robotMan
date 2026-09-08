@@ -1,0 +1,31 @@
+{
+  "bundle_class": "SECOND_CASE_DEVELOPMENT_BUNDLE",
+  "bundle_root_relative_files": {
+    "environment_lock.json": "sha256:911b436231c8e0b1d7a3d07bca6894ce4c42c517c4a5cbbbdd0f9dff694ff631",
+    "raw_replicates.json": "sha256:0e9ceaf9a4c4defbe568e4849db48f5dfb2782c0c21b69a0039a36bca7bc143b",
+    "second_case_exposure_protocol.json": "sha256:45d1ec553a1124fd613f90a8034b27f10ef8f01f23a219cca216479fc4c5350c"
+  },
+  "claim_boundary": [
+    "Supports only whether the naive per-step saturation estimator and the assumption-free full-horizon bound disagree on Walker2d-v5 under its default early termination.",
+    "Does not support any statement about Walker2d locomotion quality, about low-pass action filtering as a design choice, about the v7 humanoid, or about physical actuators.",
+    "DEVELOPMENT evidence under an internal hash freeze; not preregistered; no direction is claimed for the contrast; no candidate is selected; paper_data_ready is unchanged."
+  ],
+  "direction_claim_permitted": false,
+  "environment_lock": {
+    "environment_lock_class": "MEASURED_ENVIRONMENT_LOCK",
+    "environment_lock_completeness": "FULL_LOCK",
+    "environment_lock_threading": "AMBIENT_THREADING_PINNED",
+    "environment_locked_sha256": "sha256:93d23a2703adc86a1394eacf5dece8d7229fdf742857f1a271656aa1cfeac72d"
+  },
+  "outcome": "SECOND_CASE_ARTIFACT_REPRODUCED",
+  "p1_censoring_present": true,
+  "paper_data_ready": false,
+  "protocol_id": "SECONDCASE-EXPOSURE-CENSORING-WALKER2D-V1",
+  "protocol_sha256": "sha256:45d1ec553a1124fd613f90a8034b27f10ef8f01f23a219cca216479fc4c5350c",
+  "publication_gate": "PUB-A1",
+  "retained_blocker_count": 1,
+  "schema_version": "SECOND_CASE_EXPOSURE_RECEIPT_V1",
+  "source_git_sha": "b683ddc363b1e040ba366c194430eba546e6ad22",
+  "summary_sha256": "sha256:e6761b78644b0807bc18bf3791de679e2ebebb359d130d3d672ac063285d47ee",
+  "terminal_record_count": 300
+}
