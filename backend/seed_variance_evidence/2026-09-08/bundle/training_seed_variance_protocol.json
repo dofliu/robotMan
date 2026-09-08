@@ -1,0 +1,289 @@
+{
+  "schema_version": "TRAINING_SEED_VARIANCE_PROTOCOL_V1",
+  "protocol_id": "SEEDVAR-V7-TRAINING-REPLICATE-DEV-V1",
+  "protocol_status": "FROZEN_INTERNAL_DEVELOPMENT",
+  "frozen_date": "2026-09-08",
+  "run_class": "DEVELOPMENT",
+  "evidence_scope": "SIM_ONLY_MUJOCO",
+  "validation_status": "NOT_PHYSICALLY_VALIDATED",
+  "paper_data_ready": false,
+  "specification": "docs/TRAINING_SEED_VARIANCE_SPEC.md",
+  "purpose": "Estimate the method-level variance of the frozen v7 action-interface contrast across independent training replicates. The v7 pilot used one training seed per arm and therefore measured only evaluation-seed variation conditional on a fixed checkpoint.",
+  "prerequisite_contracts": {
+    "pilot_protocol_id": "PILOT-V7-ACTION-INTERFACE-DEV-V1",
+    "pilot_protocol_path": "backend/rl/v7_action_interface_pilot_protocol.json",
+    "pilot_protocol_sha256": "sha256:719b70a2bdf8d23af5f4ec5dff51a6099e88d6de4e2221fa74f6f7464cdfcb96",
+    "audit_protocol_id": "AUDIT-V7-EXPOSURE-CENSORING-V1",
+    "audit_protocol_path": "backend/v7_exposure_audit_protocol.json",
+    "audit_protocol_sha256": "sha256:b15505b73f3745141c2dfa31cf57564b0863242949f5d1ad4d351dfb96dec6ce",
+    "environment_lock_contract_id": "ENVIRONMENT-LOCK-V1",
+    "environment_lock_source": "backend/environment_lock.py",
+    "environment_lock_source_sha256": "sha256:d220960672426bfdbf06f79841990563002097a56d9d70899fb700b282b3d488",
+    "environment_lock_specification": "docs/ENVIRONMENT_LOCK_SPEC.md"
+  },
+  "source_baseline": {
+    "freeze_parent_git_sha": "83044913fac0a4949a21eeb3ff536dfb9f2ecaee",
+    "warm_start_policy_id": "stand_start_walk_stop_0p7_phase_observable_v5",
+    "warm_start_path": "backend/rl/ppo_stand_start_walk_stop_0p7_phase_observable_v5.zip",
+    "warm_start_bytes": 1983126,
+    "warm_start_sha256": "sha256:c548867fbd17c736d54c1b1598d2abed1c7cb2dd28c7d310ea6e86ac3b36718c",
+    "action_interface_source": "backend/rl/action_interface_v7.py",
+    "action_interface_source_sha256": "sha256:8430a83705fb3544a6dd70ea09818243dfb6fc57b0334920c9f03b70626be42e",
+    "training_environment_source": "backend/rl/humanoid_env.py",
+    "training_environment_source_sha256": "sha256:2fc224d67b15d1beb5ea4ffac9b921ce6dc8bf9ce0c87286490bbf655250055d",
+    "training_driver_source": "backend/rl/train_ppo.py",
+    "training_driver_source_sha256": "sha256:877da3b41e7c44ce73758877f40e257e45c6203b045eb9e2d3cd5aa6f606f6ce",
+    "evaluation_driver_source": "backend/rl/eval_policy.py",
+    "evaluation_driver_source_sha256": "sha256:0cf274341a10a56fbf544d86eab4bfbfd6f630056689280af51aff111b0058d4",
+    "motion_task_source": "backend/motion_tasks.py",
+    "motion_task_source_sha256": "sha256:3dd9a47b6798a2fba713eda3654b428377f3a75e825105b233a1da375d4215af",
+    "config_schema_source": "backend/config_schema.py",
+    "config_schema_source_sha256": "sha256:426ce01561284dc84f50018c6f2558951c9dd820a7cf2756ac2ae8ee728ed298",
+    "model_builder_source": "backend/model_builder.py",
+    "model_builder_source_sha256": "sha256:09163a81a9dfef363a88424f98e4506e81be7639689aaa3fd66e6505ccb98a5e",
+    "training_profiles_source": "backend/rl/training_profiles.json",
+    "training_profiles_source_sha256": "sha256:28846d740ffb20991afcc3b6567c824fddd14c5ffc4329091c714d70a8c4d463"
+  },
+  "plant_identity": {
+    "builder": "model_builder.build_mjcf(default_robot(), [], dynamic=True)",
+    "training_mjcf_bytes": 7594,
+    "training_mjcf_sha256": "sha256:fd0a191f35a7c50d186a104b3378a92acdb794e82606d7f0c9aca902c7eac9df",
+    "source_file_identity_differs_from_pilot": true,
+    "pilot_pinned_model_builder_sha256": "sha256:0beabfa2df6fde118dc2dfaea94a22da9af42c69c49ee2290993322cf96aab29",
+    "measured_plant_identity_statement": "The pilot pinned an earlier model_builder.py. Rebuilding the training MJCF under that exact earlier file yields the same 7594 bytes and the same sha256:fd0a191f35a7c50d186a104b3378a92acdb794e82606d7f0c9aca902c7eac9df, because the intervening change was confined to geom_render_list and does not touch build_mjcf or make_model. The plant is therefore byte-identical to the pilot's plant even though the source file identity is not.",
+    "scope_limit": "Plant identity is established at the MJCF content level only. It does not establish that the pilot's solver behaviour was identical, because the pilot carries no environment lock record."
+  },
+  "environment_lock_requirement": {
+    "required_lock_class": "MEASURED_ENVIRONMENT_LOCK",
+    "required_lock_completeness": "FULL_LOCK",
+    "required_threading_determinism": "AMBIENT_THREADING_PINNED",
+    "required_environment_variable": "OMP_NUM_THREADS=1",
+    "capture_point": "before the first training run of the protocol",
+    "verify_point": "before every training and evaluation run",
+    "mismatch_policy": "Any LOCK_MISMATCH finding is a structural failure. The protocol must not continue, resume, or re-run the affected replicate under a different environment.",
+    "threading_rationale": "Thread count changes floating-point reduction order. Leaving it unpinned would mix thread-induced variation into the training-seed variance this protocol exists to isolate."
+  },
+  "cross_protocol_comparability": {
+    "state": "NON_VERIFIABLE_ENVIRONMENT",
+    "reason": "PILOT-V7-ACTION-INTERFACE-DEV-V1 and AUDIT-V7-EXPOSURE-CENSORING-V1 predate ENVIRONMENT-LOCK-V1 and carry no lock record, so their environment state is ABSENT_UNRECOVERABLE.",
+    "forbidden_operations": [
+      "subtracting this protocol's values from the v7 receipt's values",
+      "plotting this protocol's values and the v7 receipt's values on one trend",
+      "describing this protocol's result as confirming or refuting the v7 point estimates"
+    ]
+  },
+  "arms": [
+    {
+      "arm_id": "V7A_REWARD_ONLY",
+      "role": "reference",
+      "inherited_from_pilot": true
+    },
+    {
+      "arm_id": "V7B_REDUCED_JOINT_ENVELOPE",
+      "role": "candidate",
+      "inherited_from_pilot": true
+    },
+    {
+      "arm_id": "V7C_FILTERED_ACTION",
+      "role": "candidate",
+      "inherited_from_pilot": true,
+      "retention_rule": "V7C must be executed even though the audit measured 30/30 early termination and 30 NULL outcomes. Dropping a known-truncating arm from the design would be selection on outcome."
+    }
+  ],
+  "training_design": {
+    "replicate_count": 5,
+    "training_seeds": [
+      8720,
+      8740,
+      8760,
+      8780,
+      8800
+    ],
+    "parallel_envs": 12,
+    "environment_seed_blocks": [
+      [
+        8720,
+        8731
+      ],
+      [
+        8740,
+        8751
+      ],
+      [
+        8760,
+        8771
+      ],
+      [
+        8780,
+        8791
+      ],
+      [
+        8800,
+        8811
+      ]
+    ],
+    "pilot_environment_seed_block": [
+      8700,
+      8711
+    ],
+    "seed_disjointness_rule": "Every environment seed block must be pairwise disjoint and disjoint from the pilot block 8700-8711.",
+    "shared_seed_across_arms": true,
+    "pairing_level": "replicate_index",
+    "pairing_status": "DESIGN_DEVICE_EFFECTIVENESS_UNKNOWN",
+    "pairing_rule": "The paired analysis is primary and is frozen here. An unpaired analysis may be reported only as a secondary description and must never replace the primary after the fact.",
+    "requested_timesteps": 100000,
+    "expected_realized_timesteps": 122880,
+    "ppo_rollout_steps_per_env": 2048,
+    "ppo_batch_size": 8192,
+    "ppo_epochs": 5,
+    "device": "cpu",
+    "total_expected_timesteps": 1843200,
+    "pilot_total_expected_timesteps": 368640,
+    "budget_rule": "The replicate count is frozen. Reducing it because compute is scarce, or raising it after seeing results, both require a new protocol version.",
+    "training_replicate_scope": "CONDITIONAL_ON_FIXED_WARM_START",
+    "scope_limitation": "All replicates warm start from the same v5 checkpoint, so the estimated between-replicate variance covers fine-tuning seed variation only. It excludes pretraining seed variation and therefore underestimates full method-level variance. Any sample-size computation using this SD must state that underestimation direction."
+  },
+  "evaluation_design": {
+    "deterministic_policy": true,
+    "episodes_per_arm_replicate": 30,
+    "evaluation_seed_start": 18000,
+    "evaluation_seed_end": 18029,
+    "expected_terminal_records": 450,
+    "pair_key": "replicate_index_and_evaluation_seed",
+    "pairs_per_candidate": 150,
+    "evaluation_seed_status": "DEVELOPMENT_EXHAUSTED",
+    "evaluation_seed_status_reason": "18000-18029 were already inspected in the v7 pilot and the exposure audit. Reusing them keeps the evaluation distribution comparable but permanently disqualifies them as a holdout.",
+    "retired_seed_range": [
+      19000,
+      19029
+    ],
+    "sealed_formal_seed_range": [
+      20000,
+      20029
+    ],
+    "forbidden_seed_policy": "Any access to retired or sealed seeds invalidates the receipt."
+  },
+  "estimand": {
+    "primary_outcome": "saturation_duty_pct",
+    "reference_arm": "V7A_REWARD_ONLY",
+    "paired_contrast": "candidate_minus_reference",
+    "definition": "theta = E_replicate[ E_evaluation[ Y_candidate - Y_reference ] ]",
+    "outer_expectation_over": "independent training replicates",
+    "inner_expectation_over": "evaluation seeds",
+    "pilot_estimated": "inner expectation only",
+    "analysis_unit": "TRAINING_REPLICATE",
+    "method_level_denominator": 5,
+    "forbidden_denominators": [
+      150,
+      450
+    ],
+    "pseudo_replication_rule": "Treating the 150 episode-level pairs as 150 independent units passes evaluation-seed variation off as training-seed variation and shrinks the standard error by roughly sqrt(30). Any episode-level method-level denominator is a structural failure named PSEUDO_REPLICATION_FORBIDDEN.",
+    "reported_statistics": [
+      "replicate_level_mean_per_arm",
+      "replicate_level_paired_difference",
+      "between_replicate_sd",
+      "within_replicate_sd_per_arm_replicate",
+      "mean_within_replicate_sd",
+      "variance_ratio_between_over_within",
+      "method_level_identification_bound"
+    ],
+    "confidence_interval": "NOT_COMPUTED_DEVELOPMENT_PROTOCOL",
+    "p_value": "NOT_COMPUTED_DEVELOPMENT_PROTOCOL",
+    "small_sample_caveat": "A sample SD on 5 replicates carries large unquantified uncertainty. between_replicate_sd below within_replicate_sd is not evidence that the training seed does not matter; it is one observation at n=5."
+  },
+  "exposure_censoring": {
+    "inherited_contract": "AUDIT-V7-EXPOSURE-CENSORING-V1",
+    "episode_comparability_states": [
+      "COMPARABLE",
+      "EXPOSURE_CENSORED",
+      "METHOD_FAILURE_NOT_CENSORING"
+    ],
+    "method_failure_rule": "NaN, solver error, cancellation and an explicitly non-observed required outcome are method failures, not censoring.",
+    "replicate_level_rule": "If every episode of an (arm, replicate) cell is COMPARABLE, the cell mean is a point value. If any episode is EXPOSURE_CENSORED, the cell mean becomes an assumption-free worst-case full-horizon bound [lo, hi]. No complete-case deletion and no imputation.",
+    "paired_bound_rule": "d[r] = [lo_candidate - hi_reference, hi_candidate - lo_reference]",
+    "method_bound_rule": "theta_bound = [mean_r(lo_d), mean_r(hi_d)]",
+    "sign_identification_rule": "The sign of theta is identified only when theta_bound excludes zero entirely.",
+    "sd_blocking_rule": "If any d[r] is not point-identified, between_replicate_sd is null with reason BLOCKED_PARTIALLY_IDENTIFIED_REPLICATE_DIFFERENCES. A sample SD is not defined on intervals, and substituting interval midpoints would be an imputation.",
+    "expected_v7c_branch": "On the pilot's measured behaviour V7C is expected to land in the blocked branch. That is the correct output, not a failure, and the exposure criteria must not be relaxed to make V7C produce a point estimate."
+  },
+  "selection": {
+    "selected_candidate_arm_id": null,
+    "selection_permitted": false,
+    "rationale": "This protocol estimates variance. Estimating variance and then selecting on the same data conditions the selection on the noise that was selected for. Candidate selection and the sample-size decision require a separate protocol version whose decision rule is frozen before these results are seen.",
+    "method_level_power_ready": false,
+    "formal_sample_size_decision": "BLOCKED_UNTIL_THIS_PROTOCOL_EXECUTES",
+    "sample_size_decision_input_ready_requires": [
+      "450 terminal records present",
+      "all 150 pairs of the candidate COMPARABLE",
+      "between_replicate_sd is a point value",
+      "environment lock verification passed for every run"
+    ],
+    "optional_stopping_rule": "replicate_count must not be raised after results are seen. A larger design requires a new protocol version, and old and new replicates must not be pooled."
+  },
+  "failure_semantics": {
+    "retain_states": [
+      "COMPLETED",
+      "FAILED",
+      "CANCELLED",
+      "OBSERVED",
+      "NULL",
+      "NONFINITE",
+      "EXPOSURE_CENSORED"
+    ],
+    "performance_failure": "A failed frozen gate is retained as a valid negative result and does not make the evidence package structurally invalid.",
+    "semantic_blocker": "Cancellation, an explicitly non-observed required outcome, or a null between_replicate_sd caused by partial identification. Retained with a reason, sample_size_decision_input_ready=false.",
+    "structural_failure": "Invalid or duplicate-key or non-finite JSON, identity drift, environment lock mismatch, missing/duplicate/unexpected arm or replicate or seed, forbidden seed access, an episode-level method-level denominator, path escape, bytes/SHA mismatch, replay mismatch.",
+    "cli_exit_codes": {
+      "complete_evidence": 0,
+      "semantic_blocker": 1,
+      "structural_failure": 2
+    },
+    "threshold_change": "FORBIDDEN",
+    "non_finite_policy": "NaN and Infinity must never be written as JSON numbers. They are retained as a typed NONFINITE state with a reason."
+  },
+  "acceptance_criteria": [
+    "SV-01 strict protocol identity; arm action math and warm-start path/bytes/SHA exactly match the pilot protocol",
+    "SV-02 pre and post execution Git SHA equal with a clean tracked worktree",
+    "SV-03 exactly 5 training seeds {8720,8740,8760,8780,8800} with pairwise disjoint environment blocks, disjoint from the pilot block 8700-8711",
+    "SV-04 exactly 30 paired terminal records per (arm, replicate) over 18000-18029, exactly 450 in total, with no missing, duplicate, unexpected, retired or sealed seed",
+    "SV-05 environment lock is MEASURED_ENVIRONMENT_LOCK plus FULL_LOCK plus AMBIENT_THREADING_PINNED and verifies for every run",
+    "SV-06 the method-level denominator is exactly replicate_count; any episode-level denominator fails closed",
+    "SV-07 FAILED, CANCELLED, negative, NULL, NONFINITE and CENSORED are all retained with no complete-case deletion, no imputation and no re-running of unfavourable cases",
+    "SV-08 exposure censoring composes upward per the frozen rules; a partially identified replicate difference forces between_replicate_sd to null",
+    "SV-09 between and within variance components and theta_bound are emitted, retaining the CONDITIONAL_ON_FIXED_WARM_START and NON_VERIFIABLE_ENVIRONMENT labels",
+    "SV-10 every bundle artifact uses a safe relative path with exact bytes and SHA-256 readback; missing, tampered and path-escaping artifacts fail closed",
+    "SV-11 a separate python -I -S stdlib-only process exactly reconstructs the summary from the raw replicate and episode rows",
+    "SV-12 the receipt retains selected_candidate_arm_id=null, method_level_power_ready=false, paper_data_ready=false and this protocol's claim boundary"
+  ],
+  "claim_boundary": "SIM_ONLY_MUJOCO / NOT_PHYSICALLY_VALIDATED / DEVELOPMENT_ONLY. This protocol may support only a statement about the conditional magnitude of replicate-level variation in the frozen v7 action-interface contrast, under a fixed v5 warm start and DEVELOPMENT evaluation seeds. It selects no candidate and supports no claim of controller superiority, sample-size adequacy, paper readiness, physical torque or thermal margin, safety, or sim-to-real performance.",
+  "amendment": {
+    "amendment_id": "SEEDVAR-AMENDMENT-01-DRIVER-IDENTITY",
+    "amended_date": "2026-09-08",
+    "applied_before_any_execution": true,
+    "narrowing_only": true,
+    "defect": "The protocol as frozen was unexecutable. backend/rl/train_ppo.py pins seed_base to 8700 for any v7 profile (V7_TRAINING_SEED_OR_ENV_COUNT_MISMATCH), so a v7 arm could only ever be trained on the pilot's single seed, and backend/rl/eval_policy.py emits control_step_trace only on the pilot evaluation path, which forces the pilot's own artifact directory. The freeze pinned both drivers by digest without checking that either could run this design at all.",
+    "resolution": "Both drivers gained a second, mutually exclusive frozen identity for SEEDVAR-V7-TRAINING-REPLICATE-DEV-V1. A v7 training profile must declare exactly one governing protocol, so no profile can satisfy both and be reported under either. The replicate's training seed is resolved from this protocol by replicate index and can never be supplied on the command line (SEEDVAR_SEED_OVERRIDE_FORBIDDEN). The pilot branch keeps its original check sequence in its original order, because which rejection fires first is itself observable behaviour.",
+    "why_not_a_separate_driver": "A dedicated seed-variance driver would leave the pilot's guard untouched, but it would duplicate the PPO geometry, warm-start transplant and artifact writing. Comparability with the pilot rests on those being identical rather than merely similar, so silent divergence between two copies is the larger hazard.",
+    "superseded_pins": {
+      "training_driver_source_sha256": "sha256:83cd260bd4fd437ff98adbab95ccc167b485e30b9faf5bc100bf3303ce4d2f3c",
+      "evaluation_driver_source_sha256": "sha256:fef998b24d4a302f589ba9bb74561265a31e1009948b26724c24992093e88f5f"
+    },
+    "unchanged_by_this_amendment": [
+      "arms and action math",
+      "warm start identity",
+      "training seed schedule and environment seed blocks",
+      "evaluation seed range",
+      "replicate count",
+      "analysis unit and forbidden denominators",
+      "exposure censoring composition rules",
+      "the prohibition on selection"
+    ],
+    "new_frozen_identifiers": {
+      "training_profile_suffix": "_seedvar",
+      "profile_field": "seedvar_protocol_id",
+      "run_id_form": "<profile_id>-r<replicate_index>",
+      "training_cli": "--replicate-index",
+      "evaluation_cli": "--seedvar-replicate-index"
+    }
+  }
+}

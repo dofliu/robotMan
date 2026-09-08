@@ -1197,3 +1197,60 @@ def test_widening_or_post_hoc_amendment_fails_closed(
     mutate(payload)
     with pytest.raises(SeedVarianceError, match=message):
         svc.validate_protocol(payload)
+
+
+# --------------------------------------------------------------------------- #
+# the retained execution evidence
+# --------------------------------------------------------------------------- #
+
+EVIDENCE_ROOTS = sorted((BACKEND_ROOT / "seed_variance_evidence").glob("*/"))
+
+
+def test_execution_evidence_is_retained() -> None:
+    assert EVIDENCE_ROOTS, "no seed-variance execution evidence is committed"
+
+
+@pytest.mark.parametrize("root", EVIDENCE_ROOTS, ids=lambda item: item.name)
+def test_retained_evidence_revalidates_and_replays_exactly(root: Path) -> None:
+    """The committed evidence must stand on its own, off the machine that made it."""
+    receipt_path = root / "analysis" / svc.RECEIPT_ARTIFACT
+    validation = validate_seed_variance_bundle(receipt_path)
+    assert validation["contract_valid"] is True
+    assert validation["analysis_unit"] == "TRAINING_REPLICATE"
+    assert validation["selected_candidate_arm_id"] is None
+    assert validation["method_level_power_ready"] is False
+    assert validation["paper_data_ready"] is False
+
+    summary = json.loads(
+        (root / "analysis" / SUMMARY_ARTIFACT).read_text(encoding="utf-8")
+    )
+    assert summary["bundle_class"] == DEVELOPMENT_BUNDLE_CLASS
+    assert summary["terminal_record_count"] == 450
+    assert summary["replicate_count"] == 5
+    for candidate in summary["candidates"]:
+        method_level = candidate["method_level"]
+        # The whole point of the protocol: the denominator is the replicate
+        # count, never the episode-pair count.
+        assert method_level["method_level_n"] == 5
+        assert method_level["method_level_n"] not in summary["forbidden_denominators"]
+
+    replay = svc.run_replay(root / "bundle", root / "analysis" / SUMMARY_ARTIFACT)
+    assert replay["replay_exact"] is True
+
+
+@pytest.mark.parametrize("root", EVIDENCE_ROOTS, ids=lambda item: item.name)
+def test_retained_evidence_keeps_every_censored_episode(root: Path) -> None:
+    """187 of 450 episodes are censored; none of them may be dropped."""
+    raw = json.loads(
+        (root / "bundle" / RAW_ARTIFACT).read_text(encoding="utf-8")
+    )
+    states: dict[str, int] = {}
+    for replicate in raw["replicates"]:
+        for cell in replicate["arms"]:
+            assert len(cell["episodes"]) == 30
+            for episode in cell["episodes"]:
+                states[episode["comparability_state"]] = (
+                    states.get(episode["comparability_state"], 0) + 1
+                )
+    assert sum(states.values()) == 450
+    assert states.get("EXPOSURE_CENSORED", 0) > 0

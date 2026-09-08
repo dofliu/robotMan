@@ -128,6 +128,7 @@ comparison_report.md 保留既有 deterministic nominal snapshot，供回歸診�
 | [ENVIRONMENT_LOCK_SPEC](docs/ENVIRONMENT_LOCK_SPEC.md) | locked/observed 分界、behaviour fingerprints、缺失 lock 的表述與 verification semantics |
 | [ENVIRONMENT_LOCK_IMPLEMENTATION_RECEIPT_2026-09-08](docs/ENVIRONMENT_LOCK_IMPLEMENTATION_RECEIPT_2026-09-08.md) | 實測 lock record、reduction-order 差異、v7 的 ABSENT_UNRECOVERABLE 判定與 EL-01..EL-10 |
 | [TRAINING_SEED_VARIANCE_SPEC](docs/TRAINING_SEED_VARIANCE_SPEC.md) | independent training replicates、replicate-level analysis unit、censoring 向上組合、禁止 selection 與 SV-01..SV-12 |
+| [TRAINING_SEED_VARIANCE_EXECUTION_RECEIPT_2026-09-08](docs/TRAINING_SEED_VARIANCE_EXECUTION_RECEIPT_2026-09-08.md) | 實際執行的 1,843,200 timesteps、450 records、method-level bounds、保留的 16 個 blockers 與過程中的自我修正 |
 | [TRAINING_SEED_VARIANCE_IMPLEMENTATION_RECEIPT_2026-09-08](docs/TRAINING_SEED_VARIANCE_IMPLEMENTATION_RECEIPT_2026-09-08.md) | plant identity 量測、三條結構性規則的實作、synthetic regression 結果與未執行訓練的邊界 |
 | [V7_EXPOSURE_CENSORING_AUDIT_SPEC](docs/V7_EXPOSURE_CENSORING_AUDIT_SPEC.md) | read-only exposure-censoring audit的 frozen horizon、phase conventions、censoring vocabulary、identification bounds與 acceptance |
 | [V7_EXPOSURE_CENSORING_AUDIT_IMPLEMENTATION_RECEIPT_2026-09-08](docs/V7_EXPOSURE_CENSORING_AUDIT_IMPLEMENTATION_RECEIPT_2026-09-08.md) | audit software的 clean-source synthetic receipt、phase-convention finding、identification bounds與 frozen-bundle範圍邊界 |
@@ -145,11 +146,20 @@ comparison_report.md 保留既有 deterministic nominal snapshot，供回歸診�
 
 因此：V7C 的 0% duty 其 full-horizon bound 為 `[0.0, 64.511111]`%，與 V7A 的 `36.2185185`% 重疊，paired bound `[-36.2185185, +28.2925927]` 包含 0，`0/30` pair 方向可識別 —— pilot 報出的 `-36.2185185` pp 已被量測確認為 exposure artifact。V7B 的 paired bound 在 `30/30` pair 排除 0 且皆為 NEGATIVE，但 aggregate 仍為 `NULL`（3 個 censored pair，禁止 complete-case deletion），且 V7B 在 pilot 中仍不 eligible。
 
-接續的 independent training-seed variance protocol `SEEDVAR-V7-TRAINING-REPLICATE-DEV-V1` 已凍結，其 evidence contract、獨立 `python -I -S` replay 與 synthetic regression 也已完成（`SV-01..SV-12`；三個 case 全部 replay exact）。它把 analysis unit 固定在 **training replicate**：method-level 分母恆為 `5`，而 `150` 與 `450` 是被強制檢查的 forbidden denominators —— 把 150 個 episode-level pair 當成獨立單位會把 evaluation-seed 變異冒充成 training-seed 變異。Exposure censoring 逐層向上組合成 interval，任一 replicate difference 不可點識別時 `between_replicate_sd` 直接輸出 `null`。
+**Independent training-seed variance 已實際執行完成。** `SEEDVAR-V7-TRAINING-REPLICATE-DEV-V1` 在 clean source `12bfddf` 上以具名 `MEASURED_ENVIRONMENT_LOCK`（`FULL_LOCK`／`AMBIENT_THREADING_PINNED`，共 30 次驗證）跑完 `3 arms × 5 replicates × 122,880 = 1,843,200` realized timesteps，**450 個 terminal records、0 失敗**，獨立 `python -I -S` replay exact。
 
-前置的 `ENVIRONMENT-LOCK-V1` 一併完成：它量測行為而非相信 version string（含實跑 `500` 步的 MuJoCo contact state digest 與實際執行的 torch optimiser step），並實測到同一組 1000 個 reciprocal 在同一環境下依 stdlib 順序相加得 `7.485470860550343`、交給 `numpy.ndarray.sum` 得 `7.485470860550345` —— 兩者都符合 IEEE 754。v7 的兩個 retained bundle 都在此 contract 之前產生，其 environment 狀態為 `ABSENT_UNRECOVERABLE`，不得以現行環境的 capture 替代。
+實測結果：
 
-**下一個唯一優先目標是實際執行**該 seed-variance protocol：需要 `3 arms × 5 replicates × 122,880 = 1,843,200` timesteps，且必須在具名 `MEASURED_ENVIRONMENT_LOCK`（`OMP_NUM_THREADS=1`）下進行。在它完成前，所有 v7 結果仍建立在每臂單一 training seed 之上，V7B 的方向穩健性不得讀成 candidate selection 或 sample-size 依據。`selected_candidate_arm_id` 維持 `null`，`pilot_planning_ready`、`method_level_power_ready`、`statistics_ready`、`paper_data_ready` 全部維持 false。Study A actual matrix、binary paired CI、lock record 綁進 run manifest、immutable storage 與 formal authorization 仍未完成；這些 development evidence 不解除 V0/V1/V3 gate。
+- **V7B 相對 V7A 的方向跨獨立 seed 成立**：method-level bound `[-13.503408, -12.435259]` pp **排除 0**，sign `NEGATIVE`，`5/5` replicates 方向可識別。
+- **但 `between_replicate_sd` 仍是 `null`**：每個 replicate 至少有一臂被 exposure censored，5 個 paired difference 全是 interval，sample SD 沒有定義在 interval 上。`sample_size_decision_input_ready = false`，**sample-size 決策仍然 blocked**。方向可識別與變異可估計是兩件事。
+- **Pilot 那個乾淨的 reference 是 seed 的性質，不是 arm 的性質**：pilot 的 V7A 在 seed `8700` 上 30/30 full exposure、sd `0`；在 5 個獨立 seeds 上 V7A 有 3 個 replicate 出現 early termination（共 `7`/150）。
+- **V7C 的崩潰跨 seed 完全重現**：5 個獨立 seeds 全部 30/30 early termination、30/30 `NULL`，bound `[-37.195407, +27.315704]` pp 含 0、`0/5` 可識別。它表面上的 `-37` pp 再次被量測確認為 exposure artifact。
+- 450 個 episodes 全部是 `COMPARABLE`（`263`）或 `EXPOSURE_CENSORED`（`187`），**零 method failure**。
+
+前置的 `ENVIRONMENT-LOCK-V1` 量測行為而非相信 version string（含實跑 `500` 步的 MuJoCo contact state digest 與實際執行的 torch optimiser step），並實測到同一組 1000 個 reciprocal 在同一環境下依 stdlib 順序相加得 `7.485470860550343`、交給 `numpy.ndarray.sum` 得 `7.485470860550345` —— 兩者都符合 IEEE 754。v7 的兩個 retained bundle 都在此 contract 之前產生，其 environment 狀態為 `ABSENT_UNRECOVERABLE`，因此
+`cross_protocol_comparability = NON_VERIFIABLE_ENVIRONMENT`：seed-variance 的數值不得與 pilot receipt 的數值相減或並排成趨勢。
+
+**下一個唯一優先目標是 independent pretraining-seed variance，或另立 selection protocol。** 5 個 replicate 共用同一個 v5 warm start，所以量到的是 fine-tuning 階段的 seed 變異，系統性**低估**完整 method variance。`selected_candidate_arm_id` 維持 `null`：V7B 的方向穩健性**不構成 selection** —— 用同一批資料先估變異再據以選擇，會把選擇條件建立在被選中的雜訊上；且本結果已公開，任何新 selection protocol 都必須明示它是在已知 V7B 為負的情況下設計的。`pilot_planning_ready`、`method_level_power_ready`、`statistics_ready`、`paper_data_ready` 全部維持 false。Study A actual matrix、binary paired CI、lock record 綁進 run manifest、immutable storage 與 formal authorization 仍未完成；這些 development evidence 不解除 V0/V1/V3 gate。
 
 ## 資料聲明
 
