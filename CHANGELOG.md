@@ -2,6 +2,44 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-08 (e)
+
+### `ENVIRONMENT-LOCK-V1`：把 environment identity 從 floor 變成量測
+
+- `docs/VV_PLAN.md` 的 V0-R02 要求 run identity 綁定 `code bundle/config/MJCF/checkpoint/environment`。前四項本來就有 content-sensitive identity；第五項只有 `backend/requirements*.txt` 的 `>=` floors。**Floor 描述的是一個無上界的環境集合，不是一個環境**，因此不能用來重驗任何數值結果。
+- 新增 [ENVIRONMENT_LOCK_SPEC](docs/ENVIRONMENT_LOCK_SPEC.md)（實作前凍結）與 `backend/environment_lock.py`。Record 分兩段：進 digest 的 `locked`（會改變數值結果或 code path 的事實）與保留但不進 digest 的 `observed`（hostname、絕對路徑、CPU 數量等在合規機器間合法變動的上下文）。這個分界是必要的：若把 `observed` 一起 digest，同一個環境每次 capture 都會拿到新 identity，lock 就不帶資訊。
+- **Fingerprint 量測行為，不相信 version string。** 同一個 `numpy==2.4.6` 可以連到不同 BLAS、用不同 SIMD kernel。因此 record 內含實際跑 `500` 個 `mj_step` 後的 MuJoCo contact state digest、以及實際執行一次 torch forward/backward/SGD 後的 parameter digest；probe 輸入來自模組內凍結的 pure-Python LCG，不用 `numpy.random`／`torch.random`（RNG stream 穩定性本身就是會隨版本改變的事實，不能同時當 probe 的載具）。
+- 實測差異直接證明了這一點：同一組 `1/i, i = 1..1000` 依序左至右相加得 `7.485470860550343`，交給 `numpy.ndarray.sum` 得 `7.485470860550345`。**同一個環境、兩種 reduction order、兩者都符合 IEEE 754。** 這也是 `test_v1_analytical_suite.py::test_stdlib_replay_passes_exact_synthetic_fixture` 的 `PRIMARY_CASE_RECEIPT_IDENTITY` 在本 lock 下失敗的原因；本次**不放寬該 gate、不改寫 fixture**，只把它記為在具名 lock 下量到的失敗。
+- 所有 third-party import 都是 lazy 且封在 probe 內，所以另一個 `python -I -S` process 可以在完全沒有 site packages 的情況下重算 `locked_sha256`。`test_module_keeps_every_third_party_import_inside_a_probe` 以 AST 斷言這件事：未來若有人加一行 top-level `import numpy`，其他測試都還會綠，只有這一個會失敗。
+- 保留實測 record `backend/environment_locks/lock-2026-09-08-remote-dev-container.json`（`4157` bytes，`locked_sha256 sha256:d350a110…`，`FULL_LOCK`，`AMBIENT_THREADING_NOT_PINNED` 因為本容器未設 `OMP_NUM_THREADS`）與 `backend/requirements-lock-2026-09-08.txt`。`requirements.txt` 的 floors **未調整**，只加註解指向本 contract：調 floor 有 install 後果，不是本 contract 該決定的事。
+- **v7 的判定：`ABSENT_UNRECOVERABLE`。** `PILOT-V7-ACTION-INTERFACE-DEV-V1` 與 `AUDIT-V7-EXPOSURE-CENSORING-V1` 都在本 contract 之前產生，沒有 lock record。`absent_lock_record()` 刻意不含任何量測值——把今天這台機器的 capture 附到一份在未知環境產生的 evidence 上是 imputation，不是補齊欄位。
+- `EL-01..EL-10`／**60 個測試**通過。Contract 的 schema、digest 與 verification 路徑不依賴任何 third-party 套件，third-party 只出現在 probe 內部。V0 的 environment-lock blocker **收窄但未解除**：還沒有任何 pipeline 把 lock record 綁進自己的 run manifest。
+
+### `SEEDVAR-V7-TRAINING-REPLICATE-DEV-V1`：凍結 independent training-seed variance protocol
+
+- 這是 `STATUS.yaml` 自己排定的 next milestone。新增 [TRAINING_SEED_VARIANCE_SPEC](docs/TRAINING_SEED_VARIANCE_SPEC.md) 與 `backend/rl/training_seed_variance_protocol.json`，**在任何 source implementation 前凍結**。
+- **Analysis unit 是 training replicate，不是 episode。** Method-level 分母恆為 `replicate_count = 5`；`150`（episode-level pairs）與 `450`（terminal records）在 protocol 內被明列為 forbidden denominators。把 150 個 episode-level pair 當成 150 個獨立單位，是把 evaluation-seed 變異冒充成 training-seed 變異，標準誤會縮小約 `sqrt(30)` 倍。這條規則在三處被檢查，名稱為 `PSEUDO_REPLICATION_FORBIDDEN`。
+- **Exposure censoring 逐層向上組合，不在中途退回點估計。** Cell、paired、method 三層都用 interval arithmetic（對 independent unknowns 皆為 tight）。只要有任一 replicate difference 不是 point-identified，`between_replicate_sd` 就輸出 `null`：sample SD 沒有定義在 interval 上，用區間中點代替就是 imputation。依 audit 的實測結果，V7C 幾乎確定落在這個 blocked 分支——那是**正確**輸出。
+- **Method failure 不是 censoring。** 含 method failure 的 cell 沒有 mean，因為要產生一個 mean 就得刪掉那個 failure；因此 method-level bound 變 `NULL` 並列出被 blocked 的 replicate。
+- V7C 仍必須執行。把已知會截斷的 arm 移出設計，等於用結果決定樣本。
+- Selection 在本 protocol 內**永久禁止**，`replicate_count` 不得在看到結果後上調（optional stopping）。用同一批資料先估變異再據以選擇，會把選擇條件建立在被選中的雜訊上。
+- 兩個 scope 限制被寫成 typed field 而非留在字裡行間：所有 replicates 共用同一個 v5 warm start，故 `training_replicate_scope = CONDITIONAL_ON_FIXED_WARM_START`，估到的 SD **系統性低估**完整 method variance；且因 v7 沒有 lock record，`cross_protocol_comparability = NON_VERIFIABLE_ENVIRONMENT`，並逐條列出禁止的操作。
+- **Plant identity 附帶量到一個事實。** Protocol 改 pin plant 而非只 pin source file，於是可以檢驗：用 v7 所 pin 的那份舊 `model_builder.py`（`0beabfa2…`）重建 training MJCF，得到與現行檔案**完全相同**的 `7594` bytes 與 `sha256:fd0a191f…`。`geom_render_list` 的修正從未觸及 `build_mjcf` 或 `make_model`，所以 **plant 與 pilot 的 plant byte-identical，即使 source file identity 不同**。這不證明 solver 行為相同——pilot 仍沒有 lock。
+- 算力誠實列出：`3 arms × 5 replicates × 122,880 = 1,843,200` timesteps，是 v7 pilot 的 5 倍。**因算力不足而減少 replicate 數需要另立 protocol version。**
+
+### Seed-variance evidence contract 與獨立 replay
+
+- 新增 `backend/training_seed_variance_contract.py`、`backend/training_seed_variance_replay.py`、`backend/build_training_seed_variance_regression_bundle.py`。`SV-01..SV-12`／**101 個測試**通過。
+- Contract 消費 audit 輸出但**不信任**它：每一個繼承來的 bound 都對照自身宣告的 comparability state 重新檢查（comparable 必須 degenerate、censored 必須不是、method failure 不得帶 bound、width 必須相符、interval 不得反轉）。這些正是會無聲改變所有下游區間的變異。
+- `verify_pilot_inheritance` 補上 freeze 的一個真實缺口：pin pilot 的 digest 只證明「打算用哪個檔案」，不能阻止本 protocol 從裡面抄錯數字。因此 warm start、arm 清單與順序、PPO geometry、episode 數與 seed ranges 逐欄比對 `backend/rl/v7_action_interface_pilot_protocol.json` 本身，並複查 pilot 自陳的「每臂一個 training replicate」——若那一項變成大於 1，本 protocol 就沒有量到 pilot 量不到的東西。
+- Replay 是第二個實作而不是第二次呼叫：它不 import contract，從 protocol JSON 重讀 arm roles／seeds／denominators／lock requirement。兩邊共用一個 reduction 定義（`ordered_mean` 依 ascending replicate/seed 順序左至右相加），因為 float 加法不具結合律；`test_reduction_order_is_fixed_not_sorted` 以 `[1e16, 1.0, 1.0]` 與其反序證明順序會改變答案。
+- Synthetic regression（clean source `7d961cbf`，19 artifacts／`978501` bytes）三個 case 全部 replay exact：`all-comparable` 0 blockers；`censored-candidate` 7 blockers、V7C theta bound `[-28.607824, +35.903276]` pp、`0/5` 方向可識別、SD 為 `null`；`method-failure` 2 blockers、V7B theta `NULL` 且 replicate 2 blocked。censored V7C bound 寬度 `64.5111` pp 與 audit 在 frozen bundle 上量到的 `64.511111` 一致。
+- 修掉一個 lock 驗證顆粒度與 spec 不符的缺陷：spec 要求每一個 training **與** evaluation run 之前都要 verify lock，但 raw schema 起初每個 cell 只有一個 flag，把兩個獨立 run 混成一個 —— training 驗過而 evaluation 沒驗過的 cell 會通過。改為 `training_environment_lock_verified` 與 `evaluation_environment_lock_verified` 兩個欄位皆須為 true，receipt 記錄 `2 × 5 × 3 = 30` 次 verification。Frozen protocol 只規定 verify point 不規定欄位名，故未動到它。
+- 順帶修掉 contract 的一個行為缺陷：`analyse_seed_variance` 現在拒絕位於 source bundle 內的 output root。把衍生 artifact 寫進被審查的 bundle 會破壞 read-only 保證，而原本的 "file set changed" 失敗訊息會怪錯對象。
+- **也修掉自己 fixture 的一個缺陷**（值得記錄，因為它會讓 suite 假綠）：初版讓三臂共用同一組 per-replicate offset。Replicate-level pairing 正是用來消掉共同 offset 的，所以它在 contrast 中被完全抵銷——`between_replicate_sd` 只有 `0.146` pp 對比 within-replicate paired SD `0.811` pp，測試全綠但從未驗證「paired difference 的 between-replicate 變異」，也就是本 protocol 唯一要量的東西。修正後每臂各有自己的 offset series，並新增測試直接斷言該性質。修正後 fixture 上正確的 `n=5` 標準誤比 pseudo-replicated 的 `n=150` 標準誤大 `12.92×`（V7B）與 `10.11×`（V7C）——這是機制示範，不是 v7 的結果。
+- 新增 [environment lock receipt](docs/ENVIRONMENT_LOCK_IMPLEMENTATION_RECEIPT_2026-09-08.md) 與 [seed-variance receipt](docs/TRAINING_SEED_VARIANCE_IMPLEMENTATION_RECEIPT_2026-09-08.md)。
+- **沒有執行任何訓練。** 因此沒有任何 v7 method-level variance 數值；`selected_candidate_arm_id=null`、`method_level_power_ready=false`、`statistics_ready=false`、`paper_data_ready=false` 全部保留，`formal_sample_size_decision` 改為 `BLOCKED_UNTIL_THIS_PROTOCOL_EXECUTES`。
+
 ## Unreleased — 2026-09-08 (d)
 
 - 修正 `geom_render_list()` 的 geom 型別查表：`MjModel.geom_type` 回傳 `numpy` 整數，而 MuJoCo 3.12 把 `mjtGeom` 實作為 native pybind11 enum —— 它與 `int` 相等但**與 `numpy.int32` 不相等**。以 enum 當 dict key 因此每一次查表都 miss，該函式回傳**空的 geom 清單**，`/ws/live` 的 scene payload 一個 geom 都不送，前端 3D 視圖實際上什麼都畫不出來。改為以 plain `int` 建表並以 `int(...)` 查表，與 `vv_oracles.py` 既有的正確寫法一致。修正後 minimum-config 模型的 25 個 geom 全部輸出（plane 1／box 5／sphere 11／capsule 8），`obstacle_0` 也回來了。

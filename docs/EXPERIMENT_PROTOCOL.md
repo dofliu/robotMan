@@ -9,7 +9,7 @@
 
 正式結果必須建立 versioned protocol instance。僅執行 script 或產生 Markdown report 不算 protocol completion。
 
-`PAPER_RUN_MANIFEST_V1` 與 fail-closed artifact validator 已建立 run-level contract；V1 static/analytical suites可保存 raw relative Jacobians，並由不載入 MuJoCo/controller 的另一 process重建 generalized force。`EXPERIMENT_MATRIX_SPEC_V1`以 frozen spec/index hash、exact cell identity與 dedicated-root scan檢查 missing、duplicate、unexpected、unindexed及 status retention；`PAIRED_STATISTICS_SPEC_V1`另將 explicit pairing、outcome/failure semantics、continuous CI與 machine-readable paper inputs凍結，並由 stdlib-only process exact replay。`PILOT-V7-ACTION-INTERFACE-DEV-V1`則凍結三臂 action math、單一 training seed、DEV 18000–18029、failure/NULL semantics與 FORMAL seed封存；其 clean-source bundle/replay已完成，但V7B保留4個 negative、V7C保留30個 early-fall NULL，故沒有 selected candidate。這些仍只是 bounded software/DEVELOPMENT contracts；V7 exposure-censoring audit、獨立 training-seed variance、project-wide immutable storage、actual Study matrix、remaining dynamic coverage、binary paired CI、sample-size decision與 formal authorization仍未完成。完整架構見 [PAPER_DATA_READINESS](PAPER_DATA_READINESS.md)、[EXPERIMENT_MATRIX_CONTRACT](EXPERIMENT_MATRIX_CONTRACT.md)、[PAIRED_STATISTICS_CONTRACT](PAIRED_STATISTICS_CONTRACT.md)與 [V7_ACTION_INTERFACE_PILOT_SPEC](V7_ACTION_INTERFACE_PILOT_SPEC.md)。
+`PAPER_RUN_MANIFEST_V1` 與 fail-closed artifact validator 已建立 run-level contract；V1 static/analytical suites可保存 raw relative Jacobians，並由不載入 MuJoCo/controller 的另一 process重建 generalized force。`EXPERIMENT_MATRIX_SPEC_V1`以 frozen spec/index hash、exact cell identity與 dedicated-root scan檢查 missing、duplicate、unexpected、unindexed及 status retention；`PAIRED_STATISTICS_SPEC_V1`另將 explicit pairing、outcome/failure semantics、continuous CI與 machine-readable paper inputs凍結，並由 stdlib-only process exact replay。`PILOT-V7-ACTION-INTERFACE-DEV-V1`則凍結三臂 action math、單一 training seed、DEV 18000–18029、failure/NULL semantics與 FORMAL seed封存；其 clean-source bundle/replay已完成，但V7B保留4個 negative、V7C保留30個 early-fall NULL，故沒有 selected candidate。`ENVIRONMENT-LOCK-V1`另把 software environment identity從 `>=` floor變成可量測、可重驗的 record；`SEEDVAR-V7-TRAINING-REPLICATE-DEV-V1`則凍結 5個 independent fine-tuning training seeds、replicate-level analysis unit（method-level分母恆為 5，`150`／`450`為 forbidden denominators）、censoring向上組合為 interval與永久禁止的 selection。這些仍只是 bounded software/DEVELOPMENT contracts；V7 exposure-censoring audit已在 frozen bundle完成，但 seed-variance protocol尚未執行訓練，且 lock record綁進 run manifest、project-wide immutable storage、actual Study matrix、remaining dynamic coverage、binary paired CI、sample-size decision與 formal authorization仍未完成。完整架構見 [PAPER_DATA_READINESS](PAPER_DATA_READINESS.md)、[EXPERIMENT_MATRIX_CONTRACT](EXPERIMENT_MATRIX_CONTRACT.md)、[PAIRED_STATISTICS_CONTRACT](PAIRED_STATISTICS_CONTRACT.md)與 [V7_ACTION_INTERFACE_PILOT_SPEC](V7_ACTION_INTERFACE_PILOT_SPEC.md)。
 
 ## 2. Run classes
 
@@ -36,7 +36,7 @@ Formal evaluation case 不得回流為 tuning data。若看過結果後修改方
 - resolved config SHA-256；
 - generated MJCF SHA-256；
 - controller/checkpoint SHA-256；
-- environment lock SHA-256；
+- environment lock SHA-256（`ENVIRONMENT-LOCK-V1` 的 `locked_sha256`；見 [ENVIRONMENT_LOCK_SPEC](ENVIRONMENT_LOCK_SPEC.md)。缺 lock record 的 retained evidence 記為 `ABSENT_UNRECOVERABLE`，不得以現行環境的 capture 替代）；
 - Python、MuJoCo、NumPy、Gymnasium、Stable-Baselines3、PyTorch 與 OS versions。
 
 ### Randomness

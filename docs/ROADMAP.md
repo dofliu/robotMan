@@ -8,7 +8,7 @@
 
 | Gate | 目的 | 狀態 | 解除條件 |
 |---|---|---|---|
-| V0 Evidence & Provenance | 凍結 requirements、metrics、scenario、hash、hardware evidence class 與 raw artifact schema | PARTIAL IMPLEMENTED / NOT PASS | bounded input contracts、metric semantics、partial runtime provenance 與 UI evidence state 已有；仍須 immutable bundle、environment lock、validator 與完整 hash readback |
+| V0 Evidence & Provenance | 凍結 requirements、metrics、scenario、hash、hardware evidence class 與 raw artifact schema | PARTIAL IMPLEMENTED / NOT PASS | bounded input contracts、metric semantics、partial runtime provenance、UI evidence state 與 `ENVIRONMENT-LOCK-V1` 的可量測 environment identity 已有；仍須 immutable bundle、把 lock record 綁進 run manifest、validator 與完整 hash readback |
 | V1 Plant & Numerical Verification | 驗證 equations、base wrench closure、constraints 與 numerical convergence | BLOCKED BY V0 | 所有 V1 oracle 通過，失敗案例保留 |
 | V2 Actuator / Sensor / Estimator Fidelity | 建立 torque-speed、thermal、joint limits、latency/noise 與 estimator models | NOT STARTED | 來源與參數不確定性可追溯 |
 | V3 Fair Benchmark & UQ | 公平 controller comparison、scenario strata、Monte Carlo、CI | FOUNDATION SOFTWARE PARTIAL / FORMAL NOT STARTED | protocol frozen、raw traces 完整、統計 gate 通過 |
@@ -39,9 +39,9 @@
 2. [PARTIAL] Current REST/Live simulation inputs 已有 bounded fail-closed schema、cross-field numerical-resolution gate 與 structured WebSocket errors；尚未等同 project-wide formal evidence validator。
 3. [PARTIAL] `ANALYSIS_METRICS_V1` 已明定 sampled motion/energy/CoT、peak/P99.5、window 與 null semantics；尚缺獨立 raw evaluator。
 4. [TODO] 為每個 claim 建立 requirement ID、metric definition、oracle、acceptance gate 與 owner。
-5. [PARTIAL] `PAPER_RUN_MANIFEST_V1` 已凍結 run-level protocol/controller/plant/scenario/seed/artifact fields；training/checkpoint與完整 environment lock尚未串入所有 pipelines。
+5. [PARTIAL] `PAPER_RUN_MANIFEST_V1` 已凍結 run-level protocol/controller/plant/scenario/seed/artifact fields；`ENVIRONMENT-LOCK-V1` 已提供可量測、可重驗的 environment identity，但 training/checkpoint 與 lock record 尚未串入所有 pipelines 的 run manifest。
 6. [PARTIAL] V1 static V4與 analytical fixture V1均可輸出含 raw relative Jacobians的 10-role regression bundle，由 stdlib-only process重建 generalized force並回指 raw trace；project-wide immutable storage尚未完成。
-7. [PARTIAL] Artifact inventory/bytes/SHA-256/path、clean-source/content-sensitive Git identity、exact model-package、experiment matrix validator與 paired statistics/export V1 aggregate inventory/replay已實作；完整 environment lock、project-wide immutable storage與 actual Study matrix尚未完成。
+7. [PARTIAL] Artifact inventory/bytes/SHA-256/path、clean-source/content-sensitive Git identity、exact model-package、experiment matrix validator、paired statistics/export V1 aggregate inventory/replay與 `ENVIRONMENT-LOCK-V1` measured environment identity已實作；lock record綁進 run manifest、project-wide immutable storage與 actual Study matrix尚未完成。
 8. [DONE-D0] 將 built-in hardware catalog 定位為 D0 representative demo data。
 9. [TODO] 建立 DEVELOPMENT、CALIBRATION、FORMAL_EVALUATION 分區。
 
@@ -143,11 +143,11 @@ WBC 必須早於 RL paper 與硬體 × strategy 正式比較。開始條件為 V
 
 多速度、domain randomization、能耗與硬體 × strategy 可在 V3 protocol frozen 後執行。若 V4 尚未通過，論文只能宣稱 SIM-only results，不可宣稱實體硬體效益或 sim-to-real。
 
-Development 已完成 v1–v7 failure-retaining iteration：v2 解決前進與停止但 Live path/saturation 失敗；v3/v4/v5 依序加入 path/heading、terminal stability與 phase trend；v5在 Live達到10/11；v6證明單純加入500 Hz saturation reward不足。v7先凍結三臂 action-interface protocol，再於 clean source完成各 `122880` training steps及DEV `18000–18029`：V7A saturation `36.2185185%`；V7B `23.3896264%`但有4個 negative episodes；V7C 30/30 early fall、required outcomes為 NULL。Bundle/replay完整但 `selected_candidate_arm_id=null`、`pilot_planning_ready=false`。下一個唯一優先目標是只讀既有 raw traces的 **V7 early-termination / exposure-censoring validity audit V1**；不重訓、不新增 seed、不調 alpha/envelope/threshold、不開啟 FORMAL/HOLDOUT。Actual Study matrix、獨立 training-seed variance、paired binary CI、P1/P2/WBC與V3仍未通過；training-env result不是 Live trace、V3或實機證據。
+Development 已完成 v1–v7 failure-retaining iteration：v2 解決前進與停止但 Live path/saturation 失敗；v3/v4/v5 依序加入 path/heading、terminal stability與 phase trend；v5在 Live達到10/11；v6證明單純加入500 Hz saturation reward不足。v7先凍結三臂 action-interface protocol，再於 clean source完成各 `122880` training steps及DEV `18000–18029`：V7A saturation `36.2185185%`；V7B `23.3896264%`但有4個 negative episodes；V7C 30/30 early fall、required outcomes為 NULL。Bundle/replay完整但 `selected_candidate_arm_id=null`、`pilot_planning_ready=false`。**V7 early-termination / exposure-censoring validity audit V1** 已在 frozen bundle 上完成，並量測確認 V7C 的 `-36.2185185` pp 是 exposure artifact。接續的 **`SEEDVAR-V7-TRAINING-REPLICATE-DEV-V1`** 已凍結：5 個 independent fine-tuning training seeds、analysis unit 固定在 training replicate（method-level 分母恆為 `5`；`150`／`450` 為 forbidden denominators）、censoring 逐層組合為 interval、partial identification 直接封鎖 `between_replicate_sd`、selection 永久禁止。其 evidence contract、獨立 `python -I -S` replay 與三個 synthetic case 均已驗證，但**尚未執行任何訓練**（需 `3 × 5 × 122,880 = 1,843,200` timesteps，且必須在具名 `MEASURED_ENVIRONMENT_LOCK`／`OMP_NUM_THREADS=1` 下執行）。因此下一個唯一優先目標是實際執行該 protocol。Actual Study matrix、paired binary CI、P1/P2/WBC與V3仍未通過；training-env result不是 Live trace、V3或實機證據。
 
 ## 9. 建議執行順序
 
-1. 完成 V0 environment lock、actual matrix execution與 immutable evidence storage；run-level manifest/inventory及 matrix completeness software validators已 bounded implemented。
+1. 執行已凍結的 `SEEDVAR-V7-TRAINING-REPLICATE-DEV-V1`（需算力），並把 `ENVIRONMENT-LOCK-V1` 的 lock record 綁進每一條 pipeline 的 run manifest；再完成 actual matrix execution 與 immutable evidence storage。Environment identity 的量測機制、run-level manifest/inventory 及 matrix completeness software validators 均已 bounded implemented。
 2. 完成 V1 contact/plant/numerical verification。
 3. M7A 可作為教學支線；M7B 保持 blocked。
 4. 完成 V2 actuator/sensor/estimator fidelity。

@@ -20,7 +20,7 @@ SIL PASS 不自動成為 HIL、bench 或 integrated robot PASS。
 | Requirement | Method | Oracle | Required evidence | Gate | Status |
 |---|---|---|---|---|---|
 | V0-R01 每個 claim 有 owner 與 acceptance definition | 建立 requirement registry | schema + completeness check | registry、review record、hash | V0 | IN PROGRESS |
-| V0-R02 每次 run identity 唯一 | hash code bundle/config/MJCF/checkpoint/environment | hash readback equality | manifest、files、checksums | V0 | PARTIAL: V1 regression binds pre/post Git SHA+dirty and actual-config model XML SHA; checkpoint/complete environment lock incomplete |
+| V0-R02 每次 run identity 唯一 | hash code bundle/config/MJCF/checkpoint/environment | hash readback equality | manifest、files、checksums | V0 | PARTIAL: V1 regression binds pre/post Git SHA+dirty and actual-config model XML SHA; `ENVIRONMENT-LOCK-V1` now measures and verifies environment identity (digested locked section, behaviour fingerprints, stdlib-only digest replay) with one retained measured record, but no pipeline binds a lock record into its run manifest yet and checkpoint identity binding remains incomplete |
 | V0-R03 hardware parameter provenance | 依 D0–D4 分級 | source/revision/page/unit completeness | provenance records | V0 | D0 ONLY |
 | V0-R04 raw artifacts 可追溯 | summary-to-raw reference validation | zero missing/mismatch/path escape | inventory、hashes、gate receipt | V0 | PARTIAL: V1 raw/model receipts、10-role inventory、matrix-to-run linkage、paired aggregate replay與 v7 14-artifact/109520182-byte bundle readback implemented；project-wide immutable storage與 actual Study matrix missing |
 | V0-R05 外部輸入 fail closed | schema、cross-field 與 live command validation | invalid/NaN/unknown/inadequate-resolution case 全數拒絕 | contract tests、API/WebSocket receipt | V0 | PARTIAL PASS: current REST/Live simulation contracts covered; formal evidence validator and remaining external surfaces incomplete |
@@ -197,8 +197,8 @@ Nominal case 用於 deterministic regression；不得代表 scenario coverage。
 
 - code checkout 缺少可引用的 version identity；
 - runtime config/model/code/result hashes 與 run/scenario IDs 已 partial implemented，但尚未形成 immutable source/run identity；
-- dependencies 未完整 pin，environment lock 缺失；
-- run-level paper manifest、V1 regression bundle inventory、experiment matrix validator、paired statistics/export V1 software contract與 v7 DEVELOPMENT clean-source bundle已有；v7仍缺 early-termination/exposure-censoring audit及 independent training-seed variance，project-wide immutable storage、external preregistration、binary paired CI與 actual Study matrix尚未完成；
+- `ENVIRONMENT-LOCK-V1` 已可量測與比對 environment identity（見 [ENVIRONMENT_LOCK_SPEC](ENVIRONMENT_LOCK_SPEC.md)），且保留一份實測 record 與 exact pins；但 `requirements.txt` 仍只宣告 `>=` floors，且沒有任何 pipeline 把 lock record 綁進 run manifest，因此 environment lock 仍不完整；
+- run-level paper manifest、V1 regression bundle inventory、experiment matrix validator、paired statistics/export V1 software contract與 v7 DEVELOPMENT clean-source bundle已有；v7 的 early-termination/exposure-censoring audit已在 frozen bundle上完成，independent training-seed variance protocol `SEEDVAR-V7-TRAINING-REPLICATE-DEV-V1`已凍結且其 evidence contract已 synthetic驗證，但**尚未執行任何訓練**；project-wide immutable storage、external preregistration、binary paired CI與 actual Study matrix尚未完成；
 - base wrench、friction、CoP與 raw relative Jacobians 已進入 bounded double/single-support、centered payload與 4/2/1 ms fixture及 stdlib-only replay；same-engine contact receipts、articulated dynamic、known pendulum、energy與完整 numerical gate 尚未完成；
 - joint/actuator/contact/solver constraints 不完整；
 - benchmark energy/fairness/UQ 未 gate；

@@ -145,7 +145,11 @@ v3 由 v2 做 fail-closed input expansion；新增輸入權重從零開始，其
 - [INFERENCE] V7B只顯示單一 training checkpoint與指定DEV seeds下的 conditional simulated saturation降低；30個 evaluation seeds不是30個獨立 training replicates。
 - [BLOCKER] V7C倒下前的0% saturation不具相同 exposure，不能解讀為改善或形成有效 paired contrast。`selected_candidate_arm_id=null`、`pilot_planning_ready=false`、`paper_data_ready=false`。
 
-下一個唯一優先目標是 **V7 early-termination / exposure-censoring validity audit V1**：只讀既有 raw traces重建 termination time／phase與有效 exposure，將V7C 0% duty及 paired contrast標為 non-comparable/censored，原 receipt不回改。不重訓、不新增 seed、不調 alpha/envelope/threshold，也不開啟 FORMAL/HOLDOUT；完成後才可另立 fresh DEVELOPMENT protocol處理獨立 training-seed variance。
+**V7 early-termination / exposure-censoring validity audit V1** 已在 frozen bundle 上完成：V7C 的 0% duty 被量測確認為 exposure artifact（full-horizon bound `[0.0, 64.511111]`% 與 V7A 的 `36.2185185`% 重疊，paired bound 含 0，`0/30` sign-identified），原 receipt 未回改。
+
+接續的 **`SEEDVAR-V7-TRAINING-REPLICATE-DEV-V1`** 已凍結並完成 evidence contract、獨立 `python -I -S` replay 與 synthetic regression（見 [TRAINING_SEED_VARIANCE_SPEC](TRAINING_SEED_VARIANCE_SPEC.md)）。它把 analysis unit 固定在 training replicate（method-level 分母恆為 `5`；`150`／`450` 為 enforced forbidden denominators），把 exposure censoring 逐層組合為 tight intervals，並在任一 replicate difference 不可點識別時封鎖 `between_replicate_sd`。Selection 在該 protocol 內永久禁止，`replicate_count` 不得事後上調。
+
+下一個唯一優先目標是**實際執行**該 protocol：需 `3 arms × 5 replicates × 122,880 = 1,843,200` timesteps，且必須在具名 `MEASURED_ENVIRONMENT_LOCK`（`OMP_NUM_THREADS=1`）下進行。在它完成前不做 selection、不調 alpha/envelope/threshold、不開啟 FORMAL/HOLDOUT，也不得因算力不足而減少 replicate 數。
 
 ## 5. Study A 的方法組與公平比較
 
