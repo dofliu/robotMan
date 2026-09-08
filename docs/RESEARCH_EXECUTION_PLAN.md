@@ -1,8 +1,10 @@
 # 人形機器人控制與訓練方法研究執行計畫
 
-最後更新：2026-09-06
+最後更新：2026-09-08
 
 本次 V1 evidence 範圍：`SIM_ONLY_MUJOCO` / `NOT_PHYSICALLY_VALIDATED`
+
+學術產出的路線、gate 與寫作規範另立於 [PUBLICATION_PLAN](PUBLICATION_PLAN.md)；本文件只定研究問題、P-stage 與公平比較設計。
 
 ## 1. 研究目標與證據邊界
 
@@ -38,6 +40,9 @@ Policy 在同一 simulator 與 reward 中表現良好，不等於 model validati
 | P4 | Study A formal benchmark | protocol frozen、paired statistics、CI、failures/censoring retained | BLOCKED BY P1–P3 / paired-statistics software precursor implemented；actual Study A、suitable binary CI與 formal authorization absent |
 | P5 | Motion primitives / imitation | raise hand、single-leg raise、squat、turn 等各有獨立 task contract | AFTER STUDY A |
 | P6 | SIL/HIL/bench/robot validation | 只在實際完成的外部 evidence 層級建立 bounded claim | FUTURE |
+| P-NEW | 有版控 lineage 的新訓練線 | 每個 checkpoint 與 warm start 都在版控或 immutable storage；reference policy 在 DEV seeds 上達到凍結的 full-exposure 比例 | NOT STARTED / Track B 與 variance 解封的硬前置；v7 line 因 provenance 不可重建，不得作為起點 |
+| PUB-A | 評估效度／可重現性方法論論文 | 見 [PUBLICATION_PLAN](PUBLICATION_PLAN.md) PUB-A0..A5 | IN PROGRESS / PUB-A0 文獻 scan 進行中 |
+| PUB-B | Study A 方法比較論文 | 見 PUBLICATION_PLAN PUB-B0..B7 | BLOCKED / 等 authorization、P-NEW、P1 |
 
 ### P1 bounded result：raw Jacobian replay V4
 
@@ -151,7 +156,7 @@ v3 由 v2 做 fail-closed input expansion；新增輸入權重從零開始，其
 
 該 protocol **已實際執行完成**：`1,843,200` realized timesteps、450 個 terminal records、0 失敗、獨立 replay exact。V7B 相對 V7A 的 method-level bound 為 `[-13.503408, -12.435259]` pp（排除 0、sign NEGATIVE、5/5 replicates 可識別），但 `between_replicate_sd` 因每個 replicate 都有 exposure censoring 而為 `null`，故 sample-size 決策仍 blocked；V7C 為 `[-37.195407, +27.315704]` pp 含 0、0/5 可識別。另外量到 pilot 那個乾淨的 reference exposure 是 seed `8700` 的性質而非 V7A 的性質（V7A 在 3 個 replicate 出現 early termination），而 V7C 的崩潰在 5 個獨立 seeds 上完全重現。
 
-下一個唯一優先目標是 independent **pretraining**-seed variance，或另立 selection protocol。V7B 的方向穩健性**不構成 selection**：用同一批資料先估變異再據以選擇，會把選擇條件建立在被選中的雜訊上；且本結果已公開，任何新 selection protocol 必須明示它是在已知 V7B 為負的情況下設計的。在那之前不調 alpha/envelope/threshold、不開啟 FORMAL/HOLDOUT，`replicate_count` 亦不得回溯調整。
+Independent **pretraining**-seed variance 經查證不可量測（provenance，不是算力），因此 `CONDITIONAL_ON_FIXED_WARM_START` 對 v7 line 永久成立。`SELECT-V7-CANDIDATE-FORMAL-V1` 已凍結並自陳 `preregistered=false`，且在已看過的 DEV evidence 上選不出 candidate；但它**不可執行**（audit contract 拒絕 sealed seeds、eval driver 釘死 seed schedule、授權未取得）。下一個唯一優先目標是取得 formal authorization，再依「授權在前、解封在後」解除那兩項。V7B 的方向穩健性**不構成 selection**：用同一批資料先估變異再據以選擇，會把選擇條件建立在被選中的雜訊上；且本結果已公開，任何新 selection protocol 必須明示它是在已知 V7B 為負的情況下設計的。在那之前不調 alpha/envelope/threshold、不開啟 FORMAL/HOLDOUT，`replicate_count` 亦不得回溯調整。
 
 ## 5. Study A 的方法組與公平比較
 

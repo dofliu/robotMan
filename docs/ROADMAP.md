@@ -143,22 +143,31 @@ WBC 必須早於 RL paper 與硬體 × strategy 正式比較。開始條件為 V
 
 多速度、domain randomization、能耗與硬體 × strategy 可在 V3 protocol frozen 後執行。若 V4 尚未通過，論文只能宣稱 SIM-only results，不可宣稱實體硬體效益或 sim-to-real。
 
-Development 已完成 v1–v7 failure-retaining iteration：v2 解決前進與停止但 Live path/saturation 失敗；v3/v4/v5 依序加入 path/heading、terminal stability與 phase trend；v5在 Live達到10/11；v6證明單純加入500 Hz saturation reward不足。v7先凍結三臂 action-interface protocol，再於 clean source完成各 `122880` training steps及DEV `18000–18029`：V7A saturation `36.2185185%`；V7B `23.3896264%`但有4個 negative episodes；V7C 30/30 early fall、required outcomes為 NULL。Bundle/replay完整但 `selected_candidate_arm_id=null`、`pilot_planning_ready=false`。**V7 early-termination / exposure-censoring validity audit V1** 已在 frozen bundle 上完成，並量測確認 V7C 的 `-36.2185185` pp 是 exposure artifact。接續的 **`SEEDVAR-V7-TRAINING-REPLICATE-DEV-V1`** 已凍結：5 個 independent fine-tuning training seeds、analysis unit 固定在 training replicate（method-level 分母恆為 `5`；`150`／`450` 為 forbidden denominators）、censoring 逐層組合為 interval、partial identification 直接封鎖 `between_replicate_sd`、selection 永久禁止。其 evidence contract、獨立 `python -I -S` replay 與 synthetic regression 均已驗證，且**已實際執行完成**：`1,843,200` realized timesteps、450 個 terminal records、0 失敗、replay exact。V7B 相對 V7A 的 method-level bound 為 `[-13.503408, -12.435259]` pp（排除 0、sign NEGATIVE、5/5 replicates 可識別），但 `between_replicate_sd` 因每個 replicate 都有 exposure censoring 而為 `null`，故 sample-size 決策仍 blocked；V7C 為 `[-37.195407, +27.315704]` pp 含 0、0/5 可識別。因此下一個唯一優先目標是 independent **pretraining**-seed variance，或另立 selection protocol；5 個 replicate 共用同一個 v5 warm start，量到的變異系統性低估完整 method variance。Actual Study matrix、paired binary CI、P1/P2/WBC與V3仍未通過；training-env result不是 Live trace、V3或實機證據。
+Development 已完成 v1–v7 failure-retaining iteration：v2 解決前進與停止但 Live path/saturation 失敗；v3/v4/v5 依序加入 path/heading、terminal stability與 phase trend；v5在 Live達到10/11；v6證明單純加入500 Hz saturation reward不足。v7先凍結三臂 action-interface protocol，再於 clean source完成各 `122880` training steps及DEV `18000–18029`：V7A saturation `36.2185185%`；V7B `23.3896264%`但有4個 negative episodes；V7C 30/30 early fall、required outcomes為 NULL。Bundle/replay完整但 `selected_candidate_arm_id=null`、`pilot_planning_ready=false`。**V7 early-termination / exposure-censoring validity audit V1** 已在 frozen bundle 上完成，並量測確認 V7C 的 `-36.2185185` pp 是 exposure artifact。接續的 **`SEEDVAR-V7-TRAINING-REPLICATE-DEV-V1`** 已凍結：5 個 independent fine-tuning training seeds、analysis unit 固定在 training replicate（method-level 分母恆為 `5`；`150`／`450` 為 forbidden denominators）、censoring 逐層組合為 interval、partial identification 直接封鎖 `between_replicate_sd`、selection 永久禁止。其 evidence contract、獨立 `python -I -S` replay 與 synthetic regression 均已驗證，且**已實際執行完成**：`1,843,200` realized timesteps、450 個 terminal records、0 失敗、replay exact。V7B 相對 V7A 的 method-level bound 為 `[-13.503408, -12.435259]` pp（排除 0、sign NEGATIVE、5/5 replicates 可識別），但 `between_replicate_sd` 因每個 replicate 都有 exposure censoring 而為 `null`，故 sample-size 決策仍 blocked；V7C 為 `[-37.195407, +27.315704]` pp 含 0、0/5 可識別。Independent **pretraining**-seed variance 經查證不可量測，`SELECT-V7-CANDIDATE-FORMAL-V1` 已凍結但不可執行，因此下一個唯一優先目標是取得 formal authorization；5 個 replicate 共用同一個 v5 warm start，量到的變異系統性低估完整 method variance。Actual Study matrix、paired binary CI、P1/P2/WBC與V3仍未通過；training-env result不是 Live trace、V3或實機證據。
 
 ## 9. 建議執行順序
 
-1. 執行已凍結的 `SEEDVAR-V7-TRAINING-REPLICATE-DEV-V1`（需算力），並把 `ENVIRONMENT-LOCK-V1` 的 lock record 綁進每一條 pipeline 的 run manifest；再完成 actual matrix execution 與 immutable evidence storage。Environment identity 的量測機制、run-level manifest/inventory 及 matrix completeness software validators 均已 bounded implemented。
-2. 完成 V1 contact/plant/numerical verification。
-3. M7A 可作為教學支線；M7B 保持 blocked。
-4. 完成 V2 actuator/sensor/estimator fidelity。
-5. 建立 M8 WBC verified baseline。
-6. 完成 V3 fair benchmark/UQ。
-7. 進行 M7B 與 V4 subsystem validation。
-8. 最後才啟動 M9 正式研究矩陣與 paper claim review。
+工程軌道與學術軌道並行（學術軌道見 [PUBLICATION_PLAN](PUBLICATION_PLAN.md)）。工程順序：
+
+0. [DONE] 執行 `SEEDVAR-V7-TRAINING-REPLICATE-DEV-V1`：`1,843,200` realized timesteps、450 records、replay exact；V7B 方向 5/5 可識別，`between_replicate_sd` 因 exposure censoring 為 null。
+1. 把 `ENVIRONMENT-LOCK-V1` 的 lock record 綁進每一條 pipeline 的 run manifest（V0 具名 blocker），再完成 actual matrix execution 與 immutable evidence storage。Environment identity 量測、run-level manifest/inventory 與 matrix completeness validators 均已 bounded implemented。
+2. 建立一條**有版控 checkpoint lineage** 的新訓練線（scratch 或 tracked warm start，每個 checkpoint 進版控或 immutable storage）。這同時是 Track B 的硬前置，也是解除 exposure-censoring 對 between-replicate variance 封鎖的唯一途徑：需要一個能穩定跑完 9 s 任務的 reference policy。v7 line 因 provenance 不可重建，不能再作為這條線的起點。
+3. Compare／Dynamic trace 的 browser visual verification（Playwright），解除兩個 `BROWSER_VISUAL_PENDING`。
+4. 完成 V1 contact/plant/numerical verification（articulated dynamic、pendulum、energy、solver convergence）。
+5. M7A 可作為教學支線；M7B 保持 blocked。
+6. 完成 V2 actuator/sensor/estimator fidelity。
+7. 建立 M8 WBC verified baseline。
+8. 完成 V3 fair benchmark/UQ。
+9. 進行 M7B 與 V4 subsystem validation。
+10. 最後才啟動 M9 正式研究矩陣與 paper claim review。
 
 ## 10. 研究產出 gate
 
-- 教學展示：V0 後可用，但必須保留 SIM-only 標示。
-- 工具方法論：至少 V1 + V3。
+細節、PUB-* gate 與寫作規範以 [PUBLICATION_PLAN](PUBLICATION_PLAN.md) 為準；本節只定 V&V gate 與各類 claim 的對應：
+
+- 教學展示（Track C 的前身）：V0 後可用，但必須保留 SIM-only 標示；要成為教學研究論文需另立學習成效研究設計。
+- 評估效度／可重現性方法論（Track A）：**不要求 V1/V3 PASS**，因為它不對 plant 或 controller 做任何 claim，只對量測程序做 claim；但要求 PUB-A gates（novelty、第二案例 generalization、clean-checkout reproduction）全部通過。
+- 工具方法論（把本平台本身當成 validated tool）：至少 V1 + V3。
+- 方法比較論文（Track B／Study A）：至少 V1 + V3，且 formal authorization、external preregistration 與有版控 lineage 的訓練線齊備；沒有 V2 時不得對 actuator feasibility 做 claim，沒有 V4 時限縮為 simulation study。
 - 硬體 × strategy 論文：至少 V1 + V2 + V3；沒有 V4 時限縮為 simulation study。
 - sim-to-real、實體抗擾動或安全 claim：V4 仍不足時一律禁止。

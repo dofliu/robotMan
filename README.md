@@ -4,15 +4,28 @@
 
 Repository：[github.com/dofliu/robotMan](https://github.com/dofliu/robotMan) ｜ Development：`0.2.0-dev` ｜ License：MIT
 
-本專案目前定位為 **SIM-only、reduced-order** 的人形機器人設計篩選與教學原型。它可用來探索幾何、質量、致動器示意參數、步態與控制策略之間的關係，但尚未完成足以支持實體硬體選型、採購、安全判定或效能保證的 physical validation。
+本專案是 **SIM-only、reduced-order** 的人形機器人設計篩選與教學原型，同時是一個 **verification-aware 的 humanoid control 研究測試平台**。它可用來探索幾何、質量、致動器示意參數、步態與控制策略之間的關係，並在凍結的 MuJoCo plant 上以可重現、可統計、可追溯的方式比較控制／訓練方法。它**尚未**完成足以支持實體硬體選型、採購、安全判定或效能保證的 physical validation。
 
 ## 目前可信邊界
 
-- [SOURCE] 程式包含參數化步態、MuJoCo 模型、分析模式、即時 forward simulation、控制器與 RL pipeline；analysis `/api/simulate` 已開始提供 versioned metrics 與 partial runtime provenance，現行 REST/Live simulation inputs 採 bounded fail-closed schema，frontend 已顯示 frozen/stale-result、evidence 與 intervention/error states。
-- [INFERENCE] 既有數字目前只能視為特定程式版本、單一 nominal configuration 下的 development snapshot；缺少 immutable raw bundle 時不升格為正式 [RESULT] evidence。
-- [BLOCKER] 現有 runtime provenance 尚不是 project-wide immutable artifact storage；`ENVIRONMENT-LOCK-V1` 已能量測並重驗 software environment identity 且保留一份實測 record，但還沒有任何 pipeline 把 lock record 綁進自己的 run manifest，因此 environment lock 仍未完整；static contact raw-Jacobian replay，以及 passive single-support／centered known-payload／4–2–1 ms analytical fixture 已完成 bounded arithmetic identity，但 articulated dynamic/pendulum/energy cases、torque-speed envelope、joint limits、完整 solver convergence、fair benchmark、uncertainty quantification與實體 subsystem validation 尚未形成完整證據鏈。
+- [SOURCE] 程式包含參數化步態、MuJoCo 模型、分析模式、即時 forward simulation、控制器、RL pipeline，以及一組 fail-closed 的證據契約（run manifest、artifact inventory、experiment matrix、paired statistics、exposure-censoring audit、environment lock、training-seed variance、candidate selection）。
+- [INFERENCE] 所有既有數字都是特定程式版本與具名 protocol 下的 `DEVELOPMENT` evidence；沒有任何 `FORMAL_EVALUATION` run 存在。
+- [BLOCKER] 五道 V&V gate（V0–V4）一道未通過；`paper_data_ready = false`。完整清單見 [PROJECT_STATUS](docs/PROJECT_STATUS.md)。
 
-因此，介面中的「通過」、「穩定」、「可行」或「最大可承受」只代表目前數值模型與規則下的 screening signal，不等同實體機器人驗證結果。完整證據邊界見 [MODEL_CARD](docs/MODEL_CARD.md)。
+介面中的「通過」、「穩定」、「可行」只代表目前數值模型與規則下的 screening signal，不等同實體機器人驗證結果。Claim 邊界見 [MODEL_CARD](docs/MODEL_CARD.md)。
+
+## 現況一覽
+
+| 面向 | 狀態 | 細節 |
+|---|---|---|
+| 專案成熟度 | `progress: 0`（以 V&V gate 通過數計，不以功能數計） | [PROJECT_STATUS §0](docs/PROJECT_STATUS.md) |
+| V&V gates | V0 PARTIAL、V1 PARTIAL、V2–V4 NOT STARTED | [PROJECT_STATUS §1](docs/PROJECT_STATUS.md) |
+| Paper-data gates | PDR-0..8 無一 PASS；`paper_data_ready = false` | [PAPER_DATA_READINESS](docs/PAPER_DATA_READINESS.md) |
+| 最強的一個結果 | V7B 相對 V7A 的 saturation duty method-level bound `[-13.503408, -12.435259]` pp，排除 0，5/5 independent training replicates 方向可識別；**條件於一個不可重建的 warm start** | [PROJECT_STATUS §4](docs/PROJECT_STATUS.md) |
+| 被推翻的一個結果 | V7C 表面上的 `-36` pp 改善經量測確認為 exposure artifact | [PROJECT_STATUS §4.2](docs/PROJECT_STATUS.md) |
+| 學術產出 | 三條路線已規劃；Track A（評估效度／可重現性方法論）建議優先 | [PUBLICATION_PLAN](docs/PUBLICATION_PLAN.md) |
+| 下一個決策 | 專案負責人決定是否授權 formal evaluation；授權在前、解封在後 | [PUBLICATION_PLAN §5](docs/PUBLICATION_PLAN.md) |
+| 測試 | `backend/` 1 failed / 640 passed；那一個是在具名 environment lock 下記錄的 reduction-order 差異，未放寬 | [PROJECT_STATUS §9](docs/PROJECT_STATUS.md) |
 
 ## 兩種模式
 
@@ -23,14 +36,14 @@ Repository：[github.com/dofliu/robotMan](https://github.com/dofliu/robotMan) �
 
 分析模式沒有由 contact solver 求解腳底接觸；即時互動模式則使用 MuJoCo 的 forward contact simulation。兩者的 plant、能量定義與證據用途不同，不應把數字直接混成同一種 validation evidence。
 
-目前第一模式提供兩個 analysis sources：`Reference 估算` 是原有 prescribed trajectory；`Dynamic Trace` 則讀取第二模式以 500 Hz physics-step 保存的 MuJoCo realized simulation。後者仍是 simulated output，不是實體量測。操作與欄位定義見 [DYNAMIC_RUN_TRACE_SPEC](docs/DYNAMIC_RUN_TRACE_SPEC.md)。
+第一模式提供兩個 analysis sources：`Reference 估算` 是原有 prescribed trajectory；`Dynamic Trace` 則讀取第二模式以 500 Hz physics-step 保存的 MuJoCo realized simulation。後者仍是 simulated output，不是實體量測。見 [DYNAMIC_RUN_TRACE_SPEC](docs/DYNAMIC_RUN_TRACE_SPEC.md)。
 
 ## Verification 與 Validation
 
-- **Verification**：確認程式是否正確實作已定義的 equations、units、constraints 與數值方法。
+- **Verification**：程式是否正確實作已定義的 equations、units、constraints 與數值方法。
 - **Validation**：以獨立的實體資料、bench、HIL 或整機量測，確認模型對真實系統是否足夠準確。
 
-目前僅有少量 software checks；專案整體狀態為 **NOT PHYSICALLY VALIDATED**。後續 gate 與 evidence matrix 見 [VV_PLAN](docs/VV_PLAN.md)。
+專案整體狀態為 **NOT PHYSICALLY VALIDATED**。Gate 與 evidence matrix 見 [VV_PLAN](docs/VV_PLAN.md)。
 
 ## 已有 prototype 能力
 
@@ -40,17 +53,15 @@ Repository：[github.com/dofliu/robotMan](https://github.com/dofliu/robotMan) �
 - 理想 LiDAR raycast 與規則式障礙處理
 - MuJoCo 即時 forward simulation、推力輸入與控制器狀態顯示
 - trajectory tracking、Raibert、PPO policy 的 nominal scenario 比較
-- 三機同步比較模式：三個獨立 MuJoCo plants 接收相同命令，assist 預設關閉、跌倒不自動修復；僅供 development observation
-- 正式動作任務 V1：`stand → start → steady walk → stop` 的固定 phase、500 Hz trace 與逐項 PASS/FAIL；可在 Live 或三機 Compare 執行
-- `WALK → STOPPING → STAND` controlled transition、可擴充 Motion Primitive dispatcher 與 trace-visible STOPPING state
-- RL Training Lab：顯示 fixed-speed／command-conditioned profiles、seed、training budget 與 evidence status；即時模式仍只做 inference
-- Registry-gated Motion Task policies：48-D curriculum-v2 與 51-D phase-observable-v5 可在 Live 選用；v2/v5 的失敗 trace 均保留
-- V1 static contact oracle V4：500 Hz raw trace、serialized relative Jacobians、6-D wrench closure、pyramidal friction utilization、foot-local CoP，以及不載入 MuJoCo/controller 的 stdlib-only process replay；僅為 static SIM evidence
-- V1 analytical fixture：passive single-support、centered 5 kg simulated payload與 4/2/1 ms grid-refinement；exact MJCF/model package、raw frame/wrench/Jacobian與 stdlib-only replay皆 fail closed，僅為 `SIM_ONLY_MUJOCO`
-- Experiment matrix completeness V1：strict JSON frozen spec/index、expected-to-observed exact cell matching、run bundle path/bytes/SHA-256 readback，以及 missing/duplicate/unexpected/unindexed/identity drift與 FAILED/CANCELLED retention；只驗 software inventory identity
-- Paired statistics/export V1：frozen explicit pair map、continuous paired mean/median/Cohen dz、deterministic paired bootstrap CI、binary 2×2 counts/Wilson marginal descriptions、failure/null/non-finite/censoring retention，以及 `python -I -S` raw-to-summary/table/figure exact replay；paired binary CI 仍 fail-closed blocked
+- 三機同步比較模式：三個獨立 MuJoCo plants 接收相同命令，assist 預設關閉、跌倒不自動修復
+- 正式動作任務 V1：`stand → start → steady walk → stop` 的固定 phase、500 Hz trace 與逐項 PASS/FAIL
+- `WALK → STOPPING → STAND` controlled transition 與可擴充 Motion Primitive dispatcher
+- RL Training Lab：顯示 fixed-speed／command-conditioned profiles、seed、training budget 與 evidence status
+- Registry-gated Motion Task policies：48-D curriculum-v2 與 51-D phase-observable-v5
+- V1 static contact oracle 與 analytical fixture：raw Jacobian／wrench 保存與 stdlib-only replay
+- 證據契約層：experiment matrix、paired statistics/export、exposure-censoring audit、environment lock、training-seed variance、candidate selection，每一層皆可由 `python -I -S` 獨立 exact 重建
 
-這些是 feature inventory，不代表 M1–M6 已通過 V&V gate。
+這些是 feature inventory，不代表 V&V gate 已通過。
 
 ## 快速啟動
 
@@ -69,97 +80,117 @@ python -X utf8 backend/main.py
 
 開啟 http://127.0.0.1:8710。
 
-`requirements-rl.txt` 可安裝執行既有 policy 所需的套件範圍，但仍不是完整 frozen training environment。若要重現 PPO training，必須另行鎖定 Stable-Baselines3、Gymnasium、PyTorch、MuJoCo、NumPy、Python、CUDA 與 checkpoint SHA-256。`/api/simulate` 的 runtime provenance 也不能替代 environment reproducibility 或 immutable evidence bundle。
+`requirements-rl.txt` 提供執行既有 policy 所需的套件範圍，**不是** frozen training environment；`requirements.txt` 仍只宣告 `>=` floors。要重現任何數值結果，必須以 [ENVIRONMENT_LOCK_SPEC](docs/ENVIRONMENT_LOCK_SPEC.md) 的 lock record 比對 —— 版本號相同不保證數值相同（見 [PROJECT_STATUS §4.3](docs/PROJECT_STATUS.md)）。
 
-只使用分析模式與非 RL controller 時，可僅安裝 `backend/requirements-dev.txt`。完整三機比較會載入 RL policy，因此建議使用上方完整安裝流程。
+只使用分析模式與非 RL controller 時，可僅安裝 `backend/requirements-dev.txt`。
+
+測試：
+
+~~~powershell
+python -m pytest backend -q
+~~~
 
 ## Repository 內容
 
-- Git 追蹤 source、tests、docs、frontend lockfile，以及 registry 指定的 legacy、curriculum-v2 與 phase-observable-v5 inference artifacts。
-- 不追蹤 `node_modules`、frontend build、runtime traces、historical RL checkpoints、training smoke artifacts、logs、cache 或本機 debug files。
+- Git 追蹤 source、tests、docs、frontend lockfile、registry 指定的三個 inference artifacts、小型 receipts 與 `backend/seed_variance_evidence/` 等已保留的證據 bundle。
+- 不追蹤 `node_modules`、frontend build、runtime traces、historical RL checkpoints、training smoke artifacts、logs 或本機 debug files。**注意**：`backend/rl/artifacts/` 被 gitignore 這件事已經永久毀掉 v7 line 的 pretraining provenance（見 [pretraining infeasibility receipt](docs/V7_PRETRAINING_SEED_VARIANCE_INFEASIBILITY_RECEIPT_2026-09-08.md)）；任何新的訓練線都必須把 checkpoint lineage 放進版控或 immutable storage。
 - Clone、驗證、artifact policy 與發布檢查見 [REPOSITORY_GUIDE](docs/REPOSITORY_GUIDE.md)。
 
 ## Nominal benchmark snapshot
 
-comparison_report.md 保留既有 deterministic nominal snapshot，供回歸診斷與教學敘事參考。該檔案：
-
-- 不是多 seed、Monte Carlo 或獨立重複實驗；
-- 沒有 confidence interval 或 uncertainty budget；
-- 使用特定 assist、disturbance timing、energy integration 與 termination rule；
-- 不能當成控制器普遍優劣、硬體能力或實機抗擾動證據。
-
-正式比較必須依 [EXPERIMENT_PROTOCOL](docs/EXPERIMENT_PROTOCOL.md) 產生 frozen manifest、raw traces、hashes 與統計報告。
+`comparison_report.md` 保留既有 deterministic nominal snapshot，供回歸診斷與教學敘事參考。它不是多 seed、Monte Carlo 或獨立重複實驗，沒有 confidence interval，不能當成控制器普遍優劣、硬體能力或實機抗擾動證據。正式比較必須依 [EXPERIMENT_PROTOCOL](docs/EXPERIMENT_PROTOCOL.md)。
 
 ## 文件導覽
+
+### 入口、狀態與規劃
+
+| 文件 | 單一職責 |
+|---|---|
+| [PROJECT_STATUS](docs/PROJECT_STATUS.md) | 人類可讀的進度總覽：gates、flags、已量測結果、blockers、下一步 |
+| [`STATUS.yaml`](STATUS.yaml) | 機器可讀的權威狀態 |
+| [PUBLICATION_PLAN](docs/PUBLICATION_PLAN.md) | 學術產出規劃：三條 track、PUB gates、寫作規範、不可宣稱清單 |
+| [ROADMAP](docs/ROADMAP.md) | V0–V4 gate-first 工程工作順序 |
+| [RESEARCH_EXECUTION_PLAN](docs/RESEARCH_EXECUTION_PLAN.md) | model validity 與 method effectiveness 雙證據鏈、RQ、P-stage gates |
+| [PAPER_DATA_READINESS](docs/PAPER_DATA_READINESS.md) | paper-data-first 架構、run bundle、PDR gates、統計與文獻依據 |
+| [CHANGELOG](CHANGELOG.md) | development release 變更紀錄 |
+
+### 使用與規範
 
 | 文件 | 單一職責 |
 |---|---|
 | [USAGE](docs/USAGE.md) | 安裝、操作與結果解讀 |
-| [REPOSITORY_GUIDE](docs/REPOSITORY_GUIDE.md) | Clone/setup、Git tracked/excluded artifacts、驗證與發布規則 |
-| [ARCHITECTURE](docs/ARCHITECTURE.md) | 兩種 simulation pipeline 與資料邊界 |
+| [REPOSITORY_GUIDE](docs/REPOSITORY_GUIDE.md) | Clone/setup、tracked/excluded artifacts、驗證與發布規則 |
+| [CONVENTIONS](docs/CONVENTIONS.md) | 開發與 evidence governance 規範、evidence labels |
 | [MODEL_CARD](docs/MODEL_CARD.md) | intended use、out-of-scope、限制與 evidence labels |
-| [VV_PLAN](docs/VV_PLAN.md) | requirement-to-evidence matrix、gates 與 SIL/HIL/bench 邊界 |
-| [V1_ORACLE_SPEC](docs/V1_ORACLE_SPEC.md) | 第一個 static double-support / forward–inverse numerical oracle、threshold 與證據邊界 |
-| [V1_ANALYTICAL_SUITE_SPEC](docs/V1_ANALYTICAL_SUITE_SPEC.md) | single-support、known-payload、time-step fixture 的 frozen contract、failure semantics 與 claim boundary |
-| [EXPERIMENT_MATRIX_CONTRACT](docs/EXPERIMENT_MATRIX_CONTRACT.md) | controller × seed × scenario exact matrix、status retention與 completeness receipt contract |
-| [PAIRED_STATISTICS_CONTRACT](docs/PAIRED_STATISTICS_CONTRACT.md) | paired estimand、failure/null/censoring semantics、CI與 machine-readable paper input contract |
-| [EXPERIMENT_PROTOCOL](docs/EXPERIMENT_PROTOCOL.md) | frozen configuration、seed、hash、metrics 與 raw artifacts |
-| [PAPER_DATA_READINESS](docs/PAPER_DATA_READINESS.md) | paper-data-first 架構、run bundle、PDR gates、統計與文獻依據 |
-| [METRIC_DEFINITIONS](docs/METRIC_DEFINITIONS.md) | analysis runtime 指標的公式、窗口、命名與限制 |
-| [COMPARE_MODE_SPEC](docs/COMPARE_MODE_SPEC.md) | 三機同步比較的公平性、WebSocket contract、失敗語義與驗收條件 |
-| [RL_POLICY_TRAINING](docs/RL_POLICY_TRAINING.md) | RL inference／training 邊界、policy registry、固定速度 profiles 與不覆寫再訓練流程 |
-| [RESEARCH_EXECUTION_PLAN](docs/RESEARCH_EXECUTION_PLAN.md) | model validity 與 method effectiveness 雙證據鏈、RQ、gate 與公平比較設計 |
-| [LITERATURE_MAP_2026-08-30](docs/LITERATURE_MAP_2026-08-30.md) | 近期 humanoid locomotion、sim-to-real、residual/hybrid control 與研究方向對照 |
-| [DYNAMIC_RUN_TRACE_SPEC](docs/DYNAMIC_RUN_TRACE_SPEC.md) | 第二模式 realized simulation 到第一模式工程分析的 raw trace contract 與驗收條件 |
-| [MOTION_TASK_SPEC](docs/MOTION_TASK_SPEC.md) | 第一個正式動作任務、固定 phase/gait、可量測成功條件與後續動作 registry |
-| [MOTION_PRIMITIVE_SPEC](docs/MOTION_PRIMITIVE_SPEC.md) | action dispatcher、controlled stop state machine 與後續基本動作進入條件 |
-| [DYNAMIC_RUN_TRACE_IMPLEMENTATION_RECEIPT_2026-08-29](docs/DYNAMIC_RUN_TRACE_IMPLEMENTATION_RECEIPT_2026-08-29.md) | recorder、artifact/API、UI bridge、測試與 development sample 回條 |
-| [MOTION_TASK_IMPLEMENTATION_RECEIPT_2026-08-29](docs/MOTION_TASK_IMPLEMENTATION_RECEIPT_2026-08-29.md) | Motion Task registry、Live/Compare/Analysis 整合、測試與第一組負結果 baseline |
-| [CONTROLLED_STOP_TRAINING_IMPLEMENTATION_RECEIPT_2026-08-30](docs/CONTROLLED_STOP_TRAINING_IMPLEMENTATION_RECEIPT_2026-08-30.md) | controlled stop、Motion Primitive、Training Lab、start/stop curriculum 與同門檻重跑結果 |
-| [START_STOP_POLICY_TRAINING_RECEIPT_2026-08-30](docs/START_STOP_POLICY_TRAINING_RECEIPT_2026-08-30.md) | v1 failed-speed early stop、curriculum-v2 warm start、30-seed training-env gate 與候選 artifact 邊界 |
-| [PATH_PHASE_SATURATION_TRAINING_RECEIPT_2026-08-30](docs/PATH_PHASE_SATURATION_TRAINING_RECEIPT_2026-08-30.md) | v2–v6 observation/reward iterations、500 Hz sampling defect、Live failure 與下一輪研究 gate |
-| [COMPARE_RL_IMPLEMENTATION_RECEIPT_2026-08-26](docs/COMPARE_RL_IMPLEMENTATION_RECEIPT_2026-08-26.md) | 三機比較、registry、training smoke 的 source/test receipt 與未解 blockers |
-| [V0_IMPLEMENTATION_RECEIPT_2026-08-26](docs/V0_IMPLEMENTATION_RECEIPT_2026-08-26.md) | 第一批 V0 hardening 的 source/test audit 與未解 blockers |
-| [V1_ANALYTICAL_SUITE_IMPLEMENTATION_RECEIPT_2026-09-02](docs/V1_ANALYTICAL_SUITE_IMPLEMENTATION_RECEIPT_2026-09-02.md) | analytical fixture 的 clean-source bundle、independent replay、tests 與 bounded result |
-| [EXPERIMENT_MATRIX_IMPLEMENTATION_RECEIPT_2026-09-03](docs/EXPERIMENT_MATRIX_IMPLEMENTATION_RECEIPT_2026-09-03.md) | matrix validator 的 clean-source synthetic receipt、negative/null retention與 fail-closed tests |
-| [PAIRED_STATISTICS_IMPLEMENTATION_RECEIPT_2026-09-05](docs/PAIRED_STATISTICS_IMPLEMENTATION_RECEIPT_2026-09-05.md) | paired statistics/export 的 clean-source regression receipt、independent replay與保留狀態驗證 |
-| [V7_ACTION_INTERFACE_PILOT_SPEC](docs/V7_ACTION_INTERFACE_PILOT_SPEC.md) | v7 三臂 DEVELOPMENT pilot 的 frozen action math、seeds、acceptance、failure semantics與 claim boundary |
-| [V7_ACTION_INTERFACE_PILOT_IMPLEMENTATION_RECEIPT_2026-09-06](docs/V7_ACTION_INTERFACE_PILOT_IMPLEMENTATION_RECEIPT_2026-09-06.md) | v7 clean-source training/evaluation bundle、retained NULL、conditional statistics與 stdlib-only replay |
-| [ENVIRONMENT_LOCK_SPEC](docs/ENVIRONMENT_LOCK_SPEC.md) | locked/observed 分界、behaviour fingerprints、缺失 lock 的表述與 verification semantics |
-| [ENVIRONMENT_LOCK_IMPLEMENTATION_RECEIPT_2026-09-08](docs/ENVIRONMENT_LOCK_IMPLEMENTATION_RECEIPT_2026-09-08.md) | 實測 lock record、reduction-order 差異、v7 的 ABSENT_UNRECOVERABLE 判定與 EL-01..EL-10 |
-| [TRAINING_SEED_VARIANCE_SPEC](docs/TRAINING_SEED_VARIANCE_SPEC.md) | independent training replicates、replicate-level analysis unit、censoring 向上組合、禁止 selection 與 SV-01..SV-12 |
-| [TRAINING_SEED_VARIANCE_EXECUTION_RECEIPT_2026-09-08](docs/TRAINING_SEED_VARIANCE_EXECUTION_RECEIPT_2026-09-08.md) | 實際執行的 1,843,200 timesteps、450 records、method-level bounds、保留的 16 個 blockers 與過程中的自我修正 |
-| [TRAINING_SEED_VARIANCE_IMPLEMENTATION_RECEIPT_2026-09-08](docs/TRAINING_SEED_VARIANCE_IMPLEMENTATION_RECEIPT_2026-09-08.md) | plant identity 量測、三條結構性規則的實作、synthetic regression 結果與未執行訓練的邊界 |
-| [V7_EXPOSURE_CENSORING_AUDIT_SPEC](docs/V7_EXPOSURE_CENSORING_AUDIT_SPEC.md) | read-only exposure-censoring audit的 frozen horizon、phase conventions、censoring vocabulary、identification bounds與 acceptance |
-| [V7_EXPOSURE_CENSORING_AUDIT_IMPLEMENTATION_RECEIPT_2026-09-08](docs/V7_EXPOSURE_CENSORING_AUDIT_IMPLEMENTATION_RECEIPT_2026-09-08.md) | audit software的 clean-source synthetic receipt、phase-convention finding、identification bounds與 frozen-bundle範圍邊界 |
-| [V7_EXPOSURE_CENSORING_AUDIT_FROZEN_BUNDLE_RECEIPT_2026-09-08](docs/V7_EXPOSURE_CENSORING_AUDIT_FROZEN_BUNDLE_RECEIPT_2026-09-08.md) | 對 frozen v7 pilot bundle的 read-only audit run：實測 exposure分布、identification bounds、phase-convention finding與保留的 censoring blockers |
 | [HARDWARE_DATA_PROVENANCE](docs/HARDWARE_DATA_PROVENANCE.md) | datasheet、CAD/BOM、bench data 與 demo catalog 的分級 |
-| [ROADMAP](docs/ROADMAP.md) | V0–V4 gate-first 工作順序 |
-| [CONVENTIONS](docs/CONVENTIONS.md) | 開發與 evidence governance 規範 |
-| [CHANGELOG](CHANGELOG.md) | 對外 development release 變更紀錄 |
+
+### 架構、任務與介面規格
+
+| 文件 | 單一職責 |
+|---|---|
+| [ARCHITECTURE](docs/ARCHITECTURE.md) | 兩種 simulation pipeline 與資料邊界 |
+| [METRIC_DEFINITIONS](docs/METRIC_DEFINITIONS.md) | analysis runtime 指標的公式、窗口、命名與限制 |
+| [DYNAMIC_RUN_TRACE_SPEC](docs/DYNAMIC_RUN_TRACE_SPEC.md) | 500 Hz realized trace 到工程分析的 raw trace contract |
+| [COMPARE_MODE_SPEC](docs/COMPARE_MODE_SPEC.md) | 三機同步比較的公平性、WebSocket contract、失敗語義 |
+| [MOTION_TASK_SPEC](docs/MOTION_TASK_SPEC.md) | 正式動作任務、固定 phase/gait、可量測成功條件 |
+| [MOTION_PRIMITIVE_SPEC](docs/MOTION_PRIMITIVE_SPEC.md) | action dispatcher、controlled stop state machine |
+| [RL_POLICY_TRAINING](docs/RL_POLICY_TRAINING.md) | RL inference／training 邊界、policy registry、profiles |
+
+### V&V 與證據契約
+
+| 文件 | 單一職責 |
+|---|---|
+| [VV_PLAN](docs/VV_PLAN.md) | requirement-to-evidence matrix、gates 與 SIL/HIL/bench 邊界 |
+| [EXPERIMENT_PROTOCOL](docs/EXPERIMENT_PROTOCOL.md) | run classes、frozen configuration、seed、hash、raw artifacts |
+| [V1_ORACLE_SPEC](docs/V1_ORACLE_SPEC.md) | static double-support forward–inverse numerical oracle |
+| [V1_ANALYTICAL_SUITE_SPEC](docs/V1_ANALYTICAL_SUITE_SPEC.md) | single-support、known-payload、time-step fixture contract |
+| [EXPERIMENT_MATRIX_CONTRACT](docs/EXPERIMENT_MATRIX_CONTRACT.md) | controller × seed × scenario exact matrix 與 completeness receipt |
+| [PAIRED_STATISTICS_CONTRACT](docs/PAIRED_STATISTICS_CONTRACT.md) | paired estimand、failure/null/censoring semantics、CI、paper input |
+| [ENVIRONMENT_LOCK_SPEC](docs/ENVIRONMENT_LOCK_SPEC.md) | locked/observed 分界、behaviour fingerprints、verification semantics |
+| [V7_ACTION_INTERFACE_PILOT_SPEC](docs/V7_ACTION_INTERFACE_PILOT_SPEC.md) | v7 三臂 action math、seeds、acceptance、claim boundary |
+| [V7_EXPOSURE_CENSORING_AUDIT_SPEC](docs/V7_EXPOSURE_CENSORING_AUDIT_SPEC.md) | read-only audit 的 horizon、censoring vocabulary、identification bounds |
+| [TRAINING_SEED_VARIANCE_SPEC](docs/TRAINING_SEED_VARIANCE_SPEC.md) | independent training replicates、replicate-level analysis unit、禁止 selection |
+| [V7_CANDIDATE_SELECTION_SPEC](docs/V7_CANDIDATE_SELECTION_SPEC.md) | 凍結的 selection 規則、post-hoc 揭露、sealed FORMAL、授權閘 |
+
+### 文獻
+
+| 文件 | 單一職責 |
+|---|---|
+| [LITERATURE_MAP_2026-08-30](docs/LITERATURE_MAP_2026-08-30.md) | humanoid locomotion、sim-to-real、residual/hybrid control 方向對照 |
+| [LITERATURE_MAP_2026-09-08_EVALUATION_VALIDITY](docs/LITERATURE_MAP_2026-09-08_EVALUATION_VALIDITY.md) | exposure censoring、partial identification、statistical unit、numerical reproducibility 的既有工作與 Track A 的定位 |
+
+### Receipts（依日期）
+
+| 文件 | 內容 |
+|---|---|
+| [V0_IMPLEMENTATION_RECEIPT_2026-08-26](docs/V0_IMPLEMENTATION_RECEIPT_2026-08-26.md) | 第一批 V0 hardening |
+| [COMPARE_RL_IMPLEMENTATION_RECEIPT_2026-08-26](docs/COMPARE_RL_IMPLEMENTATION_RECEIPT_2026-08-26.md) | 三機比較、registry、training smoke |
+| [DYNAMIC_RUN_TRACE_IMPLEMENTATION_RECEIPT_2026-08-29](docs/DYNAMIC_RUN_TRACE_IMPLEMENTATION_RECEIPT_2026-08-29.md) | recorder、artifact/API、UI bridge |
+| [MOTION_TASK_IMPLEMENTATION_RECEIPT_2026-08-29](docs/MOTION_TASK_IMPLEMENTATION_RECEIPT_2026-08-29.md) | Motion Task registry 與第一組負結果 |
+| [CONTROLLED_STOP_TRAINING_IMPLEMENTATION_RECEIPT_2026-08-30](docs/CONTROLLED_STOP_TRAINING_IMPLEMENTATION_RECEIPT_2026-08-30.md) | controlled stop、Training Lab、curriculum |
+| [START_STOP_POLICY_TRAINING_RECEIPT_2026-08-30](docs/START_STOP_POLICY_TRAINING_RECEIPT_2026-08-30.md) | v1 early stop、curriculum-v2 warm start |
+| [PATH_PHASE_SATURATION_TRAINING_RECEIPT_2026-08-30](docs/PATH_PHASE_SATURATION_TRAINING_RECEIPT_2026-08-30.md) | v2–v6 iterations、500 Hz sampling defect |
+| [V1_RAW_JACOBIAN_IMPLEMENTATION_RECEIPT_2026-08-31](docs/V1_RAW_JACOBIAN_IMPLEMENTATION_RECEIPT_2026-08-31.md) | raw relative Jacobian replay V4 |
+| [V1_ANALYTICAL_SUITE_IMPLEMENTATION_RECEIPT_2026-09-02](docs/V1_ANALYTICAL_SUITE_IMPLEMENTATION_RECEIPT_2026-09-02.md) | analytical fixture clean-source bundle |
+| [EXPERIMENT_MATRIX_IMPLEMENTATION_RECEIPT_2026-09-03](docs/EXPERIMENT_MATRIX_IMPLEMENTATION_RECEIPT_2026-09-03.md) | matrix validator synthetic receipt |
+| [PAIRED_STATISTICS_IMPLEMENTATION_RECEIPT_2026-09-05](docs/PAIRED_STATISTICS_IMPLEMENTATION_RECEIPT_2026-09-05.md) | paired statistics/export regression receipt |
+| [V7_ACTION_INTERFACE_PILOT_IMPLEMENTATION_RECEIPT_2026-09-06](docs/V7_ACTION_INTERFACE_PILOT_IMPLEMENTATION_RECEIPT_2026-09-06.md) | v7 三臂 pilot bundle 與 conditional statistics |
+| [V7_EXPOSURE_CENSORING_AUDIT_IMPLEMENTATION_RECEIPT_2026-09-08](docs/V7_EXPOSURE_CENSORING_AUDIT_IMPLEMENTATION_RECEIPT_2026-09-08.md) | audit software synthetic receipt、phase-convention finding |
+| [V7_EXPOSURE_CENSORING_AUDIT_FROZEN_BUNDLE_RECEIPT_2026-09-08](docs/V7_EXPOSURE_CENSORING_AUDIT_FROZEN_BUNDLE_RECEIPT_2026-09-08.md) | 對 frozen pilot bundle 的 read-only audit run |
+| [ENVIRONMENT_LOCK_IMPLEMENTATION_RECEIPT_2026-09-08](docs/ENVIRONMENT_LOCK_IMPLEMENTATION_RECEIPT_2026-09-08.md) | 實測 lock record、reduction-order 差異 |
+| [TRAINING_SEED_VARIANCE_IMPLEMENTATION_RECEIPT_2026-09-08](docs/TRAINING_SEED_VARIANCE_IMPLEMENTATION_RECEIPT_2026-09-08.md) | plant identity、結構性規則、synthetic regression |
+| [TRAINING_SEED_VARIANCE_EXECUTION_RECEIPT_2026-09-08](docs/TRAINING_SEED_VARIANCE_EXECUTION_RECEIPT_2026-09-08.md) | 1,843,200 timesteps 的實際執行與 method-level bounds |
+| [V7_PRETRAINING_SEED_VARIANCE_INFEASIBILITY_RECEIPT_2026-09-08](docs/V7_PRETRAINING_SEED_VARIANCE_INFEASIBILITY_RECEIPT_2026-09-08.md) | 為何 pretraining-seed variance 不可量測 |
+| [V7_CANDIDATE_SELECTION_IMPLEMENTATION_RECEIPT_2026-09-08](docs/V7_CANDIDATE_SELECTION_IMPLEMENTATION_RECEIPT_2026-09-08.md) | selection rule 自檢、三項執行前置條件 |
 
 ## 下一階段
 
-目前不以「功能完成百分比」表示成熟度。V7 early-termination／exposure-censoring validity audit V1 已完成：software 在 clean-source synthetic regression 通過，並已對 2026-09-06 保存的 `V7_PILOT_DEVELOPMENT_BUNDLE` 執行一次 read-only run（`audit_applies_to_frozen_v7_pilot=true`、`AX-01..AX-12` 全通過、前後 readback 一致、保留 35 個 censoring blocker）。
+專案同時推進兩條軌道，互不阻擋：
 
-實測 exposure：V7A 30/30 full exposure（恰 450 control steps）；V7B 27 full + 3 early（420–445 steps，全落在 `FINAL_STAND`，且六項 required outcome 仍為 `OBSERVED`）；V7C 30/30 early（`159.7000 ± 2.7687` steps、`3.08–3.30` s、占 horizon `0.354889`，全落在 `STEADY_WALK`）。
+- **學術**：先做 Track A（評估效度／可重現性方法論），其前置 `PUB-A0` 文獻 novelty check 與 `PUB-A1` 第二案例 generalization 見 [PUBLICATION_PLAN](docs/PUBLICATION_PLAN.md)。Track B（原定 Study A 方法比較）需要一條有版控 artifact 的新訓練線與 formal authorization；Track C（教學工具）需要另立學習成效研究設計。
+- **工程**：把 environment lock record 綁進每一條 pipeline 的 run manifest、Compare／Dynamic trace 的 browser visual verification、V1 articulated dynamic／pendulum／energy oracles、以及一條有版控 artifact 的新訓練線。順序見 [ROADMAP §9](docs/ROADMAP.md)。
 
-因此：V7C 的 0% duty 其 full-horizon bound 為 `[0.0, 64.511111]`%，與 V7A 的 `36.2185185`% 重疊，paired bound `[-36.2185185, +28.2925927]` 包含 0，`0/30` pair 方向可識別 —— pilot 報出的 `-36.2185185` pp 已被量測確認為 exposure artifact。V7B 的 paired bound 在 `30/30` pair 排除 0 且皆為 NEGATIVE，但 aggregate 仍為 `NULL`（3 個 censored pair，禁止 complete-case deletion），且 V7B 在 pilot 中仍不 eligible。
-
-**Independent training-seed variance 已實際執行完成。** `SEEDVAR-V7-TRAINING-REPLICATE-DEV-V1` 在 clean source `12bfddf` 上以具名 `MEASURED_ENVIRONMENT_LOCK`（`FULL_LOCK`／`AMBIENT_THREADING_PINNED`，共 30 次驗證）跑完 `3 arms × 5 replicates × 122,880 = 1,843,200` realized timesteps，**450 個 terminal records、0 失敗**，獨立 `python -I -S` replay exact。
-
-實測結果：
-
-- **V7B 相對 V7A 的方向跨獨立 seed 成立**：method-level bound `[-13.503408, -12.435259]` pp **排除 0**，sign `NEGATIVE`，`5/5` replicates 方向可識別。
-- **但 `between_replicate_sd` 仍是 `null`**：每個 replicate 至少有一臂被 exposure censored，5 個 paired difference 全是 interval，sample SD 沒有定義在 interval 上。`sample_size_decision_input_ready = false`，**sample-size 決策仍然 blocked**。方向可識別與變異可估計是兩件事。
-- **Pilot 那個乾淨的 reference 是 seed 的性質，不是 arm 的性質**：pilot 的 V7A 在 seed `8700` 上 30/30 full exposure、sd `0`；在 5 個獨立 seeds 上 V7A 有 3 個 replicate 出現 early termination（共 `7`/150）。
-- **V7C 的崩潰跨 seed 完全重現**：5 個獨立 seeds 全部 30/30 early termination、30/30 `NULL`，bound `[-37.195407, +27.315704]` pp 含 0、`0/5` 可識別。它表面上的 `-37` pp 再次被量測確認為 exposure artifact。
-- 450 個 episodes 全部是 `COMPARABLE`（`263`）或 `EXPOSURE_CENSORED`（`187`），**零 method failure**。
-
-前置的 `ENVIRONMENT-LOCK-V1` 量測行為而非相信 version string（含實跑 `500` 步的 MuJoCo contact state digest 與實際執行的 torch optimiser step），並實測到同一組 1000 個 reciprocal 在同一環境下依 stdlib 順序相加得 `7.485470860550343`、交給 `numpy.ndarray.sum` 得 `7.485470860550345` —— 兩者都符合 IEEE 754。v7 的兩個 retained bundle 都在此 contract 之前產生，其 environment 狀態為 `ABSENT_UNRECOVERABLE`，因此
-`cross_protocol_comparability = NON_VERIFIABLE_ENVIRONMENT`：seed-variance 的數值不得與 pilot receipt 的數值相減或並排成趨勢。
-
-**下一個唯一優先目標是 independent pretraining-seed variance，或另立 selection protocol。** 5 個 replicate 共用同一個 v5 warm start，所以量到的是 fine-tuning 階段的 seed 變異，系統性**低估**完整 method variance。`selected_candidate_arm_id` 維持 `null`：V7B 的方向穩健性**不構成 selection** —— 用同一批資料先估變異再據以選擇，會把選擇條件建立在被選中的雜訊上；且本結果已公開，任何新 selection protocol 都必須明示它是在已知 V7B 為負的情況下設計的。`pilot_planning_ready`、`method_level_power_ready`、`statistics_ready`、`paper_data_ready` 全部維持 false。Study A actual matrix、binary paired CI、lock record 綁進 run manifest、immutable storage 與 formal authorization 仍未完成；這些 development evidence 不解除 V0/V1/V3 gate。
+在專案負責人授權 formal evaluation 之前：不做 selection、不調 threshold、不存取 FORMAL seeds `20000–20029`。詳細狀態與理由見 [PROJECT_STATUS](docs/PROJECT_STATUS.md)。
 
 ## 資料聲明
 

@@ -2,6 +2,58 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-08 (h)
+
+### 文件重整與學術產出規劃
+
+- **README 從狀態傾倒回到入口。** 原「下一階段」一節已成長為約 1,500 字的狀態敘述；全數移入新的 [PROJECT_STATUS](docs/PROJECT_STATUS.md)（gates、PDR、flags、已量測結果、依根因分類的 blockers、milestone 歷史、下一步），README 改為一張「現況一覽」表加指標。40 餘列的扁平文件表改為六類分組；補上先前漏列的 `V1_RAW_JACOBIAN_IMPLEMENTATION_RECEIPT_2026-08-31`。沒有任何連結被移除。
+- **新增 [PUBLICATION_PLAN](docs/PUBLICATION_PLAN.md)（`PUBLICATION-PLAN-V1`）。** 三條 track、fail-closed 的 `PUB-A*`／`PUB-B*`／`PUB-C*` gates、執行順序與相依、寫作規範、不可宣稱清單。核心判斷：[INFERENCE] 原定 Study A 卡在 provenance 與 censoring 兩個**結構性**問題，不是算力；現在寫得出的是評估效度／可重現性方法論論文（Track A），且 Track A 不浪費 Track B。專案負責人只需做一個決定（`PUB-B0`）。
+- **`PUB-A0` 文獻 scan 完成，但未通過。** 新增 [LITERATURE_MAP_2026-09-08_EVALUATION_VALIDITY](docs/LITERATURE_MAP_2026-09-08_EVALUATION_VALIDITY.md)。[BLOCKER] 執行環境的 egress proxy 封鎖 arxiv.org、PMLR、OpenReview、ACM DL 與 Semantic Scholar，**沒有任何一篇原文被讀過**；每條目標 `U`（unverified），gap 判定為條件式 [INFERENCE]。暫定結論：exposure censoring 作為 comparative evaluation 的 identification 問題、以及 `OBSERVED ⇏ full exposure` 的記錄層盲點**暫定有 gap**；reduction-order 發現**不是貢獻**（SC'24、RepDL 已建立），降為動機。關鍵待核兩篇：arXiv 2606.10229、1911.05728。
+- **修正三處過期敘述。** `VV_PLAN.md §11` 與 `EXPERIMENT_PROTOCOL.md §1` 仍寫 seed-variance「尚未執行任何訓練」；`ROADMAP.md §9` 第 1 項仍是「執行已凍結的 SEEDVAR」。三處改為已執行、方向 5/5 可識別、variance null。`ROADMAP §9` 新增「有版控 lineage 的新訓練線」為第 2 項並說明它同時是 Track B 前置與 variance 解封的唯一途徑；`§10` 明確 Track A **不要求** V1/V3 PASS 的理由（它不對 plant 或 controller 做 claim）。
+- `RESEARCH_EXECUTION_PLAN` 更新日期並新增 `P-NEW`、`PUB-A`、`PUB-B` 三列；`STATUS.yaml` 新增 `publication_plan_status`、`project_status_report`，`next_milestone` 改為雙軌並保留原授權敘述。
+- [BLOCKER] 本次**沒有**新增任何證據、沒有執行任何訓練或評估、沒有變更任何 contract、protocol 或測試；`paper_data_ready` 等四個 flag 不變。
+
+## Unreleased — 2026-09-08 (g)
+
+### 兩個 milestone 分支：一個經查證關閉，一個凍結
+
+`STATUS.yaml` 排定的 next milestone 有兩條路：估計 independent
+**pretraining**-seed variance，或另立 selection protocol。第一條經查證關閉，第二條已凍結並實作。
+
+### Pretraining-seed variance 不可量測 —— 是 provenance，不是算力
+
+- 算力上完全可行（`5 + 15 = 20 × 122,880 = 2,457,600` timesteps，約 25 分鐘），所以先查 provenance。查完的結論是**不能做**。
+- [SOURCE] `policy_registry.json` 記載 v5「**warm-started from the v4 local development artifact**」，且其被採用的 `122,880`-step checkpoint 是在另一個 `516,096`-step run **regressed 並 DEV 失敗**之後選出來的。
+- [SOURCE] `.gitignore:31` 排除 `backend/rl/artifacts/`。版本控制中只有 3 個 policy artifact（`walk_0p7_legacy`、`curriculum_v2`、`phase_observable_v5`）—— **沒有 v3、沒有 v4**，磁碟上也沒有。
+- [RESULT] 而 v5 自己的 training profile 寫 `warm_start_policy_id: null`、`planned_timesteps: 2000000`，與 registry 在 warm start 與 budget 兩件事上都矛盾。Driver 讀的是 profile，所以單看 frozen training contract，v5 看起來是從零訓練的。
+- [INFERENCE] 三件事同時擋住：起點不存在、frozen contract 不記錄它、停止點本身是一次 selection（在新 seed 上照抄「取第 122,880 步」，等於把一次在舊 seed 上做過的 selection 當成規則）。v5 artifact 的 `sha256:c548867f…` 無法從本 repository 重建。
+- [BLOCKER] 因此 `training_replicate_scope = CONDITIONAL_ON_FIXED_WARM_START` 對 v7 line 是**永久的**，不是待補的缺口。V7B 的方向結論永遠附帶「條件於那一個 v5 warm start」。這是**縮小**可宣稱範圍。
+- Profile/registry 的矛盾**刻意不修**：`training_profiles.json` 已被 `SEEDVAR-AMENDMENT-01` pin 進 protocol，而該 protocol digest 又被 contract pin 住，其下游是已 merge 的 seed-variance evidence。修 metadata 而動搖一份**已完成執行**證據的 source identity，不划算。記錄於 [pretraining infeasibility receipt](docs/V7_PRETRAINING_SEED_VARIANCE_INFEASIBILITY_RECEIPT_2026-09-08.md)。
+
+### `SELECT-V7-CANDIDATE-FORMAL-V1`：凍結一條自己承認不是 preregistered 的規則
+
+- [BLOCKER] **本 protocol 是在已看過結果之後寫的。** 凍結時已知 V7B 的 bound `[-13.503408, -12.435259]` pp 排除 0、5/5 可識別。它**不得**被描述為 preregistered、blinded 或 confirmatory。`validate_protocol` 強制 `preregistered=false` 與四個 disclosure 欄位齊全；把它改成 `true` 的版本無法載入。
+- 在這種情況下唯一還能提供的保護不是假裝沒看過，而是**讓規則對已看過的資料不生效**：只在未被檢視的 seeds 上決策、只套用一次、而且——最關鍵的——**把規則套在已看過的資料上必須選不出東西**。
+- [RESULT] 對真實 DEV evidence 執行 `rule-check`：`SELECTION_COMPLETE_NO_CANDIDATE`。實際擋下兩者的是 `SEL-C2`（全數 full exposure）：V7B comparable `120/150`、V7C `0/150`，reference V7A `143/150`。另外從 summary 直接讀出、未進入條件鏈的事實：V7B 的 bound 排除 0（`SEL-C3` 本會 PASS），`between_replicate_sd` 為 `null`（`SEL-C4` 本會 FAIL）。
+- [INFERENCE] 擋下 V7B 的兩條都直接來自上游 audit 與 seed-variance 的既有發現，不是為本 protocol 新造的。**如果規則是為了讓 V7B 通過而設計，它在我唯一看過的資料上就會讓 V7B 通過。**
+- 決策資料只能是 sealed FORMAL `20000–20029`：`18000–18029` 已 `DEVELOPMENT_EXHAUSTED` 且被本 protocol 的作者看過，`19000–19029` 已退役且曾作為 v5 HOLDOUT。這不是偏好，是唯一剩下的選項。
+- `SEL-C2` 要求候選與 reference 的**每一個** episode 都 `COMPARABLE`，因為 audit 量測確認 V7B 那 3 個 censored pilot episode 的 `outcome_state` 全是 `OBSERVED`、六項 required numeric 皆有值 —— 「outcomes observed」不蘊含 full exposure。`SEL-C4` 要求 `between_replicate_sd` 是點值，因為方向可識別而變異不可估計時，選出來的 candidate 無法規劃任何東西。
+- Eligible 需要**六個明確的 PASS**；`NOT_REACHED` 與 `NOT_APPLICABLE` 都永遠不等於 PASS，所以缺輸入只能擋下 selection，不能放行。
+
+### 這次在凍結前先量執行前置條件
+
+- `SEEDVAR-AMENDMENT-01` 的代價是凍結時把 driver pin 住卻沒檢查跑不跑得動。本次先查，三項皆 `BLOCKING` 並寫進 protocol：`EP-01` audit contract 對 `SEALED_SEED_RANGE` 的 seed 直接 raise（而 exposure 分類正是 `SEL-C2` 的輸入）；`EP-02` `eval_policy.py` 兩個 branch 都把 seed schedule 釘死；`EP-03` 授權未取得。
+- `assert_executable` 在任一項未解除時拒絕執行並具名列出。`test_measured_preconditions_still_match_the_code` 對 code 重驗這些斷言 —— 過期的 precondition 比沒有更糟，它會宣告一個已不存在的 blocker 或藏起一個新出現的。
+- 解除順序寫進 protocol：**授權在前，解封在後**。在授權仍不存在時先拆掉 sealed-seed 的門，順序是反的。
+
+### 一個我自己寫壞、被測試抓到的洞
+
+- [RESULT] 第一版的 self-check **在任何輸入上都不可能通過**：它把 `SEL-C5` 當成必須提供的輸入，而 self-check 從不提供，所以 `SEL-C5` 恆 FAIL。那使「規則擋下 V7B」的論證變成空話 —— 它擋下一切，因此對規則本身沒有提供任何證據。
+- 修正：`SEL-C5`／`SEL-C6` 在 self-check scope 下標為 `NOT_APPLICABLE`（兩者都不區分 candidate，也都不可由 summary 導出），因此一份乾淨的 summary **真的會通過** self-check —— 這才使它在真實資料上的拒絕成為證據。`test_the_self_check_could_have_passed_which_is_what_makes_it_evidence` 同時斷言兩個方向。
+- 另有防漂移檢查：`test_the_protocols_documented_self_check_matches_what_the_code_reports` 逐條比對 protocol 記載的 self-check 表格與 contract 實際輸出的 condition chain；若分歧，frozen 文件就會在描述一個沒人在跑的規則。
+- `SEL-01..SEL-09` 共 **47 個測試**通過。新增 [selection spec](docs/V7_CANDIDATE_SELECTION_SPEC.md) 與 [implementation receipt](docs/V7_CANDIDATE_SELECTION_IMPLEMENTATION_RECEIPT_2026-09-08.md)。
+- [BLOCKER] **沒有執行 selection、沒有存取 `20000–20029`、沒有產生任何 FORMAL 資料、沒有選出任何 candidate。** `selected_candidate_arm_id` 維持 `null`，`method_level_power_ready`、`statistics_ready`、`paper_data_ready` 全部維持 `false`。
+
 ## Unreleased — 2026-09-08 (f)
 
 ### `SEEDVAR-V7-TRAINING-REPLICATE-DEV-V1` 實際執行完成
