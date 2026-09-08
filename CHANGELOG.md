@@ -2,6 +2,17 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-08 (h)
+
+### 文件重整與學術產出規劃
+
+- **README 從狀態傾倒回到入口。** 原「下一階段」一節已成長為約 1,500 字的狀態敘述；全數移入新的 [PROJECT_STATUS](docs/PROJECT_STATUS.md)（gates、PDR、flags、已量測結果、依根因分類的 blockers、milestone 歷史、下一步），README 改為一張「現況一覽」表加指標。40 餘列的扁平文件表改為六類分組；補上先前漏列的 `V1_RAW_JACOBIAN_IMPLEMENTATION_RECEIPT_2026-08-31`。沒有任何連結被移除。
+- **新增 [PUBLICATION_PLAN](docs/PUBLICATION_PLAN.md)（`PUBLICATION-PLAN-V1`）。** 三條 track、fail-closed 的 `PUB-A*`／`PUB-B*`／`PUB-C*` gates、執行順序與相依、寫作規範、不可宣稱清單。核心判斷：[INFERENCE] 原定 Study A 卡在 provenance 與 censoring 兩個**結構性**問題，不是算力；現在寫得出的是評估效度／可重現性方法論論文（Track A），且 Track A 不浪費 Track B。專案負責人只需做一個決定（`PUB-B0`）。
+- **`PUB-A0` 文獻 scan 完成，但未通過。** 新增 [LITERATURE_MAP_2026-09-08_EVALUATION_VALIDITY](docs/LITERATURE_MAP_2026-09-08_EVALUATION_VALIDITY.md)。[BLOCKER] 執行環境的 egress proxy 封鎖 arxiv.org、PMLR、OpenReview、ACM DL 與 Semantic Scholar，**沒有任何一篇原文被讀過**；每條目標 `U`（unverified），gap 判定為條件式 [INFERENCE]。暫定結論：exposure censoring 作為 comparative evaluation 的 identification 問題、以及 `OBSERVED ⇏ full exposure` 的記錄層盲點**暫定有 gap**；reduction-order 發現**不是貢獻**（SC'24、RepDL 已建立），降為動機。關鍵待核兩篇：arXiv 2606.10229、1911.05728。
+- **修正三處過期敘述。** `VV_PLAN.md §11` 與 `EXPERIMENT_PROTOCOL.md §1` 仍寫 seed-variance「尚未執行任何訓練」；`ROADMAP.md §9` 第 1 項仍是「執行已凍結的 SEEDVAR」。三處改為已執行、方向 5/5 可識別、variance null。`ROADMAP §9` 新增「有版控 lineage 的新訓練線」為第 2 項並說明它同時是 Track B 前置與 variance 解封的唯一途徑；`§10` 明確 Track A **不要求** V1/V3 PASS 的理由（它不對 plant 或 controller 做 claim）。
+- `RESEARCH_EXECUTION_PLAN` 更新日期並新增 `P-NEW`、`PUB-A`、`PUB-B` 三列；`STATUS.yaml` 新增 `publication_plan_status`、`project_status_report`，`next_milestone` 改為雙軌並保留原授權敘述。
+- [BLOCKER] 本次**沒有**新增任何證據、沒有執行任何訓練或評估、沒有變更任何 contract、protocol 或測試；`paper_data_ready` 等四個 flag 不變。
+
 ## Unreleased — 2026-09-08 (g)
 
 ### 兩個 milestone 分支：一個經查證關閉，一個凍結

@@ -1,8 +1,10 @@
 # 人形機器人控制與訓練方法研究執行計畫
 
-最後更新：2026-09-06
+最後更新：2026-09-08
 
 本次 V1 evidence 範圍：`SIM_ONLY_MUJOCO` / `NOT_PHYSICALLY_VALIDATED`
+
+學術產出的路線、gate 與寫作規範另立於 [PUBLICATION_PLAN](PUBLICATION_PLAN.md)；本文件只定研究問題、P-stage 與公平比較設計。
 
 ## 1. 研究目標與證據邊界
 
@@ -38,6 +40,9 @@ Policy 在同一 simulator 與 reward 中表現良好，不等於 model validati
 | P4 | Study A formal benchmark | protocol frozen、paired statistics、CI、failures/censoring retained | BLOCKED BY P1–P3 / paired-statistics software precursor implemented；actual Study A、suitable binary CI與 formal authorization absent |
 | P5 | Motion primitives / imitation | raise hand、single-leg raise、squat、turn 等各有獨立 task contract | AFTER STUDY A |
 | P6 | SIL/HIL/bench/robot validation | 只在實際完成的外部 evidence 層級建立 bounded claim | FUTURE |
+| P-NEW | 有版控 lineage 的新訓練線 | 每個 checkpoint 與 warm start 都在版控或 immutable storage；reference policy 在 DEV seeds 上達到凍結的 full-exposure 比例 | NOT STARTED / Track B 與 variance 解封的硬前置；v7 line 因 provenance 不可重建，不得作為起點 |
+| PUB-A | 評估效度／可重現性方法論論文 | 見 [PUBLICATION_PLAN](PUBLICATION_PLAN.md) PUB-A0..A5 | IN PROGRESS / PUB-A0 文獻 scan 進行中 |
+| PUB-B | Study A 方法比較論文 | 見 PUBLICATION_PLAN PUB-B0..B7 | BLOCKED / 等 authorization、P-NEW、P1 |
 
 ### P1 bounded result：raw Jacobian replay V4
 

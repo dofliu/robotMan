@@ -147,18 +147,27 @@ Development 已完成 v1–v7 failure-retaining iteration：v2 解決前進與�
 
 ## 9. 建議執行順序
 
-1. 執行已凍結的 `SEEDVAR-V7-TRAINING-REPLICATE-DEV-V1`（需算力），並把 `ENVIRONMENT-LOCK-V1` 的 lock record 綁進每一條 pipeline 的 run manifest；再完成 actual matrix execution 與 immutable evidence storage。Environment identity 的量測機制、run-level manifest/inventory 及 matrix completeness software validators 均已 bounded implemented。
-2. 完成 V1 contact/plant/numerical verification。
-3. M7A 可作為教學支線；M7B 保持 blocked。
-4. 完成 V2 actuator/sensor/estimator fidelity。
-5. 建立 M8 WBC verified baseline。
-6. 完成 V3 fair benchmark/UQ。
-7. 進行 M7B 與 V4 subsystem validation。
-8. 最後才啟動 M9 正式研究矩陣與 paper claim review。
+工程軌道與學術軌道並行（學術軌道見 [PUBLICATION_PLAN](PUBLICATION_PLAN.md)）。工程順序：
+
+0. [DONE] 執行 `SEEDVAR-V7-TRAINING-REPLICATE-DEV-V1`：`1,843,200` realized timesteps、450 records、replay exact；V7B 方向 5/5 可識別，`between_replicate_sd` 因 exposure censoring 為 null。
+1. 把 `ENVIRONMENT-LOCK-V1` 的 lock record 綁進每一條 pipeline 的 run manifest（V0 具名 blocker），再完成 actual matrix execution 與 immutable evidence storage。Environment identity 量測、run-level manifest/inventory 與 matrix completeness validators 均已 bounded implemented。
+2. 建立一條**有版控 checkpoint lineage** 的新訓練線（scratch 或 tracked warm start，每個 checkpoint 進版控或 immutable storage）。這同時是 Track B 的硬前置，也是解除 exposure-censoring 對 between-replicate variance 封鎖的唯一途徑：需要一個能穩定跑完 9 s 任務的 reference policy。v7 line 因 provenance 不可重建，不能再作為這條線的起點。
+3. Compare／Dynamic trace 的 browser visual verification（Playwright），解除兩個 `BROWSER_VISUAL_PENDING`。
+4. 完成 V1 contact/plant/numerical verification（articulated dynamic、pendulum、energy、solver convergence）。
+5. M7A 可作為教學支線；M7B 保持 blocked。
+6. 完成 V2 actuator/sensor/estimator fidelity。
+7. 建立 M8 WBC verified baseline。
+8. 完成 V3 fair benchmark/UQ。
+9. 進行 M7B 與 V4 subsystem validation。
+10. 最後才啟動 M9 正式研究矩陣與 paper claim review。
 
 ## 10. 研究產出 gate
 
-- 教學展示：V0 後可用，但必須保留 SIM-only 標示。
-- 工具方法論：至少 V1 + V3。
+細節、PUB-* gate 與寫作規範以 [PUBLICATION_PLAN](PUBLICATION_PLAN.md) 為準；本節只定 V&V gate 與各類 claim 的對應：
+
+- 教學展示（Track C 的前身）：V0 後可用，但必須保留 SIM-only 標示；要成為教學研究論文需另立學習成效研究設計。
+- 評估效度／可重現性方法論（Track A）：**不要求 V1/V3 PASS**，因為它不對 plant 或 controller 做任何 claim，只對量測程序做 claim；但要求 PUB-A gates（novelty、第二案例 generalization、clean-checkout reproduction）全部通過。
+- 工具方法論（把本平台本身當成 validated tool）：至少 V1 + V3。
+- 方法比較論文（Track B／Study A）：至少 V1 + V3，且 formal authorization、external preregistration 與有版控 lineage 的訓練線齊備；沒有 V2 時不得對 actuator feasibility 做 claim，沒有 V4 時限縮為 simulation study。
 - 硬體 × strategy 論文：至少 V1 + V2 + V3；沒有 V4 時限縮為 simulation study。
 - sim-to-real、實體抗擾動或安全 claim：V4 仍不足時一律禁止。
