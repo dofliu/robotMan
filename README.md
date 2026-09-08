@@ -127,6 +127,7 @@ comparison_report.md 保留既有 deterministic nominal snapshot，供回歸診�
 | [V7_ACTION_INTERFACE_PILOT_IMPLEMENTATION_RECEIPT_2026-09-06](docs/V7_ACTION_INTERFACE_PILOT_IMPLEMENTATION_RECEIPT_2026-09-06.md) | v7 clean-source training/evaluation bundle、retained NULL、conditional statistics與 stdlib-only replay |
 | [V7_EXPOSURE_CENSORING_AUDIT_SPEC](docs/V7_EXPOSURE_CENSORING_AUDIT_SPEC.md) | read-only exposure-censoring audit的 frozen horizon、phase conventions、censoring vocabulary、identification bounds與 acceptance |
 | [V7_EXPOSURE_CENSORING_AUDIT_IMPLEMENTATION_RECEIPT_2026-09-08](docs/V7_EXPOSURE_CENSORING_AUDIT_IMPLEMENTATION_RECEIPT_2026-09-08.md) | audit software的 clean-source synthetic receipt、phase-convention finding、identification bounds與 frozen-bundle範圍邊界 |
+| [V7_EXPOSURE_CENSORING_AUDIT_FROZEN_BUNDLE_RECEIPT_2026-09-08](docs/V7_EXPOSURE_CENSORING_AUDIT_FROZEN_BUNDLE_RECEIPT_2026-09-08.md) | 對 frozen v7 pilot bundle的 read-only audit run：實測 exposure分布、identification bounds、phase-convention finding與保留的 censoring blockers |
 | [HARDWARE_DATA_PROVENANCE](docs/HARDWARE_DATA_PROVENANCE.md) | datasheet、CAD/BOM、bench data 與 demo catalog 的分級 |
 | [ROADMAP](docs/ROADMAP.md) | V0–V4 gate-first 工作順序 |
 | [CONVENTIONS](docs/CONVENTIONS.md) | 開發與 evidence governance 規範 |
@@ -134,7 +135,13 @@ comparison_report.md 保留既有 deterministic nominal snapshot，供回歸診�
 
 ## 下一階段
 
-目前不以「功能完成百分比」表示成熟度。v7 action-interface DEVELOPMENT pilot已在 clean source `058657dd43d28a9175e54362cf4d0a0618507c38`完成 exact 3 arms × 30 DEV seeds與 independent replay，但沒有 selected candidate。接續的 V7 early-termination / exposure-censoring validity audit V1已在 clean source `428ba214ec7d9e85c254b3b4f85d2c417094d202`實作並以 synthetic regression驗證：audit只讀既有 bundle，由 retained 500 Hz traces重建 termination control step／sim time／phase與 realized exposure，並把 method failure與 exposure censoring分開保留。exposure-censored primary outcome只輸出 assumption-free worst-case bounds：synthetic case中 60/450 steps且零 saturated substeps的臂 full-horizon bound為 `[0.000000, 86.666667]%`，paired bound `[-34.974074, +51.692593]` percentage points包含 0，30個 pair全部 sign-unidentified，因此 0% duty不可解讀為改善。audit另發現 recorded `command_phase`採 end-of-step accumulated-time convention，與 contract的 start-of-step schedule相差一個 control step，此差異原樣輸出為 validity finding。2026-09-06 pilot bundle不在 clean checkout內，故本次所有 bundle皆為 `SYNTHETIC_REGRESSION_BUNDLE`且 `audit_applies_to_frozen_v7_pilot=false`；下一個唯一目標是在保有該 bundle的機器上執行一次 read-only audit run。Study A actual matrix、independent training-seed variance、formal sample-size decision、paired binary CI、complete environment lock與 formal authorization仍未完成；這些 development evidence不解除 V0/V1/V3 gate。
+目前不以「功能完成百分比」表示成熟度。V7 early-termination／exposure-censoring validity audit V1 已完成：software 在 clean-source synthetic regression 通過，並已對 2026-09-06 保存的 `V7_PILOT_DEVELOPMENT_BUNDLE` 執行一次 read-only run（`audit_applies_to_frozen_v7_pilot=true`、`AX-01..AX-12` 全通過、前後 readback 一致、保留 35 個 censoring blocker）。
+
+實測 exposure：V7A 30/30 full exposure（恰 450 control steps）；V7B 27 full + 3 early（420–445 steps，全落在 `FINAL_STAND`，且六項 required outcome 仍為 `OBSERVED`）；V7C 30/30 early（`159.7000 ± 2.7687` steps、`3.08–3.30` s、占 horizon `0.354889`，全落在 `STEADY_WALK`）。
+
+因此：V7C 的 0% duty 其 full-horizon bound 為 `[0.0, 64.511111]`%，與 V7A 的 `36.2185185`% 重疊，paired bound `[-36.2185185, +28.2925927]` 包含 0，`0/30` pair 方向可識別 —— pilot 報出的 `-36.2185185` pp 已被量測確認為 exposure artifact。V7B 的 paired bound 在 `30/30` pair 排除 0 且皆為 NEGATIVE，但 aggregate 仍為 `NULL`（3 個 censored pair，禁止 complete-case deletion），且 V7B 在 pilot 中仍不 eligible。
+
+下一個唯一優先目標是另立 fresh DEVELOPMENT protocol 處理 independent training-seed variance：所有 v7 結果仍建立在每臂單一 training seed 之上，V7B 的方向穩健性不得讀成 candidate selection 或 sample-size 依據。`selected_candidate_arm_id` 維持 `null`，`pilot_planning_ready`、`method_level_power_ready`、`statistics_ready`、`paper_data_ready` 全部維持 false。Study A actual matrix、binary paired CI、complete environment lock、immutable storage 與 formal authorization 仍未完成；這些 development evidence 不解除 V0/V1/V3 gate。
 
 ## 資料聲明
 

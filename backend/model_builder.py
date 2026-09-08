@@ -190,15 +190,20 @@ def make_model(cfg: RobotConfig, obstacles: list[Obstacle],
 
 def geom_render_list(model: mujoco.MjModel) -> list[dict]:
     """輸出前端渲染所需的 geom 定義（型別/尺寸/相對位姿/顏色/所屬 body）。"""
+    # Key by plain int, and look up a plain int.  ``model.geom_type`` yields
+    # numpy integers, and the MuJoCo bindings expose mjtGeom as a native
+    # pybind11 enum that compares equal to ``int`` but not to ``numpy.int32``,
+    # so an enum-keyed dict silently misses every lookup and this function
+    # returns an empty scene.  ``vv_oracles`` already compares via ``int()``.
     type_names = {
-        mujoco.mjtGeom.mjGEOM_PLANE: "plane",
-        mujoco.mjtGeom.mjGEOM_SPHERE: "sphere",
-        mujoco.mjtGeom.mjGEOM_CAPSULE: "capsule",
-        mujoco.mjtGeom.mjGEOM_BOX: "box",
+        int(mujoco.mjtGeom.mjGEOM_PLANE): "plane",
+        int(mujoco.mjtGeom.mjGEOM_SPHERE): "sphere",
+        int(mujoco.mjtGeom.mjGEOM_CAPSULE): "capsule",
+        int(mujoco.mjtGeom.mjGEOM_BOX): "box",
     }
     out = []
     for gi in range(model.ngeom):
-        gtype = model.geom_type[gi]
+        gtype = int(model.geom_type[gi])
         if gtype not in type_names:
             continue
         name = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_GEOM, gi) or f"geom{gi}"

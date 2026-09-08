@@ -2,6 +2,34 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-08 (d)
+
+- 修正 `geom_render_list()` 的 geom 型別查表：`MjModel.geom_type` 回傳 `numpy` 整數，而 MuJoCo 3.12 把 `mjtGeom` 實作為 native pybind11 enum —— 它與 `int` 相等但**與 `numpy.int32` 不相等**。以 enum 當 dict key 因此每一次查表都 miss，該函式回傳**空的 geom 清單**，`/ws/live` 的 scene payload 一個 geom 都不送，前端 3D 視圖實際上什麼都畫不出來。改為以 plain `int` 建表並以 `int(...)` 查表，與 `vv_oracles.py` 既有的正確寫法一致。修正後 minimum-config 模型的 25 個 geom 全部輸出（plane 1／box 5／sphere 11／capsule 8），`obstacle_0` 也回來了。
+- 這是先前在 PR #1／#2 被低估為「環境相關測試失敗」的兩項之一。成因確實是 dependency 變更，但實際影響是 user-visible 的 live 視圖全黑，不是測試細節；該描述已在此更正。
+- 新增 `test_geom_render_list_maps_every_supported_geom_type`：直接對 `geom_render_list` 斷言 `len(rendered) == model.ngeom > 0`，因此**部分**或**全空**清單都會被抓到。原有的 `obstacle_0` 斷言無法區分「只掉了障礙物」與「整個 scene 是空的」。該測試已驗證具鑑別力：把修正還原後它會失敗，套用修正後通過。
+- 全庫掃描確認這是此 bug class 的**唯一**一處；`vv_oracles.py` 的 `mjtObj` 用法是把 enum 當函式引數傳給 `mj_id2name`，屬正確用法。前端 `Viewport.tsx` 對 plane／box／sphere／capsule 四型皆有分支，因此恢復清單不會觸發未處理的型別。
+
+### Provenance 後果（必須記錄，不可默默吸收）
+
+- `backend/model_builder.py` 的 SHA-256 由 `0beabfa2df6fde118dc2dfaea94a22da9af42c69c49ee2290993322cf96aab29` 變為 `09163a81a9dfef363a88424f98e4506e81be7639689aaa3fd66e6505ccb98a5e`。
+- Frozen 的 `PILOT-V7-ACTION-INTERFACE-DEV-V1` protocol 仍 pin 舊值，且**刻意不改**：該 protocol 自身的 SHA `719b70a2…` 同時被 `v7_pilot_contract.py` 與 exposure-censoring audit protocol pin 住，改它會破壞既有 evidence chain。
+- 因此語意是：**v7 pilot 已無法從目前這棵樹 byte-reproducible 重建**。這是事實，應該可見而非隱藏。
+- 已逐項驗證受影響範圍：`validate_v7_pilot_bundle` 經 `_validate_source_index_deep` 一律以 `verify_repository=False` 呼叫 `_validate_source_files`，因此**保存的 pilot bundle 仍可從本樹通過驗證**；exposure-censoring audit protocol 只 pin pilot receipt、pilot protocol、`motion_tasks.py` 與 `humanoid_env.py`，**完全未提及 `model_builder.py`**（已以程式確認），因此 audit 與其 receipt 不受影響；只有帶預設 `verify_repository=True` 的**未來** `build_v7_pilot_bundle` 重建會 fail closed。
+- `test_v7_pilot_contract.py` 的 synthetic `_source_files()` 仍寫舊值，這是正確的：它必須對齊 frozen protocol 的 pin，且該路徑以 `verify_repository=False` 執行，不觸碰磁碟檔案。
+
+## Unreleased — 2026-09-08 (c)
+
+- 對 2026-09-06 保存的 `V7_PILOT_DEVELOPMENT_BUNDLE` 執行 `AUDIT-V7-EXPOSURE-CENSORING-V1` 的第一次 read-only run，完成 exposure-censoring validity audit V1 的 data 部分。`audit_applies_to_frozen_v7_pilot=true`、`AX-01..AX-12` 全通過、14 個 artifact／`109520182` bytes 在前後 readback 一致且 file set 不變，`source_bundle_read_only_verified=true`，CLI 依 frozen semantics 回傳 exit `1` 並保留 35 個 censoring blocker。
+- 實測 exposure：V7A 30/30 `FULL_EXPOSURE`（恰 450 control steps，sd 0）；V7B 27 full + 3 `EARLY_TERMINATED`（420／445／426 steps，`8.4`／`8.9`／`8.52` s，全落在 `FINAL_STAND`）；V7C 30/30 `EARLY_TERMINATED`（`159.7000 ± 2.7687` steps、`3.08–3.30` s、占 horizon `0.354889`，全落在 `STEADY_WALK`）。
+- V7C 的 0% duty 經 assumption-free full-horizon bound 量測為 `[0.0, 64.511111]`%，與 V7A 的 `36.2185185`% 重疊；paired bound `[-36.2185185, +28.2925927]` 包含 0，`0/30` pair 方向可識別。pilot 報出的 `-36.2185185` pp 因此被量測確認為 exposure artifact，而非 saturation 改善 —— 這項判斷從敘述變成結果。
+- V7B 的 paired bound 在 `30/30` pair 全部排除 0 且皆為 NEGATIVE，即使含 3 個 censored pair；aggregate 仍為 `NULL`（`BLOCKED_EXPOSURE_CENSORED_PAIRS_RETAINED_NO_COMPLETE_CASE_DELETION`）。此方向穩健性不構成 candidate selection、不解除 V7B 的 ineligibility，也不改變單一 training seed 的限制。
+- 獨立交叉驗證：audit 只由 `control_step_trace` 長度導出 exposure（不讀 gate 結果、不讀 `fell` flag），卻還原出與 pilot 紀錄一致的跌倒 seed 集合 `{18015, 18021, 18023}`，並正確地把 stop-only 失敗的 `18011` 留在 `FULL_EXPOSURE / COMPARABLE`。
+- 實測盲點確認：V7B 那 3 個 censored episode 的 `outcome_state` 全為 `OBSERVED` —— 它們在 `FINAL_STAND` 內才終止，六項 required numeric 皆有值、`reason` 為 null，算術上看不出異常。`outcome_state == OBSERVED` 不蘊含 full exposure。
+- `AX-04` 在真實資料上通過：90 個 episode 的每一筆 recorded `command_phase` 都等於重現的 end-of-step accumulated recorder convention。該 convention 相對 contract 的 start-of-step schedule 位移一個 control step，只影響 `INITIAL_STAND`／`START`／`STEADY_WALK` 邊界，原樣保留為 validity finding。若沿用 protocol freeze commit 的原始規則，本次 run 會在 `k=49` 誤判為 structural failure。
+- Descriptive exposure-matched sensitivity：V7B `-12.9968027 ± 1.0755263` pp（k 420–450）、V7C `-21.9635049 ± 1.2888118` pp（k 154–165）。截斷對齊後差值未消失，但仍為 `DESCRIPTIVE_ONLY` 且 informative censoring 依然存在，不得用於 selection、CI 或 sample-size。
+- 新增 [frozen bundle receipt](docs/V7_EXPOSURE_CENSORING_AUDIT_FROZEN_BUNDLE_RECEIPT_2026-09-08.md)；2026-09-06 pilot receipt 與 synthetic regression receipt 皆未回改。`PAPER_DATA_READINESS` 的 PDR-5／PDR-6 與立即執行順序第 9 項更新為 DONE，第 10 項改為 independent training-seed variance protocol。
+- 保留的 blocker 未變：`selected_candidate_arm_id=null`、`pilot_planning_ready=false`、`method_level_power_ready=false`、`statistics_ready=false`、`paper_data_ready=false`、`formal_sample_size_decision=BLOCKED_INDEPENDENT_TRAINING_SEED_VARIANCE_NOT_ESTIMATED`。
+
 ## Unreleased — 2026-09-08 (b)
 
 - 對已合併的 exposure-censoring audit執行一次 adversarial multi-dimension review與 contract／replay differential sweep，共 59個 findings；修正一律為「命名更精確、增加檢查、或縮小主張」，未動任何 threshold、envelope、horizon或 bound formula，既有數值結果不變。
