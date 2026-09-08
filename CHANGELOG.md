@@ -2,6 +2,20 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-08
+
+- 先以 Git `ee7321090089b186d847a958ae607478b6a12e6c`凍結 `AUDIT-V7-EXPOSURE-CENSORING-V1`：read-only contract、bundle class binding、由既有 task contract導出的 exposure horizon、censoring/method-failure vocabulary、assumption-free identification bounds、`AX-01..AX-12`與 `SIM_ONLY_MUJOCO / NOT_PHYSICALLY_VALIDATED / DEVELOPMENT_ONLY` boundary。
+- 新增 stdlib-only audit contract、獨立 `python -I -S` replay、38個 synthetic fail-closed tests與 clean-source regression builder；刻意不從 `v7_pilot_contract` import任何東西，避免沿用被 audit pipeline自身的 validator與假設。
+- Canonical episode row沒有 end-step、elapsed-time或 termination-reason欄位，因此 episode length只能由 retained `control_step_trace`取得；audit由 trace重建 termination control step／sim time／phase，再與 `trace_receipt` counts及 frozen `9.0 s / 450 steps / 4500 substeps` horizon交叉檢查。每個商與積必須是 exact integer。
+- Execution前修正 `AX-04`：`backend/rl/humanoid_env.py:352-353`在 substep loop之後才推進 `task_elapsed_s`並重新取樣 phase，recorded label採 end-of-step accumulated-time convention（邊界 `0–48 / 49–123 / 124–324`而非 `0–49 / 50–124 / 125–324`）。沿用 freeze commit規則會因 recording convention差異把有效 bundle誤報為 structurally invalid。改為對照 reproduced recorder convention，並把 contract與 recorder的邊界差異輸出為 `phase_convention` validity finding；未依結果調整任何 threshold、envelope或 outcome。
+- Method failure（`NULL`、`NONFINITE`、terminal failure、no exposure）保留為 method failure且明示不是 censoring；exposure-censored primary outcome改輸出 assumption-free worst-case full-horizon與 paired identification bounds，不輸出 censored point estimate。aggregate只在30個 pair全部 comparable時輸出，否則 null並記 `BLOCKED_EXPOSURE_CENSORED_PAIRS_RETAINED_NO_COMPLETE_CASE_DELETION`。
+- Clean source `428ba214ec7d9e85c254b3b4f85d2c417094d202`的 synthetic package列入 18 artifacts / `68338712` bytes，receipt `sha256:15c2aef746edc2976a30f186180f32ba3c2c2ebcb6e30f1e08a5a2bf1a4b1415`；兩個 case皆 `AUDIT_COMPLETE_RETAINED_CENSORING_BLOCKER`、`source_bundle_read_only_verified=true`、`AUDIT_BUNDLE_VALID`，replay exact。
+- Synthetic結果顯示 60/450 steps且零 saturated substeps的臂 full-horizon bound為 `[0.000000, 86.666667]%`，其 paired bound `[-34.974074, +51.692593]` percentage points包含 0，30個 pair全部 sign-unidentified；`valid_contrast=false`。另一臂29/30 pair sign-identified NEGATIVE，但因2個 pair被 censored，aggregate仍為 null。
+- `DESCRIPTIVE_ONLY` exposure-matched sensitivity保留 `informative_censoring=SUSPECTED_DEPENDENT_ON_ARM_BEHAVIOUR`，不得用於 candidate selection、CI、p-value、hypothesis test、恢復 comparability或 sample-size決策。
+- 2026-09-06 pilot bundle在 `.gitignore`的 local artifact root、不在 clean checkout內，因此本次無法對 `V7_PILOT_DEVELOPMENT_BUNDLE`執行 audit。Bundle class以 pilot receipt SHA-256雙向綁定，所有本次 bundle皆為 `SYNTHETIC_REGRESSION_BUNDLE`且 `audit_applies_to_frozen_v7_pilot=false`。
+- 新增 audit suite為 `38 passed`，完整 backend為 `337 passed, 2 failed`。兩個 failure在 clean tree `ee7321090089b186d847a958ae607478b6a12e6c`（不含本次任何程式）同樣失敗，屬既有 environment lock缺口，原樣保留未繞過。
+- 未重訓、未新增 seed、未調 alpha/envelope/threshold、未開啟 FORMAL/HOLDOUT、未選 candidate、未計 CI或 p-value；原 pilot receipt未回改。下一個唯一目標是在保有 2026-09-06 bundle的機器上對 `V7_PILOT_DEVELOPMENT_BUNDLE`執行一次 read-only audit run。
+
 ## Unreleased — 2026-09-06
 
 - 先以 Git `e839aa263b391ade21bbfc61c50123a9ca384df4`凍結 `PILOT-V7-ACTION-INTERFACE-DEV-V1`：三臂 action math、common training seed 8700、DEV 18000–18029、retired/formal seed ranges、acceptance、failure semantics與 `SIM_ONLY_MUJOCO / NOT_PHYSICALLY_VALIDATED / DEVELOPMENT_ONLY` boundary。
