@@ -73,7 +73,7 @@
 | Gate | Exit condition | 狀態 | 備註 |
 |---|---|---|---|
 | `PUB-A0` Novelty | 文獻地圖中所有 `U` 條目經原文核對改為 `[SOURCE]` 或刪除；§4 gap 判定重寫並仍成立 | `IN_PROGRESS` — `SCAN_COMPLETE / PRIMARY_SOURCES_UNVERIFIED` | 需可存取出版方的環境。關鍵兩篇：arXiv 2606.10229、1911.05728 |
-| `PUB-A1` Second case | 在第二個 task／公開 benchmark 上，以**凍結的** protocol 重現 exposure-censoring artifact，含 receipt 與 stdlib-only replay | `NOT_STARTED` | 候選：Gymnasium MuJoCo Humanoid／Walker2d + SB3 PPO；protocol 必須在跑之前凍結並記錄預期 |
+| `PUB-A1` Second case | 在第二個 task／公開 benchmark 上，以**凍結的** protocol 重現 exposure-censoring artifact，含 receipt 與 stdlib-only replay | `IN_PROGRESS` — `FROZEN_NOT_EXECUTED` | [SECOND_CASE_EXPOSURE_CENSORING_SPEC](SECOND_CASE_EXPOSURE_CENSORING_SPEC.md)：Walker2d-v5 預設、2 arms × 5 replicates × 30 paired seeds、P1/P2 與五個 outcome label 已凍結；通用 `exposure_identification.py` 對 v7 evidence bit-exact；執行前先 commit |
 | `PUB-A2` Claim freeze | A-C1..A-C4 每一條都能只由 hash-bound receipts 推出；figure／table 清單凍結；不可宣稱清單寫入稿件 | `NOT_STARTED` | 依賴 A0、A1 |
 | `PUB-A3` Reproduction | clean checkout 以 `python -I -S` 重建稿件每一張 table／figure 的輸入；受 `ENVIRONMENT-LOCK-V1` record 比對 | `NOT_STARTED` | 現有 replay 已覆蓋大部分；缺 formal clean-checkout 一次性執行 |
 | `PUB-A4` Internal review | 至少一輪對抗式內部審查（含統計與 RL 評估兩個視角），所有 blocking 意見有回應 | `NOT_STARTED` | |
