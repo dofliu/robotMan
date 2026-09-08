@@ -62,8 +62,9 @@ def _cell(design, arm_id, per_seed, *, training_state="COMPLETED", evaluation_st
             spec = per_seed(index)
             finite = spec[2] if len(spec) > 2 else True
             episodes.append(_episode(design, seed, spec[0], spec[1], finite=finite))
-    return {
-        "schema_version": sc.CELL_SCHEMA,
+    is_v2 = design.get("schema_version") == sc.PROTOCOL_SCHEMA_V2
+    cell = {
+        "schema_version": sc.CELL_SCHEMA_V2 if is_v2 else sc.CELL_SCHEMA,
         "arm_id": arm_id,
         "low_pass_alpha": design["alphas"][arm_id],
         "realized_timesteps": design["expected_realized_timesteps"] if training_state == "COMPLETED" else 0,
@@ -76,6 +77,9 @@ def _cell(design, arm_id, per_seed, *, training_state="COMPLETED", evaluation_st
         "evaluation_output_sha256": sc.sha256_bytes(sc.json_bytes(episodes)),
         "episodes": episodes,
     }
+    if is_v2:
+        cell["normalizer_sha256"] = ("sha256:" + "77" * 32) if (design.get("normalize") and training_state == "COMPLETED") else None
+    return cell
 
 
 def _bundle(design, protocol_sha, lock_sha, reference_spec, candidate_spec, *, overrides=None):
@@ -597,3 +601,57 @@ def test_v1_summary_carries_no_v2_keys(protocol, design, digests):
     assert summary["schema_version"] == sc.SUMMARY_SCHEMA
     assert "p0_reference_adequacy" not in summary and "p1_arm_scope" not in summary
     assert "candidate_censored" not in summary["replicates"][0]
+
+
+# --------------------------------------------------------------------------- #
+# V2 recipe fields (normalize / policy_kwargs) and the V2 cell schema
+# --------------------------------------------------------------------------- #
+
+RECIPE = {
+    "normalize": {"norm_obs": True, "norm_reward": True, "clip_obs": 10.0},
+    "policy_kwargs": {"log_std_init": -2.0, "ortho_init": False, "activation_fn": "ReLU", "net_arch": {"pi": [256, 256], "vf": [256, 256]}},
+}
+
+
+def test_v2_protocol_accepts_a_recipe_and_v1_refuses_it(v2_protocol, protocol):
+    tuned = copy.deepcopy(v2_protocol)
+    tuned["training"].update(copy.deepcopy(RECIPE))
+    design = sc.validate_protocol(tuned)
+    assert design["normalize"]["norm_obs"] is True and design["policy_kwargs"]["activation_fn"] == "ReLU"
+    plain = copy.deepcopy(protocol)
+    plain["training"].update(copy.deepcopy(RECIPE))
+    with pytest.raises(sc.SecondCaseError, match="V2 protocols only"):
+        sc.validate_protocol(plain)
+    bad = copy.deepcopy(tuned)
+    bad["training"]["policy_kwargs"]["activation_fn"] = "Sigmoid"
+    with pytest.raises(sc.SecondCaseError):
+        sc.validate_protocol(bad)
+
+
+def test_v2_cells_carry_a_normalizer_digest_exactly_when_the_recipe_normalizes(v2_protocol, v2_design, digests):
+    tuned = copy.deepcopy(v2_protocol)
+    tuned["training"].update(copy.deepcopy(RECIPE))
+    tuned_design = sc.validate_protocol(tuned)
+    raw = _bundle(tuned_design, digests["protocol"], digests["lock"], REF_FULL_30, lambda r: {"per_seed": lambda i: (0, 300)})
+    for rep in raw["replicates"]:
+        for cell in rep["arms"]:
+            cell["schema_version"] = sc.CELL_SCHEMA_V2
+            cell["normalizer_sha256"] = "sha256:" + "77" * 32
+    sc.validate_raw_bundle(raw, tuned)
+    # missing digest under a normalizing recipe -> refused
+    raw["replicates"][0]["arms"][0]["normalizer_sha256"] = None
+    with pytest.raises(sc.SecondCaseError, match="normalizer"):
+        sc.validate_raw_bundle(raw, tuned)
+    # a digest under a non-normalizing V2 recipe -> refused
+    raw2 = _bundle(v2_design, digests["protocol"], digests["lock"], REF_FULL_30, lambda r: {"per_seed": lambda i: (0, 300)})
+    for rep in raw2["replicates"]:
+        for cell in rep["arms"]:
+            cell["schema_version"] = sc.CELL_SCHEMA_V2
+            cell["normalizer_sha256"] = "sha256:" + "77" * 32
+    with pytest.raises(sc.SecondCaseError, match="does not use"):
+        sc.validate_raw_bundle(raw2, v2_protocol)
+    # V1 cells must not carry the field at all
+    raw_v1 = _good_raw(sc.validate_protocol(sc.load_protocol()), digests)
+    raw_v1["replicates"][0]["arms"][0]["normalizer_sha256"] = None
+    with pytest.raises(sc.SecondCaseError, match="keys mismatch"):
+        sc.validate_raw_bundle(raw_v1, sc.load_protocol())

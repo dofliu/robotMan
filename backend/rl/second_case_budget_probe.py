@@ -36,6 +36,8 @@ import second_case_exposure_contract as sc  # noqa: E402
 
 PROBE_SCHEMA = "SECOND_CASE_V2_BUDGET_PROBE_V1"
 PROBE_ID = "SECONDCASE-V2-BUDGET-PROBE-V1"
+PROBE_ID_RECIPE = "SECONDCASE-V2-BUDGET-PROBE-V2"
+PROBE_IDS = (PROBE_ID, PROBE_ID_RECIPE)
 RESULT_SCHEMA = "SECOND_CASE_V2_BUDGET_PROBE_RESULT_V1"
 DEFAULT_PROBE = RL_DIR / "second_case_v2_budget_probe.json"
 
@@ -72,6 +74,7 @@ PROBE_FIELDS = (
     "source_requirement",
     "training_seed",
 )
+OPTIONAL_PROBE_FIELDS = ("recipe_override",)
 
 
 class ProbeError(RuntimeError):
@@ -94,10 +97,10 @@ def load_probe(path: Path = DEFAULT_PROBE) -> dict[str, Any]:
 
 
 def validate_probe(probe: dict[str, Any], base_protocol: dict[str, Any], base_design: dict[str, Any]) -> dict[str, Any]:
-    keys = tuple(sorted(probe))
+    keys = tuple(sorted(k for k in probe if k not in OPTIONAL_PROBE_FIELDS))
     if keys != tuple(sorted(PROBE_FIELDS)):
         raise ProbeError(f"probe keys mismatch: missing={sorted(set(PROBE_FIELDS) - set(keys))} extra={sorted(set(keys) - set(PROBE_FIELDS))}")
-    if probe["schema_version"] != PROBE_SCHEMA or probe["probe_id"] != PROBE_ID:
+    if probe["schema_version"] != PROBE_SCHEMA or probe["probe_id"] not in PROBE_IDS:
         raise ProbeError("probe identity mismatch")
     if probe["role"] != "PILOT_FOR_V2_BUDGET_ONLY":
         raise ProbeError("probe must declare itself a pilot")
@@ -108,7 +111,8 @@ def validate_probe(probe: dict[str, Any], base_protocol: dict[str, Any], base_de
     if probe["arm_id"] != base_design["reference_arm_id"] or float(probe["low_pass_alpha"]) != base_design["alphas"][probe["arm_id"]]:
         raise ProbeError("probe must train the reference arm with its frozen alpha")
     interval = int(probe["checkpoint_interval_timesteps"])
-    n_steps = int(base_protocol["training"]["hyperparameters"]["n_steps"]) * int(base_protocol["training"]["parallel_envs"])
+    training = effective_training(base_protocol, probe)
+    n_steps = int(training["hyperparameters"]["n_steps"]) * int(training["parallel_envs"])
     if interval <= 0 or interval % n_steps != 0:
         raise ProbeError("checkpoint interval must be a whole number of rollouts")
     max_checkpoints = int(probe["max_checkpoints"])
@@ -142,7 +146,35 @@ def validate_probe(probe: dict[str, Any], base_protocol: dict[str, Any], base_de
         "interval": interval,
         "max_checkpoints": max_checkpoints,
         "minimum_full": min_full,
+        "training": training,
     }
+
+
+def effective_training(base_protocol: dict[str, Any], probe: dict[str, Any]) -> dict[str, Any]:
+    """The training block the probe actually uses: V1's, or V1's with the probe's recipe override.
+
+    An override replaces hyperparameters and adds normalize / policy_kwargs; it
+    cannot touch device, parallel_envs, policy class or torch_threads.
+    """
+    training = json.loads(json.dumps(base_protocol["training"]))
+    override = probe.get("recipe_override")
+    if not override:
+        return training
+    allowed = {"hyperparameters", "normalize", "policy_kwargs", "source", "verification_status"}
+    extra = set(override) - allowed
+    if extra:
+        raise ProbeError(f"recipe_override may not set {sorted(extra)}")
+    hyper = dict(override["hyperparameters"])
+    if set(hyper) != set(training["hyperparameters"]):
+        raise ProbeError("recipe_override.hyperparameters must name exactly the base hyperparameter keys")
+    training["hyperparameters"] = hyper
+    if "normalize" in override:
+        training["normalize"] = dict(override["normalize"])
+    if "policy_kwargs" in override:
+        training["policy_kwargs"] = dict(override["policy_kwargs"])
+    training["recipe_source"] = override.get("source")
+    training["recipe_verification_status"] = override.get("verification_status")
+    return training
 
 
 def probe_training_loop(
@@ -153,34 +185,20 @@ def probe_training_loop(
 ) -> dict[str, Any]:
     """Pure compute: incremental training with a checkpoint evaluation after each interval."""
     import torch
-    from stable_baselines3 import PPO
     from stable_baselines3.common.vec_env import DummyVecEnv
 
     runner = _runner()
     design = dict(base_design)
     design["evaluation_seeds"] = list(probe_design["evaluation_seeds"])
-    torch.set_num_threads(int(base_protocol["training"]["torch_threads"]))
+    training = probe_design.get("training") or base_protocol["training"]
+    # evaluate_cell reads the recipe from protocol["training"]; give it the effective block.
+    eval_protocol = dict(base_protocol)
+    eval_protocol["training"] = training
+    torch.set_num_threads(int(training["torch_threads"]))
     torch.use_deterministic_algorithms(True, warn_only=True)
-    hyper = base_protocol["training"]["hyperparameters"]
     vec = DummyVecEnv([lambda: runner.make_env(base_protocol, design, probe_design["alpha"])])
-    model = PPO(
-        base_protocol["training"]["policy"],
-        vec,
-        learning_rate=hyper["learning_rate"],
-        n_steps=hyper["n_steps"],
-        batch_size=hyper["batch_size"],
-        n_epochs=hyper["n_epochs"],
-        gamma=hyper["gamma"],
-        gae_lambda=hyper["gae_lambda"],
-        clip_range=hyper["clip_range"],
-        ent_coef=hyper["ent_coef"],
-        vf_coef=hyper["vf_coef"],
-        max_grad_norm=hyper["max_grad_norm"],
-        normalize_advantage=hyper["normalize_advantage"],
-        seed=probe_design["training_seed"],
-        device=base_protocol["training"]["device"],
-        verbose=0,
-    )
+    vec, normalized = runner.wrap_normalizer(training, vec)
+    model = runner.build_model(training, vec, probe_design["training_seed"])
     output_dir.mkdir(parents=True, exist_ok=True)
     checkpoints: list[dict[str, Any]] = []
     selected: int | None = None
@@ -193,7 +211,9 @@ def probe_training_loop(
             raise ProbeError(f"cumulative timesteps {cumulative} != {k * probe_design['interval']}")
         policy_path = output_dir / f"checkpoint_{k:02d}_{cumulative}.zip"
         model.save(policy_path)
-        rows = runner.evaluate_cell(base_protocol, design, probe_design["alpha"], policy_path, output_dir / f"traces_{k:02d}")
+        if normalized:
+            vec.save(str(runner.normalizer_path_for(policy_path)))
+        rows = runner.evaluate_cell(eval_protocol, design, probe_design["alpha"], policy_path, output_dir / f"traces_{k:02d}")
         rows_path = output_dir / f"checkpoint_{k:02d}_episodes.json"
         rows_path.write_bytes(sc.json_bytes(rows))
         full = sum(1 for r in rows if r["exposure_class"] == ei.EXPOSURE_FULL)
@@ -237,8 +257,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     lock = runner.verify_lock_now(Path(args.lock_record), base_design)
     result: dict[str, Any] = {
         "schema_version": RESULT_SCHEMA,
-        "probe_id": PROBE_ID,
+        "probe_id": probe["probe_id"],
         "probe_sha256": runner.sha256_file(Path(args.probe)),
+        "recipe": probe_design["training"],
         "base_protocol_id": sc.PROTOCOL_ID,
         "base_protocol_sha256": sc.PINNED_PROTOCOLS[sc.PROTOCOL_ID],
         "plant_asset_sha256": base_design["plant_asset_sha256"],
