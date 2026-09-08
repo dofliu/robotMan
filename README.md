@@ -10,7 +10,7 @@ Repository：[github.com/dofliu/robotMan](https://github.com/dofliu/robotMan) �
 
 - [SOURCE] 程式包含參數化步態、MuJoCo 模型、分析模式、即時 forward simulation、控制器與 RL pipeline；analysis `/api/simulate` 已開始提供 versioned metrics 與 partial runtime provenance，現行 REST/Live simulation inputs 採 bounded fail-closed schema，frontend 已顯示 frozen/stale-result、evidence 與 intervention/error states。
 - [INFERENCE] 既有數字目前只能視為特定程式版本、單一 nominal configuration 下的 development snapshot；缺少 immutable raw bundle 時不升格為正式 [RESULT] evidence。
-- [BLOCKER] 現有 runtime provenance 尚不是 project-wide immutable artifact storage，也沒有完整 environment lock；static contact raw-Jacobian replay，以及 passive single-support／centered known-payload／4–2–1 ms analytical fixture 已完成 bounded arithmetic identity，但 articulated dynamic/pendulum/energy cases、torque-speed envelope、joint limits、完整 solver convergence、fair benchmark、uncertainty quantification與實體 subsystem validation 尚未形成完整證據鏈。
+- [BLOCKER] 現有 runtime provenance 尚不是 project-wide immutable artifact storage；`ENVIRONMENT-LOCK-V1` 已能量測並重驗 software environment identity 且保留一份實測 record，但還沒有任何 pipeline 把 lock record 綁進自己的 run manifest，因此 environment lock 仍未完整；static contact raw-Jacobian replay，以及 passive single-support／centered known-payload／4–2–1 ms analytical fixture 已完成 bounded arithmetic identity，但 articulated dynamic/pendulum/energy cases、torque-speed envelope、joint limits、完整 solver convergence、fair benchmark、uncertainty quantification與實體 subsystem validation 尚未形成完整證據鏈。
 
 因此，介面中的「通過」、「穩定」、「可行」或「最大可承受」只代表目前數值模型與規則下的 screening signal，不等同實體機器人驗證結果。完整證據邊界見 [MODEL_CARD](docs/MODEL_CARD.md)。
 
@@ -125,6 +125,10 @@ comparison_report.md 保留既有 deterministic nominal snapshot，供回歸診�
 | [PAIRED_STATISTICS_IMPLEMENTATION_RECEIPT_2026-09-05](docs/PAIRED_STATISTICS_IMPLEMENTATION_RECEIPT_2026-09-05.md) | paired statistics/export 的 clean-source regression receipt、independent replay與保留狀態驗證 |
 | [V7_ACTION_INTERFACE_PILOT_SPEC](docs/V7_ACTION_INTERFACE_PILOT_SPEC.md) | v7 三臂 DEVELOPMENT pilot 的 frozen action math、seeds、acceptance、failure semantics與 claim boundary |
 | [V7_ACTION_INTERFACE_PILOT_IMPLEMENTATION_RECEIPT_2026-09-06](docs/V7_ACTION_INTERFACE_PILOT_IMPLEMENTATION_RECEIPT_2026-09-06.md) | v7 clean-source training/evaluation bundle、retained NULL、conditional statistics與 stdlib-only replay |
+| [ENVIRONMENT_LOCK_SPEC](docs/ENVIRONMENT_LOCK_SPEC.md) | locked/observed 分界、behaviour fingerprints、缺失 lock 的表述與 verification semantics |
+| [ENVIRONMENT_LOCK_IMPLEMENTATION_RECEIPT_2026-09-08](docs/ENVIRONMENT_LOCK_IMPLEMENTATION_RECEIPT_2026-09-08.md) | 實測 lock record、reduction-order 差異、v7 的 ABSENT_UNRECOVERABLE 判定與 EL-01..EL-10 |
+| [TRAINING_SEED_VARIANCE_SPEC](docs/TRAINING_SEED_VARIANCE_SPEC.md) | independent training replicates、replicate-level analysis unit、censoring 向上組合、禁止 selection 與 SV-01..SV-12 |
+| [TRAINING_SEED_VARIANCE_IMPLEMENTATION_RECEIPT_2026-09-08](docs/TRAINING_SEED_VARIANCE_IMPLEMENTATION_RECEIPT_2026-09-08.md) | plant identity 量測、三條結構性規則的實作、synthetic regression 結果與未執行訓練的邊界 |
 | [V7_EXPOSURE_CENSORING_AUDIT_SPEC](docs/V7_EXPOSURE_CENSORING_AUDIT_SPEC.md) | read-only exposure-censoring audit的 frozen horizon、phase conventions、censoring vocabulary、identification bounds與 acceptance |
 | [V7_EXPOSURE_CENSORING_AUDIT_IMPLEMENTATION_RECEIPT_2026-09-08](docs/V7_EXPOSURE_CENSORING_AUDIT_IMPLEMENTATION_RECEIPT_2026-09-08.md) | audit software的 clean-source synthetic receipt、phase-convention finding、identification bounds與 frozen-bundle範圍邊界 |
 | [V7_EXPOSURE_CENSORING_AUDIT_FROZEN_BUNDLE_RECEIPT_2026-09-08](docs/V7_EXPOSURE_CENSORING_AUDIT_FROZEN_BUNDLE_RECEIPT_2026-09-08.md) | 對 frozen v7 pilot bundle的 read-only audit run：實測 exposure分布、identification bounds、phase-convention finding與保留的 censoring blockers |
@@ -141,7 +145,11 @@ comparison_report.md 保留既有 deterministic nominal snapshot，供回歸診�
 
 因此：V7C 的 0% duty 其 full-horizon bound 為 `[0.0, 64.511111]`%，與 V7A 的 `36.2185185`% 重疊，paired bound `[-36.2185185, +28.2925927]` 包含 0，`0/30` pair 方向可識別 —— pilot 報出的 `-36.2185185` pp 已被量測確認為 exposure artifact。V7B 的 paired bound 在 `30/30` pair 排除 0 且皆為 NEGATIVE，但 aggregate 仍為 `NULL`（3 個 censored pair，禁止 complete-case deletion），且 V7B 在 pilot 中仍不 eligible。
 
-下一個唯一優先目標是另立 fresh DEVELOPMENT protocol 處理 independent training-seed variance：所有 v7 結果仍建立在每臂單一 training seed 之上，V7B 的方向穩健性不得讀成 candidate selection 或 sample-size 依據。`selected_candidate_arm_id` 維持 `null`，`pilot_planning_ready`、`method_level_power_ready`、`statistics_ready`、`paper_data_ready` 全部維持 false。Study A actual matrix、binary paired CI、complete environment lock、immutable storage 與 formal authorization 仍未完成；這些 development evidence 不解除 V0/V1/V3 gate。
+接續的 independent training-seed variance protocol `SEEDVAR-V7-TRAINING-REPLICATE-DEV-V1` 已凍結，其 evidence contract、獨立 `python -I -S` replay 與 synthetic regression 也已完成（`SV-01..SV-12`；三個 case 全部 replay exact）。它把 analysis unit 固定在 **training replicate**：method-level 分母恆為 `5`，而 `150` 與 `450` 是被強制檢查的 forbidden denominators —— 把 150 個 episode-level pair 當成獨立單位會把 evaluation-seed 變異冒充成 training-seed 變異。Exposure censoring 逐層向上組合成 interval，任一 replicate difference 不可點識別時 `between_replicate_sd` 直接輸出 `null`。
+
+前置的 `ENVIRONMENT-LOCK-V1` 一併完成：它量測行為而非相信 version string（含實跑 `500` 步的 MuJoCo contact state digest 與實際執行的 torch optimiser step），並實測到同一組 1000 個 reciprocal 在同一環境下依 stdlib 順序相加得 `7.485470860550343`、交給 `numpy.ndarray.sum` 得 `7.485470860550345` —— 兩者都符合 IEEE 754。v7 的兩個 retained bundle 都在此 contract 之前產生，其 environment 狀態為 `ABSENT_UNRECOVERABLE`，不得以現行環境的 capture 替代。
+
+**下一個唯一優先目標是實際執行**該 seed-variance protocol：需要 `3 arms × 5 replicates × 122,880 = 1,843,200` timesteps，且必須在具名 `MEASURED_ENVIRONMENT_LOCK`（`OMP_NUM_THREADS=1`）下進行。在它完成前，所有 v7 結果仍建立在每臂單一 training seed 之上，V7B 的方向穩健性不得讀成 candidate selection 或 sample-size 依據。`selected_candidate_arm_id` 維持 `null`，`pilot_planning_ready`、`method_level_power_ready`、`statistics_ready`、`paper_data_ready` 全部維持 false。Study A actual matrix、binary paired CI、lock record 綁進 run manifest、immutable storage 與 formal authorization 仍未完成；這些 development evidence 不解除 V0/V1/V3 gate。
 
 ## 資料聲明
 
