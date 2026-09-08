@@ -2,6 +2,20 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-08 (b)
+
+- 對已合併的 exposure-censoring audit執行一次 adversarial multi-dimension review與 contract／replay differential sweep，共 59個 findings；修正一律為「命名更精確、增加檢查、或縮小主張」，未動任何 threshold、envelope、horizon或 bound formula，既有數值結果不變。
+- 修正 cause mislabel：method-failure-only的 arm曾被標為 `EXPOSURE_CENSORED`。verdict與 blocked reason改為分別區分 exposure censoring、method failure與混合成因。
+- 修正 `arms_without_any_comparable_episode`的多餘 `FULL_EXPOSURE == 0`條件，該條件會讓「有 full exposure但沒有任何 comparable episode」的 arm被漏列，使 summary可能讀成「所有 arm皆可比較」。
+- 修正 shipped evidence中重複的 `PAIRED_CONTRAST_` 前綴；修正 descriptive sensitivity會把 retained method failure重新物化為 observed值；no-exposure episode不再允許保留 observed primary outcome；缺少 selection key不再被當成 null selection。
+- `validate_v7_exposure_audit_bundle`原本只比對 hash與 receipt-versus-summary，因此一份一致地重新蓋章的 receipt可為被改寫的 summary背書。改為由 summary自身 retained comparability states重新導出 blocker list，並把 applicability flag綁定到 bundle class。
+- Differential sweep發現兩個同名 `build_audit_summary`的 precondition不一致（contract驗證 raw、pilot summary與 bundle-class binding，replay不驗證），已改為完全一致；66個 case涵蓋所有 phase boundary、各臂 terminal failure、mixed comparability與 NONFINITE primary outcome，結果 `66/66`一致或同時拒絕。
+- Integrity強化：replay的 check inventory凍結並要求完全相符（原本任何 all-true dict即可通過 AX-11）、replay把輸入檔綁定到 audited receipt inventory、replay receipt的 boolean改型別嚴格比較（`1 == True`）、`V7_PILOT_DEVELOPMENT_BUNDLE`必須保留 pinned audited protocol hash、audited bundle的 file set在前後比對、directory scan對不可讀子樹 fail closed、輸出寫入拒絕跟隨 link、output/source root另比對 filesystem identity。
+- 縮小主張：receipt原本斷言 v7 pilot的 contrast不具內部可比性，但本次從未讀取該 frozen bundle、也未量測；已改為只陳述 software已驗證與 metric定義層面的性質，並明示 pilot實際 exposure與 bounds未量測。synthetic表格另加註為 synthetic，因其沿用 frozen `V7A`／`V7B`／`V7C` identifier。identification bounds的 estimand存在性約定改為明示；replay的 exact-identity改為說明它證明什麼（summary忠實於 retained rows）與不證明什麼（共用推導規則本身的正確性）。
+- Tests由 38增至 72。新增的 fixture guard把 synthetic raw送進 pilot自身 validator，首次執行即發現 fixture編造了 frozen protocol未宣告的 per-arm identifier，意即先前 audit是對真實 pipeline不可能產生的輸入做測試。另補上先前無法到達的 zero-blocker clean status／observed aggregate／CLI exit 0路徑、partial-exposure method failure、duplicate／unexpected seed、arm-inventory mismatch、post-audit source drift與夾帶檔案、forged replay receipt，以及以重新索引 output receipt到達的 validator語意檢查。
+- Clean source `4d0709327a03ba2773c8ad05f6051118dda6f54e`重新產生 evidence：27 artifacts / `118218688` bytes，package receipt `sha256:96782c7987af6630be543ee0d18820267e8149f36a21c483526400c86c6519ac`；三個 case皆 `AUDIT_BUNDLE_VALID`與 read-only verified，兩個保留 censoring blocker、一個 blocker為 0。
+- 59個 findings中 25個完成 adversarial verification（15 confirmed、10 refuted）後主動停止該 workflow，因其 verifier與本地 validation競用 CPU；其餘由直接對照 source與 shipped evidence判定。`paper_data_ready=false`等 blocker全部保留。
+
 ## Unreleased — 2026-09-08
 
 - 先以 Git `ee7321090089b186d847a958ae607478b6a12e6c`凍結 `AUDIT-V7-EXPOSURE-CENSORING-V1`：read-only contract、bundle class binding、由既有 task contract導出的 exposure horizon、censoring/method-failure vocabulary、assumption-free identification bounds、`AX-01..AX-12`與 `SIM_ONLY_MUJOCO / NOT_PHYSICALLY_VALIDATED / DEVELOPMENT_ONLY` boundary。
