@@ -1,0 +1,518 @@
+{
+  "analysis_unit": "TRAINING_REPLICATE",
+  "bundle_class": "SECOND_CASE_DEVELOPMENT_BUNDLE",
+  "candidate_arm_id": "W2D_C_FILTERED",
+  "censored_replicate_count": 5,
+  "claim_boundary": [
+    "Supports only whether the naive per-step saturation estimator and the assumption-free full-horizon bound disagree on Walker2d-v5 under its default early termination.",
+    "Does not support any statement about Walker2d locomotion quality, about low-pass action filtering as a design choice, about the v7 humanoid, or about physical actuators.",
+    "DEVELOPMENT evidence under an internal hash freeze; not preregistered; no direction is claimed for the contrast; no candidate is selected; paper_data_ready is unchanged."
+  ],
+  "contrast": "W2D_C_FILTERED minus W2D_A_DIRECT",
+  "direction_claim_permitted": false,
+  "environment_lock_sha256": "sha256:911b436231c8e0b1d7a3d07bca6894ce4c42c517c4a5cbbbdd0f9dff694ff631",
+  "evaluation_seed_first": 41000,
+  "evaluation_seed_last": 41029,
+  "forbidden_denominators": [
+    30,
+    60,
+    150,
+    300
+  ],
+  "method_level_bound": {
+    "analysis_unit": "TRAINING_REPLICATE",
+    "between_replicate_sd_pp": null,
+    "between_replicate_sd_reason": "BLOCKED_PARTIALLY_IDENTIFIED_REPLICATE_DIFFERENCES",
+    "method_level_n": 5,
+    "point_identified": false,
+    "sign": "UNIDENTIFIED",
+    "sign_identified_replicate_count": 0,
+    "theta_bound_pp": {
+      "lower_pp": -79.118,
+      "upper_pp": 55.913333,
+      "width_pp": 135.031333
+    }
+  },
+  "naive_method_level": {
+    "asserted_sign": "NEGATIVE",
+    "asserts_direction": true,
+    "estimator": "NAIVE_PER_STEP_RATE",
+    "mean_pp": -28.795138,
+    "method_level_n": 5,
+    "sd_pp": 14.419184,
+    "t_critical": 2.776445,
+    "t_interval_pp": {
+      "lower_pp": -46.698919,
+      "upper_pp": -10.891357
+    }
+  },
+  "naive_versus_bound": {
+    "bound_sign": "UNIDENTIFIED",
+    "naive_asserted_sign": "NEGATIVE",
+    "naive_asserts_direction": true,
+    "outcome": "NAIVE_ASSERTS_DIRECTION_BOUND_CONTAINS_ZERO"
+  },
+  "outcome": "SECOND_CASE_ARTIFACT_REPRODUCED",
+  "p1_censoring_present": true,
+  "p3_early_terminated_episodes": 284,
+  "p3_early_terminated_with_observed_outcome": 284,
+  "p3_observed_does_not_imply_full_exposure": true,
+  "paper_data_ready": false,
+  "plant_asset_sha256": "sha256:6bed53a6cc3ca73c4fe8ac3486d3b4228927264a6454f4ef16d3eed3c58bc09d",
+  "preregistered": false,
+  "protocol_id": "SECONDCASE-EXPOSURE-CENSORING-WALKER2D-V1",
+  "protocol_sha256": "sha256:45d1ec553a1124fd613f90a8034b27f10ef8f01f23a219cca216479fc4c5350c",
+  "publication_gate": "PUB-A1",
+  "reference_arm_id": "W2D_A_DIRECT",
+  "replicate_count": 5,
+  "replicates": [
+    {
+      "any_arm_censored": true,
+      "arms": [
+        {
+          "arm_id": "W2D_A_DIRECT",
+          "cell_state": "PARTIALLY_IDENTIFIED",
+          "comparability_counts": {
+            "COMPARABLE": 0,
+            "EXPOSURE_CENSORED": 30,
+            "METHOD_FAILURE_NOT_CENSORING": 0
+          },
+          "early_terminated_with_observed_outcome": 30,
+          "episode_count": 30,
+          "evaluation_output_sha256": "sha256:8a5e282b914862507193ef9e5a2d9b8a97d990cac9c723bcd322ca56c0d102a3",
+          "evaluation_terminal_state": "COMPLETED",
+          "exposure_counts": {
+            "EARLY_TERMINATED": 30,
+            "FULL_EXPOSURE": 0,
+            "NO_EXPOSURE": 0
+          },
+          "level_sd_pct": null,
+          "level_sd_reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES",
+          "low_pass_alpha": 1.0,
+          "mean_bound_pct": {
+            "lower_pct": 6.500556,
+            "point_identified": false,
+            "upper_pct": 88.667222,
+            "width_pct": 82.166666
+          },
+          "naive_mean_duty_pct": 36.436539,
+          "outcome_counts": {
+            "NONFINITE": 0,
+            "OBSERVED": 30
+          },
+          "realized_timesteps": 301056,
+          "training_terminal_state": "COMPLETED"
+        },
+        {
+          "arm_id": "W2D_C_FILTERED",
+          "cell_state": "PARTIALLY_IDENTIFIED",
+          "comparability_counts": {
+            "COMPARABLE": 0,
+            "EXPOSURE_CENSORED": 30,
+            "METHOD_FAILURE_NOT_CENSORING": 0
+          },
+          "early_terminated_with_observed_outcome": 30,
+          "episode_count": 30,
+          "evaluation_output_sha256": "sha256:2f0e96f0e83e0e55a9f750c6157cc899a7bee37c05a3371a0fc044e5ccd89b4a",
+          "evaluation_terminal_state": "COMPLETED",
+          "exposure_counts": {
+            "EARLY_TERMINATED": 30,
+            "FULL_EXPOSURE": 0,
+            "NO_EXPOSURE": 0
+          },
+          "level_sd_pct": null,
+          "level_sd_reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES",
+          "low_pass_alpha": 0.25,
+          "mean_bound_pct": {
+            "lower_pct": 5.650556,
+            "point_identified": false,
+            "upper_pct": 74.017222,
+            "width_pct": 68.366666
+          },
+          "naive_mean_duty_pct": 17.878667,
+          "outcome_counts": {
+            "NONFINITE": 0,
+            "OBSERVED": 30
+          },
+          "realized_timesteps": 301056,
+          "training_terminal_state": "COMPLETED"
+        }
+      ],
+      "naive_and_bound_sign_agree": false,
+      "naive_paired_difference_pp": -18.557872,
+      "naive_sign": "NEGATIVE",
+      "paired_difference_bound_pp": {
+        "lower_pp": -83.016666,
+        "point_identified": false,
+        "reason": null,
+        "sign": "UNIDENTIFIED",
+        "upper_pp": 67.516666,
+        "width_pp": 150.533332
+      },
+      "replicate_index": 0,
+      "training_seed": 40000
+    },
+    {
+      "any_arm_censored": true,
+      "arms": [
+        {
+          "arm_id": "W2D_A_DIRECT",
+          "cell_state": "PARTIALLY_IDENTIFIED",
+          "comparability_counts": {
+            "COMPARABLE": 0,
+            "EXPOSURE_CENSORED": 30,
+            "METHOD_FAILURE_NOT_CENSORING": 0
+          },
+          "early_terminated_with_observed_outcome": 30,
+          "episode_count": 30,
+          "evaluation_output_sha256": "sha256:39491be266f78737a0b17cf6224180fdf65c09863775c95c04c8b08921812fee",
+          "evaluation_terminal_state": "COMPLETED",
+          "exposure_counts": {
+            "EARLY_TERMINATED": 30,
+            "FULL_EXPOSURE": 0,
+            "NO_EXPOSURE": 0
+          },
+          "level_sd_pct": null,
+          "level_sd_reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES",
+          "low_pass_alpha": 1.0,
+          "mean_bound_pct": {
+            "lower_pct": 10.920556,
+            "point_identified": false,
+            "upper_pct": 84.250556,
+            "width_pct": 73.33
+          },
+          "naive_mean_duty_pct": 40.927756,
+          "outcome_counts": {
+            "NONFINITE": 0,
+            "OBSERVED": 30
+          },
+          "realized_timesteps": 301056,
+          "training_terminal_state": "COMPLETED"
+        },
+        {
+          "arm_id": "W2D_C_FILTERED",
+          "cell_state": "PARTIALLY_IDENTIFIED",
+          "comparability_counts": {
+            "COMPARABLE": 0,
+            "EXPOSURE_CENSORED": 30,
+            "METHOD_FAILURE_NOT_CENSORING": 0
+          },
+          "early_terminated_with_observed_outcome": 30,
+          "episode_count": 30,
+          "evaluation_output_sha256": "sha256:637ef10a106aecf28a65bc1c0d5a1d848b94e47da2aa0e9606810d18dc9ec8e4",
+          "evaluation_terminal_state": "COMPLETED",
+          "exposure_counts": {
+            "EARLY_TERMINATED": 30,
+            "FULL_EXPOSURE": 0,
+            "NO_EXPOSURE": 0
+          },
+          "level_sd_pct": null,
+          "level_sd_reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES",
+          "low_pass_alpha": 0.25,
+          "mean_bound_pct": {
+            "lower_pct": 5.183333,
+            "point_identified": false,
+            "upper_pct": 81.193333,
+            "width_pct": 76.01
+          },
+          "naive_mean_duty_pct": 21.592023,
+          "outcome_counts": {
+            "NONFINITE": 0,
+            "OBSERVED": 30
+          },
+          "realized_timesteps": 301056,
+          "training_terminal_state": "COMPLETED"
+        }
+      ],
+      "naive_and_bound_sign_agree": false,
+      "naive_paired_difference_pp": -19.335733,
+      "naive_sign": "NEGATIVE",
+      "paired_difference_bound_pp": {
+        "lower_pp": -79.067223,
+        "point_identified": false,
+        "reason": null,
+        "sign": "UNIDENTIFIED",
+        "upper_pp": 70.272777,
+        "width_pp": 149.34
+      },
+      "replicate_index": 1,
+      "training_seed": 40001
+    },
+    {
+      "any_arm_censored": true,
+      "arms": [
+        {
+          "arm_id": "W2D_A_DIRECT",
+          "cell_state": "PARTIALLY_IDENTIFIED",
+          "comparability_counts": {
+            "COMPARABLE": 4,
+            "EXPOSURE_CENSORED": 26,
+            "METHOD_FAILURE_NOT_CENSORING": 0
+          },
+          "early_terminated_with_observed_outcome": 26,
+          "episode_count": 30,
+          "evaluation_output_sha256": "sha256:cc97f7981b835c3c71d6ad93b3e846f16527896275c487f3bab568ca5f93dfa5",
+          "evaluation_terminal_state": "COMPLETED",
+          "exposure_counts": {
+            "EARLY_TERMINATED": 26,
+            "FULL_EXPOSURE": 4,
+            "NO_EXPOSURE": 0
+          },
+          "level_sd_pct": null,
+          "level_sd_reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES",
+          "low_pass_alpha": 1.0,
+          "mean_bound_pct": {
+            "lower_pct": 21.630556,
+            "point_identified": false,
+            "upper_pct": 74.727222,
+            "width_pct": 53.096666
+          },
+          "naive_mean_duty_pct": 45.889642,
+          "outcome_counts": {
+            "NONFINITE": 0,
+            "OBSERVED": 30
+          },
+          "realized_timesteps": 301056,
+          "training_terminal_state": "COMPLETED"
+        },
+        {
+          "arm_id": "W2D_C_FILTERED",
+          "cell_state": "PARTIALLY_IDENTIFIED",
+          "comparability_counts": {
+            "COMPARABLE": 0,
+            "EXPOSURE_CENSORED": 30,
+            "METHOD_FAILURE_NOT_CENSORING": 0
+          },
+          "early_terminated_with_observed_outcome": 30,
+          "episode_count": 30,
+          "evaluation_output_sha256": "sha256:921c01da8a4b14f1b928d8deecccdf12422c455cfbf0cebb75c953c35f4e1c13",
+          "evaluation_terminal_state": "COMPLETED",
+          "exposure_counts": {
+            "EARLY_TERMINATED": 30,
+            "FULL_EXPOSURE": 0,
+            "NO_EXPOSURE": 0
+          },
+          "level_sd_pct": null,
+          "level_sd_reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES",
+          "low_pass_alpha": 0.25,
+          "mean_bound_pct": {
+            "lower_pct": 6.110556,
+            "point_identified": false,
+            "upper_pct": 80.397222,
+            "width_pct": 74.286666
+          },
+          "naive_mean_duty_pct": 23.757696,
+          "outcome_counts": {
+            "NONFINITE": 0,
+            "OBSERVED": 30
+          },
+          "realized_timesteps": 301056,
+          "training_terminal_state": "COMPLETED"
+        }
+      ],
+      "naive_and_bound_sign_agree": false,
+      "naive_paired_difference_pp": -22.131946,
+      "naive_sign": "NEGATIVE",
+      "paired_difference_bound_pp": {
+        "lower_pp": -68.616666,
+        "point_identified": false,
+        "reason": null,
+        "sign": "UNIDENTIFIED",
+        "upper_pp": 58.766666,
+        "width_pp": 127.383332
+      },
+      "replicate_index": 2,
+      "training_seed": 40002
+    },
+    {
+      "any_arm_censored": true,
+      "arms": [
+        {
+          "arm_id": "W2D_A_DIRECT",
+          "cell_state": "PARTIALLY_IDENTIFIED",
+          "comparability_counts": {
+            "COMPARABLE": 0,
+            "EXPOSURE_CENSORED": 30,
+            "METHOD_FAILURE_NOT_CENSORING": 0
+          },
+          "early_terminated_with_observed_outcome": 30,
+          "episode_count": 30,
+          "evaluation_output_sha256": "sha256:25a40695ae6a6ce0c59330ed847123befc222ba97cefcfc1e740e834513c6aab",
+          "evaluation_terminal_state": "COMPLETED",
+          "exposure_counts": {
+            "EARLY_TERMINATED": 30,
+            "FULL_EXPOSURE": 0,
+            "NO_EXPOSURE": 0
+          },
+          "level_sd_pct": null,
+          "level_sd_reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES",
+          "low_pass_alpha": 1.0,
+          "mean_bound_pct": {
+            "lower_pct": 11.582222,
+            "point_identified": false,
+            "upper_pct": 93.582222,
+            "width_pct": 82.0
+          },
+          "naive_mean_duty_pct": 64.385062,
+          "outcome_counts": {
+            "NONFINITE": 0,
+            "OBSERVED": 30
+          },
+          "realized_timesteps": 301056,
+          "training_terminal_state": "COMPLETED"
+        },
+        {
+          "arm_id": "W2D_C_FILTERED",
+          "cell_state": "PARTIALLY_IDENTIFIED",
+          "comparability_counts": {
+            "COMPARABLE": 0,
+            "EXPOSURE_CENSORED": 30,
+            "METHOD_FAILURE_NOT_CENSORING": 0
+          },
+          "early_terminated_with_observed_outcome": 30,
+          "episode_count": 30,
+          "evaluation_output_sha256": "sha256:32a3530baf733717575243d6e25372d7b9ecf3adf942ee24184a4fbc5354b84f",
+          "evaluation_terminal_state": "COMPLETED",
+          "exposure_counts": {
+            "EARLY_TERMINATED": 30,
+            "FULL_EXPOSURE": 0,
+            "NO_EXPOSURE": 0
+          },
+          "level_sd_pct": null,
+          "level_sd_reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES",
+          "low_pass_alpha": 0.25,
+          "mean_bound_pct": {
+            "lower_pct": 4.26,
+            "point_identified": false,
+            "upper_pct": 66.696667,
+            "width_pct": 62.436667
+          },
+          "naive_mean_duty_pct": 11.329599,
+          "outcome_counts": {
+            "NONFINITE": 0,
+            "OBSERVED": 30
+          },
+          "realized_timesteps": 301056,
+          "training_terminal_state": "COMPLETED"
+        }
+      ],
+      "naive_and_bound_sign_agree": false,
+      "naive_paired_difference_pp": -53.055463,
+      "naive_sign": "NEGATIVE",
+      "paired_difference_bound_pp": {
+        "lower_pp": -89.322222,
+        "point_identified": false,
+        "reason": null,
+        "sign": "UNIDENTIFIED",
+        "upper_pp": 55.114445,
+        "width_pp": 144.436667
+      },
+      "replicate_index": 3,
+      "training_seed": 40003
+    },
+    {
+      "any_arm_censored": true,
+      "arms": [
+        {
+          "arm_id": "W2D_A_DIRECT",
+          "cell_state": "PARTIALLY_IDENTIFIED",
+          "comparability_counts": {
+            "COMPARABLE": 0,
+            "EXPOSURE_CENSORED": 30,
+            "METHOD_FAILURE_NOT_CENSORING": 0
+          },
+          "early_terminated_with_observed_outcome": 30,
+          "episode_count": 30,
+          "evaluation_output_sha256": "sha256:645ae4fe5a86877c2bd1ee891a4884db0d435c6a63e56f3728abd8095894e4ca",
+          "evaluation_terminal_state": "COMPLETED",
+          "exposure_counts": {
+            "EARLY_TERMINATED": 30,
+            "FULL_EXPOSURE": 0,
+            "NO_EXPOSURE": 0
+          },
+          "level_sd_pct": null,
+          "level_sd_reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES",
+          "low_pass_alpha": 1.0,
+          "mean_bound_pct": {
+            "lower_pct": 10.033889,
+            "point_identified": false,
+            "upper_pct": 89.873889,
+            "width_pct": 79.84
+          },
+          "naive_mean_duty_pct": 49.672535,
+          "outcome_counts": {
+            "NONFINITE": 0,
+            "OBSERVED": 30
+          },
+          "realized_timesteps": 301056,
+          "training_terminal_state": "COMPLETED"
+        },
+        {
+          "arm_id": "W2D_C_FILTERED",
+          "cell_state": "PARTIALLY_IDENTIFIED",
+          "comparability_counts": {
+            "COMPARABLE": 12,
+            "EXPOSURE_CENSORED": 18,
+            "METHOD_FAILURE_NOT_CENSORING": 0
+          },
+          "early_terminated_with_observed_outcome": 18,
+          "episode_count": 30,
+          "evaluation_output_sha256": "sha256:ee70744f27f1a18b2e25704373dd47fc51f1efd166f9099d04f5e04ac7d1f0c8",
+          "evaluation_terminal_state": "COMPLETED",
+          "exposure_counts": {
+            "EARLY_TERMINATED": 18,
+            "FULL_EXPOSURE": 12,
+            "NO_EXPOSURE": 0
+          },
+          "level_sd_pct": null,
+          "level_sd_reason": "BLOCKED_CENSORED_EPISODES_NO_POINT_VALUES",
+          "low_pass_alpha": 0.25,
+          "mean_bound_pct": {
+            "lower_pct": 14.306667,
+            "point_identified": false,
+            "upper_pct": 37.93,
+            "width_pct": 23.623333
+          },
+          "naive_mean_duty_pct": 18.777861,
+          "outcome_counts": {
+            "NONFINITE": 0,
+            "OBSERVED": 30
+          },
+          "realized_timesteps": 301056,
+          "training_terminal_state": "COMPLETED"
+        }
+      ],
+      "naive_and_bound_sign_agree": false,
+      "naive_paired_difference_pp": -30.894674,
+      "naive_sign": "NEGATIVE",
+      "paired_difference_bound_pp": {
+        "lower_pp": -75.567222,
+        "point_identified": false,
+        "reason": null,
+        "sign": "UNIDENTIFIED",
+        "upper_pp": 27.896111,
+        "width_pp": 103.463333
+      },
+      "replicate_index": 4,
+      "training_seed": 40004
+    }
+  ],
+  "retained_blockers": [
+    {
+      "blocker_id": "BETWEEN_REPLICATE_SD_NOT_IDENTIFIED",
+      "detail": "BLOCKED_PARTIALLY_IDENTIFIED_REPLICATE_DIFFERENCES"
+    }
+  ],
+  "schema_version": "SECOND_CASE_EXPOSURE_SUMMARY_V1",
+  "selection_permitted": false,
+  "source_git_sha_post": "b683ddc363b1e040ba366c194430eba546e6ad22",
+  "source_git_sha_pre": "b683ddc363b1e040ba366c194430eba546e6ad22",
+  "terminal_record_count": 300,
+  "training_seeds": [
+    40000,
+    40001,
+    40002,
+    40003,
+    40004
+  ]
+}
