@@ -143,7 +143,13 @@ payload mass error為 `0 kg`、paired GRF increment relative error為
 
 [RESULT] [V7 action-interface pilot receipt](V7_ACTION_INTERFACE_PILOT_IMPLEMENTATION_RECEIPT_2026-09-06.md)在 clean Git `058657dd43d28a9175e54362cf4d0a0618507c38`完成三臂各一個 training seed與 exact 30個 DEVELOPMENT evaluation seeds。14個 indexed artifacts共 `109520182` bytes，receipt為 `sha256:ed3e3eaa7c86f2b855d24aca68b09ce45bce61ac2fb6e573328b12157d758435`；`python -I -S`從 raw episodes exact重建 summary。V7B相對V7A的 conditional saturation paired difference為 `-12.8288921 ± 1.0720320` percentage points，但V7B有4個 negative episodes，不符合 frozen eligibility。
 
-[BLOCKER] V7C為30/30 early fall，required outcomes全數保留為 NULL。其倒下前 saturation arithmetic值為0%，但 exposure明顯不同，不能解讀為改善或與V7A形成有效 method contrast；下一個 validity audit將重建 termination time／phase與有效 exposure，原始 receipt不回改。
+[RESULT] [Frozen bundle audit receipt](V7_EXPOSURE_CENSORING_AUDIT_FROZEN_BUNDLE_RECEIPT_2026-09-08.md)已對 2026-09-06 bundle完成 read-only量測。V7C的30個 episode在 `3.08–3.30` s、`STEADY_WALK`期間終止，只實現 horizon的 `0.354889`；其 0% duty的 assumption-free full-horizon bound為 `[0.0, 64.511111]`%，與 V7A的 `36.2185185`%重疊，paired bound `[-36.2185185, +28.2925927]`包含0，30個 pair全部 sign不可識別。因此 pilot報出的 `-36.2185185` pp已被量測確認為 exposure artifact，而非 saturation改善。
+
+[RESULT] 同一次 audit顯示 V7B的 paired bound在30/30 pair全部排除0且皆為 NEGATIVE，即使其中3個 pair（seeds 18015／18021／18023）是 censored。該方向穩健性不解除 V7B的 ineligibility、不構成 selection，也不改變單一 training seed的限制。
+
+[INFERENCE] Audit只由 trace長度導出 exposure，卻獨立還原出與 pilot紀錄一致的跌倒 seed集合 `{18015, 18021, 18023}`，並正確地把 stop-only失敗的 18011留在 full exposure；這使 exposure重建與 pilot自身紀錄互相印證。
+
+[BLOCKER] V7B的3個 censored episode其 `outcome_state`全為 `OBSERVED`——它們在 `FINAL_STAND`內才終止，六項 required numeric皆有值，算術上看不出異常。`outcome_state == OBSERVED`不蘊含 full exposure，這是本 audit揭露的實測盲點。
 
 [RESULT] [V7 exposure-censoring audit receipt](V7_EXPOSURE_CENSORING_AUDIT_IMPLEMENTATION_RECEIPT_2026-09-08.md)在 clean Git
 `428ba214ec7d9e85c254b3b4f85d2c417094d202`實作 `AUDIT-V7-EXPOSURE-CENSORING-V1`並以 synthetic
@@ -235,6 +241,7 @@ Primary sources：
 6. [DONE-SOFTWARE] 建立 [Paired Statistics and Paper Export Contract V1](PAIRED_STATISTICS_CONTRACT.md)；synthetic regression已驗證 failure/cancellation、negative/null/non-finite/censoring retention、continuous CI與 raw-to-export replay，binary paired CI仍 blocked，不視為 PDR-6/7/8 scientific PASS。
 7. [DONE-EVIDENCE / BLOCKED-PLANNING] 完成 frozen v7 action-interface DEVELOPMENT pilot、14-artifact bundle與 stdlib-only replay；V7B有4個 negative episodes，V7C 30/30 early fall且 required outcomes為 NULL，因此沒有 selected candidate、不能做 method-level power/sample-size決策。
 8. [DONE-SOFTWARE / BLOCKED-DATA] 完成 early-termination / exposure-censoring validity audit V1的 frozen protocol、read-only contract、獨立 `python -I -S` replay、38個 fail-closed tests與 clean-source synthetic regression；method failure與 censoring分離、assumption-free identification bounds與 blocked aggregate均已驗證，並保留 recorded phase-convention offset finding。frozen pilot bundle不在 clean checkout內，因此 `audit_applies_to_frozen_v7_pilot=false`。
-9. [NEXT] 在保有 2026-09-06 bundle的機器上對 `V7_PILOT_DEVELOPMENT_BUNDLE`執行一次 read-only audit run，記錄真實 exposure分布、phase-convention finding與 identification bounds，原 receipt不回改；不重訓、不新增 seed、不調 alpha/envelope/threshold、不選 candidate、不開啟 FORMAL/HOLDOUT。完成後才另立 fresh DEVELOPMENT protocol考慮 independent training-seed variance。
+9. [DONE] 對 `V7_PILOT_DEVELOPMENT_BUNDLE`完成一次 read-only audit run，`audit_applies_to_frozen_v7_pilot=true`、`AX-01..AX-12`全通過、read-only前後 readback一致、保留 35個 censoring blocker。實測 exposure為 V7A 30/30 full（450 steps）、V7B 27 full + 3 early（420–445 steps，全落在 `FINAL_STAND`且 required outcomes仍 `OBSERVED`）、V7C 30/30 early（`159.7000 ± 2.7687` steps，`3.08–3.30` s，占 horizon `0.354889`，全落在 `STEADY_WALK`）。V7C full-horizon bound `[0.0, 64.511111]`%與 V7A `36.2185185`%重疊，paired bound `[-36.2185185, +28.2925927]`含0、`0/30` sign-identified；V7B paired bound `30/30`排除0且皆 NEGATIVE，但 aggregate仍 `NULL`。詳見 [frozen bundle receipt](V7_EXPOSURE_CENSORING_AUDIT_FROZEN_BUNDLE_RECEIPT_2026-09-08.md)。
+10. [NEXT] 另立 fresh DEVELOPMENT protocol處理 independent training-seed variance。所有 v7結果仍建立在每臂單一 training seed之上，因此 V7B的 sign穩健性不得讀成 candidate selection或 sample-size依據；該 protocol凍結前不做 selection、不調 threshold、不開啟 FORMAL/HOLDOUT。
 
 隨研究規模增加時再評估 Parquet/object storage、distributed queue與 GPU worker；現階段 Windows單機、JSON/NPZ與 versioned local artifact root 已足夠，先避免引入不必要的分散式複雜度。
