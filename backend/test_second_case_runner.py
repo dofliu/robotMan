@@ -163,3 +163,72 @@ def test_git_identity_reports_the_repository(runner):
     assert identity["available"] is True
     assert isinstance(identity["working_tree_dirty"], bool)
     assert len(identity["git_sha"]) == 40
+
+
+# --------------------------------------------------------------------------- #
+# V2 budget probe (pilot): validation and a tiny compute loop
+# --------------------------------------------------------------------------- #
+
+PROBE = HERE / "rl" / "second_case_budget_probe.py"
+
+
+def _load_probe_module():
+    spec = importlib.util.spec_from_file_location("second_case_budget_probe", PROBE)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_probe_protocol_validates_against_the_pinned_v1(protocol, design):
+    probe_mod = _load_probe_module()
+    probe = probe_mod.load_probe()
+    pdesign = probe_mod.validate_probe(probe, protocol, design)
+    assert pdesign["arm_id"] == design["reference_arm_id"] and pdesign["alpha"] == 1.0
+    assert pdesign["training_seed"] == 42000 and pdesign["evaluation_seeds"] == list(range(43000, 43030))
+    assert pdesign["interval"] == 245760 and pdesign["max_checkpoints"] == 12 and pdesign["minimum_full"] == 27
+    # Probe seeds are disjoint from V1, sealed v7 ranges, and the planned V2 ranges.
+    for lo, hi in list(probe["forbidden_seed_ranges"].values()) + list(probe["planned_v2_seed_ranges"].values()):
+        assert not any(lo <= s <= hi for s in pdesign["evaluation_seeds"] + [pdesign["training_seed"]])
+
+
+def test_probe_refuses_a_candidate_arm_or_reused_seeds(protocol, design):
+    probe_mod = _load_probe_module()
+    probe = probe_mod.load_probe()
+    bad = copy.deepcopy(probe)
+    bad["arm_id"] = design["candidate_arm_id"]
+    with pytest.raises(probe_mod.ProbeError):
+        probe_mod.validate_probe(bad, protocol, design)
+    bad = copy.deepcopy(probe)
+    bad["training_seed"] = 40001  # a V1 training seed
+    with pytest.raises(probe_mod.ProbeError):
+        probe_mod.validate_probe(bad, protocol, design)
+    bad = copy.deepcopy(probe)
+    bad["max_checkpoints"] = 13  # raising the max must also break the cumulative pin
+    with pytest.raises(probe_mod.ProbeError):
+        probe_mod.validate_probe(bad, protocol, design)
+
+
+def test_probe_tiny_loop_records_checkpoints_and_applies_the_rule(protocol, design, tmp_path):
+    probe_mod = _load_probe_module()
+    pdesign = {
+        "arm_id": design["reference_arm_id"],
+        "alpha": 1.0,
+        "training_seed": 42000,
+        "evaluation_seeds": [43000, 43001],
+        "interval": 2048,
+        "max_checkpoints": 2,
+        "minimum_full": 1,
+    }
+    result = probe_mod.probe_training_loop(protocol, design, pdesign, tmp_path / "ckpt")
+    assert len(result["checkpoints"]) == 2
+    assert [c["cumulative_timesteps"] for c in result["checkpoints"]] == [2048, 4096]
+    for c in result["checkpoints"]:
+        assert c["full_exposure_count"] + c["early_terminated_count"] == 2
+        assert (tmp_path / "ckpt" / f"checkpoint_{c['checkpoint_index']:02d}_{c['cumulative_timesteps']}.zip").is_file()
+    # 4096 steps of PPO do not keep a Walker2d up: the rule cannot select a budget here.
+    assert result["outcome"] in (probe_mod.OUTCOME_NEGATIVE, probe_mod.OUTCOME_FOUND)
+    if result["outcome"] == probe_mod.OUTCOME_NEGATIVE:
+        assert result["selected_budget_timesteps"] is None
+    else:
+        assert result["selected_budget_timesteps"] == 4096

@@ -1,0 +1,108 @@
+{
+  "adequacy_rule": {
+    "consecutive_checkpoints": 2,
+    "minimum_full_exposure_episodes": 27,
+    "rationale": "27/30 mirrors the v7 reference exposure (pilot 30/30, seed-variance 143/150 ~ 28.6/30); two consecutive checkpoints so a single lucky evaluation cannot set the budget.",
+    "selected_budget": "cumulative timesteps at the LATER of the first two consecutive checkpoints whose FULL_EXPOSURE count is >= minimum_full_exposure_episodes"
+  },
+  "arm_id": "W2D_A_DIRECT",
+  "base_protocol_id": "SECONDCASE-EXPOSURE-CENSORING-WALKER2D-V1",
+  "base_protocol_sha256": "sha256:45d1ec553a1124fd613f90a8034b27f10ef8f01f23a219cca216479fc4c5350c",
+  "checkpoint_interval_note": "120 rollouts x 2048 steps; every checkpoint boundary is a rollout boundary, so the incremental learn() calls are one continuous run.",
+  "checkpoint_interval_timesteps": 245760,
+  "claim_boundary": [
+    "Supports only the choice of a V2 training budget.",
+    "Does not support any statement about Walker2d locomotion quality, the artifact, or either arm's saturation."
+  ],
+  "disclosure": "This probe is a pilot. Its checkpoints, evaluations and traces may not be reused as V2 evidence, may not be compared with V1 or V2 cells, and its seed ranges are forbidden for V2. It was authored after the V1 result was known.",
+  "environment_lock_requirement": {
+    "contract_id": "ENVIRONMENT-LOCK-V1",
+    "required_lock_class": "MEASURED_ENVIRONMENT_LOCK",
+    "required_lock_completeness": "FULL_LOCK",
+    "required_threading_determinism": "AMBIENT_THREADING_PINNED",
+    "verified_before_every_cell": true
+  },
+  "evaluation_seed_first": 43000,
+  "evaluation_seed_last": 43029,
+  "evaluation_seeds_per_checkpoint": 30,
+  "forbidden_seed_ranges": {
+    "planned_v2_evaluation_seeds": [
+      45000,
+      45029
+    ],
+    "planned_v2_training_seeds": [
+      44000,
+      44004
+    ],
+    "secondcase_v1_evaluation_seeds": [
+      41000,
+      41029
+    ],
+    "secondcase_v1_training_seeds": [
+      40000,
+      40004
+    ],
+    "v7_development_evaluation": [
+      18000,
+      18029
+    ],
+    "v7_pilot_training_seed": [
+      8700,
+      8700
+    ],
+    "v7_retired_holdout": [
+      19000,
+      19029
+    ],
+    "v7_sealed_formal": [
+      20000,
+      20029
+    ],
+    "v7_seedvar_training_seeds": [
+      8720,
+      8724
+    ]
+  },
+  "if_negative": "V2 is not frozen on this recipe. Record PROBE_NEGATIVE_MAX_BUDGET_REACHED and propose a different recipe or plant as a new probe; never raise the maximum after seeing the curve.",
+  "inherits_from_base": [
+    "environment",
+    "shared_action_interface",
+    "training.hyperparameters",
+    "training.policy",
+    "training.device",
+    "training.parallel_envs",
+    "training.torch_threads",
+    "evaluation.saturation_threshold_abs_applied_action",
+    "evaluation.deterministic_policy",
+    "primary_measurement",
+    "environment_lock_requirement",
+    "source_requirement"
+  ],
+  "low_pass_alpha": 1.0,
+  "max_checkpoints": 12,
+  "max_cumulative_timesteps": 2949120,
+  "outcome_labels": [
+    "PROBE_BUDGET_FOUND",
+    "PROBE_NEGATIVE_MAX_BUDGET_REACHED",
+    "PROBE_BLOCKED_METHOD_FAILURE"
+  ],
+  "planned_v2_seed_ranges": {
+    "evaluation": [
+      45000,
+      45029
+    ],
+    "training": [
+      44000,
+      44004
+    ]
+  },
+  "probe_id": "SECONDCASE-V2-BUDGET-PROBE-V1",
+  "purpose": "Find the smallest training budget at which the V1 reference arm (alpha = 1.0, SB3 PPO defaults, single env) reaches a frozen full-exposure fraction on Walker2d-v5, so that SECONDCASE-EXPOSURE-CENSORING-WALKER2D-V2 can require an adequately exposed reference. V1 measured that with both arms censored the bound contains zero by construction; V2 needs asymmetric censoring to be informative.",
+  "role": "PILOT_FOR_V2_BUDGET_ONLY",
+  "schema_version": "SECOND_CASE_V2_BUDGET_PROBE_V1",
+  "source_requirement": {
+    "clean_git_required": true,
+    "record_pre_and_post_sha": true
+  },
+  "training_seed": 42000
+}

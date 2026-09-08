@@ -306,8 +306,8 @@ def run_cell(args: argparse.Namespace) -> dict[str, Any]:
 
     provenance: dict[str, Any] = {
         "schema_version": PROVENANCE_SCHEMA,
-        "protocol_id": sc.PROTOCOL_ID,
-        "protocol_sha256": sc.PROTOCOL_SHA256,
+        "protocol_id": protocol["protocol_id"],
+        "protocol_sha256": sc.PINNED_PROTOCOLS[protocol["protocol_id"]],
         "arm_id": args.arm,
         "replicate_index": args.replicate_index,
         "training_seed": training_seed,
@@ -394,7 +394,7 @@ def assemble(args: argparse.Namespace) -> dict[str, Any]:
     (bundle_root / "environment_lock.json").write_bytes(lock_src.read_bytes())
     raw = {
         "schema_version": sc.RAW_SCHEMA,
-        "protocol_id": sc.PROTOCOL_ID,
+        "protocol_id": protocol["protocol_id"],
         "protocol_sha256": sc.sha256_bytes(protocol_bytes),
         "bundle_class": sc.DEVELOPMENT_BUNDLE_CLASS,
         "environment_lock_sha256": sha256_file(lock_src),
