@@ -2,6 +2,27 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-09 (j)
+
+### 三個 budget probe、一個決定、Track A 重構
+
+- **三個 budget probe 全部記錄為 pilot，不是 evidence。** 為了讓第二案例的 reference 達到事先凍結的 adequacy（≥ 27/30 FULL_EXPOSURE、連續兩個 checkpoint），依序跑了 `SECONDCASE-V2-BUDGET-PROBE-V1`（Walker2d-v5、SB3 PPO 預設、上限 2,949,120）、`-V2`（同 plant、rl-zoo tuned recipe、上限 1,966,080）與 `SECONDCASE-V3-BUDGET-PROBE-HOPPER-V1`（Hopper-v5、tuned、上限 1,966,080）。每一次都在 clean source、同一 `locked_sha256` 下執行、0 mismatch；每一個上限都在看到曲線前寫死，**沒有一次事後提高**；每一次的下一步都在結果出來前寫下。詳見 [probe receipt](docs/SECOND_CASE_V2_BUDGET_PROBE_RECEIPT_2026-09-08.md)。
+- [RESULT] Probe V1：360 個 probe episode 只有 1 個跑完 horizon → `PROBE_NEGATIVE_MAX_BUDGET_REACHED`。Probe V2：240 個中 5 個，全在一個 checkpoint，之後退化 → `PROBE_NEGATIVE_MAX_BUDGET_REACHED`。Probe V3：`PROBE_BUDGET_FOUND` 1,474,560（ck5、ck6 連續 30/30）。
+- [BLOCKER] Probe V3 選出的 reference 是**站著不動**的 hopper：六個 checkpoint 的 return 中位數 1006–1014，選定 checkpoint 的 saturation 2.712%，兩個更早的 30/30 checkpoint ≈ 0%。凍結規則的缺口：adequacy 只檢查 exposure，不檢查 primary measurement 是否退化；reference 為 0% 時 naive 與 bound 的 contrast **必然同號**，artifact 在數學上不可能出現。記錄為 blocker，**沒有**事後修規則。
+- [BLOCKER] Recipe 數值（rl-baselines3-zoo Walker2d／Hopper PPO）為 `U_VERIFIED_FROM_MEMORY`：執行環境無法讀 GitHub raw content。
+- **軟體（為 recipe 與 plant 支援，全部有測試）**：`second_case_runner.py` 共用 `build_model()`／`wrap_normalizer()`、`policy_kwargs`（activation 限 Tanh／ReLU）、VecNormalize 訓練後存 `vecnormalize.pkl` 並記 digest、評估經 `VecNormalize.load(training=False, norm_reward=False)`；`second_case_budget_probe.py` 的 `recipe_override` 與 `environment_override`（plant 以 digest 重釘、`H·J` 重算）；contract 的 `CELL_SCHEMA_V2` 多一欄 `normalizer_sha256`。已知限制：probe 的 `vecnormalize.pkl` 每個 checkpoint 覆寫同一檔案，早期 checkpoint 無法事後重評（各 checkpoint 當時的評估正確；V2 cell 各有目錄，不受影響）。
+
+### 專案負責人的決定（2026-09-09）：停止第二案例 V2 線，重構 Track A
+
+- 三個選項——照 probe 結果凍結並執行 Hopper protocol（約 17 CPU-h；reference 2.7% 下 P2 power 不確定；且是在已知規則缺口下凍結）、開含 saturation 下限的 probe V4（再一輪無保證的 pilot）、停止並重構——**選擇停止**。
+- **Contract：兩個從未 pin 的 protocol id 撤回。** `SECONDCASE-EXPOSURE-CENSORING-WALKER2D-V2` 與 `SECONDCASE-EXPOSURE-CENSORING-HOPPER-V1` 進入 `WITHDRAWN_PROTOCOLS`；`load_protocol` 在任何路徑（含 `require_pinned_digest=False`）以 `SECONDCASE_PROTOCOL_WITHDRAWN` 拒絕，錯誤訊息具名決定日期與文件；import 時斷言撤回 id 不得有 pinned digest；DEVELOPMENT bundle 無法綁到撤回 id（其 pinned digest 為 None）。V2 schema（P0、candidate-scoped P1、第六個 label）與 probe runner **保留為軟體**並持續測試；V1 retained evidence 的 bytes 與 replay 不變（測試固定）。新增 3 個測試、修改 1 個（second-case 測試 84 → 87）。
+- **[TRACK_A_REFRAME_2026-09-09](docs/TRACK_A_REFRAME_2026-09-09.md)。** Track A 的論點從「在公開 benchmark 上重現 v7 的 artifact」改為「comparative evaluation 落在哪一種 **censoring regime** 決定 bound 是否有資訊、artifact 是否可能出現，而該 regime 由 budget／recipe／plant 決定、通常不被控制也不被報告」。五種 regime 各有已量測實例：R1 不對稱（v7 V7C，凍結量測 ×2）、R2 輕度 censoring 但 bound 有資訊（v7 V7B，θ 排除 0、5/5，`between_replicate_sd` 卻無定義）、R3 對稱重度（Walker2d V1，凍結量測）、R4 無可達的 adequate reference（probe V1／V2，pilot）、R5 退化 reference（probe V3，pilot + 數學陳述）。新增主貢獻 **A-C3**：censoring regime 是未被控制的設計變數；reference-adequacy 前置條件必須同時檢查 exposure 與 metric 非退化；方向可識別 ≠ 變異可估計。文件含 12 列 claim → evidence 對照（每列附 receipt digest）、10 條不可宣稱與限制、figure／table 計畫，即 `PUB-A2` 的草稿。
+- **[PUBLICATION_PLAN](docs/PUBLICATION_PLAN.md) 升版 `PUBLICATION-PLAN-V2`。** `PUB-A1` 拆為 `PUB-A1a`（第二 plant 的機制證據，**PASS**，依據是既有的 Walker2d V1 receipt 與其凍結規則下的 outcome：A-C1 的 R3 實例、A-C2 的 284/284 `OBSERVED`）與 `PUB-A1b`（公開 benchmark 上的不對稱 regime，**CLOSED_NOT_ATTAINED**——不是 PASS、不是放寬，寫進稿件 Limitations 第一條；重開需新 protocol id 與含 saturation 下限的 probe 規則）。`PUB-A2` 進入 `IN_PROGRESS`。這是 V1 → V2 唯一的 gate 語義變更，在計畫 §3.1 與 §9 揭露。Track B、Track C、寫作規範與不可宣稱清單不變。
+- [BLOCKER] **明文放棄的主張**：v7 的不對稱 artifact 在公開 benchmark 上重現。Probe 資料在稿件中只能以「凍結程序的 outcome label」與「關於規則的觀察」出現，任何關於 Walker2d／Hopper／PPO recipe 能力的陳述都在其凍結 claim boundary 之外。
+- 對齊：`STATUS.yaml`（`publication_plan_status`、`second_case_exposure_status`、`second_case_exposure_receipt`、`next_milestone`、新增 `track_a_reframe`）、[PROJECT_STATUS](docs/PROJECT_STATUS.md)（§0、新 §4.4、§7、§8）、README、[ROADMAP §10](docs/ROADMAP.md)、[RESEARCH_EXECUTION_PLAN](docs/RESEARCH_EXECUTION_PLAN.md) `PUB-A` 列。
+- 測試：`backend/` 1 failed / 729 passed（295.78 s）；唯一失敗仍是具名 lock 下記錄的 `PRIMARY_CASE_RECEIPT_IDENTITY`，未放寬。56 個 tracked markdown、0 個壞連結。
+- [BLOCKER] 本次沒有新的訓練或評估、沒有任何 threshold／seed／budget 被調整；`paper_data_ready` 等四個 flag 不變。
+
 ## Unreleased — 2026-09-08 (i)
 
 ### `PUB-A1` 第二案例：凍結、push、執行完成

@@ -1,6 +1,6 @@
 # V2 Budget Probe 回條（pilot）
 
-日期：2026-09-08 ｜ 對應 gate：`PUB-A1`（V2 前置） ｜ 性質：**pilot，不是 evidence**
+日期：2026-09-08（§1–§6）、2026-09-09（§7 決定） ｜ 對應 gate：`PUB-A1`（V2 前置；**該線已於 2026-09-09 依決定關閉**，見 §7） ｜ 性質：**pilot，不是 evidence**
 
 ## 1. Probe V1：`SECONDCASE-V2-BUDGET-PROBE-V1` → `PROBE_NEGATIVE_MAX_BUDGET_REACHED`
 
@@ -53,14 +53,114 @@
 | 項目 | 值 |
 |---|---|
 | Probe JSON | `backend/rl/second_case_v2_budget_probe_v2.json` `sha256:70662db367b3dbaf8edbf18efa96a6e7faff4e6edfa43769ed0129728b7b36f7` |
-| 結果 | **執行中／待補**（本節於 probe V2 完成後更新） |
+| 結果 JSON | `backend/second_case_evidence/2026-09-08-v2-budget-probe-v2/probe_result.json` |
+| Source | `a6508ac3c292c6e4bec5dde56c1583460793c9a9`，pre == post，clean（tree 與 merge 後的 `7091545` 相同） |
+| Lock | 同一 `locked_sha256`，0 mismatch |
+| 結果 | **`PROBE_NEGATIVE_MAX_BUDGET_REACHED`** |
 
-## 4. 程式變更（為 recipe 支援）
+### 3.1 曲線（tuned recipe、probe seed 46000、probe eval seeds 47000–47029）
+
+| ck | 累計 steps | FULL／30 | realized steps min／med／max | naive duty | 累計 wall |
+|---:|---:|---:|---|---:|---:|
+| 1 | 245,760 | 0 | 23／24／568 | 13.714% | 689 s |
+| 2 | 491,520 | 0 | 187／202／206 | 6.517% | 1,440 s |
+| 3 | 737,280 | 0 | 68／194／209 | 2.596% | 2,222 s |
+| 4 | 983,040 | **5** | 48／304／1000 | 3.769% | 3,023 s |
+| 5 | 1,228,800 | 0 | 152／173／194 | 3.415% | 3,847 s |
+| 6 | 1,474,560 | 0 | 150／156／165 | 1.639% | 4,764 s |
+| 7 | 1,720,320 | 0 | 116／139／155 | 2.884% | 5,740 s |
+| 8 | 1,966,080 | 0 | 81／144／154 | 3.407% | 6,714 s |
+
+[RESULT] 240 個 probe episode 中 **5 個**跑完 horizon，全部在 checkpoint 4；之後 policy 退化到 median ~140–170 步的一致早跌。0 個 `NONFINITE`。
+[INFERENCE] 兩種 recipe（SB3 預設到 2.95M、zoo tuned 到 1.97M）在 Walker2d-v5 單次訓練下都沒有形成能穩定跑完 horizon 的 reference。tuned recipe 的 saturation 也低得多（1.6–13.7% vs 預設的 44–63%），這與 VecNormalize＋小 `log_std_init` 一致。
+[BLOCKER] 依規則，probe V2 上限不追加；V2 在 Walker2d 上不凍結。
+
+## 4. 決定：換 plant（probe V3，`SECONDCASE-V3-BUDGET-PROBE-HOPPER-V1`）
+
+在 probe V2 結果**之前**（ck6 時）寫下的下一步：只換 plant，wrapper、兩臂、threshold、規則不動。
+
+| 候選 | 判定 |
+|---|---|
+| **Hopper-v5** | **採用**：平面腿式、預設跌倒即終止（`healthy_z_range (0.7, ∞)`、`healthy_angle_range ±0.2`），比 Walker2d 容易；3 actuators、gear 200，saturation 非退化 |
+| InvertedDoublePendulum-v5 | 排除：reference 站穩後 saturation ≈ 0%，naive 與 bound 的 contrast 必同號，artifact 在數學上不可能出現 |
+| HalfCheetah／Swimmer | 排除：無 termination，無可 censor |
+| Ant-v5 | 排除：兩臂幾乎都不會終止，P1 必失敗 |
+| Humanoid-v5 | 排除：預設 recipe 在數 M 步內站不起來，與 Walker2d 同病 |
+
+| 項目 | 值 |
+|---|---|
+| Probe JSON | `backend/rl/second_case_v3_budget_probe_hopper.json` `sha256:0e291db1bd4e3b8ebd16d9143d73a0a9b9c05580b965743f938b28bbd093a2ef` |
+| Plant | `hopper.xml` `sha256:3ce93a055ffdcd83c0c701d2400768e40d2cbb9532f3c4ae33377c27f8b39f9e`，horizon 1000，obs 11（wrapper 後 14），`H·J = 3000` |
+| Recipe | rl-zoo Hopper tuned PPO（VecNormalize、`n_steps 512`、`batch 32`、`n_epochs 20`、γ 0.999、λ 0.99、lr 9.80828e-05、clip 0.2、ent 0.00229519、vf 0.835671、max_grad_norm 0.7、ReLU 256×256、`log_std_init −2`）——**`U_VERIFIED_FROM_MEMORY`** |
+| Seeds | training `48000`，evaluation `49000–49029`；先前所有區段皆為禁區 |
+| 規則／上限 | 同前：≥ 27/30、連續兩個 checkpoint；8 × 245,760 = 1,966,080 |
+| 若負結果 | 記錄、不追加上限、**停止**——是否再投入算力或改第二案例設計，是專案負責人的決定 |
+| 結果 JSON | `backend/second_case_evidence/2026-09-08-v3-budget-probe-hopper/probe_result.json` |
+| Source | `334efc391526d212c676960118a1379bed310732`，pre == post，clean |
+| Lock | 同一 `locked_sha256`，0 mismatch |
+| 結果 | **`PROBE_BUDGET_FOUND`：selected budget `1,474,560`**（ck5、ck6 連續 30/30） |
+
+### 4.1 曲線（Hopper-v5、tuned recipe、probe seed 48000、probe eval seeds 49000–49029）
+
+| ck | 累計 steps | FULL／30 | realized steps min／med／max | naive duty mean（min／med／max） | return min／med／max | 累計 wall |
+|---:|---:|---:|---|---|---|---:|
+| 1 | 245,760 | 30 | 1000／1000／1000 | 0.013%（0.00／0.00／0.13） | 1004／1013／1022 | 817 s |
+| 2 | 491,520 | 23 | 94／1000／1000 | 0.000% | 88／1006／1008 | 1,840 s |
+| 3 | 737,280 | 30 | 1000／1000／1000 | 0.000% | 1007／1008／1010 | 2,985 s |
+| 4 | 983,040 | 8 | 136／140／1000 | 6.968%（0.43／9.62／10.48） | 254／259／1019 | 4,148 s |
+| 5 | 1,228,800 | 30 | 1000／1000／1000 | 8.822%（7.87／8.77／9.67） | 1011／1013／1017 | 5,337 s |
+| **6** | **1,474,560** | **30** | 1000／1000／1000 | **2.712%（2.07／2.70／3.33）** | 1013／1014／1015 | 6,541 s |
+
+[RESULT] 規則於 ck6 觸發。選定 checkpoint 的 reference 曝露充足（30/30），primary measurement **非零但很小**（2.71%；ck5 為 8.82%）。
+[RESULT] **Reference 是「站著不動」的 hopper**：六個 checkpoint 的 return 中位數都在 1006–1014，≈ 每步 1.0 的 healthy reward × 1000 步，forward reward 幾乎為零；ck4 短暫開始跳躍（return 259、median 140 步、saturation 7–10%）後又退回站立。ck6 ep0 的 mean |applied| 0.285，saturated joint-step 比例 2.8%（第 2 關節 6.4%、其餘 ≤ 2%）。
+[BLOCKER] **規則的缺口**：adequacy 只檢查 exposure，沒有要求 primary measurement 非退化。ck1／ck3 的 30/30 是 saturation ≈ 0% 的站立 policy，若 ck2 也 ≥ 27/30，規則會在 491,520 就觸發並選出一個 artifact 在數學上不可能出現的 reference（reference 為 0% 時 naive 與 bound 的 contrast 必同號）。這次是運氣（ck2 = 23/30）讓規則越過了退化區。任何後續 probe 規則都應加上「reference saturation ≥ 門檻」的條件。
+[INFERENCE] 以 2.71% 的 reference rate，P2 要成立需要 naive t-interval（5 個 replicate）排除 0：候選臂觀察到的 rate 必須穩定低於 2.7 個百分點且跨 replicate 一致。這比 v7（36%）或 V1（36–64%）的 reference 難得多——**power 不確定**。
+[RESULT] 算力：probe 訓練 1,474,560 步約 101 分鐘（tuned recipe，單 env）。凍結後的 protocol 為 10 個 cell → 約 **17 小時**序列執行；4 核可 3–4 個 cell 並行（每個 process 單執行緒，lock 要求的 thread pin 不受影響）→ 約 **5–6 小時**。
+[BLOCKER] 依專案負責人指示，probe V3 完成後**停止並回報**：Hopper protocol **未凍結、未執行**。`SECONDCASE-EXPOSURE-CENSORING-HOPPER-V1` 在 contract 中仍為 unpinned（不可載入）。
+[BLOCKER] Probe 的 `vecnormalize.pkl` 每個 checkpoint 覆寫同一檔案（`normalizer_path_for(policy)` 以固定檔名存於 checkpoints 目錄），因此只有最後一個 checkpoint 的 normalizer 被保留；各 checkpoint 當時的評估使用的是**當時**剛存下的統計值，結果正確，但無法事後重評早期 checkpoint。V2 cell 各有獨立目錄，不受影響。列為 probe runner 的已知限制。
+
+## 5. 程式變更（為 recipe 與 plant 支援）
 
 - `rl/second_case_runner.py`：`build_model()`／`wrap_normalizer()` 共用建構、`policy_kwargs`（activation 限 Tanh／ReLU）、VecNormalize 訓練後存 `vecnormalize.pkl` 並記 digest；評估在有 normalizer 時經 `VecNormalize.load(training=False, norm_reward=False)`，recorder 仍在 raw env 層，記錄的 action／reward 為未正規化值。
 - `rl/second_case_budget_probe.py`：`recipe_override`（只允許 hyperparameters／normalize／policy_kwargs／source／verification_status），`effective_training()`。
 - `second_case_exposure_contract.py`：`CELL_SCHEMA_V2` 多一欄 `normalizer_sha256`（recipe 有 normalize 時必填，無則必為 null）；V2 protocol 可帶 `training.normalize`／`training.policy_kwargs`，V1 帶則拒。V1 retained evidence 仍 bit-exact replay（測試固定）。
 
-## 5. Claim boundary
+- `rl/second_case_budget_probe.py`：`environment_override`（plant 換置，`make_kwargs` 必須為空、plant 以 digest 重釘、`H·J` 重算）；`effective_environment()`。
+- `second_case_exposure_contract.py`：pinned map 新增 `SECONDCASE-EXPOSURE-CENSORING-HOPPER-V1`（digest 為 None，不可載入）。**2026-09-09 起**該 id 與 `SECONDCASE-EXPOSURE-CENSORING-WALKER2D-V2` 一併列入 `WITHDRAWN_PROTOCOLS`（§7.3）。
 
-只支持「V2 的 budget 該選多少」這一件事。不支持任何關於 Walker2d、兩臂、artifact 的陳述。Probe 資料不得與 V1、V2 或彼此比較。
+## 6. Claim boundary
+
+只支持「第二案例的 budget（與可用的 plant／recipe）該選多少」這一件事。不支持任何關於 Walker2d、兩臂、artifact 的陳述。Probe 資料不得與 V1、V2 或彼此比較。
+
+## 7. 決定（2026-09-09）：停止第二案例 V2 線，重構 Track A
+
+### 7.1 提交給專案負責人的三個選項
+
+| # | 選項 | 代價與風險 |
+|---|---|---|
+| 1 | 照 probe V3 結果凍結 `SECONDCASE-EXPOSURE-CENSORING-HOPPER-V1`（budget 1,474,560）並執行 10 cells | 約 17 CPU-h（3–4 cell 並行約 5–6 h）；reference saturation 只有 2.71%，P2 的 naive t-interval 能否排除 0 不確定；而且是**明知 adequacy 規則有缺口（§4.1 BLOCKER）仍照該規則凍結** |
+| 2 | 開 probe V4：adequacy 規則加上 reference saturation 下限（例如 ≥ 5%），重新探測 | 再一輪 ≥ 2 h pilot，沒有成功保證；每一個負結果 probe 都是不能當 evidence 的 pilot，且其 seeds 對後續全為禁區 |
+| 3 | **停止**，不再凍結、不再探測；把 v7 的不對稱 censoring、V1 的對稱 censoring、三次 probe 一起當作「評估效度」的發現重構 Track A | 放棄「在公開 benchmark 上重現 v7 不對稱形狀」這一項；它成為稿件明文的限制 |
+
+建議為 3。**專案負責人於 2026-09-09 選擇 3。**
+
+### 7.2 決定的理由（記錄，不重新論證）
+
+- [RESULT] 審稿人「你的 bound 是不是永遠無資訊」的問題，v7 的 V7B 案例已回答：θ = `[-13.503408, -12.435259]` pp 排除 0、5/5 replicates 方向可識別（[seed-variance receipt](TRAINING_SEED_VARIANCE_EXECUTION_RECEIPT_2026-09-08.md)）。第二案例的原始動機之一因此已被既有證據覆蓋。
+- [RESULT] A-C2（`OBSERVED ⇏ full exposure`）在 Walker2d V1 上已有第二個 plant 的證據：284/284 early-terminated episode 的 `outcome_state` 皆 `OBSERVED`（[execution receipt](SECOND_CASE_EXPOSURE_CENSORING_EXECUTION_RECEIPT_2026-09-08.md) §3.1）。
+- [INFERENCE] 三次 probe 合起來說的是一件方法論上的事：**一個 comparative evaluation 落在哪一種 censoring regime，取決於 budget、recipe 與 plant，而標準評估流程既不控制也不報告它。** 這正是 Track A 的範圍（量測程序），不是 plant 或 controller 的性質。把它寫成發現，比再投入算力去湊出一個特定 regime 更誠實、也更有用。
+- [BLOCKER] 選項 1 會在已知規則缺口的情況下凍結一份 protocol。凍結的意義是把事先寫死的規則交給資料裁決；明知規則不完整仍凍結，違反 freeze 的目的。
+
+### 7.3 處置
+
+| 項目 | 處置 |
+|---|---|
+| `SECONDCASE-EXPOSURE-CENSORING-WALKER2D-V2`、`SECONDCASE-EXPOSURE-CENSORING-HOPPER-V1` | **撤回（withdrawn）**：兩個 id 從未被 pin，從未載入；contract 新增 `WITHDRAWN_PROTOCOLS`，`load_protocol` 對兩者在任何路徑（含 `require_pinned_digest=False`）皆以 `SECONDCASE_PROTOCOL_WITHDRAWN` 拒絕；import 時斷言撤回 id 不得有 pinned digest。V2 schema 與 P0 邏輯**保留為軟體**並持續測試 |
+| Probe V1／V2／V3 結果 | 保留於 `backend/second_case_evidence/2026-09-08-v*-budget-probe*/`，性質不變（pilot）。稿件中**只能**以兩種方式出現：(a) 凍結的 budget-selection 程序的 outcome label；(b) 「exposure-only adequacy 規則可選出 artifact 在數學上不可能出現的 reference」這一項關於**規則**的觀察（數學陳述不需要資料；probe 只作說明）。任何「Walker2d-v5／Hopper-v5 的 PPO 站不站得穩」的陳述都在 probe 凍結的 claim boundary 之外，需要新的凍結 protocol 才能主張 |
+| 任何未來的第二案例嘗試 | 必須鑄新 protocol id；其 budget probe 的 adequacy 規則必須同時要求 exposure（≥ 27/30、連續兩個 checkpoint）**與** reference saturation 下限；先前所有 seeds 區段皆為禁區 |
+| `PUB-A1` | 依 [PUBLICATION_PLAN](PUBLICATION_PLAN.md) V2 拆為 A1a（第二 plant 的機制證據，由 V1 receipt 支持）與 A1b（公開 benchmark 上的不對稱 regime，**CLOSED_NOT_ATTAINED**） |
+| Track A | 重構文件：[TRACK_A_REFRAME_2026-09-09](TRACK_A_REFRAME_2026-09-09.md) |
+
+### 7.4 沒有改變的事
+
+`paper_data_ready`、`statistics_ready`、`method_level_power_ready`、`sample_size_decision_input_ready` 皆為 false 不變；V1 retained evidence 的 bytes 與 replay 不變（測試固定）；沒有任何 threshold、seed、budget 被調整；沒有新的訓練或評估被執行。

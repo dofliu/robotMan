@@ -23,9 +23,9 @@ Repository：[github.com/dofliu/robotMan](https://github.com/dofliu/robotMan) �
 | Paper-data gates | PDR-0..8 無一 PASS；`paper_data_ready = false` | [PAPER_DATA_READINESS](docs/PAPER_DATA_READINESS.md) |
 | 最強的一個結果 | V7B 相對 V7A 的 saturation duty method-level bound `[-13.503408, -12.435259]` pp，排除 0，5/5 independent training replicates 方向可識別；**條件於一個不可重建的 warm start** | [PROJECT_STATUS §4](docs/PROJECT_STATUS.md) |
 | 被推翻的一個結果 | V7C 表面上的 `-36` pp 改善經量測確認為 exposure artifact | [PROJECT_STATUS §4.2](docs/PROJECT_STATUS.md) |
-| 學術產出 | 三條路線已規劃；Track A 建議優先；`PUB-A1` 第二案例已執行（`SECOND_CASE_ARTIFACT_REPRODUCED`），但因兩臂皆 censored 而未 PASS，需 V2 | [PUBLICATION_PLAN](docs/PUBLICATION_PLAN.md) |
+| 學術產出 | 三條路線；Track A 於 2026-09-09 重構為「censoring regime 的評估效度研究」（`PUBLICATION-PLAN-V2`）：`PUB-A1a` PASS（Walker2d-v5 第二案例）、`PUB-A1b` CLOSED_NOT_ATTAINED（三個 budget probe 後停止）；下一步 `PUB-A0` 原文核對與 `PUB-A2` claim freeze | [PUBLICATION_PLAN](docs/PUBLICATION_PLAN.md)、[TRACK_A_REFRAME](docs/TRACK_A_REFRAME_2026-09-09.md) |
 | 下一個決策 | 專案負責人決定是否授權 formal evaluation；授權在前、解封在後 | [PUBLICATION_PLAN §5](docs/PUBLICATION_PLAN.md) |
-| 測試 | `backend/` 1 failed / 640 passed；那一個是在具名 environment lock 下記錄的 reduction-order 差異，未放寬 | [PROJECT_STATUS §9](docs/PROJECT_STATUS.md) |
+| 測試 | `backend/` 1 failed / 729 passed；那一個是在具名 environment lock 下記錄的 reduction-order 差異，未放寬 | [PROJECT_STATUS §9](docs/PROJECT_STATUS.md) |
 
 ## 兩種模式
 
@@ -108,7 +108,8 @@ python -m pytest backend -q
 |---|---|
 | [PROJECT_STATUS](docs/PROJECT_STATUS.md) | 人類可讀的進度總覽：gates、flags、已量測結果、blockers、下一步 |
 | [`STATUS.yaml`](STATUS.yaml) | 機器可讀的權威狀態 |
-| [PUBLICATION_PLAN](docs/PUBLICATION_PLAN.md) | 學術產出規劃：三條 track、PUB gates、寫作規範、不可宣稱清單 |
+| [PUBLICATION_PLAN](docs/PUBLICATION_PLAN.md) | 學術產出規劃：三條 track、PUB gates、寫作規範、不可宣稱清單（V2） |
+| [TRACK_A_REFRAME_2026-09-09](docs/TRACK_A_REFRAME_2026-09-09.md) | Track A 重構：censoring regime 分類、claim → evidence 對照、不可宣稱清單、figure／table 計畫、`PUB-A2` 草稿 |
 | [ROADMAP](docs/ROADMAP.md) | V0–V4 gate-first 工程工作順序 |
 | [RESEARCH_EXECUTION_PLAN](docs/RESEARCH_EXECUTION_PLAN.md) | model validity 與 method effectiveness 雙證據鏈、RQ、P-stage gates |
 | [PAPER_DATA_READINESS](docs/PAPER_DATA_READINESS.md) | paper-data-first 架構、run bundle、PDR gates、統計與文獻依據 |
@@ -184,12 +185,13 @@ python -m pytest backend -q
 | [V7_PRETRAINING_SEED_VARIANCE_INFEASIBILITY_RECEIPT_2026-09-08](docs/V7_PRETRAINING_SEED_VARIANCE_INFEASIBILITY_RECEIPT_2026-09-08.md) | 為何 pretraining-seed variance 不可量測 |
 | [V7_CANDIDATE_SELECTION_IMPLEMENTATION_RECEIPT_2026-09-08](docs/V7_CANDIDATE_SELECTION_IMPLEMENTATION_RECEIPT_2026-09-08.md) | selection rule 自檢、三項執行前置條件 |
 | [SECOND_CASE_EXPOSURE_CENSORING_EXECUTION_RECEIPT_2026-09-08](docs/SECOND_CASE_EXPOSURE_CENSORING_EXECUTION_RECEIPT_2026-09-08.md) | 第二案例的 10 cells 執行、method-level 結果、兩臂皆 censored 的保留發現 |
+| [SECOND_CASE_V2_BUDGET_PROBE_RECEIPT_2026-09-08](docs/SECOND_CASE_V2_BUDGET_PROBE_RECEIPT_2026-09-08.md) | 三個 budget probe（pilot）、exposure-only adequacy 規則的缺口、2026-09-09 停止該線的決定 |
 
 ## 下一階段
 
 專案同時推進兩條軌道，互不阻擋：
 
-- **學術**：先做 Track A（評估效度／可重現性方法論），其前置 `PUB-A0` 文獻 novelty check 與 `PUB-A1` 第二案例 generalization 見 [PUBLICATION_PLAN](docs/PUBLICATION_PLAN.md)。Track B（原定 Study A 方法比較）需要一條有版控 artifact 的新訓練線與 formal authorization；Track C（教學工具）需要另立學習成效研究設計。
+- **學術**：先做 Track A（評估效度／可重現性方法論，2026-09-09 起以 censoring regime 為論點，見 [TRACK_A_REFRAME](docs/TRACK_A_REFRAME_2026-09-09.md)）。剩餘前置是 `PUB-A0` 文獻原文核對與 `PUB-A2` claim freeze；第二案例線已關閉，不再開 probe 或 protocol。Track B（原定 Study A 方法比較）需要一條有版控 artifact 的新訓練線與 formal authorization；Track C（教學工具）需要另立學習成效研究設計。
 - **工程**：把 environment lock record 綁進每一條 pipeline 的 run manifest、Compare／Dynamic trace 的 browser visual verification、V1 articulated dynamic／pendulum／energy oracles、以及一條有版控 artifact 的新訓練線。順序見 [ROADMAP §9](docs/ROADMAP.md)。
 
 在專案負責人授權 formal evaluation 之前：不做 selection、不調 threshold、不存取 FORMAL seeds `20000–20029`。詳細狀態與理由見 [PROJECT_STATUS](docs/PROJECT_STATUS.md)。

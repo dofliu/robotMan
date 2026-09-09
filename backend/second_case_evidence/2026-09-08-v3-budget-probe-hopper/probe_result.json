@@ -1,0 +1,234 @@
+{
+  "adequacy_rule": {
+    "consecutive_checkpoints": 2,
+    "minimum_full_exposure_episodes": 27,
+    "rationale": "27/30 mirrors the v7 reference exposure (pilot 30/30, seed-variance 143/150 ~ 28.6/30); two consecutive checkpoints so a single lucky evaluation cannot set the budget.",
+    "selected_budget": "cumulative timesteps at the LATER of the first two consecutive checkpoints whose FULL_EXPOSURE count is >= minimum_full_exposure_episodes"
+  },
+  "arm_id": "W2D_A_DIRECT",
+  "base_protocol_id": "SECONDCASE-EXPOSURE-CENSORING-WALKER2D-V1",
+  "base_protocol_sha256": "sha256:45d1ec553a1124fd613f90a8034b27f10ef8f01f23a219cca216479fc4c5350c",
+  "checkpoints": [
+    {
+      "adequate": true,
+      "checkpoint_index": 1,
+      "cumulative_timesteps": 245760,
+      "early_terminated_count": 0,
+      "elapsed_s": 817.2,
+      "episodes_sha256": "sha256:9f7784363c6878d06fa8fbccc1800079c2f0bd487ef69e3ddfed7033afd9a783",
+      "full_exposure_count": 30,
+      "naive_mean_duty_pct": 0.013333,
+      "nonfinite_count": 0,
+      "policy_sha256": "sha256:767ca1321e0bfb18d2cba298a63447f4a0d121d8624bba5845c08c726abf8d8d",
+      "realized_steps_min_median_max": [
+        1000,
+        1000,
+        1000
+      ]
+    },
+    {
+      "adequate": false,
+      "checkpoint_index": 2,
+      "cumulative_timesteps": 491520,
+      "early_terminated_count": 7,
+      "elapsed_s": 1839.6,
+      "episodes_sha256": "sha256:69333d45f82fd5000f036a5126a4b0a9f82009288caf0f18af71077624337135",
+      "full_exposure_count": 23,
+      "naive_mean_duty_pct": 0.0,
+      "nonfinite_count": 0,
+      "policy_sha256": "sha256:f9fae5e10d522878dbf59af8b9e57be9d7bd038cb40f960b15e46d0099ec4104",
+      "realized_steps_min_median_max": [
+        94,
+        1000,
+        1000
+      ]
+    },
+    {
+      "adequate": true,
+      "checkpoint_index": 3,
+      "cumulative_timesteps": 737280,
+      "early_terminated_count": 0,
+      "elapsed_s": 2984.6,
+      "episodes_sha256": "sha256:79e3f7b347bdb8d9fbdd3ca92eb8e88520892b13a31bf52f78ff6a15031551fe",
+      "full_exposure_count": 30,
+      "naive_mean_duty_pct": 0.0,
+      "nonfinite_count": 0,
+      "policy_sha256": "sha256:76fd4fbd4d0ef1adfa2fb1fdd04db42d133f6c6cd439b84cf9057c989922e3ee",
+      "realized_steps_min_median_max": [
+        1000,
+        1000,
+        1000
+      ]
+    },
+    {
+      "adequate": false,
+      "checkpoint_index": 4,
+      "cumulative_timesteps": 983040,
+      "early_terminated_count": 22,
+      "elapsed_s": 4147.5,
+      "episodes_sha256": "sha256:88efe6eee98ee73c4f3cc7cc5161b7910f04afe8e95fd43cabfe96bb1872f2ed",
+      "full_exposure_count": 8,
+      "naive_mean_duty_pct": 6.967744,
+      "nonfinite_count": 0,
+      "policy_sha256": "sha256:dd48d024a1331b7d90fb155a0b85b60bc8a75f1330848873691899c79d8b1dd8",
+      "realized_steps_min_median_max": [
+        136,
+        140,
+        1000
+      ]
+    },
+    {
+      "adequate": true,
+      "checkpoint_index": 5,
+      "cumulative_timesteps": 1228800,
+      "early_terminated_count": 0,
+      "elapsed_s": 5336.9,
+      "episodes_sha256": "sha256:f86be21fdc56ec1ee50cdec4fb8619b22edc0955d084824ba1c32be705021555",
+      "full_exposure_count": 30,
+      "naive_mean_duty_pct": 8.822222,
+      "nonfinite_count": 0,
+      "policy_sha256": "sha256:00dbfec96c887cd89f19720c4698e1280bba27b5250141f14b5a97796138a9ee",
+      "realized_steps_min_median_max": [
+        1000,
+        1000,
+        1000
+      ]
+    },
+    {
+      "adequate": true,
+      "checkpoint_index": 6,
+      "cumulative_timesteps": 1474560,
+      "early_terminated_count": 0,
+      "elapsed_s": 6540.8,
+      "episodes_sha256": "sha256:4b5341f1115de688692730ac3c93ea0146de89fc288f5ef1a0ce7b74a6bb9c5a",
+      "full_exposure_count": 30,
+      "naive_mean_duty_pct": 2.712222,
+      "nonfinite_count": 0,
+      "policy_sha256": "sha256:874c309256965dc1a98c9926f7e884301d5ad506b92817ea0b38dd67f35fe11b",
+      "realized_steps_min_median_max": [
+        1000,
+        1000,
+        1000
+      ]
+    }
+  ],
+  "claim_boundary": [
+    "Supports only the choice of a V2 training budget.",
+    "Does not support any statement about Walker2d locomotion quality, the artifact, or either arm's saturation."
+  ],
+  "disclosure": "Pilot. Authored after probes V1 and V2 returned negative. Its checkpoints, evaluations and traces may not be reused as evidence, may not be compared with any second-case cell, and its seed ranges are forbidden for the protocol it informs. Predecessor probes: SECONDCASE-V2-BUDGET-PROBE-V1, SECONDCASE-V2-BUDGET-PROBE-V2 sha256:70662db367b3dbaf8edbf18efa96a6e7faff4e6edfa43769ed0129728b7b36f7.",
+  "environment": {
+    "action_bounds": [
+      -1.0,
+      1.0
+    ],
+    "action_dim": 3,
+    "base_observation_dim": 11,
+    "control_dt_s": 0.008,
+    "expected_defaults": {
+      "ctrl_cost_weight": 0.001,
+      "exclude_current_positions_from_observation": true,
+      "forward_reward_weight": 1.0,
+      "frame_skip": 4,
+      "healthy_angle_range": [
+        -0.2,
+        0.2
+      ],
+      "healthy_reward": 1.0,
+      "healthy_state_range": [
+        -100.0,
+        100.0
+      ],
+      "reset_noise_scale": 0.005,
+      "terminate_when_unhealthy": true
+    },
+    "gymnasium_env_id": "Hopper-v5",
+    "gymnasium_make_kwargs": {},
+    "horizon_control_steps": 1000,
+    "max_episode_steps": 1000,
+    "physics_timestep_s": 0.002,
+    "plant_asset_basename": "hopper.xml",
+    "plant_asset_bytes": 4946,
+    "plant_asset_sha256": "sha256:3ce93a055ffdcd83c0c701d2400768e40d2cbb9532f3c4ae33377c27f8b39f9e",
+    "plant_change_rationale": "Planar legged locomotion with default fall termination, the closest easier analogue of Walker2d-v5; healthy_z_range (0.7, inf) is not listed because JSON cannot carry inf and the runner pins the plant by file digest anyway."
+  },
+  "environment_lock": {
+    "environment_locked_sha256": "sha256:93d23a2703adc86a1394eacf5dece8d7229fdf742857f1a271656aa1cfeac72d",
+    "lock_record_sha256": "sha256:911b436231c8e0b1d7a3d07bca6894ce4c42c517c4a5cbbbdd0f9dff694ff631",
+    "mismatch_count": 0,
+    "retained_finding_count": 1
+  },
+  "evaluation_seed_first": 49000,
+  "evaluation_seed_last": 49029,
+  "finished_at_unix": 1788898871.1015043,
+  "outcome": "PROBE_BUDGET_FOUND",
+  "plant_asset_sha256": "sha256:3ce93a055ffdcd83c0c701d2400768e40d2cbb9532f3c4ae33377c27f8b39f9e",
+  "probe_id": "SECONDCASE-V3-BUDGET-PROBE-HOPPER-V1",
+  "probe_sha256": "sha256:0e291db1bd4e3b8ebd16d9143d73a0a9b9c05580b965743f938b28bbd093a2ef",
+  "recipe": {
+    "algorithm": "stable_baselines3.PPO",
+    "checkpoint_selection": "FINAL_ONLY_NO_SELECTION",
+    "device": "cpu",
+    "expected_realized_timesteps": 301056,
+    "hyperparameters": {
+      "batch_size": 32,
+      "clip_range": 0.2,
+      "ent_coef": 0.00229519,
+      "gae_lambda": 0.99,
+      "gamma": 0.999,
+      "learning_rate": 9.80828e-05,
+      "max_grad_norm": 0.7,
+      "n_epochs": 20,
+      "n_steps": 512,
+      "normalize_advantage": true,
+      "vf_coef": 0.835671
+    },
+    "normalize": {
+      "clip_obs": 10.0,
+      "norm_obs": true,
+      "norm_reward": true
+    },
+    "parallel_envs": 1,
+    "policy": "MlpPolicy",
+    "policy_kwargs": {
+      "activation_fn": "ReLU",
+      "log_std_init": -2.0,
+      "net_arch": {
+        "pi": [
+          256,
+          256
+        ],
+        "vf": [
+          256,
+          256
+        ]
+      },
+      "ortho_init": false
+    },
+    "realized_timesteps_note": "147 rollouts x 2048 steps; requested equals realized so the contract can require exact equality.",
+    "recipe_source": "rl-baselines3-zoo, hyperparams/ppo.yml, Hopper entry (tuned PPO configuration)",
+    "recipe_verification_status": "U_VERIFIED_FROM_MEMORY: the execution environment cannot reach GitHub raw content; the values below are recalled from the zoo file and must be checked against the published file before any manuscript cites them.",
+    "replicate_count": 5,
+    "requested_timesteps": 301056,
+    "torch_threads": 1,
+    "training_seed_base": 40000,
+    "training_seeds": [
+      40000,
+      40001,
+      40002,
+      40003,
+      40004
+    ],
+    "vec_env": "DummyVecEnv",
+    "warm_start": null
+  },
+  "role": "PILOT_FOR_V2_BUDGET_ONLY",
+  "schema_version": "SECOND_CASE_V2_BUDGET_PROBE_RESULT_V1",
+  "selected_budget_timesteps": 1474560,
+  "source_dirty_post": false,
+  "source_dirty_pre": false,
+  "source_git_sha_post": "334efc391526d212c676960118a1379bed310732",
+  "source_git_sha_pre": "334efc391526d212c676960118a1379bed310732",
+  "started_at_unix": 1788892330.140783,
+  "training_seed": 48000
+}

@@ -37,7 +37,8 @@ import second_case_exposure_contract as sc  # noqa: E402
 PROBE_SCHEMA = "SECOND_CASE_V2_BUDGET_PROBE_V1"
 PROBE_ID = "SECONDCASE-V2-BUDGET-PROBE-V1"
 PROBE_ID_RECIPE = "SECONDCASE-V2-BUDGET-PROBE-V2"
-PROBE_IDS = (PROBE_ID, PROBE_ID_RECIPE)
+PROBE_ID_PLANT = "SECONDCASE-V3-BUDGET-PROBE-HOPPER-V1"
+PROBE_IDS = (PROBE_ID, PROBE_ID_RECIPE, PROBE_ID_PLANT)
 RESULT_SCHEMA = "SECOND_CASE_V2_BUDGET_PROBE_RESULT_V1"
 DEFAULT_PROBE = RL_DIR / "second_case_v2_budget_probe.json"
 
@@ -74,7 +75,19 @@ PROBE_FIELDS = (
     "source_requirement",
     "training_seed",
 )
-OPTIONAL_PROBE_FIELDS = ("recipe_override",)
+OPTIONAL_PROBE_FIELDS = ("recipe_override", "environment_override")
+ENVIRONMENT_OVERRIDE_FIELDS = (
+    "action_dim",
+    "base_observation_dim",
+    "expected_defaults",
+    "gymnasium_env_id",
+    "gymnasium_make_kwargs",
+    "horizon_control_steps",
+    "max_episode_steps",
+    "plant_asset_basename",
+    "plant_asset_sha256",
+    "rationale",
+)
 
 
 class ProbeError(RuntimeError):
@@ -112,6 +125,7 @@ def validate_probe(probe: dict[str, Any], base_protocol: dict[str, Any], base_de
         raise ProbeError("probe must train the reference arm with its frozen alpha")
     interval = int(probe["checkpoint_interval_timesteps"])
     training = effective_training(base_protocol, probe)
+    environment, design_overrides = effective_environment(base_protocol, base_design, probe)
     n_steps = int(training["hyperparameters"]["n_steps"]) * int(training["parallel_envs"])
     if interval <= 0 or interval % n_steps != 0:
         raise ProbeError("checkpoint interval must be a whole number of rollouts")
@@ -147,7 +161,45 @@ def validate_probe(probe: dict[str, Any], base_protocol: dict[str, Any], base_de
         "max_checkpoints": max_checkpoints,
         "minimum_full": min_full,
         "training": training,
+        "environment": environment,
+        "design_overrides": design_overrides,
     }
+
+
+def effective_environment(base_protocol: dict[str, Any], base_design: dict[str, Any], probe: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+    """The environment block the probe uses: V1's Walker2d, or a plant change declared by the probe.
+
+    A plant change keeps the wrapper, the arms, the threshold and the rule; it
+    re-pins the plant by digest and re-derives horizon x joints.  ``make_kwargs``
+    must stay empty: defaults are the point of a public-benchmark case.
+    """
+    override = probe.get("environment_override")
+    if not override:
+        return json.loads(json.dumps(base_protocol["environment"])), {}
+    keys = tuple(sorted(override))
+    if keys != tuple(sorted(ENVIRONMENT_OVERRIDE_FIELDS)):
+        raise ProbeError(f"environment_override keys mismatch: {keys}")
+    if override["gymnasium_make_kwargs"] != {}:
+        raise ProbeError("environment_override.gymnasium_make_kwargs must be empty")
+    horizon = int(override["horizon_control_steps"])
+    if horizon != int(override["max_episode_steps"]) or horizon <= 0:
+        raise ProbeError("environment_override horizon must equal max_episode_steps")
+    joints = int(override["action_dim"])
+    if joints <= 0:
+        raise ProbeError("environment_override.action_dim must be positive")
+    sha = str(override["plant_asset_sha256"])
+    if not sha.startswith("sha256:") or len(sha) != 71:
+        raise ProbeError("environment_override.plant_asset_sha256 malformed")
+    environment = json.loads(json.dumps(base_protocol["environment"]))
+    environment.update({k: override[k] for k in ENVIRONMENT_OVERRIDE_FIELDS if k != "rationale"})
+    environment["plant_change_rationale"] = override["rationale"]
+    design_overrides = {
+        "plant_asset_sha256": sha,
+        "horizon_steps": horizon,
+        "joints": joints,
+        "horizon_units": horizon * joints,
+    }
+    return environment, design_overrides
 
 
 def effective_training(base_protocol: dict[str, Any], probe: dict[str, Any]) -> dict[str, Any]:
@@ -190,13 +242,15 @@ def probe_training_loop(
     runner = _runner()
     design = dict(base_design)
     design["evaluation_seeds"] = list(probe_design["evaluation_seeds"])
+    design.update(probe_design.get("design_overrides") or {})
     training = probe_design.get("training") or base_protocol["training"]
-    # evaluate_cell reads the recipe from protocol["training"]; give it the effective block.
+    # evaluate_cell / make_env read recipe and plant from the protocol; give them the effective blocks.
     eval_protocol = dict(base_protocol)
     eval_protocol["training"] = training
+    eval_protocol["environment"] = probe_design.get("environment") or base_protocol["environment"]
     torch.set_num_threads(int(training["torch_threads"]))
     torch.use_deterministic_algorithms(True, warn_only=True)
-    vec = DummyVecEnv([lambda: runner.make_env(base_protocol, design, probe_design["alpha"])])
+    vec = DummyVecEnv([lambda: runner.make_env(eval_protocol, design, probe_design["alpha"])])
     vec, normalized = runner.wrap_normalizer(training, vec)
     model = runner.build_model(training, vec, probe_design["training_seed"])
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -260,9 +314,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "probe_id": probe["probe_id"],
         "probe_sha256": runner.sha256_file(Path(args.probe)),
         "recipe": probe_design["training"],
+        "environment": probe_design["environment"],
         "base_protocol_id": sc.PROTOCOL_ID,
         "base_protocol_sha256": sc.PINNED_PROTOCOLS[sc.PROTOCOL_ID],
-        "plant_asset_sha256": base_design["plant_asset_sha256"],
+        "plant_asset_sha256": (probe_design.get("design_overrides") or {}).get("plant_asset_sha256", base_design["plant_asset_sha256"]),
         "role": probe["role"],
         "arm_id": probe_design["arm_id"],
         "training_seed": probe_design["training_seed"],

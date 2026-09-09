@@ -498,18 +498,53 @@ def v2_design(v2_protocol):
     return sc.validate_protocol(v2_protocol)
 
 
-def test_v2_protocol_validates_but_cannot_load_until_pinned(v2_protocol, tmp_path):
+def test_v2_protocol_validates_as_software_but_is_refused_as_withdrawn(v2_protocol, tmp_path):
+    """The V2 schema stays implemented and tested; the V2 *id* was withdrawn on 2026-09-09.
+
+    validate_protocol() still accepts the schema so the P0 logic below keeps its tests, but
+    load_protocol() refuses the id on every path, with or without the pinned-digest requirement,
+    naming the decision rather than a still-pending freeze.
+    """
     design = sc.validate_protocol(v2_protocol)
     assert design["reference_adequacy"] == {"minimum_full_exposure_episodes": 27, "minimum_adequate_replicates": 4}
     assert design["p1_arm_scope"] == sc.P1_SCOPE_CANDIDATE
     path = tmp_path / "v2.json"
     path.write_bytes(sc.json_bytes(v2_protocol))
-    if sc.PINNED_PROTOCOLS[sc.PROTOCOL_ID_V2] is None:
-        with pytest.raises(sc.SecondCaseError, match="NOT_FROZEN"):
-            sc.load_protocol(path)
-    else:
-        with pytest.raises(sc.SecondCaseError, match="DIGEST_MISMATCH"):
-            sc.load_protocol(path)
+    with pytest.raises(sc.SecondCaseError, match="SECONDCASE_PROTOCOL_WITHDRAWN.*2026-09-09"):
+        sc.load_protocol(path)
+    with pytest.raises(sc.SecondCaseError, match="SECONDCASE_PROTOCOL_WITHDRAWN"):
+        sc.load_protocol(path, require_pinned_digest=False)
+
+
+def test_withdrawn_ids_are_exactly_the_two_never_pinned_second_case_lines():
+    assert set(sc.WITHDRAWN_PROTOCOLS) == {sc.PROTOCOL_ID_V2, sc.PROTOCOL_ID_HOPPER}
+    for protocol_id, reason in sc.WITHDRAWN_PROTOCOLS.items():
+        assert sc.PINNED_PROTOCOLS[protocol_id] is None, "a withdrawn id must never carry a pinned digest"
+        assert "2026-09-09" in reason and "TRACK_A_REFRAME_2026-09-09" in reason
+    # The executed V1 line is not withdrawn and still loads against its pinned digest.
+    assert sc.PROTOCOL_ID not in sc.WITHDRAWN_PROTOCOLS
+    assert sc.load_protocol()["protocol_id"] == sc.PROTOCOL_ID
+
+
+def test_a_hopper_protocol_is_refused_as_withdrawn_before_any_digest_check(v2_protocol, tmp_path):
+    hopper = copy.deepcopy(v2_protocol)
+    hopper["protocol_id"] = sc.PROTOCOL_ID_HOPPER
+    path = tmp_path / "hopper.json"
+    path.write_bytes(sc.json_bytes(hopper))
+    with pytest.raises(sc.SecondCaseError, match="SECONDCASE_PROTOCOL_WITHDRAWN.*HOPPER-V1.*saturation"):
+        sc.load_protocol(path)
+
+
+def test_a_development_bundle_under_a_withdrawn_id_cannot_be_analysed(v2_protocol, v2_design, digests):
+    """Even bypassing load_protocol, no DEVELOPMENT bundle can bind to a withdrawn id: the raw
+    bundle must carry the pinned digest of its protocol id, and a withdrawn id has none."""
+    full = lambda _r: {"per_seed": lambda i: (300, 1000)}
+    raw = _bundle(v2_design, digests["protocol"], digests["lock"], full, full, overrides={"bundle_class": sc.DEVELOPMENT_BUNDLE_CLASS})
+    with pytest.raises(sc.SecondCaseError):
+        sc.build_summary(raw, v2_protocol)
+    # the same rows as a SYNTHETIC bundle still exercise the software path
+    synthetic = _bundle(v2_design, digests["protocol"], digests["lock"], full, full)
+    assert sc.build_summary(synthetic, v2_protocol)["outcome"] == sc.OUTCOME_UNINFORMATIVE
 
 
 @pytest.mark.parametrize(
