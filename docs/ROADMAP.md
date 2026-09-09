@@ -1,6 +1,6 @@
 # Gate-first 工作規劃
 
-最後更新：2026-09-08
+最後更新：2026-09-09
 
 專案成熟度改以 **evidence gate** 表示，不再以 UI 或 feature count 換算完成百分比。既有 M1–M6 代表 prototype feature inventory，並非 verification 或 physical validation 已完成。
 
@@ -166,7 +166,7 @@ Development 已完成 v1–v7 failure-retaining iteration：v2 解決前進與�
 細節、PUB-* gate 與寫作規範以 [PUBLICATION_PLAN](PUBLICATION_PLAN.md) 為準；本節只定 V&V gate 與各類 claim 的對應：
 
 - 教學展示（Track C 的前身）：V0 後可用，但必須保留 SIM-only 標示；要成為教學研究論文需另立學習成效研究設計。
-- 評估效度／可重現性方法論（Track A）：**不要求 V1/V3 PASS**，因為它不對 plant 或 controller 做任何 claim，只對量測程序做 claim；但要求 PUB-A gates（novelty、第二案例 generalization、clean-checkout reproduction）全部通過。
+- 評估效度／可重現性方法論（Track A；2026-09-09 起以 censoring regime 為論點，見 [TRACK_A_REFRAME](TRACK_A_REFRAME_2026-09-09.md)）：**不要求 V1/V3 PASS**，因為它不對 plant 或 controller 做任何 claim，只對量測程序做 claim；但要求 PUB-A gates 全部通過——novelty（`PUB-A0`）、第二 plant 的機制證據（`PUB-A1a`，已 PASS）、claim freeze（`PUB-A2`，須把「不對稱 regime 未在公開 benchmark 上取得」寫進 Limitations）、clean-checkout reproduction（`PUB-A3`）、internal review、submission。第二案例 V2 線已由專案負責人決定關閉，不再開 probe 或 protocol。
 - 工具方法論（把本平台本身當成 validated tool）：至少 V1 + V3。
 - 方法比較論文（Track B／Study A）：至少 V1 + V3，且 formal authorization、external preregistration 與有版控 lineage 的訓練線齊備；沒有 V2 時不得對 actuator feasibility 做 claim，沒有 V4 時限縮為 simulation study。
 - 硬體 × strategy 論文：至少 V1 + V2 + V3；沒有 V4 時限縮為 simulation study。

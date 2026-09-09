@@ -1,8 +1,10 @@
 # 學術產出規劃
 
-最後更新：2026-09-08 ｜ ID：`PUBLICATION-PLAN-V1`
+最後更新：2026-09-09 ｜ ID：`PUBLICATION-PLAN-V2`（V1：2026-09-08；版本紀錄見 §9）
 
-狀態：`PLAN_FROZEN_V1 / NO_MANUSCRIPT / paper_data_ready=false`
+狀態：`PLAN_REVISED_V2 / NO_MANUSCRIPT / paper_data_ready=false`
+
+V2 的唯一實質變更是 Track A：專案負責人於 2026-09-09 決定停止第二案例 V2 線，Track A 依 [TRACK_A_REFRAME_2026-09-09](TRACK_A_REFRAME_2026-09-09.md) 重構為「censoring regime 的評估效度研究」；`PUB-A1` 拆為 A1a（PASS）與 A1b（CLOSED_NOT_ATTAINED）。Track B、Track C 與 §5–§7 不變。
 
 本文件規劃專案的學術產出：哪幾篇論文有可能、各自需要什麼證據、以什麼順序做、什麼不能宣稱。它與工程路線 [ROADMAP](ROADMAP.md) 平行；與研究問題設計 [RESEARCH_EXECUTION_PLAN](RESEARCH_EXECUTION_PLAN.md) 及資料架構 [PAPER_DATA_READINESS](PAPER_DATA_READINESS.md) 的關係是：那兩份定義**資料怎麼產生才可信**，本文件定義**哪些論文能從可信的資料寫出來**。
 
@@ -11,6 +13,8 @@
 ## 0. 一句話結論
 
 現在**寫得出一篇論文，但不是原本 §6 Study A 那篇**。手上最強的資產是評估效度與可重現性的方法論發現，不是機器人控制結果。建議先寫 Track A；它不浪費 Track B，反而讓 Track B 的資料成為它應有的角色 —— pilot。
+
+V2 補一句：Track A 的論點不再是「在公開 benchmark 上重現 v7 的 artifact」，而是「comparative evaluation 落在哪一種 censoring regime 決定 bound 是否有資訊、artifact 是否可能出現，而該 regime 由 budget／recipe／plant 決定、通常不被控制也不被報告」。v7 的不對稱案例、Walker2d 的對稱案例、三個公開 benchmark 上的 pilot，合起來是五種 regime 的實例（[TRACK_A_REFRAME §3](TRACK_A_REFRAME_2026-09-09.md)）。
 
 ## 1. 為什麼原定的 Study A 現在寫不出來
 
@@ -25,28 +29,32 @@
 
 | Track | 論文類型 | 主要證據來源 | 目前狀態 | 建議順序 |
 |---|---|---|---|---|
-| **A** | 評估效度／可重現性方法論 | 已有的 audit、seed-variance、environment-lock receipts | 證據齊備；novelty 待核實；缺第二案例 | **第一** |
+| **A** | 評估效度／可重現性方法論（V2：censoring regime） | audit、seed-variance、environment-lock、Walker2d 第二案例 receipts；三個 budget probe（pilot） | 證據齊備於兩個 plant；`PUB-A1a` PASS、`PUB-A1b` CLOSED_NOT_ATTAINED；novelty 待核實 | **第一** |
 | **B** | Study A：action-interface 方法比較 | 尚不存在的新訓練線 + FORMAL data | 結構性 blocked | 第二（前置在工程路線） |
 | **C** | 教學／篩選工具 | 平台本身 + 尚不存在的學習成效資料 | UI 未驗證；無學生資料 | 視教學規劃另議 |
 
-### 2.1 Track A —— 評估效度與可重現性方法論
+### 2.1 Track A —— 評估效度與可重現性方法論（V2：censoring regime）
+
+完整的論點、regime 分類、claim → evidence 對照與 figure／table 計畫見 [TRACK_A_REFRAME_2026-09-09](TRACK_A_REFRAME_2026-09-09.md)；本節只列貢獻與邊界。
 
 **可主張的貢獻（依 [LITERATURE_MAP_2026-09-08_EVALUATION_VALIDITY §4](LITERATURE_MAP_2026-09-08_EVALUATION_VALIDITY.md) 的暫定 gap 判定）：**
 
-- **A-C1（主）** Early termination 作為 rate 型 outcome 的 **exposure censoring**：在 comparative evaluation 中以 assumption-free identification bounds 處理，拒絕 complete-case deletion 與 interval 補值，並把 method failure 與 exposure censoring 分開保留。實測案例：V7C 表面 `-36` pp 的「改善」，bound 含 0、0/30 與 0/5 sign-identified；跨 5 個獨立 seeds 重現。
-- **A-C2（主）** 記錄層盲點：`outcome_state == OBSERVED` 不蘊含 full exposure。V7B 三個 censored episode 六項 required numeric 齊全、算術正常。可移植的檢查：由 trace 長度獨立重建 exposure，不信任 outcome flag。
-- **A-C3（artifact）** Statistical unit 的程式層強制（forbidden denominators）、`NOT_REACHED ≠ PASS` 的 fail-closed 契約、`python -I -S` stdlib-only exact replay。
+- **A-C1（主）** Early termination 作為 rate 型 outcome 的 **exposure censoring**：在 comparative evaluation 中以 assumption-free identification bounds 處理，拒絕 complete-case deletion 與 interval 補值，並把 method failure 與 exposure censoring 分開保留。實測案例：v7 V7C 表面 `-36` pp 的「改善」，bound 含 0、0/30 與 0/5 sign-identified，跨 5 個獨立 seeds 重現（regime R1）；Walker2d-v5 上 naive `−28.795138` pp、t-interval 排除 0，θ `[−79.118, +55.913333]` 含 0（regime R3）；v7 V7B 的 θ `[−13.503408, −12.435259]` 排除 0、5/5 可識別，顯示 bound 在輕度 censoring 下**有資訊**（regime R2）。兩個 plant、兩個 policy 家族、三種 regime。
+- **A-C2（主）** 記錄層盲點：`outcome_state == OBSERVED` 不蘊含 full exposure。v7 pilot 三個 censored episode 六項 required numeric 齊全；Walker2d 284/284 early-terminated episode 皆 `OBSERVED`。可移植的檢查：由 trace 長度獨立重建 exposure，不信任 outcome flag。**已有第二個 plant 的證據。**
+- **A-C3（主，V2 新增）** Censoring regime 是 comparative evaluation 未被控制、未被報告的設計變數：bound 是否有資訊、artifact 是否可能出現由它決定；reference-adequacy 前置條件必須同時檢查 exposure 與 primary measurement 非退化（exposure-only 規則可選出 artifact 在數學上不可能出現的 reference，[TRACK_A_REFRAME §3.6](TRACK_A_REFRAME_2026-09-09.md)）；方向可識別 ≠ 變異可估計。證據：R1–R3 的凍結 protocol 量測 + 三個 probe（**pilot**，只陳述程序 outcome 與規則觀察）。
+- **A-C4（artifact）** Statistical unit 的程式層強制（forbidden denominators）、`NOT_REACHED ≠ PASS` 的 fail-closed 契約、`python -I -S` stdlib-only exact replay、freeze-before-execute、probe 作為 pilot 的紀律（上限不事後提高、seeds 對下游為禁區、pilot 不得為 evidence）。
+- **A-C5（次，待另做 scan）** 公開宣告非預註冊、且在啟發資料上必須失敗的 selection rule 自檢。
 - **A-M（動機，不是貢獻）** 同環境兩種 IEEE-conformant reduction order 給不同結果；版本 pin 不足以重驗數值。文獻已建立此事（SC'24、RepDL），只作動機。
-- **A-C4（次，待另做 scan）** 公開宣告非預註冊、且在啟發資料上必須失敗的 selection rule 自檢。
 
-**不能主張：** 任何關於 plant 真實性、controller 優劣、action interface 的一般性效果、sim-to-real。Track A 對機器人**什麼都不說**，只對量測程序說話。
+**不能主張：** 任何關於 plant 真實性、controller 優劣、action interface 或 low-pass filter 的一般性效果、sim-to-real。**也不能主張 v7 的不對稱 artifact 在公開 benchmark 上重現**——這是 V2 明文放棄的主張，成為稿件 Limitations 第一條。Probe 資料不得用於任何關於 Walker2d／Hopper／PPO recipe 能力的陳述（其凍結 claim boundary 只支持 budget 選擇）。Track A 對機器人**什麼都不說**，只對量測程序說話。
 
 **已知弱點：**
 
-- n=1 case study：單一 plant、單一 task。→ `PUB-A1` 第二案例是硬需求。
+- R1（不對稱 regime）只在本專案 humanoid plant 上量到，且該 line 永久 `CONDITIONAL_ON_FIXED_WARM_START`；公開 benchmark 上只有 R3 的凍結量測與 R4／R5 的 pilot。
 - Novelty 未經原文核對（執行環境封鎖出版方 host）。→ `PUB-A0` 未通過。
 - Manski 型 bound 只用了最弱版本；審稿人可能要求討論 monotonicity 等收窄假設 —— 應主動說明為何本專案**拒絕**加假設。
-- 沒有 external preregistration；只能稱 internal hash freeze。
+- 沒有 external preregistration；只能稱 internal hash freeze。第二案例 protocol 是在 v7 結果已知後寫的。
+- rl-zoo recipe 數值 `U_VERIFIED_FROM_MEMORY`。
 
 **Venue 類別（不指定期刊）：** RL／ML 評估與可重現性 workshop；robotics 評估方法論；simulation credibility／V&V（NASA-STD-7009B 系）；統計方法在 ML 中的應用。
 
@@ -72,10 +80,11 @@
 
 | Gate | Exit condition | 狀態 | 備註 |
 |---|---|---|---|
-| `PUB-A0` Novelty | 文獻地圖中所有 `U` 條目經原文核對改為 `[SOURCE]` 或刪除；§4 gap 判定重寫並仍成立 | `IN_PROGRESS` — `SCAN_COMPLETE / PRIMARY_SOURCES_UNVERIFIED` | 需可存取出版方的環境。關鍵兩篇：arXiv 2606.10229、1911.05728 |
-| `PUB-A1` Second case | 在第二個 task／公開 benchmark 上，以**凍結的** protocol 重現 exposure-censoring artifact，含 receipt 與 stdlib-only replay | `EXECUTED` — `SECOND_CASE_ARTIFACT_REPRODUCED`；**gate 仍未 PASS**（見備註） | [execution receipt](SECOND_CASE_EXPOSURE_CENSORING_EXECUTION_RECEIPT_2026-09-08.md)：10/10 cells、300 episodes、replay exact。P1 成立、P2 依凍結規則成立，但**兩臂皆重度 censored**（reference 亦 30/30 早跌），bound 寬到必然含 0——是 estimator 的正確陳述，卻是比 v7 弱的示範。PASS 需要一個 reference 近乎 full exposure 的 V2 protocol（新版本，不重跑 V1） |
-| `PUB-A2` Claim freeze | A-C1..A-C4 每一條都能只由 hash-bound receipts 推出；figure／table 清單凍結；不可宣稱清單寫入稿件 | `NOT_STARTED` | 依賴 A0、A1 |
-| `PUB-A3` Reproduction | clean checkout 以 `python -I -S` 重建稿件每一張 table／figure 的輸入；受 `ENVIRONMENT-LOCK-V1` record 比對 | `NOT_STARTED` | 現有 replay 已覆蓋大部分；缺 formal clean-checkout 一次性執行 |
+| `PUB-A0` Novelty | 文獻地圖中所有 `U` 條目經原文核對改為 `[SOURCE]` 或刪除；§4 gap 判定重寫並仍成立；補 A-C5 的 preregistration／multiverse scan | `IN_PROGRESS` — `SCAN_COMPLETE / PRIMARY_SOURCES_UNVERIFIED` | 需可存取出版方的環境。關鍵兩篇：arXiv 2606.10229、1911.05728 |
+| `PUB-A1a` 第二 plant 的機制證據 | 至少一條主貢獻在非專案 plant 上以**凍結的** protocol 取得 receipt 與 stdlib-only replay | **`PASS`** | [execution receipt](SECOND_CASE_EXPOSURE_CENSORING_EXECUTION_RECEIPT_2026-09-08.md)：10/10 cells、300 episodes、replay exact；A-C1 的 R3 實例、A-C2 的 284/284。依據是已存在的 receipt 與其凍結規則下的 outcome |
+| `PUB-A1b` 公開 benchmark 上的不對稱 regime | 在公開 benchmark 上以凍結 protocol 量到 R1 | **`CLOSED_NOT_ATTAINED`**（2026-09-09） | 三個 budget probe（[probe receipt](SECOND_CASE_V2_BUDGET_PROBE_RECEIPT_2026-09-08.md)）後由專案負責人決定停止；寫入 Limitations 第一條。**不是 PASS、不是放寬**；重開需新 protocol id 與含 saturation 下限的 probe 規則 |
+| `PUB-A2` Claim freeze | [TRACK_A_REFRAME §5](TRACK_A_REFRAME_2026-09-09.md) 每列可只由 hash-bound receipts 推出；§6 不可宣稱清單與 §7 figure／table 清單凍結；Limitations 先寫 | `IN_PROGRESS` — 草稿即 TRACK_A_REFRAME | 凍結須在 A0 之後 |
+| `PUB-A3` Reproduction | clean checkout 以 `python -I -S` 重建稿件每一張 table／figure 的輸入；受 `ENVIRONMENT-LOCK-V1` record 比對 | `NOT_STARTED` | 現有 replay 已覆蓋每一層；缺 formal clean-checkout 一次性執行 |
 | `PUB-A4` Internal review | 至少一輪對抗式內部審查（含統計與 RL 評估兩個視角），所有 blocking 意見有回應 | `NOT_STARTED` | |
 | `PUB-A5` Submission | venue 選定；preprint 與 code／receipt archive 帶 DOI | `NOT_STARTED` | |
 
@@ -105,8 +114,8 @@
 
 ```text
 現在 ──► PUB-A0 原文核對（需校內網路）
-     ├─► PUB-A1 凍結第二案例 protocol → 執行 → receipt
-     │        └─► PUB-A2 → A3 → A4 → A5          ← Track A 投稿
+     ├─► PUB-A1a PASS（Walker2d V1）；PUB-A1b CLOSED_NOT_ATTAINED（2026-09-09）
+     │        └─► PUB-A2 claim freeze（草稿已有，A0 後凍結）→ A3 → A4 → A5   ← Track A 投稿
      │
      ├─► PUB-B0 授權決策（專案負責人）
      │        └─► PUB-B4 OSF preregistration ──┐
@@ -116,7 +125,7 @@
      └─► PUB-B5 V1（工程 ROADMAP §9 第 4 項）
 ```
 
-**Track A 不浪費 Track B：** A1 的第二案例 protocol 就是 B 的 exposure audit 在新 task 上的第一次演練；A 的 reproduction package 就是 B 的。
+**Track A 不浪費 Track B：** A1a 的第二案例 protocol 就是 B 的 exposure audit 在新 task 上的第一次演練；A-C3 的 reference-adequacy 前置條件（exposure + 非退化）就是 `PUB-B2` 的出口條件應有的形狀；A 的 reproduction package 就是 B 的。
 
 **順序不可反：** `PUB-B4` 必須在解封 sealed seeds `20000–20029` 之前。授權在前、預註冊在中、解封在後。
 
@@ -154,6 +163,13 @@
 ## 8. 立即下一步
 
 1. **`PUB-A0`**：在可存取出版方的環境讀 [LITERATURE_MAP §4](LITERATURE_MAP_2026-09-08_EVALUATION_VALIDITY.md) 點名的兩篇與 §1.2–§1.4 的 `U` 條目；更新地圖。
-2. **`PUB-A1`**：V1 已執行完成（見 receipt）。下一步是凍結 **V2**：budget 提高到 Walker2d PPO 能穩定存活的量級，使 reference 近乎 full exposure、censoring 不對稱——那才是與 v7 同構、對審稿人有說服力的第二案例。V1 的結果保留為「兩臂皆 censored 時 bound 必然無資訊」的邊界案例。
+2. **`PUB-A2`**：`PUB-A1a` 已 PASS、`PUB-A1b` 已關閉；下一步是在 A0 之後把 [TRACK_A_REFRAME §5–§7](TRACK_A_REFRAME_2026-09-09.md) 凍結為 claim freeze receipt。同時核對 rl-zoo recipe 數值（影響限制清單第 5 條的措辭）。**不再開任何第二案例 probe 或 protocol**。
 3. **`PUB-B0`**：專案負責人決策（§5）。
 4. 工程：ROADMAP §9 第 1、2 項並行。
+
+## 9. 版本紀錄
+
+| 版本 | 日期 | 變更 |
+|---|---|---|
+| `PUBLICATION-PLAN-V1` | 2026-09-08 | 建立三條 track、PUB gates、寫作規範、不可宣稱清單 |
+| `PUBLICATION-PLAN-V2` | 2026-09-09 | 專案負責人決定停止第二案例 V2 線（三個 budget probe 後）。Track A 重構為 censoring regime 的評估效度研究（[TRACK_A_REFRAME_2026-09-09](TRACK_A_REFRAME_2026-09-09.md)）；新增主貢獻 A-C3；`PUB-A1` 拆為 A1a（`PASS`，依既有 Walker2d V1 receipt）與 A1b（`CLOSED_NOT_ATTAINED`，寫入 Limitations）；`PUB-A2` 進入 `IN_PROGRESS`（草稿）。`SECONDCASE-EXPOSURE-CENSORING-WALKER2D-V2`／`-HOPPER-V1` 兩個從未 pin 的 protocol id 在 contract 中撤回。Track B、Track C、§5–§7 不變；四個總開關不變 |

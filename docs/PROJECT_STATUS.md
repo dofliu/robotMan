@@ -1,6 +1,6 @@
 # 專案進度狀態報告
 
-最後更新：2026-09-08 ｜ 對應 `STATUS.yaml` ｜ Development：`0.2.0-dev`
+最後更新：2026-09-09 ｜ 對應 `STATUS.yaml` ｜ Development：`0.2.0-dev`
 
 證據範圍：`SIM_ONLY_REDUCED_ORDER` / `NOT_PHYSICALLY_VALIDATED`
 
@@ -12,6 +12,7 @@
 - **四個總開關全為 false**：`paper_data_ready`、`statistics_ready`、`method_level_power_ready`、`sample_size_decision_input_ready`。
 - **量到一個站得住的方向性結果**：V7B（縮小 joint envelope）相對 V7A 的 500 Hz saturation duty，method-level identification bound `[-13.503408, -12.435259]` pp，排除 0、sign NEGATIVE、5/5 independent training replicates 方向可識別。**條件**：五個 replicate 共用同一個不可重建的 v5 warm start，此條件對 v7 line 永久成立。
 - **推翻一個假結果**：V7C 原本看似 `-36` pp 的巨大改善，經 audit 量測確認為 exposure artifact（30/30 episode 在 horizon 的 35.4889% 早期跌倒），並跨 5 個獨立 seeds 完全重現。
+- **Track A 已重構（2026-09-09）**：第二案例 V1（Walker2d-v5）依凍結規則重現 artifact，但兩臂皆 censored；三個 budget probe 沒有在公開 benchmark 上找到「reference 充分曝露且 metric 非退化」的設定，且暴露了 exposure-only adequacy 規則的缺口。專案負責人決定停止該線，Track A 改為「censoring regime 的評估效度研究」（[TRACK_A_REFRAME](TRACK_A_REFRAME_2026-09-09.md)）：`PUB-A1a` PASS、`PUB-A1b` CLOSED_NOT_ATTAINED、`PUB-A2` 草稿已有。
 - **下一個決策點在專案負責人手上**：是否授權 formal evaluation（見 [PUBLICATION_PLAN](PUBLICATION_PLAN.md) §5）。在授權之前，選擇規則不可執行、FORMAL seeds 不可存取、門檻不可調整。
 
 ## 1. V&V gates
@@ -78,7 +79,19 @@
 
 [RESULT] 同一環境、同 1000 個 reciprocal：stdlib 順序相加得 `7.485470860550343`，`numpy.ndarray.sum` 得 `7.485470860550345`。兩者皆符合 IEEE 754。**這是「pin 版本號不足以重驗數值」的直接證據**，也是 `test_v1_analytical_suite.py::test_stdlib_replay_passes_exact_synthetic_fixture` 在此 lock 下記錄為失敗而非放寬的原因。
 
-### 4.4 Motion task（v5 Live 500 Hz）
+### 4.4 第二案例（Walker2d-v5，`SECONDCASE-EXPOSURE-CENSORING-WALKER2D-V1`）與三個 budget probe
+
+| 項目 | 結果 | 性質 |
+|---|---|---|
+| V1 執行（2 arms × 5 replicates × 301,056 steps） | 300 episodes、284 EARLY／16 FULL；reference 4/5 replicates 30/30 早跌；naive `W2D_C − W2D_A` `−28.795138` pp、t-interval `[−46.698919, −10.891357]` 排除 0；θ `[−79.118, +55.913333]` 含 0、0/5；`SECOND_CASE_ARTIFACT_REPRODUCED`；P3 284/284 `OBSERVED` | DEVELOPMENT，凍結 protocol，replay exact（[receipt](SECOND_CASE_EXPOSURE_CENSORING_EXECUTION_RECEIPT_2026-09-08.md)） |
+| Probe V1（Walker2d，SB3 預設，上限 2,949,120） | `PROBE_NEGATIVE_MAX_BUDGET_REACHED`，1/360 full | **pilot** |
+| Probe V2（Walker2d，rl-zoo tuned，上限 1,966,080） | `PROBE_NEGATIVE_MAX_BUDGET_REACHED`，5/240 full | **pilot** |
+| Probe V3（Hopper-v5，tuned，上限 1,966,080） | `PROBE_BUDGET_FOUND` 1,474,560；reference 站立不動、saturation 2.712%（兩個更早 30/30 checkpoint ≈ 0%） | **pilot**；規則缺口記錄為 blocker |
+
+[RESULT] V1 是 Track A regime R3（對稱重度 censoring）的凍結量測實例，也是 A-C2（`OBSERVED ⇏ full exposure`）第二個 plant 的證據。
+[BLOCKER] Probe 的凍結 claim boundary 只支持 budget 選擇；不得用於任何關於 Walker2d／Hopper／PPO recipe 能力的陳述。2026-09-09 起 `…-WALKER2D-V2`／`…-HOPPER-V1` 兩個 protocol id 撤回（從未 pin、從未載入），詳見 [probe receipt §7](SECOND_CASE_V2_BUDGET_PROBE_RECEIPT_2026-09-08.md)。
+
+### 4.5 Motion task（v5 Live 500 Hz）
 
 [RESULT] run `run-20260830t055847-rl_task_v5-b6c4781d` 通過 10/11 criteria，無跌倒；唯一失敗為 saturation duty `38.422222% > 30%`。門檻未放寬。
 
@@ -94,6 +107,7 @@
 | Environment lock | `ENVIRONMENT-LOCK-V1` | 一份實測 record，EL-01..EL-10，60 tests |
 | Training-seed variance | `SEEDVAR-V7-TRAINING-REPLICATE-DEV-V1` | **已執行**：1,843,200 timesteps、450 records、replay exact；SV-01..SV-12 |
 | Candidate selection | `SELECT-V7-CANDIDATE-FORMAL-V1` | 凍結，rule self-check 通過，SEL-01..SEL-09，47 tests；**不可執行** |
+| Second-case exposure censoring | `SECONDCASE-EXPOSURE-CENSORING-WALKER2D-V1` | **已執行**：10 cells、300 records、replay exact；generic `exposure_identification.py` 對 v7 retained evidence bit-exact；V2 schema（P0 reference adequacy）與 budget-probe runner 為已測試軟體；`…-WALKER2D-V2`／`…-HOPPER-V1` 兩個 id 於 2026-09-09 撤回（從未 pin） |
 
 共同性質：fail-closed；`NOT_REACHED`／`NOT_APPLICABLE` 永不等於 PASS；禁止 complete-case deletion；禁止 interval 補值；episode-level 分母為 enforced forbidden denominators；每層皆可由 `python -I -S` stdlib-only process exact 重建。
 
@@ -145,7 +159,9 @@
 | 2026-09-08 | `SEEDVAR` 凍結 → Amendment 01 → **執行完成** | V7B 方向 5/5；variance null |
 | 2026-09-08 | Pretraining-seed variance 結案（不可量測）；`SELECT` 凍結 | 授權成為唯一前置 |
 | 2026-09-08 | 文件重整；[PUBLICATION_PLAN](PUBLICATION_PLAN.md) 建立 | 學術產出路線凍結 V1 |
-| 2026-09-08 | `PUB-A1` 第二案例凍結 → push → **執行完成** | `SECOND_CASE_ARTIFACT_REPRODUCED`；兩臂皆 censored，gate 未 PASS，需 V2 |
+| 2026-09-08 | `PUB-A1` 第二案例凍結 → push → **執行完成** | `SECOND_CASE_ARTIFACT_REPRODUCED`；兩臂皆 censored（regime R3） |
+| 2026-09-08 | 三個 V2 budget probe（pilot） | Walker2d ×2 NEGATIVE；Hopper FOUND 但 reference 退化；exposure-only 規則缺口 |
+| 2026-09-09 | 專案負責人決定停止第二案例 V2 線；Track A 重構；[PUBLICATION_PLAN](PUBLICATION_PLAN.md) 升版 V2 | `PUB-A1a` PASS、`PUB-A1b` CLOSED_NOT_ATTAINED；兩個未 pin 的 protocol id 撤回；[TRACK_A_REFRAME](TRACK_A_REFRAME_2026-09-09.md) 為 `PUB-A2` 草稿 |
 
 ## 8. 下一步
 
@@ -153,8 +169,8 @@
 
 **學術（見 [PUBLICATION_PLAN](PUBLICATION_PLAN.md)）**
 
-1. `PUB-A0` 文獻 novelty check：exposure censoring／partial identification 在 RL 評估中的既有工作。
-2. `PUB-A1` V1 已執行（Walker2d-v5，見 [receipt](SECOND_CASE_EXPOSURE_CENSORING_EXECUTION_RECEIPT_2026-09-08.md)）；下一步凍結 V2：budget 提高到 reference 近乎 full exposure，使 censoring 不對稱。
+1. `PUB-A0` 文獻 novelty check：exposure censoring／partial identification 在 RL 評估中的既有工作（需可存取出版方的環境）；另做 A-C5 的 preregistration／multiverse scan；核對 rl-zoo recipe 數值。
+2. `PUB-A2` claim freeze：A0 之後，把 [TRACK_A_REFRAME §5–§7](TRACK_A_REFRAME_2026-09-09.md) 凍結。**不再開任何第二案例 probe 或 protocol**；`PUB-A1b` 已關閉並寫入 Limitations。
 3. 專案負責人決定 Track B 的 formal authorization 與 OSF preregistration。
 
 **工程（見 [ROADMAP](ROADMAP.md) §9）**
@@ -166,4 +182,4 @@
 
 ## 9. 測試現況
 
-`backend/`：**1 failed / 640 passed**（2026-09-08，292.68 s）。失敗項為 `test_v1_analytical_suite.py::test_stdlib_replay_passes_exact_synthetic_fixture`（`PRIMARY_CASE_RECEIPT_IDENTITY`），與 §4.3 的 reduction-order 差異同源，記錄為量測結果、未放寬。
+`backend/`：**1 failed / 729 passed**（2026-09-09，295.78 s；含 87 個 second-case 測試）。失敗項為 `test_v1_analytical_suite.py::test_stdlib_replay_passes_exact_synthetic_fixture`（`PRIMARY_CASE_RECEIPT_IDENTITY`），與 §4.3 的 reduction-order 差異同源，記錄為量測結果、未放寬。

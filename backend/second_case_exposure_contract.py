@@ -82,14 +82,37 @@ OUTCOME_LABELS = (
 PROTOCOL_SCHEMA_V2 = "SECOND_CASE_EXPOSURE_PROTOCOL_V2"
 PROTOCOL_SCHEMAS = (PROTOCOL_SCHEMA, PROTOCOL_SCHEMA_V2)
 PROTOCOL_ID_V2 = "SECONDCASE-EXPOSURE-CENSORING-WALKER2D-V2"
-PROTOCOL_V2_SHA256: str | None = None  # pinned at the V2 freeze; None means "not frozen, cannot load"
+PROTOCOL_V2_SHA256: str | None = None  # never pinned; withdrawn 2026-09-09 (see WITHDRAWN_PROTOCOLS)
 PROTOCOL_ID_HOPPER = "SECONDCASE-EXPOSURE-CENSORING-HOPPER-V1"
-PROTOCOL_HOPPER_SHA256: str | None = None  # pinned at its freeze; None means "not frozen, cannot load"
+PROTOCOL_HOPPER_SHA256: str | None = None  # never pinned; withdrawn 2026-09-09 (see WITHDRAWN_PROTOCOLS)
 PINNED_PROTOCOLS: dict[str, str | None] = {
     PROTOCOL_ID: PROTOCOL_SHA256,
     PROTOCOL_ID_V2: PROTOCOL_V2_SHA256,
     PROTOCOL_ID_HOPPER: PROTOCOL_HOPPER_SHA256,
 }
+# Withdrawn on 2026-09-09 by the project owner's decision to stop the second-case V2 line and
+# reframe Track A (docs/TRACK_A_REFRAME_2026-09-09.md, PUBLICATION-PLAN-V2).  Three budget probes
+# ran first: Walker2d probes V1 and V2 were negative at their frozen caps, and the Hopper probe
+# found a budget but its exposure-only adequacy rule selected a standing reference whose
+# saturation was near zero, for which the artifact is impossible by construction.  Neither id
+# was ever pinned, so neither ever loaded; both stay in PINNED_PROTOCOLS with a None digest so
+# that a protocol carrying one of them is refused with the decision as the reason rather than a
+# still-pending freeze.  The V2 schema and its P0 logic remain implemented and tested as software.
+# Any future attempt must mint a new protocol id, and its budget probe must add a
+# reference-saturation floor to the exposure rule.
+WITHDRAWN_PROTOCOLS: dict[str, str] = {
+    PROTOCOL_ID_V2: (
+        "withdrawn 2026-09-09: Walker2d-v5 budget probes V1 and V2 were negative at their frozen "
+        "caps; the second-case V2 line was closed by decision (docs/TRACK_A_REFRAME_2026-09-09.md)"
+    ),
+    PROTOCOL_ID_HOPPER: (
+        "withdrawn 2026-09-09: the Hopper-v5 budget probe selected a near-zero-saturation standing "
+        "reference under an exposure-only adequacy rule; the line was closed by decision "
+        "(docs/TRACK_A_REFRAME_2026-09-09.md)"
+    ),
+}
+if any(PINNED_PROTOCOLS[_withdrawn] is not None for _withdrawn in WITHDRAWN_PROTOCOLS):
+    raise RuntimeError("a withdrawn second-case protocol id must never carry a pinned digest")
 SUMMARY_SCHEMA_V2 = "SECOND_CASE_EXPOSURE_SUMMARY_V2"
 OUTCOME_REFERENCE_NOT_ADEQUATE = "SECOND_CASE_REFERENCE_NOT_ADEQUATE"
 OUTCOME_LABELS_V2 = OUTCOME_LABELS + (OUTCOME_REFERENCE_NOT_ADEQUATE,)
@@ -304,11 +327,16 @@ def load_protocol(path: Path = DEFAULT_PROTOCOL, *, require_pinned_digest: bool 
     digest = sha256_bytes(payload)
     protocol = _obj(load_json_bytes(payload, str(path)), "protocol")
     validate_protocol(protocol)
+    protocol_id = protocol["protocol_id"]
+    if protocol_id in WITHDRAWN_PROTOCOLS:
+        # A withdrawn id is refused on every path, pinned-digest requirement or not: it must
+        # never be executed, frozen or analysed as DEVELOPMENT evidence.
+        raise SecondCaseError(f"SECONDCASE_PROTOCOL_WITHDRAWN: {protocol_id} {WITHDRAWN_PROTOCOLS[protocol_id]}")
     if require_pinned_digest:
-        pinned = PINNED_PROTOCOLS.get(protocol["protocol_id"])
+        pinned = PINNED_PROTOCOLS.get(protocol_id)
         if pinned is None:
             raise SecondCaseError(
-                f"SECONDCASE_PROTOCOL_NOT_FROZEN: {protocol['protocol_id']} has no pinned digest yet"
+                f"SECONDCASE_PROTOCOL_NOT_FROZEN: {protocol_id} has no pinned digest yet"
             )
         if digest != pinned:
             raise SecondCaseError(f"SECONDCASE_PROTOCOL_DIGEST_MISMATCH: {digest} != pinned {pinned}")

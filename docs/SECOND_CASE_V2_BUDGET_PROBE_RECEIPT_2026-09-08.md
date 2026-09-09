@@ -1,6 +1,6 @@
 # V2 Budget Probe 回條（pilot）
 
-日期：2026-09-08 ｜ 對應 gate：`PUB-A1`（V2 前置） ｜ 性質：**pilot，不是 evidence**
+日期：2026-09-08（§1–§6）、2026-09-09（§7 決定） ｜ 對應 gate：`PUB-A1`（V2 前置；**該線已於 2026-09-09 依決定關閉**，見 §7） ｜ 性質：**pilot，不是 evidence**
 
 ## 1. Probe V1：`SECONDCASE-V2-BUDGET-PROBE-V1` → `PROBE_NEGATIVE_MAX_BUDGET_REACHED`
 
@@ -126,8 +126,41 @@
 - `second_case_exposure_contract.py`：`CELL_SCHEMA_V2` 多一欄 `normalizer_sha256`（recipe 有 normalize 時必填，無則必為 null）；V2 protocol 可帶 `training.normalize`／`training.policy_kwargs`，V1 帶則拒。V1 retained evidence 仍 bit-exact replay（測試固定）。
 
 - `rl/second_case_budget_probe.py`：`environment_override`（plant 換置，`make_kwargs` 必須為空、plant 以 digest 重釘、`H·J` 重算）；`effective_environment()`。
-- `second_case_exposure_contract.py`：pinned map 新增 `SECONDCASE-EXPOSURE-CENSORING-HOPPER-V1`（尚未凍結，digest 為 None，不可載入）。
+- `second_case_exposure_contract.py`：pinned map 新增 `SECONDCASE-EXPOSURE-CENSORING-HOPPER-V1`（digest 為 None，不可載入）。**2026-09-09 起**該 id 與 `SECONDCASE-EXPOSURE-CENSORING-WALKER2D-V2` 一併列入 `WITHDRAWN_PROTOCOLS`（§7.3）。
 
 ## 6. Claim boundary
 
 只支持「第二案例的 budget（與可用的 plant／recipe）該選多少」這一件事。不支持任何關於 Walker2d、兩臂、artifact 的陳述。Probe 資料不得與 V1、V2 或彼此比較。
+
+## 7. 決定（2026-09-09）：停止第二案例 V2 線，重構 Track A
+
+### 7.1 提交給專案負責人的三個選項
+
+| # | 選項 | 代價與風險 |
+|---|---|---|
+| 1 | 照 probe V3 結果凍結 `SECONDCASE-EXPOSURE-CENSORING-HOPPER-V1`（budget 1,474,560）並執行 10 cells | 約 17 CPU-h（3–4 cell 並行約 5–6 h）；reference saturation 只有 2.71%，P2 的 naive t-interval 能否排除 0 不確定；而且是**明知 adequacy 規則有缺口（§4.1 BLOCKER）仍照該規則凍結** |
+| 2 | 開 probe V4：adequacy 規則加上 reference saturation 下限（例如 ≥ 5%），重新探測 | 再一輪 ≥ 2 h pilot，沒有成功保證；每一個負結果 probe 都是不能當 evidence 的 pilot，且其 seeds 對後續全為禁區 |
+| 3 | **停止**，不再凍結、不再探測；把 v7 的不對稱 censoring、V1 的對稱 censoring、三次 probe 一起當作「評估效度」的發現重構 Track A | 放棄「在公開 benchmark 上重現 v7 不對稱形狀」這一項；它成為稿件明文的限制 |
+
+建議為 3。**專案負責人於 2026-09-09 選擇 3。**
+
+### 7.2 決定的理由（記錄，不重新論證）
+
+- [RESULT] 審稿人「你的 bound 是不是永遠無資訊」的問題，v7 的 V7B 案例已回答：θ = `[-13.503408, -12.435259]` pp 排除 0、5/5 replicates 方向可識別（[seed-variance receipt](TRAINING_SEED_VARIANCE_EXECUTION_RECEIPT_2026-09-08.md)）。第二案例的原始動機之一因此已被既有證據覆蓋。
+- [RESULT] A-C2（`OBSERVED ⇏ full exposure`）在 Walker2d V1 上已有第二個 plant 的證據：284/284 early-terminated episode 的 `outcome_state` 皆 `OBSERVED`（[execution receipt](SECOND_CASE_EXPOSURE_CENSORING_EXECUTION_RECEIPT_2026-09-08.md) §3.1）。
+- [INFERENCE] 三次 probe 合起來說的是一件方法論上的事：**一個 comparative evaluation 落在哪一種 censoring regime，取決於 budget、recipe 與 plant，而標準評估流程既不控制也不報告它。** 這正是 Track A 的範圍（量測程序），不是 plant 或 controller 的性質。把它寫成發現，比再投入算力去湊出一個特定 regime 更誠實、也更有用。
+- [BLOCKER] 選項 1 會在已知規則缺口的情況下凍結一份 protocol。凍結的意義是把事先寫死的規則交給資料裁決；明知規則不完整仍凍結，違反 freeze 的目的。
+
+### 7.3 處置
+
+| 項目 | 處置 |
+|---|---|
+| `SECONDCASE-EXPOSURE-CENSORING-WALKER2D-V2`、`SECONDCASE-EXPOSURE-CENSORING-HOPPER-V1` | **撤回（withdrawn）**：兩個 id 從未被 pin，從未載入；contract 新增 `WITHDRAWN_PROTOCOLS`，`load_protocol` 對兩者在任何路徑（含 `require_pinned_digest=False`）皆以 `SECONDCASE_PROTOCOL_WITHDRAWN` 拒絕；import 時斷言撤回 id 不得有 pinned digest。V2 schema 與 P0 邏輯**保留為軟體**並持續測試 |
+| Probe V1／V2／V3 結果 | 保留於 `backend/second_case_evidence/2026-09-08-v*-budget-probe*/`，性質不變（pilot）。稿件中**只能**以兩種方式出現：(a) 凍結的 budget-selection 程序的 outcome label；(b) 「exposure-only adequacy 規則可選出 artifact 在數學上不可能出現的 reference」這一項關於**規則**的觀察（數學陳述不需要資料；probe 只作說明）。任何「Walker2d-v5／Hopper-v5 的 PPO 站不站得穩」的陳述都在 probe 凍結的 claim boundary 之外，需要新的凍結 protocol 才能主張 |
+| 任何未來的第二案例嘗試 | 必須鑄新 protocol id；其 budget probe 的 adequacy 規則必須同時要求 exposure（≥ 27/30、連續兩個 checkpoint）**與** reference saturation 下限；先前所有 seeds 區段皆為禁區 |
+| `PUB-A1` | 依 [PUBLICATION_PLAN](PUBLICATION_PLAN.md) V2 拆為 A1a（第二 plant 的機制證據，由 V1 receipt 支持）與 A1b（公開 benchmark 上的不對稱 regime，**CLOSED_NOT_ATTAINED**） |
+| Track A | 重構文件：[TRACK_A_REFRAME_2026-09-09](TRACK_A_REFRAME_2026-09-09.md) |
+
+### 7.4 沒有改變的事
+
+`paper_data_ready`、`statistics_ready`、`method_level_power_ready`、`sample_size_decision_input_ready` 皆為 false 不變；V1 retained evidence 的 bytes 與 replay 不變（測試固定）；沒有任何 threshold、seed、budget 被調整；沒有新的訓練或評估被執行。
