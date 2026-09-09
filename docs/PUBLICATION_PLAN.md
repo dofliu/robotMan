@@ -51,7 +51,7 @@ V2 補一句：Track A 的論點不再是「在公開 benchmark 上重現 v7 的
 **已知弱點：**
 
 - R1（不對稱 regime）只在本專案 humanoid plant 上量到，且該 line 永久 `CONDITIONAL_ON_FIXED_WARM_START`；公開 benchmark 上只有 R3 的凍結量測與 R4／R5 的 pilot。
-- Novelty 未經原文核對（執行環境封鎖出版方 host）。→ `PUB-A0` 未通過。
+- Novelty：§4 點名的兩篇關鍵文獻已於 2026-09-09 全文核對，gap 仍成立（[LITERATURE_MAP §7](LITERATURE_MAP_2026-09-08_EVALUATION_VALIDITY.md)）；其餘條目未經原文核對（執行環境封鎖出版方 host）。→ `PUB-A0` 未通過。
 - Manski 型 bound 只用了最弱版本；審稿人可能要求討論 monotonicity 等收窄假設 —— 應主動說明為何本專案**拒絕**加假設。
 - 沒有 external preregistration；只能稱 internal hash freeze。第二案例 protocol 是在 v7 結果已知後寫的。
 - rl-zoo recipe 數值 `U_VERIFIED_FROM_MEMORY`。
@@ -80,7 +80,7 @@ V2 補一句：Track A 的論點不再是「在公開 benchmark 上重現 v7 的
 
 | Gate | Exit condition | 狀態 | 備註 |
 |---|---|---|---|
-| `PUB-A0` Novelty | 文獻地圖中所有 `U` 條目經原文核對改為 `[SOURCE]` 或刪除；§4 gap 判定重寫並仍成立；補 A-C5 的 preregistration／multiverse scan | `IN_PROGRESS` — `SCAN_COMPLETE / PRIMARY_SOURCES_UNVERIFIED` | 需可存取出版方的環境。關鍵兩篇：arXiv 2606.10229、1911.05728 |
+| `PUB-A0` Novelty | 文獻地圖中所有 `U` 條目經原文核對改為 `S` 或刪除；§4 gap 判定重寫並仍成立；補 A-C5 的 preregistration／multiverse scan | `IN_PROGRESS` — `KEY_TWO_VERIFIED_GAP_STANDS / REMAINING_U` | 關鍵兩篇 arXiv 1911.05728、2606.10229 已由專案負責人提供 PDF 並全文核對（2026-09-09，[LITERATURE_MAP §7](LITERATURE_MAP_2026-09-08_EVALUATION_VALIDITY.md)）：前者為 conditionally independent censoring + imputation 的點估計（bounds 為 regret／rate），後者為 curation metric 的設計期 common-prefix truncation、未涉及 policy evaluation——兩個「gap 縮小／消失」條件皆不成立。其餘 `U` 條目需可存取出版方的環境 |
 | `PUB-A1a` 第二 plant 的機制證據 | 至少一條主貢獻在非專案 plant 上以**凍結的** protocol 取得 receipt 與 stdlib-only replay | **`PASS`** | [execution receipt](SECOND_CASE_EXPOSURE_CENSORING_EXECUTION_RECEIPT_2026-09-08.md)：10/10 cells、300 episodes、replay exact；A-C1 的 R3 實例、A-C2 的 284/284。依據是已存在的 receipt 與其凍結規則下的 outcome |
 | `PUB-A1b` 公開 benchmark 上的不對稱 regime | 在公開 benchmark 上以凍結 protocol 量到 R1 | **`CLOSED_NOT_ATTAINED`**（2026-09-09） | 三個 budget probe（[probe receipt](SECOND_CASE_V2_BUDGET_PROBE_RECEIPT_2026-09-08.md)）後由專案負責人決定停止；寫入 Limitations 第一條。**不是 PASS、不是放寬**；重開需新 protocol id 與含 saturation 下限的 probe 規則 |
 | `PUB-A2` Claim freeze | [TRACK_A_REFRAME §5](TRACK_A_REFRAME_2026-09-09.md) 每列可只由 hash-bound receipts 推出；§6 不可宣稱清單與 §7 figure／table 清單凍結；Limitations 先寫 | `IN_PROGRESS` — 草稿即 TRACK_A_REFRAME | 凍結須在 A0 之後 |
@@ -162,7 +162,7 @@ V2 補一句：Track A 的論點不再是「在公開 benchmark 上重現 v7 的
 
 ## 8. 立即下一步
 
-1. **`PUB-A0`**：在可存取出版方的環境讀 [LITERATURE_MAP §4](LITERATURE_MAP_2026-09-08_EVALUATION_VALIDITY.md) 點名的兩篇與 §1.2–§1.4 的 `U` 條目；更新地圖。
+1. **`PUB-A0`**：關鍵兩篇已核對（2026-09-09，gap 仍成立）；其餘 `U` 條目在可存取出版方的環境讀原文並更新 [LITERATURE_MAP](LITERATURE_MAP_2026-09-08_EVALUATION_VALIDITY.md)；補 A-C5 的 preregistration／multiverse scan。
 2. **`PUB-A2`**：`PUB-A1a` 已 PASS、`PUB-A1b` 已關閉；下一步是在 A0 之後把 [TRACK_A_REFRAME §5–§7](TRACK_A_REFRAME_2026-09-09.md) 凍結為 claim freeze receipt。同時核對 rl-zoo recipe 數值（影響限制清單第 5 條的措辭）。**不再開任何第二案例 probe 或 protocol**。
 3. **`PUB-B0`**：專案負責人決策（§5）。
 4. 工程：ROADMAP §9 第 1、2 項並行。
@@ -173,3 +173,4 @@ V2 補一句：Track A 的論點不再是「在公開 benchmark 上重現 v7 的
 |---|---|---|
 | `PUBLICATION-PLAN-V1` | 2026-09-08 | 建立三條 track、PUB gates、寫作規範、不可宣稱清單 |
 | `PUBLICATION-PLAN-V2` | 2026-09-09 | 專案負責人決定停止第二案例 V2 線（三個 budget probe 後）。Track A 重構為 censoring regime 的評估效度研究（[TRACK_A_REFRAME_2026-09-09](TRACK_A_REFRAME_2026-09-09.md)）；新增主貢獻 A-C3；`PUB-A1` 拆為 A1a（`PASS`，依既有 Walker2d V1 receipt）與 A1b（`CLOSED_NOT_ATTAINED`，寫入 Limitations）；`PUB-A2` 進入 `IN_PROGRESS`（草稿）。`SECONDCASE-EXPOSURE-CENSORING-WALKER2D-V2`／`-HOPPER-V1` 兩個從未 pin 的 protocol id 在 contract 中撤回。Track B、Track C、§5–§7 不變；四個總開關不變 |
+| `PUBLICATION-PLAN-V2`（狀態更新） | 2026-09-09 | `PUB-A0`：§4 點名的兩篇關鍵文獻由專案負責人提供 PDF 並全文核對；兩個「gap 縮小／消失」條件皆不成立，A-C1／A-C2 的 gap 判定不再條件於它們；狀態 `KEY_TWO_VERIFIED_GAP_STANDS / REMAINING_U`，gate 仍未 PASS。計畫本體無變更 |
