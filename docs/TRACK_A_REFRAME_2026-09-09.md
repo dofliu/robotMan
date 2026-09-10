@@ -86,7 +86,7 @@
 | **A-C2（主）** | `outcome_state == OBSERVED ⇏ full exposure`：所有 required outcome 有值、算術正常，exposure 仍可不足；可移植的檢查是由 trace 長度獨立重建 exposure | 不變；**第二個 plant 的證據已存在**（Walker2d 284/284） | R2（v7 三個 episode）、R3 |
 | **A-C3（主，新增）** | Censoring regime 是 comparative evaluation 未被控制、未被報告的設計變數；bound 是否有資訊、artifact 是否可能出現由它決定；reference-adequacy 前置條件必須同時檢查 exposure 與 metric 非退化；方向可識別 ≠ 變異可估計 | **新增**：把原 `PUB-A1` 的「未達成」轉為方法論發現 | R1–R5 全部；§3.6 |
 | **A-C4（artifact）** | Statistical unit 的程式層強制（forbidden denominators）、`NOT_REACHED ≠ PASS`、`python -I -S` stdlib-only exact replay、freeze-before-execute、probe 作為 pilot 的紀律（上限不事後提高、seeds 對下游為禁區、pilot 不得為 evidence） | 擴充：加入 probe 紀律 | 全部 |
-| **A-C5（次）** | 公開宣告非預註冊、且在啟發資料上必須失敗的 selection rule 自檢 | 不變；仍待 preregistration／multiverse 文獻 scan | `SELECT-V7-CANDIDATE-FORMAL-V1` |
+| ~~**A-C5（次）**~~ → **併入 A-C4（artifact 級，2026-09-10）** | 公開宣告非預註冊、且在啟發資料上必須失敗的 selection rule 自檢 | **降級**：補充 scan 完成（[LITERATURE_MAP §1.7](LITERATURE_MAP_2026-09-08_EVALUATION_VALIDITY.md)）後判定縮小——透明宣告 post hoc 是 Hollenbeck & Wright (2017) 的 Tharking，決策資料隔離是 Cawley & Talbot (2010)／Dwork et al. (2015) 已建立；剩餘窄點的解讀受「選不出東西可能只因 exposure 不足」混淆 | `SELECT-V7-CANDIDATE-FORMAL-V1` |
 | **A-M（動機）** | 同環境兩種 IEEE-conformant reduction order 給不同結果；版本 pin 不足以重驗數值 | 不變；SC'24、RepDL 已建立，只作動機 | environment lock receipt |
 
 **被放棄的主張：** 「v7 的不對稱 censoring artifact 在公開 benchmark 上重現」。它成為稿件明文限制（§6 第 1 條）。
@@ -117,7 +117,7 @@
 3. **不是 preregistration。** 全部為 internal hash freeze；第二案例 protocol 在 v7 結果已知後寫成；`SELECT-V7-CANDIDATE-FORMAL-V1` 為 post hoc、disclosed。
 4. **v7 line 永久 `CONDITIONAL_ON_FIXED_WARM_START`**；pilot 與 audit 的環境 `ABSENT_UNRECOVERABLE`；`cross_protocol_comparability = NON_VERIFIABLE_ENVIRONMENT`——pilot 與 seed-variance 的數值不得相減或並排成趨勢。
 5. **Recipe 數值 `U_VERIFIED_FROM_MEMORY`**（rl-zoo Walker2d／Hopper PPO），投稿前須對照已發表檔案。
-6. **文獻條目多數仍 `U`**；§4 點名的兩篇關鍵文獻（arXiv 1911.05728、2606.10229）已於 2026-09-09 由專案負責人提供 PDF 全文核對（[LITERATURE_MAP §7](LITERATURE_MAP_2026-09-08_EVALUATION_VALIDITY.md)），兩個「gap 縮小／消失」條件皆不成立，A-C1／A-C2 的 gap 判定不再條件於它們，但仍條件於其餘 `U` 條目；novelty 主張條件於 `PUB-A0` 完成。
+6. **文獻條目多數仍 `U`**；§4 點名的兩篇關鍵文獻（arXiv 1911.05728、2606.10229）已於 2026-09-09 由專案負責人提供 PDF 全文核對（[LITERATURE_MAP §7](LITERATURE_MAP_2026-09-08_EVALUATION_VALIDITY.md)），兩個「gap 縮小／消失」條件皆不成立，A-C1／A-C2 的 gap 判定不再條件於它們，但仍條件於其餘 `U` 條目；novelty 主張條件於 `PUB-A0` 完成。A-C5 的補充 scan 已於 2026-09-10 完成，結果是**縮小**：該項降為 artifact 級併入 A-C4（見 §4 表與 [LITERATURE_MAP §4 第 5 點](LITERATURE_MAP_2026-09-08_EVALUATION_VALIDITY.md)）。
 7. **只用最弱的 Manski 型 bound**；本專案刻意拒絕 monotonicity 等收窄假設，稿件須主動說明理由。
 8. **不對 plant、controller、action interface、low-pass filter、sim-to-real、physical actuator 做任何主張**；`direction_claim_permitted = false` 於每一份 summary。
 9. **n = 5 training replicates**／line；無 power；`paper_data_ready` 等四個 flag 皆 false 且本重構不改變它們。
@@ -139,7 +139,7 @@
 
 | Gate | 出口條件 | 狀態 | 依據 |
 |---|---|---|---|
-| `PUB-A0` Novelty | 文獻地圖所有 `U` 經原文核對；§4 gap 判定重寫並仍成立；補 A-C5 的 preregistration／multiverse scan | `IN_PROGRESS` — `KEY_TWO_VERIFIED_GAP_STANDS / REMAINING_U` | 關鍵兩篇已核對（2026-09-09）：1911.05728 為 independent-censoring + imputation 的點估計，2606.10229 為 curation metric 的設計期 truncation；其餘 `U` 條目需可存取出版方的環境 |
+| `PUB-A0` Novelty | 文獻地圖所有 `U` 經原文核對；§4 gap 判定重寫並仍成立 | `IN_PROGRESS` — `KEY_TWO_VERIFIED_AND_A_C5_SCANNED / REMAINING_U` | 關鍵兩篇已核對（2026-09-09）：1911.05728 為 independent-censoring + imputation 的點估計，2606.10229 為 curation metric 的設計期 truncation。A-C5 補充 scan 已完成（2026-09-10）並使該項降級。其餘 `U` 條目需可存取出版方的環境（2026-09-10 重新量測 `arxiv.org` 仍封鎖） |
 | `PUB-A1a` 第二 plant 的機制證據 | 至少一條主貢獻在非專案 plant 上有凍結 protocol + receipt + stdlib replay | **`PASS`** | Walker2d V1 receipt：A-C1（R3）、A-C2（284/284） |
 | `PUB-A1b` 公開 benchmark 上的不對稱 regime | 在公開 benchmark 上以凍結 protocol 量到 R1 | **`CLOSED_NOT_ATTAINED`**（2026-09-09） | 三次 probe；寫入限制第 1 條；不是 PASS、不是放寬 |
 | `PUB-A2` Claim freeze | §5 每列可只由 hash-bound receipt 推出；§6、§7 凍結；限制段落先寫 | `IN_PROGRESS` — 本文件為草稿 | 凍結須在 A0 之後 |
@@ -159,7 +159,7 @@
 
 ## 10. 立即下一步
 
-1. `PUB-A0`：關鍵兩篇已核對（2026-09-09，gap 仍成立，[LITERATURE_MAP §7](LITERATURE_MAP_2026-09-08_EVALUATION_VALIDITY.md)）；其餘 §1.1、§1.3–§1.5 與 §2 的 `U` 條目仍需在可存取出版方的環境讀原文；另做 A-C5 的 preregistration／multiverse scan。
+1. `PUB-A0`：關鍵兩篇已核對（2026-09-09，gap 仍成立，[LITERATURE_MAP §7](LITERATURE_MAP_2026-09-08_EVALUATION_VALIDITY.md)）、A-C5 補充 scan 已完成（2026-09-10，該項降級）。**唯一剩餘工作**是在可存取出版方的環境讀 §1.1、§1.3–§1.5、§1.7 與 §2 的 `U` 條目原文；優先四篇：Pardo 2018、Colas 2019、Manski 1990／Tamer 2010、Hollenbeck & Wright 2017。
 2. Recipe 數值核對（rl-baselines3-zoo `hyperparams/ppo.yml` Walker2d／Hopper 條目）——影響 §6 第 5 條的措辭。
 3. `PUB-A2`：A0 完成後，把本文 §5–§7 凍結為 claim freeze receipt。
 4. `PUB-A3`：一次正式 clean-checkout reproduction 執行並記錄。

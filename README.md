@@ -23,7 +23,7 @@ Repository：[github.com/dofliu/robotMan](https://github.com/dofliu/robotMan) �
 | Paper-data gates | PDR-0..8 無一 PASS；`paper_data_ready = false` | [PAPER_DATA_READINESS](docs/PAPER_DATA_READINESS.md) |
 | 最強的一個結果 | V7B 相對 V7A 的 saturation duty method-level bound `[-13.503408, -12.435259]` pp，排除 0，5/5 independent training replicates 方向可識別；**條件於一個不可重建的 warm start** | [PROJECT_STATUS §4](docs/PROJECT_STATUS.md) |
 | 被推翻的一個結果 | V7C 表面上的 `-36` pp 改善經量測確認為 exposure artifact | [PROJECT_STATUS §4.2](docs/PROJECT_STATUS.md) |
-| 學術產出 | 三條路線；Track A 於 2026-09-09 重構為「censoring regime 的評估效度研究」（`PUBLICATION-PLAN-V2`）：`PUB-A1a` PASS（Walker2d-v5 第二案例）、`PUB-A1b` CLOSED_NOT_ATTAINED（三個 budget probe 後停止）；`PUB-A0` 關鍵兩篇已原文核對、gap 仍成立（其餘條目待核）；下一步 `PUB-A2` claim freeze | [PUBLICATION_PLAN](docs/PUBLICATION_PLAN.md)、[TRACK_A_REFRAME](docs/TRACK_A_REFRAME_2026-09-09.md) |
+| 學術產出 | 三條路線；Track A 於 2026-09-09 重構為「censoring regime 的評估效度研究」（`PUBLICATION-PLAN-V2`）：`PUB-A1a` PASS（Walker2d-v5 第二案例）、`PUB-A1b` CLOSED_NOT_ATTAINED（三個 budget probe 後停止）；`PUB-A0` 關鍵兩篇已原文核對、gap 仍成立，A-C5 補充 scan 完成後降為 artifact 級（其餘條目待核）；下一步 `PUB-A2` claim freeze | [PUBLICATION_PLAN](docs/PUBLICATION_PLAN.md)、[TRACK_A_REFRAME](docs/TRACK_A_REFRAME_2026-09-09.md) |
 | 下一個決策 | 專案負責人決定是否授權 formal evaluation；授權在前、解封在後 | [PUBLICATION_PLAN §5](docs/PUBLICATION_PLAN.md) |
 | 測試 | `backend/` 1 failed / 729 passed；那一個是在具名 environment lock 下記錄的 reduction-order 差異，未放寬 | [PROJECT_STATUS §9](docs/PROJECT_STATUS.md) |
 

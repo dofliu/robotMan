@@ -1,6 +1,6 @@
 # 專案進度狀態報告
 
-最後更新：2026-09-09 ｜ 對應 `STATUS.yaml` ｜ Development：`0.2.0-dev`
+最後更新：2026-09-10 ｜ 對應 `STATUS.yaml` ｜ Development：`0.2.0-dev`
 
 證據範圍：`SIM_ONLY_REDUCED_ORDER` / `NOT_PHYSICALLY_VALIDATED`
 
@@ -14,6 +14,7 @@
 - **推翻一個假結果**：V7C 原本看似 `-36` pp 的巨大改善，經 audit 量測確認為 exposure artifact（30/30 episode 在 horizon 的 35.4889% 早期跌倒），並跨 5 個獨立 seeds 完全重現。
 - **Track A 已重構（2026-09-09）**：第二案例 V1（Walker2d-v5）依凍結規則重現 artifact，但兩臂皆 censored；三個 budget probe 沒有在公開 benchmark 上找到「reference 充分曝露且 metric 非退化」的設定，且暴露了 exposure-only adequacy 規則的缺口。專案負責人決定停止該線，Track A 改為「censoring regime 的評估效度研究」（[TRACK_A_REFRAME](TRACK_A_REFRAME_2026-09-09.md)）：`PUB-A1a` PASS、`PUB-A1b` CLOSED_NOT_ATTAINED、`PUB-A2` 草稿已有。
 - **`PUB-A0` 關鍵兩篇已核對（2026-09-09）**：專案負責人提供 arXiv 1911.05728 與 2606.10229 的 PDF，全文核對後兩個「gap 縮小／消失」條件皆不成立（前者為 independent-censoring + imputation 的點估計，後者為 curation metric 的設計期 truncation）；A-C1／A-C2 的 gap 判定不再條件於它們。gate 仍未 PASS：其餘文獻條目仍為 `U`（[LITERATURE_MAP §7](LITERATURE_MAP_2026-09-08_EVALUATION_VALIDITY.md)）。
+- **A-C5 降為 artifact 級（2026-09-10）**：preregistration／multiverse 補充 scan 完成後判定縮小——「透明宣告 post hoc」已是 Hollenbeck & Wright (2017) 的 Tharking，「決策資料未被檢視」已由 Cawley & Talbot (2010) 與 Dwork et al. (2015) 建立，剩餘窄點的解讀又受「選不出東西可能只因 exposure 不足」混淆。A-C5 併入 A-C4，不再單獨作為主張（[LITERATURE_MAP §1.7、§4 第 5 點](LITERATURE_MAP_2026-09-08_EVALUATION_VALIDITY.md)）。
 - **下一個決策點在專案負責人手上**：是否授權 formal evaluation（見 [PUBLICATION_PLAN](PUBLICATION_PLAN.md) §5）。在授權之前，選擇規則不可執行、FORMAL seeds 不可存取、門檻不可調整。
 
 ## 1. V&V gates
@@ -164,6 +165,7 @@
 | 2026-09-08 | 三個 V2 budget probe（pilot） | Walker2d ×2 NEGATIVE；Hopper FOUND 但 reference 退化；exposure-only 規則缺口 |
 | 2026-09-09 | 專案負責人決定停止第二案例 V2 線；Track A 重構；[PUBLICATION_PLAN](PUBLICATION_PLAN.md) 升版 V2 | `PUB-A1a` PASS、`PUB-A1b` CLOSED_NOT_ATTAINED；兩個未 pin 的 protocol id 撤回；[TRACK_A_REFRAME](TRACK_A_REFRAME_2026-09-09.md) 為 `PUB-A2` 草稿 |
 | 2026-09-09 | `PUB-A0` 關鍵兩篇原文核對（PDF 由專案負責人提供） | 1911.05728、2606.10229 皆不推翻 gap；`KEY_TWO_VERIFIED_GAP_STANDS / REMAINING_U`；gate 未 PASS |
+| 2026-09-10 | `PUB-A0` A-C5 補充 scan（preregistration／multiverse） | A-C5 降為 artifact 級併入 A-C4；`KEY_TWO_VERIFIED_AND_A_C5_SCANNED / REMAINING_U`；gate 未 PASS |
 
 ## 8. 下一步
 
@@ -171,7 +173,7 @@
 
 **學術（見 [PUBLICATION_PLAN](PUBLICATION_PLAN.md)）**
 
-1. `PUB-A0`：關鍵兩篇已核對、gap 仍成立；其餘 `U` 條目（§1.1、§1.3–§1.5、§2 的 Manski／Tamer 線）仍需可存取出版方的環境；另做 A-C5 的 preregistration／multiverse scan；核對 rl-zoo recipe 數值。
+1. `PUB-A0`：關鍵兩篇已核對、A-C5 補充 scan 已完成（該項降級）；**唯一剩餘工作**是讀其餘 `U` 條目原文（§1.1、§1.3–§1.5、§1.7、§2 的 Manski／Tamer 線），需可存取出版方的環境——2026-09-10 重新量測 `arxiv.org` 仍封鎖。優先四篇：Pardo 2018、Colas 2019、Manski 1990／Tamer 2010、Hollenbeck & Wright 2017。另需核對 rl-zoo recipe 數值。
 2. `PUB-A2` claim freeze：A0 之後，把 [TRACK_A_REFRAME §5–§7](TRACK_A_REFRAME_2026-09-09.md) 凍結。**不再開任何第二案例 probe 或 protocol**；`PUB-A1b` 已關閉並寫入 Limitations。
 3. 專案負責人決定 Track B 的 formal authorization 與 OSF preregistration。
 
