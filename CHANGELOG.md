@@ -2,6 +2,17 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-09 (k)
+
+### `PUB-A0`：關鍵兩篇原文核對，gap 仍成立
+
+- 專案負責人提供 arXiv **1911.05728v1**（Leete, Kallus, Hudgens, Napravnik, Kosorok，*Balanced Policy Evaluation and Learning for Right Censored Data*，stat.ME 2019，29 頁）與 **2606.10229v1**（Bedi，*What Demonstration Curation Metrics Do to Your Policy*，cs.RO 2026，5 頁）的 PDF；全文抽出（pypdf）並逐頁讀完；檔案 SHA-256 記於 [LITERATURE_MAP §7](docs/LITERATURE_MAP_2026-09-08_EVALUATION_VALIDITY.md)。這兩篇是 [文獻地圖 §4](docs/LITERATURE_MAP_2026-09-08_EVALUATION_VALIDITY.md) 原本把 gap 判定**條件於**的兩篇。
+- [RESULT] **1911.05728**：§2.1 明文假設 censoring time 在給定 covariates 與 treatment 下獨立於 failure time；§2.3–2.4 以 conditional expected survival time **補值**被 censor 的 outcome，再套 balanced policy weights；Theorem 1／3 為 consistency 與 regret／convergence-rate bounds，**不是 identification bounds**。條件「無 censoring 假設下給 bounds」不成立 → A-C1 的 gap **未消失**。該文成為 Track A 的「有假設、點識別、補值」對照；且其假設在本專案情境（censoring 由該臂自身行為產生）不成立。
+- [RESULT] **2606.10229**：對象是 behavior-cloning 的 demonstration **curation** metric（LIBERO，早放夾爪缺陷，80% 污染）；§III-D 指出缺陷 demo 跑到 500 步 time limit 而成功 demo 約 325 步終止，任何 mean／cumulative feature 會混入 episode length，以**截到 T = 324** 的設計期處置移除（Table I：5/7 metric 的 AUROC 由 ≈1.0 掉到 0.44–0.76）；下游 policy evaluation（30 rollouts × 3 seeds）**未**處理 exposure、無 bounds。條件「truncation 討論涵蓋 policy evaluation」不成立 → gap **未縮小**。方向與本專案相反（該文缺陷 episode 較長）。
+- [RESULT] 兩篇的參考文獻都沒有 Manski 或 partial identification。
+- 文獻地圖：兩條目改為 `S`（source-verified）並依原文改寫；新增核實等級 `S`；§4 第 1、2 點改為「兩篇關鍵文獻核對後仍成立；其餘 `U` 待核」；§5 的 `PUB-A0` 狀態改為 `KEY_TWO_VERIFIED_GAP_STANDS / REMAINING_U`；新增 §7 核對紀錄。[PUBLICATION_PLAN](docs/PUBLICATION_PLAN.md) §2.1／§3.1／§8／§9、[TRACK_A_REFRAME](docs/TRACK_A_REFRAME_2026-09-09.md) §6／§8／§10、[PROJECT_STATUS](docs/PROJECT_STATUS.md)、README、`STATUS.yaml` 同步。
+- [BLOCKER] `PUB-A0` **仍未 PASS**：其餘條目（Pardo、DERAIL、Colas ×2、AdaStop、2409.09491、SC'24、RepDL、Manski／Tamer 等）仍為 `U`，執行環境對出版方 host 的封鎖不變；A-C5 的 preregistration／multiverse scan 未做。沒有任何程式、contract、protocol、測試或 flag 被更動。
+
 ## Unreleased — 2026-09-09 (j)
 
 ### 三個 budget probe、一個決定、Track A 重構

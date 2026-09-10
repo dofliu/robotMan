@@ -13,6 +13,7 @@
 - **量到一個站得住的方向性結果**：V7B（縮小 joint envelope）相對 V7A 的 500 Hz saturation duty，method-level identification bound `[-13.503408, -12.435259]` pp，排除 0、sign NEGATIVE、5/5 independent training replicates 方向可識別。**條件**：五個 replicate 共用同一個不可重建的 v5 warm start，此條件對 v7 line 永久成立。
 - **推翻一個假結果**：V7C 原本看似 `-36` pp 的巨大改善，經 audit 量測確認為 exposure artifact（30/30 episode 在 horizon 的 35.4889% 早期跌倒），並跨 5 個獨立 seeds 完全重現。
 - **Track A 已重構（2026-09-09）**：第二案例 V1（Walker2d-v5）依凍結規則重現 artifact，但兩臂皆 censored；三個 budget probe 沒有在公開 benchmark 上找到「reference 充分曝露且 metric 非退化」的設定，且暴露了 exposure-only adequacy 規則的缺口。專案負責人決定停止該線，Track A 改為「censoring regime 的評估效度研究」（[TRACK_A_REFRAME](TRACK_A_REFRAME_2026-09-09.md)）：`PUB-A1a` PASS、`PUB-A1b` CLOSED_NOT_ATTAINED、`PUB-A2` 草稿已有。
+- **`PUB-A0` 關鍵兩篇已核對（2026-09-09）**：專案負責人提供 arXiv 1911.05728 與 2606.10229 的 PDF，全文核對後兩個「gap 縮小／消失」條件皆不成立（前者為 independent-censoring + imputation 的點估計，後者為 curation metric 的設計期 truncation）；A-C1／A-C2 的 gap 判定不再條件於它們。gate 仍未 PASS：其餘文獻條目仍為 `U`（[LITERATURE_MAP §7](LITERATURE_MAP_2026-09-08_EVALUATION_VALIDITY.md)）。
 - **下一個決策點在專案負責人手上**：是否授權 formal evaluation（見 [PUBLICATION_PLAN](PUBLICATION_PLAN.md) §5）。在授權之前，選擇規則不可執行、FORMAL seeds 不可存取、門檻不可調整。
 
 ## 1. V&V gates
@@ -162,6 +163,7 @@
 | 2026-09-08 | `PUB-A1` 第二案例凍結 → push → **執行完成** | `SECOND_CASE_ARTIFACT_REPRODUCED`；兩臂皆 censored（regime R3） |
 | 2026-09-08 | 三個 V2 budget probe（pilot） | Walker2d ×2 NEGATIVE；Hopper FOUND 但 reference 退化；exposure-only 規則缺口 |
 | 2026-09-09 | 專案負責人決定停止第二案例 V2 線；Track A 重構；[PUBLICATION_PLAN](PUBLICATION_PLAN.md) 升版 V2 | `PUB-A1a` PASS、`PUB-A1b` CLOSED_NOT_ATTAINED；兩個未 pin 的 protocol id 撤回；[TRACK_A_REFRAME](TRACK_A_REFRAME_2026-09-09.md) 為 `PUB-A2` 草稿 |
+| 2026-09-09 | `PUB-A0` 關鍵兩篇原文核對（PDF 由專案負責人提供） | 1911.05728、2606.10229 皆不推翻 gap；`KEY_TWO_VERIFIED_GAP_STANDS / REMAINING_U`；gate 未 PASS |
 
 ## 8. 下一步
 
@@ -169,7 +171,7 @@
 
 **學術（見 [PUBLICATION_PLAN](PUBLICATION_PLAN.md)）**
 
-1. `PUB-A0` 文獻 novelty check：exposure censoring／partial identification 在 RL 評估中的既有工作（需可存取出版方的環境）；另做 A-C5 的 preregistration／multiverse scan；核對 rl-zoo recipe 數值。
+1. `PUB-A0`：關鍵兩篇已核對、gap 仍成立；其餘 `U` 條目（§1.1、§1.3–§1.5、§2 的 Manski／Tamer 線）仍需可存取出版方的環境；另做 A-C5 的 preregistration／multiverse scan；核對 rl-zoo recipe 數值。
 2. `PUB-A2` claim freeze：A0 之後，把 [TRACK_A_REFRAME §5–§7](TRACK_A_REFRAME_2026-09-09.md) 凍結。**不再開任何第二案例 probe 或 protocol**；`PUB-A1b` 已關閉並寫入 Limitations。
 3. 專案負責人決定 Track B 的 formal authorization 與 OSF preregistration。
 

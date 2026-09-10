@@ -23,7 +23,7 @@ Repository：[github.com/dofliu/robotMan](https://github.com/dofliu/robotMan) �
 | Paper-data gates | PDR-0..8 無一 PASS；`paper_data_ready = false` | [PAPER_DATA_READINESS](docs/PAPER_DATA_READINESS.md) |
 | 最強的一個結果 | V7B 相對 V7A 的 saturation duty method-level bound `[-13.503408, -12.435259]` pp，排除 0，5/5 independent training replicates 方向可識別；**條件於一個不可重建的 warm start** | [PROJECT_STATUS §4](docs/PROJECT_STATUS.md) |
 | 被推翻的一個結果 | V7C 表面上的 `-36` pp 改善經量測確認為 exposure artifact | [PROJECT_STATUS §4.2](docs/PROJECT_STATUS.md) |
-| 學術產出 | 三條路線；Track A 於 2026-09-09 重構為「censoring regime 的評估效度研究」（`PUBLICATION-PLAN-V2`）：`PUB-A1a` PASS（Walker2d-v5 第二案例）、`PUB-A1b` CLOSED_NOT_ATTAINED（三個 budget probe 後停止）；下一步 `PUB-A0` 原文核對與 `PUB-A2` claim freeze | [PUBLICATION_PLAN](docs/PUBLICATION_PLAN.md)、[TRACK_A_REFRAME](docs/TRACK_A_REFRAME_2026-09-09.md) |
+| 學術產出 | 三條路線；Track A 於 2026-09-09 重構為「censoring regime 的評估效度研究」（`PUBLICATION-PLAN-V2`）：`PUB-A1a` PASS（Walker2d-v5 第二案例）、`PUB-A1b` CLOSED_NOT_ATTAINED（三個 budget probe 後停止）；`PUB-A0` 關鍵兩篇已原文核對、gap 仍成立（其餘條目待核）；下一步 `PUB-A2` claim freeze | [PUBLICATION_PLAN](docs/PUBLICATION_PLAN.md)、[TRACK_A_REFRAME](docs/TRACK_A_REFRAME_2026-09-09.md) |
 | 下一個決策 | 專案負責人決定是否授權 formal evaluation；授權在前、解封在後 | [PUBLICATION_PLAN §5](docs/PUBLICATION_PLAN.md) |
 | 測試 | `backend/` 1 failed / 729 passed；那一個是在具名 environment lock 下記錄的 reduction-order 差異，未放寬 | [PROJECT_STATUS §9](docs/PROJECT_STATUS.md) |
 
@@ -191,7 +191,7 @@ python -m pytest backend -q
 
 專案同時推進兩條軌道，互不阻擋：
 
-- **學術**：先做 Track A（評估效度／可重現性方法論，2026-09-09 起以 censoring regime 為論點，見 [TRACK_A_REFRAME](docs/TRACK_A_REFRAME_2026-09-09.md)）。剩餘前置是 `PUB-A0` 文獻原文核對與 `PUB-A2` claim freeze；第二案例線已關閉，不再開 probe 或 protocol。Track B（原定 Study A 方法比較）需要一條有版控 artifact 的新訓練線與 formal authorization；Track C（教學工具）需要另立學習成效研究設計。
+- **學術**：先做 Track A（評估效度／可重現性方法論，2026-09-09 起以 censoring regime 為論點，見 [TRACK_A_REFRAME](docs/TRACK_A_REFRAME_2026-09-09.md)）。剩餘前置是 `PUB-A0` 其餘 `U` 條目的原文核對（關鍵兩篇已於 2026-09-09 核對，gap 仍成立）與 `PUB-A2` claim freeze；第二案例線已關閉，不再開 probe 或 protocol。Track B（原定 Study A 方法比較）需要一條有版控 artifact 的新訓練線與 formal authorization；Track C（教學工具）需要另立學習成效研究設計。
 - **工程**：把 environment lock record 綁進每一條 pipeline 的 run manifest、Compare／Dynamic trace 的 browser visual verification、V1 articulated dynamic／pendulum／energy oracles、以及一條有版控 artifact 的新訓練線。順序見 [ROADMAP §9](docs/ROADMAP.md)。
 
 在專案負責人授權 formal evaluation 之前：不做 selection、不調 threshold、不存取 FORMAL seeds `20000–20029`。詳細狀態與理由見 [PROJECT_STATUS](docs/PROJECT_STATUS.md)。
