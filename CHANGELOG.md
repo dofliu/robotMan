@@ -2,6 +2,21 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-10 (l)
+
+### `PUB-A0` 補充 scan：A-C5 降為 artifact 級（**縮小**主張）
+
+- 完成 [LITERATURE_MAP §4 第 5 點](docs/LITERATURE_MAP_2026-09-08_EVALUATION_VALIDITY.md) 點名的最後一項 scan：preregistration／multiverse／post-hoc disclosure 文獻。新增 **§1.7**（14 條，全部 `U`）與 §6 的第二段查詢表（12 個查詢）。
+- [RESULT] **判定縮小，不是擴張。** A-C5 原本是「公開宣告非預註冊 + 規則在啟發資料上必須失敗的自檢」這個次貢獻，現拆成三段檢視：
+  - 「透明宣告假設／規則是 post hoc」已由 **Hollenbeck & Wright (2017, *Journal of Management*)** 命名為 **Tharking** 並提出辯護，Simmons et al. (2011) 的完整揭露建議更早。→ **不是**貢獻。
+  - 「決策資料必須未被檢視」已由 **Cawley & Talbot (2010, JMLR 11)** 量化（model-selection over-fitting 幅度可與演算法差異相當；取最大值等於取 outlier）與 **Dwork et al. (2015, reusable holdout／Science 349)** 建立。本專案 sealed FORMAL seeds 與「只套用一次」是其最保守版本。→ **不是**貢獻。
+  - 剩餘只有「把 negative-control falsification test 套在 **selection rule** 上，並以 fail-closed contract 保留其失敗證據」這一窄點；negative control 在 epidemiology 與 IV 設計（arXiv 2312.15624）已建立，但掃到的文獻套的是 outcome 或設計假設。[INFERENCE] 且 2312.15624 明確警告 falsification test 的解讀受混淆——**同樣的混淆適用於本專案**：規則在 DEV 資料上選不出候選，也可能只是因為該資料 exposure 不足（實測擋下 V7B 的正是 `SEL-C2` 的 full-exposure 條件），不必然因為規則保守。
+- **A-C5 因此從「次貢獻」降為 artifact 級並併入 A-C4**，不再單獨作為主張。稿件改為引 Tharking 與 Cawley & Talbot 建立語彙與理由，把本專案的 contract 呈現為既有建議的**可執行化**，並如實寫出解讀限制。
+- [RESULT] 另一項與本專案立場一致的發現：*Pre-registration for Predictive Modeling*（arXiv 2311.18807）主張 model design 過程太迭代難以 preregister，但**評估**不同（benchmark 與 baseline 的選擇離散可枚舉）。這正是本專案凍結 selection rule 而不凍結訓練迭代的理由，應在稿件引用。NeurIPS 已有 Pre-registration in ML Workshop（PMLR v148／v181），本專案**未**使用，須明說。
+- [BLOCKER] **egress 重新量測（2026-09-10）**：`WebFetch` 對 `https://arxiv.org/abs/2311.18807` 回傳 `EGRESS_BLOCKED`；`WebSearch` 可用。因此 §1.7 全數為 `U`，`PUB-A0` **仍未 PASS**。狀態改為 `KEY_TWO_VERIFIED_AND_A_C5_SCANNED / REMAINING_U`；唯一剩餘工作是讀 §1.1、§1.3–§1.5、§1.7 與 §2 的 `U` 條目原文，優先四篇：Pardo 2018、Colas 2019、Manski 1990／Tamer 2010、Hollenbeck & Wright 2017。
+- 對齊：[PUBLICATION_PLAN](docs/PUBLICATION_PLAN.md)（§2.1 的 A-C5 條、§3.1 gate 列、§8 下一步、§9 版本紀錄）、[TRACK_A_REFRAME](docs/TRACK_A_REFRAME_2026-09-09.md)（§4 貢獻表、§6 限制第 6 條、§8 gate 列、§10）、`STATUS.yaml`、[PROJECT_STATUS](docs/PROJECT_STATUS.md)、README。
+- [BLOCKER] 本次沒有新的訓練或評估、沒有任何程式／contract／protocol／測試變更；`paper_data_ready` 等四個 flag 不變。
+
 ## Unreleased — 2026-09-09 (k)
 
 ### `PUB-A0`：關鍵兩篇原文核對，gap 仍成立
