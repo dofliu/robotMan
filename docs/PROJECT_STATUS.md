@@ -15,7 +15,8 @@
 - **Track A 已重構（2026-09-09）**：第二案例 V1（Walker2d-v5）依凍結規則重現 artifact，但兩臂皆 censored；三個 budget probe 沒有在公開 benchmark 上找到「reference 充分曝露且 metric 非退化」的設定，且暴露了 exposure-only adequacy 規則的缺口。專案負責人決定停止該線，Track A 改為「censoring regime 的評估效度研究」（[TRACK_A_REFRAME](TRACK_A_REFRAME_2026-09-09.md)）：`PUB-A1a` PASS、`PUB-A1b` CLOSED_NOT_ATTAINED、`PUB-A2` 草稿已有。
 - **`PUB-A0` 關鍵兩篇已核對（2026-09-09）**：專案負責人提供 arXiv 1911.05728 與 2606.10229 的 PDF，全文核對後兩個「gap 縮小／消失」條件皆不成立（前者為 independent-censoring + imputation 的點估計，後者為 curation metric 的設計期 truncation）；A-C1／A-C2 的 gap 判定不再條件於它們。gate 仍未 PASS：其餘文獻條目仍為 `U`（[LITERATURE_MAP §7](LITERATURE_MAP_2026-09-08_EVALUATION_VALIDITY.md)）。
 - **A-C5 降為 artifact 級（2026-09-10）**：preregistration／multiverse 補充 scan 完成後判定縮小——「透明宣告 post hoc」已是 Hollenbeck & Wright (2017) 的 Tharking，「決策資料未被檢視」已由 Cawley & Talbot (2010) 與 Dwork et al. (2015) 建立，剩餘窄點的解讀又受「選不出東西可能只因 exposure 不足」混淆。A-C5 併入 A-C4，不再單獨作為主張（[LITERATURE_MAP §1.7、§4 第 5 點](LITERATURE_MAP_2026-09-08_EVALUATION_VALIDITY.md)）。
-- **下一個決策點在專案負責人手上**：是否授權 formal evaluation（見 [PUBLICATION_PLAN](PUBLICATION_PLAN.md) §5）。在授權之前，選擇規則不可執行、FORMAL seeds 不可存取、門檻不可調整。
+- **`PUB-B0` 已授權（2026-09-10）**：專案負責人授權 formal evaluation（[PUB_B0_AUTHORIZATION_RECEIPT](PUB_B0_AUTHORIZATION_RECEIPT_2026-09-10.md)）。授權**不使 protocol 可執行**：frozen protocol JSON 內 `EP-03` 仍硬寫 `BLOCKING`、`EP-01`／`EP-02` 未解除，且凍結順序要求 `PUB-B4` 外部預註冊在解封 sealed seeds `20000–20029` 之前，而預註冊只有專案負責人能做。當日**未存取** FORMAL seeds。
+- **量測到 v7 線上 `SEL-C2` 幾乎確定不成立**：retained seed-variance evidence 上 reference `V7A` 自己只有 143/150 episode `COMPARABLE`，`V7B` 120/150，`V7C` 0/150；FORMAL 用同一批已訓練 policy、只換 evaluation seed。iid 外推的聯合通過機率為 reference + `V7B` `2.2 × 10⁻¹⁸`、reference + `V7C` `0`。因 FORMAL 資料只套用一次，在 v7 線上執行會用掉唯一未檢視的 seed 範圍換一個 `NO_CANDIDATE`。**下一個決策點**因此是兩個子問題（[PUBLICATION_PLAN §5](PUBLICATION_PLAN.md)）：用現行規則或先預註冊替代規則；以及 FORMAL 範圍花在 v7 線或保留給 `PUB-B1`／`PUB-B2` 的新訓練線。
 
 ## 1. V&V gates
 
@@ -24,7 +25,7 @@
 | V0 Evidence & Provenance | `PARTIAL_IMPLEMENTED_NOT_PASS` | bounded fail-closed input contracts、`ANALYSIS_METRICS_V1`、run-level `PAPER_RUN_MANIFEST_V1`、artifact inventory/SHA-256、clean-source Git identity、`ENVIRONMENT-LOCK-V1` 可量測 environment identity（一份實測 record） | project-wide immutable artifact storage；**lock record 綁進每一條 pipeline 的 run manifest**；full raw artifact inventory；complete requirement registry；actual Study A matrix |
 | V1 Plant & Numerical | `PARTIAL_IMPLEMENTED_NOT_PASS` | static double-support V4 16/14 exact；analytical fixture（passive single-support、centered 5 kg payload、4/2/1 ms grid）4/4 PASS，含 raw Jacobian stdlib-only replay | articulated dynamic、known pendulum、dynamic contact、energy balance、完整 solver／finite-difference convergence；receipts 皆 same-engine，fixture 非 articulated |
 | V2 Actuator / Sensor / Estimator | `NOT_STARTED` | — | torque-speed/thermal envelope、joint limits、latency/noise、estimator |
-| V3 Fair Benchmark & UQ | `FOUNDATION_SOFTWARE_PARTIAL` | experiment matrix validator、paired statistics/export contract、exposure-censoring audit、seed-variance contract（皆 synthetic + 部分實資料驗證） | actual Study A、binary paired CI（無 golden-case oracle）、external preregistration、formal authorization |
+| V3 Fair Benchmark & UQ | `FOUNDATION_SOFTWARE_PARTIAL` | experiment matrix validator、paired statistics/export contract、exposure-censoring audit、seed-variance contract（皆 synthetic + 部分實資料驗證） | actual Study A、binary paired CI（無 golden-case oracle）、external preregistration；formal authorization 已於 2026-09-10 取得但 protocol 仍不可執行 |
 | V4 Subsystem Validation | `NOT_STARTED` | — | 任何 SIL/HIL/bench/robot evidence |
 
 ## 2. Paper Data Readiness gates
@@ -135,9 +136,10 @@
 
 ### 6.5 Authorization 與 preregistration
 
-- `EP-03` formal authorization 未取得。
-- 只有 internal hash freeze，**無 external（OSF）preregistration**。
-- 解除順序：**授權在前、解封在後**（`EP-01`/`EP-02` 的 sealed-seed guard 在授權前不得移除）。
+- `EP-03` formal authorization **決定已於 2026-09-10 取得**（[receipt](PUB_B0_AUTHORIZATION_RECEIPT_2026-09-10.md)），但 frozen protocol JSON 內該項仍硬寫 `BLOCKING`，而 `assert_executable()` 讀的是該 JSON；改為 `RESOLVED` 需要一次 narrowing-only、execution-before 的 amendment 並重新 pin contract 內的 `PROTOCOL_SHA256`。
+- 機器可讀的 authorization evidence **刻意尚未鑄造**：`_require_authorization` 要求 `protocol_sha256` 等於現行 digest，鑄造它等於選定「用現行 post-hoc 規則」這個尚未決定的子選項。
+- 只有 internal hash freeze，**無 external（OSF）preregistration**；`PUB-B4` 仍在解封之前，只有專案負責人能做。
+- 解除順序：**授權在前、預註冊在中、解封在後**（`EP-01`/`EP-02` 的 sealed-seed guard 在 `PUB-B4` 完成前不得移除）。
 
 ### 6.6 工程
 
@@ -166,6 +168,7 @@
 | 2026-09-09 | 專案負責人決定停止第二案例 V2 線；Track A 重構；[PUBLICATION_PLAN](PUBLICATION_PLAN.md) 升版 V2 | `PUB-A1a` PASS、`PUB-A1b` CLOSED_NOT_ATTAINED；兩個未 pin 的 protocol id 撤回；[TRACK_A_REFRAME](TRACK_A_REFRAME_2026-09-09.md) 為 `PUB-A2` 草稿 |
 | 2026-09-09 | `PUB-A0` 關鍵兩篇原文核對（PDF 由專案負責人提供） | 1911.05728、2606.10229 皆不推翻 gap；`KEY_TWO_VERIFIED_GAP_STANDS / REMAINING_U`；gate 未 PASS |
 | 2026-09-10 | `PUB-A0` A-C5 補充 scan（preregistration／multiverse） | A-C5 降為 artifact 級併入 A-C4；`KEY_TWO_VERIFIED_AND_A_C5_SCANNED / REMAINING_U`；gate 未 PASS |
+| 2026-09-10 | 專案負責人授權 formal evaluation；[PUBLICATION_PLAN](PUBLICATION_PLAN.md) 升版 V3 | `PUB-B0` `AUTHORIZED / SUB_OPTION_OPEN`；protocol 仍不可執行；量測 `SEL-C2` 在 v7 線上幾乎確定不成立；FORMAL seeds 未存取 |
 
 ## 8. 下一步
 
@@ -175,7 +178,7 @@
 
 1. `PUB-A0`：關鍵兩篇已核對、A-C5 補充 scan 已完成（該項降級）；**唯一剩餘工作**是讀其餘 `U` 條目原文（§1.1、§1.3–§1.5、§1.7、§2 的 Manski／Tamer 線），需可存取出版方的環境——2026-09-10 重新量測 `arxiv.org` 仍封鎖。優先四篇：Pardo 2018、Colas 2019、Manski 1990／Tamer 2010、Hollenbeck & Wright 2017。另需核對 rl-zoo recipe 數值。
 2. `PUB-A2` claim freeze：A0 之後，把 [TRACK_A_REFRAME §5–§7](TRACK_A_REFRAME_2026-09-09.md) 凍結。**不再開任何第二案例 probe 或 protocol**；`PUB-A1b` 已關閉並寫入 Limitations。
-3. 專案負責人決定 Track B 的 formal authorization 與 OSF preregistration。
+3. `PUB-B0` 授權已取得（2026-09-10）。剩餘依序：專案負責人決定 [PUBLICATION_PLAN §5](PUBLICATION_PLAN.md) 的兩個子問題（規則、FORMAL 範圍花在哪條線）→ `PUB-B4` OSF preregistration（只有負責人能做）→ `SELECT-AMENDMENT-01`（`EP-03` narrowing amendment 並重新 pin digest）→ `EP-01`／`EP-02` amendment。在子問題未決前不鑄造 authorization evidence、不解封 `20000–20029`。
 
 **工程（見 [ROADMAP](ROADMAP.md) §9）**
 
@@ -186,4 +189,4 @@
 
 ## 9. 測試現況
 
-`backend/`：**1 failed / 729 passed**（2026-09-09，295.78 s；含 87 個 second-case 測試）。失敗項為 `test_v1_analytical_suite.py::test_stdlib_replay_passes_exact_synthetic_fixture`（`PRIMARY_CASE_RECEIPT_IDENTITY`），與 §4.3 的 reduction-order 差異同源，記錄為量測結果、未放寬。
+`backend/`：**1 failed / 729 passed**（2026-09-10 重測，412.27 s；含 87 個 second-case 測試與 47 個 selection 測試）。失敗項為 `test_v1_analytical_suite.py::test_stdlib_replay_passes_exact_synthetic_fixture`（`PRIMARY_CASE_RECEIPT_IDENTITY`），與 §4.3 的 reduction-order 差異同源，記錄為量測結果、未放寬。

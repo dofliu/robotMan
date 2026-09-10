@@ -37,12 +37,12 @@ Policy 在同一 simulator 與 reward 中表現良好，不等於 model validati
 | P2 | QP/WBC baseline | constraint-feasible、failure-retaining baseline bundle | BLOCKED BY P1 |
 | P3 | Experiment orchestrator | controller × training seed × eval seed × scenario 完整 manifest | VALIDATOR IMPLEMENTED / RUNNER + ACTUAL MATRIX MISSING：strict matrix spec/index、bundle identity與 missing/duplicate/unexpected/unindexed/status retention covered |
 | P3B | Paired statistics/export | explicit pairs、failure/null/censoring retention、effect/CI、independent paper-input replay | SOFTWARE CONTRACT IMPLEMENTED / SCIENTIFIC GATE NOT PASS：continuous paired effect/bootstrap CI、binary 2×2 counts、JSON table/figure與 exact replay已驗證；binary paired CI、actual Study A與 sample-size decision missing |
-| P4 | Study A formal benchmark | protocol frozen、paired statistics、CI、failures/censoring retained | BLOCKED BY P1–P3 / paired-statistics software precursor implemented；actual Study A、suitable binary CI與 formal authorization absent |
+| P4 | Study A formal benchmark | protocol frozen、paired statistics、CI、failures/censoring retained | BLOCKED BY P1–P3 / paired-statistics software precursor implemented；actual Study A與 suitable binary CI absent；formal authorization 已於 2026-09-10 取得但 protocol 仍不可執行 |
 | P5 | Motion primitives / imitation | raise hand、single-leg raise、squat、turn 等各有獨立 task contract | AFTER STUDY A |
 | P6 | SIL/HIL/bench/robot validation | 只在實際完成的外部 evidence 層級建立 bounded claim | FUTURE |
 | P-NEW | 有版控 lineage 的新訓練線 | 每個 checkpoint 與 warm start 都在版控或 immutable storage；reference policy 在 DEV seeds 上達到凍結的 full-exposure 比例 | NOT STARTED / Track B 與 variance 解封的硬前置；v7 line 因 provenance 不可重建，不得作為起點 |
 | PUB-A | 評估效度／可重現性方法論論文（V2：censoring regime，見 [TRACK_A_REFRAME](TRACK_A_REFRAME_2026-09-09.md)） | 見 [PUBLICATION_PLAN](PUBLICATION_PLAN.md) PUB-A0、A1a／A1b、A2..A5 | IN PROGRESS / A0 原文核對待可存取出版方的環境；A1a PASS（Walker2d V1）；A1b CLOSED_NOT_ATTAINED（2026-09-09，三個 budget probe 後停止）；A2 草稿已有 |
-| PUB-B | Study A 方法比較論文 | 見 PUBLICATION_PLAN PUB-B0..B7 | BLOCKED / 等 authorization、P-NEW、P1 |
+| PUB-B | Study A 方法比較論文 | 見 PUBLICATION_PLAN PUB-B0..B7 | BLOCKED / B0 已授權（2026-09-10）；等 PUB-B4 預註冊、EP-01/EP-02/EP-03 amendment、P-NEW、P1 |
 
 ### P1 bounded result：raw Jacobian replay V4
 
@@ -156,7 +156,7 @@ v3 由 v2 做 fail-closed input expansion；新增輸入權重從零開始，其
 
 該 protocol **已實際執行完成**：`1,843,200` realized timesteps、450 個 terminal records、0 失敗、獨立 replay exact。V7B 相對 V7A 的 method-level bound 為 `[-13.503408, -12.435259]` pp（排除 0、sign NEGATIVE、5/5 replicates 可識別），但 `between_replicate_sd` 因每個 replicate 都有 exposure censoring 而為 `null`，故 sample-size 決策仍 blocked；V7C 為 `[-37.195407, +27.315704]` pp 含 0、0/5 可識別。另外量到 pilot 那個乾淨的 reference exposure 是 seed `8700` 的性質而非 V7A 的性質（V7A 在 3 個 replicate 出現 early termination），而 V7C 的崩潰在 5 個獨立 seeds 上完全重現。
 
-Independent **pretraining**-seed variance 經查證不可量測（provenance，不是算力），因此 `CONDITIONAL_ON_FIXED_WARM_START` 對 v7 line 永久成立。`SELECT-V7-CANDIDATE-FORMAL-V1` 已凍結並自陳 `preregistered=false`，且在已看過的 DEV evidence 上選不出 candidate；但它**不可執行**（audit contract 拒絕 sealed seeds、eval driver 釘死 seed schedule、授權未取得）。下一個唯一優先目標是取得 formal authorization，再依「授權在前、解封在後」解除那兩項。V7B 的方向穩健性**不構成 selection**：用同一批資料先估變異再據以選擇，會把選擇條件建立在被選中的雜訊上；且本結果已公開，任何新 selection protocol 必須明示它是在已知 V7B 為負的情況下設計的。在那之前不調 alpha/envelope/threshold、不開啟 FORMAL/HOLDOUT，`replicate_count` 亦不得回溯調整。
+Independent **pretraining**-seed variance 經查證不可量測（provenance，不是算力），因此 `CONDITIONAL_ON_FIXED_WARM_START` 對 v7 line 永久成立。`SELECT-V7-CANDIDATE-FORMAL-V1` 已凍結並自陳 `preregistered=false`，且在已看過的 DEV evidence 上選不出 candidate；但它**不可執行**（audit contract 拒絕 sealed seeds、eval driver 釘死 seed schedule、授權未取得）。formal authorization 已於 2026-09-10 取得（[PUB_B0_AUTHORIZATION_RECEIPT](PUB_B0_AUTHORIZATION_RECEIPT_2026-09-10.md)），但那是一項決定、不是狀態變更：frozen protocol JSON 內 `EP-03` 仍為 `BLOCKING`，且凍結順序為「授權在前、預註冊在中、解封在後」，`PUB-B4` 外部預註冊尚未完成。同一份 receipt 量測出 `SEL-C2` 在 v7 線上幾乎確定不成立（reference `V7A` 自己 143/150 comparable，聯合通過機率 `2.2 × 10⁻¹⁸`／`0`），因此下一個優先目標是決定 FORMAL 範圍花在 v7 線或保留給新訓練線，而不是儘速解封。V7B 的方向穩健性**不構成 selection**：用同一批資料先估變異再據以選擇，會把選擇條件建立在被選中的雜訊上；且本結果已公開，任何新 selection protocol 必須明示它是在已知 V7B 為負的情況下設計的。在那之前不調 alpha/envelope/threshold、不開啟 FORMAL/HOLDOUT，`replicate_count` 亦不得回溯調整。
 
 ## 5. Study A 的方法組與公平比較
 
