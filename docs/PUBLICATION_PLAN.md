@@ -1,10 +1,12 @@
 # 學術產出規劃
 
-最後更新：2026-09-09 ｜ ID：`PUBLICATION-PLAN-V2`（V1：2026-09-08；版本紀錄見 §9）
+最後更新：2026-09-10 ｜ ID：`PUBLICATION-PLAN-V3`（V1：2026-09-08；V2：2026-09-09；版本紀錄見 §9）
 
-狀態：`PLAN_REVISED_V2 / NO_MANUSCRIPT / paper_data_ready=false`
+狀態：`PLAN_REVISED_V3 / NO_MANUSCRIPT / paper_data_ready=false`
 
-V2 的唯一實質變更是 Track A：專案負責人於 2026-09-09 決定停止第二案例 V2 線，Track A 依 [TRACK_A_REFRAME_2026-09-09](TRACK_A_REFRAME_2026-09-09.md) 重構為「censoring regime 的評估效度研究」；`PUB-A1` 拆為 A1a（PASS）與 A1b（CLOSED_NOT_ATTAINED）。Track B、Track C 與 §5–§7 不變。
+V2 的唯一實質變更是 Track A：專案負責人於 2026-09-09 決定停止第二案例 V2 線，Track A 依 [TRACK_A_REFRAME_2026-09-09](TRACK_A_REFRAME_2026-09-09.md) 重構為「censoring regime 的評估效度研究」；`PUB-A1` 拆為 A1a（PASS）與 A1b（CLOSED_NOT_ATTAINED）。
+
+V3 的唯一實質變更是 Track B 的 `PUB-B0`：專案負責人於 2026-09-10 授權 formal evaluation（[PUB_B0_AUTHORIZATION_RECEIPT_2026-09-10](PUB_B0_AUTHORIZATION_RECEIPT_2026-09-10.md)）。授權**只解除凍結順序中的第一格**——`PUB-B4` 外部預註冊仍在解封 sealed seeds 之前，且該 receipt 量測出在 v7 線上 `SEL-C2` 幾乎確定不成立。§5 因此從「一個決定」改為「已授權 + 兩個尚未決定的子問題」。Track A、Track C 與 §6–§7 不變。
 
 本文件規劃專案的學術產出：哪幾篇論文有可能、各自需要什麼證據、以什麼順序做、什麼不能宣稱。它與工程路線 [ROADMAP](ROADMAP.md) 平行；與研究問題設計 [RESEARCH_EXECUTION_PLAN](RESEARCH_EXECUTION_PLAN.md) 及資料架構 [PAPER_DATA_READINESS](PAPER_DATA_READINESS.md) 的關係是：那兩份定義**資料怎麼產生才可信**，本文件定義**哪些論文能從可信的資料寫出來**。
 
@@ -62,7 +64,7 @@ V2 補一句：Track A 的論點不再是「在公開 benchmark 上重現 v7 的
 
 **可主張（在全部 gate 通過後）：** 在凍結 MuJoCo plant 與固定 motion task 下，指定 action-interface 設計對 saturation duty、task success、fall rate 的 simulation-only 效果，附 paired interval、run-level distribution 與 failure strata。
 
-**硬前置（皆未完成）：** 有版控 lineage 的新訓練線；reference policy 在 DEV seeds 上達到凍結的 full-exposure 比例；pilot variance → preregistered N；V1 plant credibility；formal authorization；OSF preregistration；binary paired CI golden-case oracle；actual matrix。
+**硬前置：** 有版控 lineage 的新訓練線；reference policy 在 DEV seeds 上達到凍結的 full-exposure 比例；pilot variance → preregistered N；V1 plant credibility；OSF preregistration；binary paired CI golden-case oracle；actual matrix —— 以上皆未完成。formal authorization 已於 2026-09-10 取得（§5），但 protocol 仍不可執行。
 
 **現有 v7 證據在 Track B 中的角色：** pilot。不得重新標記為 formal replicates；不得與新線的數值相減或並排成趨勢（`cross_protocol_comparability = NON_VERIFIABLE_ENVIRONMENT`）。
 
@@ -92,7 +94,7 @@ V2 補一句：Track A 的論點不再是「在公開 benchmark 上重現 v7 的
 
 | Gate | Exit condition | 狀態 |
 |---|---|---|
-| `PUB-B0` Authorization decision | 專案負責人書面決定：授權 formal evaluation 於現行 `SELECT-V7-CANDIDATE-FORMAL-V1`，或改為 preregister 新規則 | `BLOCKED` — 等決策 |
+| `PUB-B0` Authorization decision | 專案負責人書面決定：授權 formal evaluation 於現行 `SELECT-V7-CANDIDATE-FORMAL-V1`，或改為 preregister 新規則 | `AUTHORIZED_2026-09-10 / SUB_OPTION_OPEN` — 授權已取得（[receipt](PUB_B0_AUTHORIZATION_RECEIPT_2026-09-10.md)）；用哪條規則、FORMAL seeds 花在哪條訓練線兩問未決；protocol 仍不可執行（`EP-01`／`EP-02` 未解除，`EP-03` 待 narrowing amendment），且 `PUB-B4` 仍在解封之前 |
 | `PUB-B1` Tracked training line | 新線每個 checkpoint 與 warm start 進版控或 immutable storage；lock record 綁進 run manifest | `NOT_STARTED` |
 | `PUB-B2` Reliable-completion baseline | reference policy 在 DEV seeds 上達到**事先凍結**的 full-exposure 比例 | `NOT_STARTED` |
 | `PUB-B3` Pilot variance → N | point-valued between-replicate SD；N 由 power analysis 決定並寫進 preregistration；不得事後上調 | `BLOCKED` by B2 |
@@ -117,7 +119,7 @@ V2 補一句：Track A 的論點不再是「在公開 benchmark 上重現 v7 的
      ├─► PUB-A1a PASS（Walker2d V1）；PUB-A1b CLOSED_NOT_ATTAINED（2026-09-09）
      │        └─► PUB-A2 claim freeze（草稿已有，A0 後凍結）→ A3 → A4 → A5   ← Track A 投稿
      │
-     ├─► PUB-B0 授權決策（專案負責人）
+     ├─► PUB-B0 授權（2026-09-10 已取得；子選項未決）
      │        └─► PUB-B4 OSF preregistration ──┐
      │                                          ├─► 解封 EP-01/EP-02 ──► PUB-B6
      ├─► PUB-B1 新訓練線（工程 ROADMAP §9 第 2 項）│
@@ -127,18 +129,28 @@ V2 補一句：Track A 的論點不再是「在公開 benchmark 上重現 v7 的
 
 **Track A 不浪費 Track B：** A1a 的第二案例 protocol 就是 B 的 exposure audit 在新 task 上的第一次演練；A-C3 的 reference-adequacy 前置條件（exposure + 非退化）就是 `PUB-B2` 的出口條件應有的形狀；A 的 reproduction package 就是 B 的。
 
-**順序不可反：** `PUB-B4` 必須在解封 sealed seeds `20000–20029` 之前。授權在前、預註冊在中、解封在後。
+**順序不可反：** `PUB-B4` 必須在解封 sealed seeds `20000–20029` 之前。授權在前、預註冊在中、解封在後。2026-09-10 的授權填上第一格；第二格（`PUB-B4`，只有專案負責人能做）與 `EP-01`／`EP-02` 的 amendment 都尚未完成，故 `20000–20029` 於當日未被存取，也不應被存取。
 
 ## 5. 專案負責人需要做的決定
 
-只有一個，且只有負責人能做：
+**已決定（2026-09-10）：** 授權 formal evaluation。紀錄與當下的 protocol 身分見 [PUB_B0_AUTHORIZATION_RECEIPT_2026-09-10](PUB_B0_AUTHORIZATION_RECEIPT_2026-09-10.md)。授權是一項決定，不是一項技術狀態變更：frozen protocol JSON 內 `EP-03` 仍硬寫 `BLOCKING`，`assert_executable()` 讀的是該 JSON，因此 protocol 仍不可執行。
 
-> **是否授權 formal evaluation？若是，用現行的、公開宣告非預註冊的 `SELECT-V7-CANDIDATE-FORMAL-V1`，還是先在 OSF 預註冊一條替代規則？**
+**尚未決定的兩個子問題**，都只有負責人能做：
+
+> **(a) 用現行的、公開宣告非預註冊的 `SELECT-V7-CANDIDATE-FORMAL-V1`，還是先在 OSF 預註冊一條替代規則？**
 
 - 用現行規則：較快；論文必須寫明規則是在看過 DEV 結果後設計的，並附 [rule self-check](V7_CANDIDATE_SELECTION_IMPLEMENTATION_RECEIPT_2026-09-08.md) 的失敗證據。
 - 先預註冊替代規則：較慢；換來一條不需要揭露段落就能站住的規則。
 
 本計畫的建議是後者，前提是時程允許。但這是研究策略決定，不是技術決定。
+
+> **(b) 唯一未被檢視的 FORMAL seed 範圍 `20000–20029` 要花在哪條訓練線？**
+
+[RESULT] 這個子問題是授權之後才成為首要問題的，依據是 receipt §3 的量測：`SEL-C2` 要求 reference 與 candidate 的每一個 episode 都 `COMPARABLE`，而 retained seed-variance evidence 上 reference `V7A` 本身只有 143/150，`V7B` 120/150，`V7C` 0/150；FORMAL 用的是同一批已訓練的 policy，只換 evaluation seed。iid 外推下 reference + `V7B` 的聯合通過機率是 `2.2 × 10⁻¹⁸`、reference + `V7C` 是 `0`。
+
+[BLOCKER] [V7_CANDIDATE_SELECTION_SPEC §5](V7_CANDIDATE_SELECTION_SPEC.md) 規定 FORMAL 資料只套用一次，事後不得重跑、調門檻、改 `replicate_count` 或改 arm 定義。因此在 v7 線上執行會用掉唯一剩下的未檢視範圍，換得一個機率接近 1 的 `SELECTION_COMPLETE_NO_CANDIDATE`。
+
+[INFERENCE] 本計畫的建議是保留該範圍給 `PUB-B1`／`PUB-B2` 的新訓練線（reference policy 能穩定跑完任務、且有版控 lineage），理由是上述量測。若決定仍在 v7 線上執行，工作順序已寫在 receipt §5，不必重新推導。
 
 ## 6. 寫作規範
 
@@ -164,7 +176,7 @@ V2 補一句：Track A 的論點不再是「在公開 benchmark 上重現 v7 的
 
 1. **`PUB-A0`**：關鍵兩篇已核對（2026-09-09，gap 仍成立）、A-C5 補充 scan 已完成（2026-09-10，A-C5 降級）。**唯一剩餘工作**：在可存取出版方的環境讀 §1.1、§1.3–§1.5、§1.7 與 §2 的 `U` 條目原文，逐條改為 `S` 或刪除，並把 §4 重寫為非條件式。優先四篇：Pardo 2018（termination／truncation 語義）、Colas 2019（statistical unit）、Manski 1990 與 Tamer 2010（bound 的方法出處）、Hollenbeck & Wright 2017（Tharking，A-C5 的定位依據）。
 2. **`PUB-A2`**：`PUB-A1a` 已 PASS、`PUB-A1b` 已關閉；下一步是在 A0 之後把 [TRACK_A_REFRAME §5–§7](TRACK_A_REFRAME_2026-09-09.md) 凍結為 claim freeze receipt。同時核對 rl-zoo recipe 數值（影響限制清單第 5 條的措辭）。**不再開任何第二案例 probe 或 protocol**。
-3. **`PUB-B0`**：專案負責人決策（§5）。
+3. **`PUB-B0`**：授權已於 2026-09-10 取得（[receipt](PUB_B0_AUTHORIZATION_RECEIPT_2026-09-10.md)）。剩餘工作依序是 §5 的子問題 (a)(b) 決定 → `PUB-B4` 外部預註冊（負責人）→ `SELECT-AMENDMENT-01`（`EP-03` narrowing amendment 並重新 pin digest）→ `EP-01`／`EP-02` amendment。在 (a)(b) 未決之前**不鑄造機器可讀的 authorization evidence**，因為該證據 pin 現行 `protocol_sha256`，鑄造它等於選定 (a) 的前者。
 4. 工程：ROADMAP §9 第 1、2 項並行。
 
 ## 9. 版本紀錄
@@ -172,6 +184,7 @@ V2 補一句：Track A 的論點不再是「在公開 benchmark 上重現 v7 的
 | 版本 | 日期 | 變更 |
 |---|---|---|
 | `PUBLICATION-PLAN-V1` | 2026-09-08 | 建立三條 track、PUB gates、寫作規範、不可宣稱清單 |
+| `PUBLICATION-PLAN-V3` | 2026-09-10 | 專案負責人授權 formal evaluation（[PUB_B0_AUTHORIZATION_RECEIPT_2026-09-10](PUB_B0_AUTHORIZATION_RECEIPT_2026-09-10.md)）。`PUB-B0` 由 `BLOCKED` 改為 `AUTHORIZED_2026-09-10 / SUB_OPTION_OPEN`；§5 由「一個決定」改為「已授權 + 兩個子問題」，新增子問題 (b)：唯一未檢視的 FORMAL seed 範圍要花在哪條訓練線，附 `SEL-C2` 的可行性量測。授權**不**使 protocol 可執行、**不**解封 seeds、**不**改任何門檻或 arm 定義；`PUB-B4` 仍在解封之前。Track A、Track C、§6–§7 與四個總開關不變 |
 | `PUBLICATION-PLAN-V2` | 2026-09-09 | 專案負責人決定停止第二案例 V2 線（三個 budget probe 後）。Track A 重構為 censoring regime 的評估效度研究（[TRACK_A_REFRAME_2026-09-09](TRACK_A_REFRAME_2026-09-09.md)）；新增主貢獻 A-C3；`PUB-A1` 拆為 A1a（`PASS`，依既有 Walker2d V1 receipt）與 A1b（`CLOSED_NOT_ATTAINED`，寫入 Limitations）；`PUB-A2` 進入 `IN_PROGRESS`（草稿）。`SECONDCASE-EXPOSURE-CENSORING-WALKER2D-V2`／`-HOPPER-V1` 兩個從未 pin 的 protocol id 在 contract 中撤回。Track B、Track C、§5–§7 不變；四個總開關不變 |
 | `PUBLICATION-PLAN-V2`（狀態更新） | 2026-09-09 | `PUB-A0`：§4 點名的兩篇關鍵文獻由專案負責人提供 PDF 並全文核對；兩個「gap 縮小／消失」條件皆不成立，A-C1／A-C2 的 gap 判定不再條件於它們；狀態 `KEY_TWO_VERIFIED_GAP_STANDS / REMAINING_U`，gate 仍未 PASS。計畫本體無變更 |
 | `PUBLICATION-PLAN-V2`（狀態更新 2） | 2026-09-10 | `PUB-A0`：A-C5 的 preregistration／multiverse 補充 scan 完成（[LITERATURE_MAP §1.7](LITERATURE_MAP_2026-09-08_EVALUATION_VALIDITY.md)）。判定**縮小主張**：A-C5 由「次貢獻」降為 artifact 級並併入 A-C4，理由是 Tharking（2017）已涵蓋透明宣告、Cawley & Talbot（2010）與 Dwork et al.（2015）已涵蓋決策資料隔離，剩餘窄點的解讀又受 exposure 混淆。gate 狀態 `KEY_TWO_VERIFIED_AND_A_C5_SCANNED / REMAINING_U`，仍未 PASS。Track A 的主貢獻仍為 A-C1／A-C2／A-C3。計畫本體與 Track B／C 無變更 |

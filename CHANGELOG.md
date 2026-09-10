@@ -2,6 +2,21 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-10 (m)
+
+### `PUB-B0`：formal evaluation 授權；同時量出這條線上 selection 幾乎必然選不出東西
+
+- [SOURCE] 專案負責人於 2026-09-10 指示「授權 formal evaluation」。紀錄於新增的 [PUB_B0_AUTHORIZATION_RECEIPT_2026-09-10](docs/PUB_B0_AUTHORIZATION_RECEIPT_2026-09-10.md)，狀態 `AUTHORIZATION_GRANTED / PROTOCOL_STILL_NOT_EXECUTABLE / FORMAL_SEEDS_NOT_ACCESSED`。
+- [BLOCKER] **授權是一項決定，不是一項狀態變更。** frozen protocol JSON 內 `execution_preconditions` 的 `EP-03` 仍硬寫 `"state": "BLOCKING"`，而 `assert_executable()` 讀的正是該 JSON；改為 `RESOLVED` 需要一次 narrowing-only、execution-before 的 amendment 並重新 pin contract 內的 `PROTOCOL_SHA256`（同 `SEEDVAR-AMENDMENT-01` 機制）。`EP-01`（audit contract 對 sealed seeds raise）與 `EP-02`（`eval_policy.py` 兩個 branch 都釘死 seed schedule）未動。
+- [BLOCKER] `PUB-B4` 外部預註冊仍未完成，而 [PUBLICATION_PLAN §4](docs/PUBLICATION_PLAN.md) 的凍結順序是「授權在前、預註冊在中、解封在後」，且預註冊需要 registry 帳號、**只有專案負責人能做**。因此當日**沒有存取** FORMAL seeds `20000–20029`。
+- [BLOCKER] **機器可讀的 authorization evidence 刻意未鑄造**：`_require_authorization` 要求 `protocol_sha256` 等於現行 digest `sha256:b4e16370…`，鑄造它等於選定「用現行 post-hoc 規則」這個尚未決定的子選項。
+- [RESULT] **本次的實質內容是一項量測**：授權之後的問題不是「能不能跑」，而是「跑了會得到什麼」。由 retained seed-variance evidence（`seed_variance_summary.json`）重算，每臂 150 個 episode 的 `COMPARABLE` 數為 reference `V7A_REWARD_ONLY` **143/150**、`V7B_REDUCED_JOINT_ENVELOPE` **120/150**、`V7C_FILTERED_ACTION` **0/150**。`SEL-C2` 要求 reference 與 candidate 的每一個 episode 都 comparable；iid 外推的聯合通過機率為 reference + `V7B` **`2.2 × 10⁻¹⁸`**、reference + `V7C` **`0`**。`SEL-C4` 與之耦合（`between_replicate_sd` 為 null 的原因正是 censoring）。
+- [INFERENCE] 結論不依賴精確機率，而依賴一個結構事實：**reference arm 自己就在 3 個 replicate 上早期終止**，而 FORMAL 用的是同一批已訓練 policy、只換 evaluation seed，沒有機制支持質性不同的結果。預期輸出是 `SELECTION_COMPLETE_NO_CANDIDATE`，機率接近 1。
+- [BLOCKER] FORMAL 資料**只套用一次**（[V7_CANDIDATE_SELECTION_SPEC §5](docs/V7_CANDIDATE_SELECTION_SPEC.md)），且 `20000–20029` 是唯一未被檢視的範圍。在 v7 線上執行等於用掉它換一個 `NO_CANDIDATE`，並永久失去日後在該線做出可信 selection 的可能。失敗的原因不是規則設計，而是**這條 policy 線本身跑不完任務**，其 warm start 又不可重建。
+- 因此 [PUBLICATION_PLAN](docs/PUBLICATION_PLAN.md) 升版 **`PUBLICATION-PLAN-V3`**：`PUB-B0` 由 `BLOCKED` 改為 `AUTHORIZED_2026-09-10 / SUB_OPTION_OPEN`；§5 由「一個決定」改為「已授權 + 兩個子問題」，新增子問題 (b)「唯一未檢視的 FORMAL seed 範圍花在哪條訓練線」，建議保留給 `PUB-B1`／`PUB-B2` 的新訓練線。Track A、Track C、§6–§7 與四個總開關不變。
+- 對齊：`STATUS.yaml`、[PROJECT_STATUS](docs/PROJECT_STATUS.md)（§0、§6.5、§7 milestone、§8）、README（現況一覽、receipt 索引、下一階段）、[RESEARCH_EXECUTION_PLAN](docs/RESEARCH_EXECUTION_PLAN.md)。
+- [BLOCKER] 本次**沒有**任何程式、contract、protocol、門檻、arm 定義、seed 或測試變更；frozen protocol JSON 逐位元不變（已驗證）。`paper_data_ready`、`statistics_ready`、`method_level_power_ready`、`sample_size_decision_input_ready` 皆為 false 不變；`selected_candidate_arm_id` 仍為 `null`。
+
 ## Unreleased — 2026-09-10 (l)
 
 ### `PUB-A0` 補充 scan：A-C5 降為 artifact 級（**縮小**主張）
