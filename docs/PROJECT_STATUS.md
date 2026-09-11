@@ -192,4 +192,4 @@
 
 ## 9. 測試現況
 
-`backend/`：**1 failed / 729 passed**（2026-09-11 重測，602.32 s；2026-09-10 同一組為 412.27 s，差異來自容器負載而非測試內容；含 87 個 second-case 測試與 47 個 selection 測試）。失敗項為 `test_v1_analytical_suite.py::test_stdlib_replay_passes_exact_synthetic_fixture`（`PRIMARY_CASE_RECEIPT_IDENTITY`），與 §4.3 的 reduction-order 差異同源，記錄為量測結果、未放寬。
+`backend/`：**1 failed / 754 passed**（2026-09-11，511.86 s；含 87 個 second-case、47 個 selection 與 25 個 R0 probe 測試。同日稍早未含 R0 測試時為 1 failed / 729 passed，執行時間 602.32 s 與 412.27 s 的差異來自容器負載而非測試內容）。失敗項為 `test_v1_analytical_suite.py::test_stdlib_replay_passes_exact_synthetic_fixture`（`PRIMARY_CASE_RECEIPT_IDENTITY`），與 §4.3 的 reduction-order 差異同源，記錄為量測結果、未放寬。

@@ -16,6 +16,7 @@
 - 驗證：`python -I -S`（`isolated`、`no_site`）獨立重算 **bit-exact**（`sha256:24451902…`）；environment lock 為 `MEASURED_ENVIRONMENT_LOCK` / `FULL_LOCK` 且 `locked_sha256` 與母證據（seedvar 執行）**逐位元相同**；另檢查左至右／`math.fsum`／反向三種求和順序，最大差異 `1.0 × 10⁻⁶`，而最近門檻 margin 為 `9.893333` pp 對 `5.0` pp，**沒有任何判定依賴 reduction order**。`R0-01` .. `R0-08` 全數 PASS。
 - 新增 `backend/r0_regime_probe_contract.py`（stdlib-only，可在 `python -I -S` 下重算）、`backend/run_r0_regime_probe.py` 與 25 個測試。測試替**三個結果標籤各建一個 positive control**——一條對任何輸入都只能回一種答案的規則，對資料毫無資訊，那正是 v7 selection 自檢曾經藏著、被測試抓到的洞。
 - [RESULT] taxonomy 六格自此全部有實例；[TRACK_A_REFRAME §3](docs/TRACK_A_REFRAME_2026-09-09.md) 的 `R0` 列由「未觀察到」改為 pilot 實例並附上述限制。
+- 測試：`backend/` **1 failed / 754 passed**（511.86 s）。新增 25 個 R0 測試，未新增任何失敗；唯一失敗仍是具名 environment lock 下記錄的 `PRIMARY_CASE_RECEIPT_IDENTITY` reduction-order 案例，未放寬。
 - [BLOCKER] 門檻**未**因結果調整：首次執行即得 `R0_WINDOW_FOUND`，不存在放寬重跑。沒有訓練、沒有新評估、沒有動任何 seed；四個總開關皆為 false 不變。
 - 對齊：`STATUS.yaml`（`r0_regime_probe`、`docs`）、[PROJECT_STATUS](docs/PROJECT_STATUS.md)、[PUBLICATION_PLAN](docs/PUBLICATION_PLAN.md)、[TRACK_A_REFRAME](docs/TRACK_A_REFRAME_2026-09-09.md)、README。
 
