@@ -38,7 +38,7 @@
 
 | Regime | 定義（reference／candidate exposure；reference metric） | 已量測實例 | Bound 行為 | Naive 行為 | 對評估的意義 | 證據等級 |
 |---|---|---|---|---|---|---|
-| **R0** 無 censoring | 兩臂皆 full | 未觀察到（V1／V2 protocol 以 `SECOND_CASE_UNINFORMATIVE_NO_CENSORING` 覆蓋） | 點識別 | 與 bound 一致 | 標準統計即可 | — |
+| **R0** 無 censoring | 兩臂皆 full；reference metric 非退化 | 尚未觀察到（V1／V2 protocol 以 `SECOND_CASE_UNINFORMATIVE_NO_CENSORING` 覆蓋）。2026-09-11 開啟 [`R0-REGIME-HORIZON-PROBE-V1`](R0_REGIME_PROBE_SPEC.md) 探測它在 horizon 維度上是否可達；**結果尚未產生** | 點識別 | 與 bound 一致 | 標準統計即可 | —（probe 為 pilot，不改變本表任何已量測列） |
 | **R1** 不對稱 | reference 近乎 full；candidate 重度 censored；reference metric 非退化 | v7 `V7C − V7A`：pilot 30/30 vs 0/30（seed 8700）；seed-variance 143/150 vs 0/150 | 單側變寬；paired bound 含 0；pilot 0/30、seed-variance 0/5 sign-identified | 主張 `−36.2185185` pp（pilot）／θ `[−37.195407, +27.315704]` 含 0（seed-variance） | **artifact**：naive 偽造方向 | DEVELOPMENT，凍結 protocol，replay exact（×2） |
 | **R2** 輕度 censoring、bound 有資訊 | 兩臂大多 full；candidate 少量 censored | v7 `V7B − V7A`：120/150 vs 143/150 | θ `[−13.503408, −12.435259]` pp 排除 0、寬 1.068149、5/5 sign-identified；**但** `between_replicate_sd` 無定義 | 一致 | bound **不是**永遠無資訊；**方向可識別 ≠ 變異可估計**，power／sample-size 被封鎖 | DEVELOPMENT，凍結 protocol，replay exact |
 | **R3** 對稱重度 censoring | 兩臂皆重度 censored | Walker2d-v5 V1：300 個 episode 16 個 full；reference 4/5 replicates 30/30 早跌 | 兩側皆寬；θ `[−79.118, +55.913333]` pp 寬 135.031333、**構造上必含 0**、0/5 | 主張 `−28.795138` pp、95% t-interval `[−46.698919, −10.891357]` 排除 0 | **artifact**，但 bound 的無資訊是關於 reference 的事實、與 candidate 無關 | DEVELOPMENT，凍結 protocol，replay exact |

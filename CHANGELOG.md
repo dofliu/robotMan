@@ -2,6 +2,26 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-11 (n)
+
+### 動作任務範圍決定，與一個不需要新增動作就能做的 `R0` probe
+
+- [SOURCE] 專案負責人詢問是否現在加入跳躍、轉身或其他基本動作。決定：**現在不新增**，紀錄於 [MOTION_SCOPE_DECISION_2026-09-11](docs/MOTION_SCOPE_DECISION_2026-09-11.md)。四個理由全部是量到的事實，不是偏好：
+  - Motion Task V1 本身尚未通過（v5 Live 10/11，saturation duty `38.422222% > 30%`；v6 reward-only 無效；v7 選不出候選）。加第二、三個任務只是把未通過的任務數由 1 變成 3。
+  - V1 plant credibility 四項（articulated dynamic、pendulum、energy、solver convergence）全缺，而**跳躍恰好依賴那四項**：飛行相無接觸、落地衝擊受接觸模型支配、能量守恆。在未驗證的 plant 上量跳躍，得到的是關於接觸模型的證據，不是關於跳躍的證據。
+  - 轉身與跳躍的早期終止率高於走路，會把比較推入已經擊敗三個 budget probe 的 `R3`／`R4` regime，使 Track A 更難而非更容易。
+  - 在版控 checkpoint lineage 建立前新增訓練線，會複製已使 `CONDITIONAL_ON_FIXED_WARM_START` 對 v7 線永久成立的 provenance 損毀。
+- 凍結順序：[ROADMAP §9](docs/ROADMAP.md) 第 1、2 項 → 原地轉身（需 `PUB-B2` 出口條件）→ 跳躍（需 V1 PASS）。教學支線不受阻擋，但須標 `DEVELOPMENT_ONLY / NOT_EVIDENCE`，且平衡動作須依 [ROADMAP §8](docs/ROADMAP.md) 定義 contact/support acceptance。
+- [RESULT] **調查中發現 taxonomy 的空格不需要新增動作任務就能探測。** [TRACK_A_REFRAME §3](docs/TRACK_A_REFRAME_2026-09-09.md) 六格 regime 中只有 `R0`（兩臂皆 full exposure）是空的。retained 的 450 個 seed-variance evaluation episode，其 `control_step_trace` 每個 control step 都記有 `saturation_substeps_over_threshold` 與 `saturation_substeps_total`（恆為 `10`，即 500 Hz），因此**任意截斷 horizon 的 duty 皆可精確重算**。在全 horizon 上，重算值與凍結的 `metrics.saturation_duty_pct` 對 **450/450 episode 完全相等**，零不符。
+- 據此凍結 **`R0-REGIME-HORIZON-PROBE-V1`**：[R0_REGIME_PROBE_SPEC](docs/R0_REGIME_PROBE_SPEC.md)（`sha256:a15cada6…`）與 `backend/rl/r0_regime_probe_protocol.json`（`sha256:07cf6d21…`），狀態 `FROZEN_BEFORE_EXECUTION`。它不訓練、不評估、不動任何 seed，只對既有資料唯讀重算。
+- 設計主軸是一個張力：**R0 與 metric 非退化互相拉扯**——截得夠早則沒人跌倒但窗口全在初始站立、reference saturation 趨近 0（即 Hopper probe 落入的 `R5`）；截得夠晚則 censoring 回來。因此 adequacy rule 是**兩段式**：`R0-P0a` 要求 reference 與 candidate 各 150 個 episode 全部 `H_COVERED`；`R0-P0b` 要求 reference 平均 duty 落在 `[5.0, 95.0]` pp。
+- [INFERENCE] `R0-P0b` **刻意只約束 reference**：A-C3 的前置條件是「參照臂能否表達對比」，不是「對比是否存在」。對 candidate 設下界等於在結果上做選擇——candidate duty 很低正是可能要被觀察到的結果。這是 Hopper probe 缺口的正確修法，不是它的翻版。
+- Horizon grid `H ∈ {125, …, 450}`，下界 `125`（2.5 s）取自 [MOTION_TASK_SPEC](docs/MOTION_TASK_SPEC.md) 凍結 phase 表的 `STEADY_WALK` 起點——由設計常數決定，不由資料決定。選擇規則取最大的 adequate horizon。四個 fail-closed 標籤中，`R0_EXPOSURE_ONLY` 與 `R0_NOT_REACHABLE` **是結果不是失敗**，不得以放寬門檻重跑。
+- [BLOCKER] **`R0-PRE-01` 已完成，且有時效性理由。** 來源 `control_step_trace` 只存在於 gitignored 的 `backend/rl/artifacts/`，而執行環境是可回收容器；容器一旦回收，這批 trace 與 `policy.zip` 將永久消失且無法重跑復原（warm start 不可重建）——與毀掉 v7 provenance 的機制完全相同。因此先抽出最小充分統計量納入版控：`backend/r0_probe_evidence/2026-09-11/horizon_trace_index.json`（`sha256:6ad44934…`、`1,272,160` bytes、450 episodes、`158,338` control steps），15 個來源檔 digest **全部命中**母 bundle 的 retained 值。
+- [BLOCKER] **probe 尚未執行**：沒有計算任何截斷 horizon、沒有指派任何標籤。其產出將為 `PILOT`、附帶 `CONDITIONAL_ON_FIXED_WARM_START`，且永遠不可寫成任何一臂在 9 s 任務上的陳述——截斷 horizon 的 duty 與 9 s 的 duty 是**不同的估計目標**。
+- 對齊：`STATUS.yaml`（新增 `motion_scope_decision` 與 `r0_regime_probe` 兩個 key、`next_milestone`、`docs`）、[PROJECT_STATUS](docs/PROJECT_STATUS.md)（§0、§7 milestone、§8）、[PUBLICATION_PLAN](docs/PUBLICATION_PLAN.md)（`PUB-A2` gate 列、§8 第 2 點）、[TRACK_A_REFRAME](docs/TRACK_A_REFRAME_2026-09-09.md)（`R0` 列）、[ROADMAP](docs/ROADMAP.md)（§8、§9）、README。
+- [BLOCKER] 本次沒有任何訓練、評估、seed 變更，也沒有修改任何既有 contract、protocol、門檻或 arm 定義；四個總開關皆為 false 不變。
+
 ## Unreleased — 2026-09-10 (m)
 
 ### `PUB-B0`：formal evaluation 授權；同時量出這條線上 selection 幾乎必然選不出東西
