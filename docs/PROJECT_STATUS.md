@@ -17,7 +17,7 @@
 - **A-C5 降為 artifact 級（2026-09-10）**：preregistration／multiverse 補充 scan 完成後判定縮小——「透明宣告 post hoc」已是 Hollenbeck & Wright (2017) 的 Tharking，「決策資料未被檢視」已由 Cawley & Talbot (2010) 與 Dwork et al. (2015) 建立，剩餘窄點的解讀又受「選不出東西可能只因 exposure 不足」混淆。A-C5 併入 A-C4，不再單獨作為主張（[LITERATURE_MAP §1.7、§4 第 5 點](LITERATURE_MAP_2026-09-08_EVALUATION_VALIDITY.md)）。
 - **`PUB-B0` 已授權（2026-09-10）**：專案負責人授權 formal evaluation（[PUB_B0_AUTHORIZATION_RECEIPT](PUB_B0_AUTHORIZATION_RECEIPT_2026-09-10.md)）。授權**不使 protocol 可執行**：frozen protocol JSON 內 `EP-03` 仍硬寫 `BLOCKING`、`EP-01`／`EP-02` 未解除，且凍結順序要求 `PUB-B4` 外部預註冊在解封 sealed seeds `20000–20029` 之前，而預註冊只有專案負責人能做。當日**未存取** FORMAL seeds。
 - **動作任務範圍已決定（2026-09-11）**：專案負責人採納建議，**現在不新增**跳躍或轉身任務（[MOTION_SCOPE_DECISION](MOTION_SCOPE_DECISION_2026-09-11.md)）。理由是量到的四件事：Motion Task V1 本身尚未通過、V1 plant credibility 四項全缺而跳躍恰好依賴那四項、更難的任務會把比較推入更重的 censoring regime、以及在版控 lineage 建立前新增訓練線會複製已發生過的 provenance 損毀。凍結順序：先做 [ROADMAP §9](ROADMAP.md) 第 1、2 項，轉身需 `PUB-B2` 出口條件，跳躍需 V1 PASS。
-- **`R0` regime probe 已凍結（2026-09-11）**：taxonomy 六格中唯一空的 `R0` 不需要新增動作任務即可探測——retained 的 450 個 evaluation episode 每個 control step 都記有 `saturation_substeps_over_threshold`／`_total`（10 substeps = 500 Hz），任意截斷 horizon 的 duty 可精確重算，且在全 horizon 上對 **450/450 episode** 與凍結值完全相等。規格 [R0_REGIME_PROBE_SPEC](R0_REGIME_PROBE_SPEC.md)（`R0-REGIME-HORIZON-PROBE-V1`）已 `FROZEN_BEFORE_EXECUTION`，**結果尚未產生**。
+- **`R0` regime probe 已凍結（2026-09-11）**：taxonomy 六格中唯一空的 `R0` 不需要新增動作任務即可探測——retained 的 450 個 evaluation episode 每個 control step 都記有 `saturation_substeps_over_threshold`／`_total`（10 substeps = 500 Hz），任意截斷 horizon 的 duty 可精確重算，且在全 horizon 上對 **450/450 episode** 與凍結值完全相等。規格 [R0_REGIME_PROBE_SPEC](R0_REGIME_PROBE_SPEC.md) 於凍結並 push 後執行，[receipt](R0_REGIME_PROBE_RECEIPT_2026-09-11.md) 記錄結果：**兩個對比皆 `R0_WINDOW_FOUND`**。`C_B` 在 `H ≤ 414`（8.28 s）、`C_C` 在 `H ≤ 152`（3.04 s）。最有意義的一項：同一批 policy 與 seed，只改 evaluation horizon，`C_B` 就從 `R2` 變成 `R0`——而所需的只是放棄最後 `36` 個 control step（`0.72` s，不到 horizon 的 8%），因為 `V7A` 的 7 個與 `V7B` 的 30 個早期終止**全部落在 `FINAL_STAND` 階段**。`python -I -S` replay bit-exact，environment lock 與母證據逐位元相同。仍為 PILOT，不得讀成任何一臂在 9 s 任務上的陳述。
 - **量測到 v7 線上 `SEL-C2` 幾乎確定不成立**：retained seed-variance evidence 上 reference `V7A` 自己只有 143/150 episode `COMPARABLE`，`V7B` 120/150，`V7C` 0/150；FORMAL 用同一批已訓練 policy、只換 evaluation seed。iid 外推的聯合通過機率為 reference + `V7B` `2.2 × 10⁻¹⁸`、reference + `V7C` `0`。因 FORMAL 資料只套用一次，在 v7 線上執行會用掉唯一未檢視的 seed 範圍換一個 `NO_CANDIDATE`。**下一個決策點**因此是兩個子問題（[PUBLICATION_PLAN §5](PUBLICATION_PLAN.md)）：用現行規則或先預註冊替代規則；以及 FORMAL 範圍花在 v7 線或保留給 `PUB-B1`／`PUB-B2` 的新訓練線。
 
 ## 1. V&V gates
@@ -171,7 +171,7 @@
 | 2026-09-09 | `PUB-A0` 關鍵兩篇原文核對（PDF 由專案負責人提供） | 1911.05728、2606.10229 皆不推翻 gap；`KEY_TWO_VERIFIED_GAP_STANDS / REMAINING_U`；gate 未 PASS |
 | 2026-09-10 | `PUB-A0` A-C5 補充 scan（preregistration／multiverse） | A-C5 降為 artifact 級併入 A-C4；`KEY_TWO_VERIFIED_AND_A_C5_SCANNED / REMAINING_U`；gate 未 PASS |
 | 2026-09-10 | 專案負責人授權 formal evaluation；[PUBLICATION_PLAN](PUBLICATION_PLAN.md) 升版 V3 | `PUB-B0` `AUTHORIZED / SUB_OPTION_OPEN`；protocol 仍不可執行；量測 `SEL-C2` 在 v7 線上幾乎確定不成立；FORMAL seeds 未存取 |
-| 2026-09-11 | 動作任務範圍決定；凍結 `R0-REGIME-HORIZON-PROBE-V1` | 不新增跳躍／轉身；`R0` probe 規格與 protocol 凍結、horizon trace index 納入版控（450 episodes、`158,338` control steps）；probe 尚未執行 |
+| 2026-09-11 | 動作任務範圍決定；凍結並執行 `R0-REGIME-HORIZON-PROBE-V1` | 不新增跳躍／轉身；`R0` probe 凍結後執行，兩個對比皆 `R0_WINDOW_FOUND`，taxonomy 六格全部有實例；replay bit-exact |
 
 ## 8. 下一步
 
@@ -180,7 +180,7 @@
 **學術（見 [PUBLICATION_PLAN](PUBLICATION_PLAN.md)）**
 
 1. `PUB-A0`：關鍵兩篇已核對、A-C5 補充 scan 已完成（該項降級）；**唯一剩餘工作**是讀其餘 `U` 條目原文（§1.1、§1.3–§1.5、§1.7、§2 的 Manski／Tamer 線），需可存取出版方的環境——2026-09-10 重新量測 `arxiv.org` 仍封鎖。優先四篇：Pardo 2018、Colas 2019、Manski 1990／Tamer 2010、Hollenbeck & Wright 2017。另需核對 rl-zoo recipe 數值。
-2. `PUB-A2` claim freeze：A0 之後，把 [TRACK_A_REFRAME §5–§7](TRACK_A_REFRAME_2026-09-09.md) 凍結。**不再開任何第二案例 probe 或 protocol**；`PUB-A1b` 已關閉並寫入 Limitations。輸入之一是已凍結的 [`R0` regime probe](R0_REGIME_PROBE_SPEC.md)：下一步是依其 §8 執行搜尋並寫 receipt，無論結果為 `R0_WINDOW_FOUND`、`R0_EXPOSURE_ONLY` 或 `R0_NOT_REACHABLE` 都照登。
+2. `PUB-A2` claim freeze：A0 之後，把 [TRACK_A_REFRAME §5–§7](TRACK_A_REFRAME_2026-09-09.md) 凍結。**不再開任何第二案例 probe 或 protocol**；`PUB-A1b` 已關閉並寫入 Limitations。輸入之一是 [`R0` regime probe](R0_REGIME_PROBE_RECEIPT_2026-09-11.md)，已於 2026-09-11 執行完成（兩個對比皆 `R0_WINDOW_FOUND`）；其「regime 由 horizon 決定」的量測應寫入 §3 taxonomy 與 A-C3 論述。
 3. `PUB-B0` 授權已取得（2026-09-10）。剩餘依序：專案負責人決定 [PUBLICATION_PLAN §5](PUBLICATION_PLAN.md) 的兩個子問題（規則、FORMAL 範圍花在哪條線）→ `PUB-B4` OSF preregistration（只有負責人能做）→ `SELECT-AMENDMENT-01`（`EP-03` narrowing amendment 並重新 pin digest）→ `EP-01`／`EP-02` amendment。在子問題未決前不鑄造 authorization evidence、不解封 `20000–20029`。
 
 **工程（見 [ROADMAP](ROADMAP.md) §9）**

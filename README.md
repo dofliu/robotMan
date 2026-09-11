@@ -112,6 +112,7 @@ python -m pytest backend -q
 | [PUBLICATION_PLAN](docs/PUBLICATION_PLAN.md) | 學術產出規劃：三條 track、PUB gates、寫作規範、不可宣稱清單（V2） |
 | [TRACK_A_REFRAME_2026-09-09](docs/TRACK_A_REFRAME_2026-09-09.md) | Track A 重構：censoring regime 分類、claim → evidence 對照、不可宣稱清單、figure／table 計畫、`PUB-A2` 草稿 |
 | [R0_REGIME_PROBE_SPEC](docs/R0_REGIME_PROBE_SPEC.md) | 凍結的 `R0-REGIME-HORIZON-PROBE-V1`：以截斷 horizon 探測無 censoring 的比較是否可達；兩段式 reference-adequacy 規則 |
+| [R0_REGIME_PROBE_RECEIPT_2026-09-11](docs/R0_REGIME_PROBE_RECEIPT_2026-09-11.md) | probe 執行結果：兩個對比皆 `R0_WINDOW_FOUND`；同一批 policy 與 seed 只改 horizon 就跨 regime |
 | [MOTION_SCOPE_DECISION_2026-09-11](docs/MOTION_SCOPE_DECISION_2026-09-11.md) | 動作任務範圍決定：現在不新增跳躍／轉身，以及新增動作的凍結順序 |
 | [ROADMAP](docs/ROADMAP.md) | V0–V4 gate-first 工程工作順序 |
 | [RESEARCH_EXECUTION_PLAN](docs/RESEARCH_EXECUTION_PLAN.md) | model validity 與 method effectiveness 雙證據鏈、RQ、P-stage gates |
@@ -195,7 +196,7 @@ python -m pytest backend -q
 
 專案同時推進兩條軌道，互不阻擋：
 
-- **學術**：先做 Track A（評估效度／可重現性方法論，2026-09-09 起以 censoring regime 為論點，見 [TRACK_A_REFRAME](docs/TRACK_A_REFRAME_2026-09-09.md)）。剩餘前置是 `PUB-A0` 其餘 `U` 條目的原文核對（關鍵兩篇已於 2026-09-09 核對，gap 仍成立）與 `PUB-A2` claim freeze；第二案例線已關閉，不再開 probe 或 protocol。2026-09-11 另凍結 `R0` regime probe（唯讀重算既有 450 個 episode，不訓練、不動 seed），用於補 taxonomy 的 `R0` 格。Track B（原定 Study A 方法比較）的 formal authorization 已於 2026-09-10 取得，但仍需 `PUB-B4` 外部預註冊與三項 execution precondition 的 amendment，且量測顯示 v7 線上 `SEL-C2` 幾乎確定不成立，故仍需一條有版控 artifact 的新訓練線；Track C（教學工具）需要另立學習成效研究設計。
+- **學術**：先做 Track A（評估效度／可重現性方法論，2026-09-09 起以 censoring regime 為論點，見 [TRACK_A_REFRAME](docs/TRACK_A_REFRAME_2026-09-09.md)）。剩餘前置是 `PUB-A0` 其餘 `U` 條目的原文核對（關鍵兩篇已於 2026-09-09 核對，gap 仍成立）與 `PUB-A2` claim freeze；第二案例線已關閉，不再開 probe 或 protocol。2026-09-11 凍結並執行 `R0` regime probe（唯讀重算既有 450 個 episode，不訓練、不動 seed）：兩個對比皆 `R0_WINDOW_FOUND`，taxonomy 六格全部有實例。Track B（原定 Study A 方法比較）的 formal authorization 已於 2026-09-10 取得，但仍需 `PUB-B4` 外部預註冊與三項 execution precondition 的 amendment，且量測顯示 v7 線上 `SEL-C2` 幾乎確定不成立，故仍需一條有版控 artifact 的新訓練線；Track C（教學工具）需要另立學習成效研究設計。
 - **工程**：把 environment lock record 綁進每一條 pipeline 的 run manifest、Compare／Dynamic trace 的 browser visual verification、V1 articulated dynamic／pendulum／energy oracles、以及一條有版控 artifact 的新訓練線。順序見 [ROADMAP §9](docs/ROADMAP.md)。
 
 formal evaluation 已於 2026-09-10 授權，但授權只解除凍結順序的第一格：`PUB-B4` 外部預註冊仍在解封之前，`EP-01`／`EP-02` 未解除，`EP-03` 在 frozen protocol JSON 內仍為 `BLOCKING`。因此目前仍：不做 selection、不調 threshold、不存取 FORMAL seeds `20000–20029`。詳細狀態與理由見 [PROJECT_STATUS](docs/PROJECT_STATUS.md) 與 [PUB_B0 receipt](docs/PUB_B0_AUTHORIZATION_RECEIPT_2026-09-10.md)。

@@ -1,0 +1,76 @@
+{
+ "adequacy_thresholds": {
+  "maximum_mean_duty_pct": 95.0,
+  "minimum_mean_duty_pct": 5.0
+ },
+ "conditional_on_fixed_warm_start": true,
+ "contrasts": [
+  {
+   "adequate_horizon_count": 290,
+   "adequate_horizon_max": 414,
+   "adequate_horizon_min": 125,
+   "candidate_arm_id": "V7B_REDUCED_JOINT_ENVELOPE",
+   "candidate_shortest_episode_control_steps": 414,
+   "contrast_id": "C_B",
+   "label": "R0_WINDOW_FOUND",
+   "p0a_horizon_count": 290,
+   "p0a_horizon_max": 414,
+   "p0a_horizon_min": 125,
+   "reference_arm_id": "V7A_REWARD_ONLY",
+   "reference_mean_duty_pct_at_p0a_max": 40.262319,
+   "reference_mean_duty_pct_at_p0a_min": 9.893333,
+   "reference_mean_duty_pct_at_selected": 40.262319,
+   "reference_shortest_episode_control_steps": 419,
+   "selected_horizon_control_steps": 414,
+   "selected_horizon_seconds": 8.28
+  },
+  {
+   "adequate_horizon_count": 28,
+   "adequate_horizon_max": 152,
+   "adequate_horizon_min": 125,
+   "candidate_arm_id": "V7C_FILTERED_ACTION",
+   "candidate_shortest_episode_control_steps": 152,
+   "contrast_id": "C_C",
+   "label": "R0_WINDOW_FOUND",
+   "p0a_horizon_count": 28,
+   "p0a_horizon_max": 152,
+   "p0a_horizon_min": 125,
+   "reference_arm_id": "V7A_REWARD_ONLY",
+   "reference_mean_duty_pct_at_p0a_max": 22.089474,
+   "reference_mean_duty_pct_at_p0a_min": 9.893333,
+   "reference_mean_duty_pct_at_selected": 22.089474,
+   "reference_shortest_episode_control_steps": 419,
+   "selected_horizon_control_steps": 152,
+   "selected_horizon_seconds": 3.04
+  }
+ ],
+ "evidence_class": "PILOT_NOT_EVIDENCE",
+ "execution": {
+  "analysis_uses_third_party_packages": false,
+  "environment_lock_class": "MEASURED_ENVIRONMENT_LOCK",
+  "environment_lock_completeness": "FULL_LOCK",
+  "environment_lock_threading_determinism": "AMBIENT_THREADING_PINNED",
+  "environment_locked_sha256": "sha256:93d23a2703adc86a1394eacf5dece8d7229fdf742857f1a271656aa1cfeac72d",
+  "executed_at_utc": "2026-09-11T16:35:39Z",
+  "locked_sha256_matches_parent_evidence": true,
+  "parent_evidence_locked_sha256": "sha256:93d23a2703adc86a1394eacf5dece8d7229fdf742857f1a271656aa1cfeac72d",
+  "source_dirty_post": false,
+  "source_dirty_pre": false,
+  "source_git_sha_post": "edf361165dd83de9a6f12052802494edea45a9f8",
+  "source_git_sha_pre": "edf361165dd83de9a6f12052802494edea45a9f8"
+ },
+ "forbidden_denominators": [
+  150,
+  450
+ ],
+ "horizon_grid": {
+  "maximum_control_steps": 450,
+  "minimum_control_steps": 125,
+  "step": 1
+ },
+ "horizon_trace_index_sha256": "sha256:6ad44934232e110741a69879027ccc1f84c10ae4c63b0acf2877756af0d330c7",
+ "protocol_id": "R0-REGIME-HORIZON-PROBE-V1",
+ "protocol_sha256": "sha256:07cf6d21dbc84d299384846d21abb8e25d921da8aea9214a77c95abe7bed08fe",
+ "schema_version": "R0_REGIME_PROBE_RESULT_V1",
+ "specification_sha256": "sha256:a15cada64637800a9fa50184d0e4dec1eaad958602c296c3211b90edf031c03a"
+}

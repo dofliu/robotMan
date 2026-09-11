@@ -2,6 +2,23 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-11 (o)
+
+### `R0-REGIME-HORIZON-PROBE-V1` 執行完成：兩個對比皆 `R0_WINDOW_FOUND`
+
+- 凍結（`06ebf60`）push 之後，在 clean source `edf3611` 上執行。先 commit 分析程式再執行，故 source pre == post。[receipt](docs/R0_REGIME_PROBE_RECEIPT_2026-09-11.md)、結果檔 `backend/r0_probe_evidence/2026-09-11/probe_result.json`（`sha256:f8a8db72…`）。
+- [RESULT] **兩個對比皆 `R0_WINDOW_FOUND`**：`C_B`（`V7B` vs `V7A`）有 290 個 horizon 滿足 `R0-P0a`（`125`–`414`），**全部 290 個同時滿足 `R0-P0b`**，選中 `H = 414`（8.28 s，reference 平均 duty `40.262319` pp）；`C_C`（`V7C` vs `V7A`）有 28 個（`125`–`152`），全部 adequate，選中 `H = 152`（3.04 s，`22.089474` pp）。
+- [RESULT] **本 probe 設計要防的 R5 陷阱，在這個 plant 上沒有發生。** reference 平均 duty 在整個 P0a 範圍內最低 `9.893333` pp（於 `H = 125`），是被判定為退化的 Hopper reference（`2.712%`）的 3.6 倍。[BLOCKER] 這是關於**這個 plant 與任務**的量測，不是一般結論——同一個兩段式規則在 Hopper 上確實會擋下退化 reference。兩者合起來說明非退化性必須逐案檢查。
+- [RESULT] **綁住 R0 窗口的是 candidate 不是 reference**：每個 P0a 上界恰等於該 candidate 最短的 episode（`V7B` `414`、`V7C` `152`；reference 最短 `419`）。
+- [RESULT] **對 A-C3 最有意義的一項**：同一批 policy、同一批 evaluation seed，只改 evaluation horizon，同一個對比就跨 regime——`C_B` 在 `H = 450` 是 `R2`（bound 排除 0 但 `between_replicate_sd` 無定義），在 `H ≤ 414` 是 `R0`（點識別）；`C_C` 在 `H = 450` 是 `R1`（artifact），在 `H ≤ 152` 是 `R0`。`C_B` 的轉換只需放棄 **36 個 control step（`0.72` s，不到 horizon 的 8%）**，因為 `V7A` 的 7 個與 `V7B` 的 30 個早期終止**全部落在 `FINAL_STAND`**（8.0–9.0 s），而 `V7C` 的 150 個全部落在 `STEADY_WALK`（`3.04`–`3.28` s）。
+- [INFERENCE] 也就是說，「partially identified 且變異不可估計」與「點識別」之間的差別，在此案例上是評估者對最後 0.72 秒的一個選擇——而該選擇在標準實務中既不被控制也不被報告。[BLOCKER] 這**不表示**應改用截斷 horizon 評估：截斷改變估計目標。結論是 regime 標籤不是資料的固有屬性，必須連同 horizon 一起報告。
+- [BLOCKER] **不是第六個獨立實例**：它是同一批 450 個 episode 的重讀，加入的是**案例內**示範，不是新的 plant 或 policy family。選中的 `H` 值由資料決定（追隨 candidate 最短 episode），不是推薦的評估 horizon。
+- 驗證：`python -I -S`（`isolated`、`no_site`）獨立重算 **bit-exact**（`sha256:24451902…`）；environment lock 為 `MEASURED_ENVIRONMENT_LOCK` / `FULL_LOCK` 且 `locked_sha256` 與母證據（seedvar 執行）**逐位元相同**；另檢查左至右／`math.fsum`／反向三種求和順序，最大差異 `1.0 × 10⁻⁶`，而最近門檻 margin 為 `9.893333` pp 對 `5.0` pp，**沒有任何判定依賴 reduction order**。`R0-01` .. `R0-08` 全數 PASS。
+- 新增 `backend/r0_regime_probe_contract.py`（stdlib-only，可在 `python -I -S` 下重算）、`backend/run_r0_regime_probe.py` 與 25 個測試。測試替**三個結果標籤各建一個 positive control**——一條對任何輸入都只能回一種答案的規則，對資料毫無資訊，那正是 v7 selection 自檢曾經藏著、被測試抓到的洞。
+- [RESULT] taxonomy 六格自此全部有實例；[TRACK_A_REFRAME §3](docs/TRACK_A_REFRAME_2026-09-09.md) 的 `R0` 列由「未觀察到」改為 pilot 實例並附上述限制。
+- [BLOCKER] 門檻**未**因結果調整：首次執行即得 `R0_WINDOW_FOUND`，不存在放寬重跑。沒有訓練、沒有新評估、沒有動任何 seed；四個總開關皆為 false 不變。
+- 對齊：`STATUS.yaml`（`r0_regime_probe`、`docs`）、[PROJECT_STATUS](docs/PROJECT_STATUS.md)、[PUBLICATION_PLAN](docs/PUBLICATION_PLAN.md)、[TRACK_A_REFRAME](docs/TRACK_A_REFRAME_2026-09-09.md)、README。
+
 ## Unreleased — 2026-09-11 (n)
 
 ### 動作任務範圍決定，與一個不需要新增動作就能做的 `R0` probe
