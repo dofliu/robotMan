@@ -119,6 +119,8 @@ V4 不等於整機認證。依風險逐級增加外部 evidence：
 
 完成此 task framework 後，再以 registry 新增舉手、抬腳、深蹲與原地轉身。抬腳等平衡動作必須定義 contact/support acceptance，不能只新增視覺動畫。
 
+[SOURCE] 2026-09-11 專案負責人決定**現在不新增**跳躍或轉身任務（[MOTION_SCOPE_DECISION](MOTION_SCOPE_DECISION_2026-09-11.md)）：Motion Task V1 本身尚未通過（v5 Live 10/11，saturation duty `38.422222% > 30%`），V1 plant credibility 的四項（articulated dynamic、pendulum、energy、solver convergence）全缺而跳躍恰好依賴那四項，且更難的任務會把更多比較推入重度 censoring regime。凍結順序為：§9 第 1、2 項 → 原地轉身（需 `PUB-B2` 出口條件）→ 跳躍（需 V1 PASS）。教學支線不受此限，但須標 `DEVELOPMENT_ONLY / NOT_EVIDENCE`。
+
 ### M7A — Arm pick-and-place teaching demo
 
 可在 V0 後進行，但限定為 kinematic/visual teaching demo：
@@ -154,7 +156,7 @@ Development 已完成 v1–v7 failure-retaining iteration：v2 解決前進與�
 2. 建立一條**有版控 checkpoint lineage** 的新訓練線（scratch 或 tracked warm start，每個 checkpoint 進版控或 immutable storage）。這同時是 Track B 的硬前置，也是解除 exposure-censoring 對 between-replicate variance 封鎖的唯一途徑：需要一個能穩定跑完 9 s 任務的 reference policy。v7 line 因 provenance 不可重建，不能再作為這條線的起點。
 3. Compare／Dynamic trace 的 browser visual verification（Playwright），解除兩個 `BROWSER_VISUAL_PENDING`。
 4. 完成 V1 contact/plant/numerical verification（articulated dynamic、pendulum、energy、solver convergence）。
-5. M7A 可作為教學支線；M7B 保持 blocked。
+5. M7A 可作為教學支線；M7B 保持 blocked。新增動作任務（轉身、跳躍）的順位與前置見 [MOTION_SCOPE_DECISION §2](MOTION_SCOPE_DECISION_2026-09-11.md)：轉身排在第 2 項之後且需 `PUB-B2` 出口條件，跳躍排在第 4 項之後。
 6. 完成 V2 actuator/sensor/estimator fidelity。
 7. 建立 M8 WBC verified baseline。
 8. 完成 V3 fair benchmark/UQ。

@@ -1,0 +1,92 @@
+{
+ "adequacy_rule": {
+  "R0_P0a_exposure": {
+   "applies_to": "both arms of the contrast",
+   "rule": "every one of the reference's 150 episodes AND every one of the candidate's 150 episodes must be H_COVERED at the horizon",
+   "required_h_covered_episodes_per_arm": 150
+  },
+  "R0_P0b_non_degeneracy": {
+   "applies_to": "reference arm only",
+   "maximum_mean_duty_pct": 95.0,
+   "minimum_mean_duty_pct": 5.0,
+   "rationale_applies_to": "A-C3's precondition is whether the reference arm can express a contrast, not whether a contrast exists. Imposing a floor on the candidate would select on the outcome: a low candidate duty is precisely a result that must remain observable.",
+   "rationale_thresholds": "The 5.0 pp floor is strictly above the 2.712% standing Hopper reference that was judged degenerate, and far below the v7 reference's full-horizon value of about 36-38 pp, so it presupposes no answer. The 95.0 pp ceiling keeps a reduction from being clipped.",
+   "rule": "the mean of the reference arm's 150 per-episode duty values at the horizon must lie within [minimum_mean_duty_pct, maximum_mean_duty_pct]"
+  }
+ },
+ "analysis_unit": {
+  "forbidden_denominators": [150, 450],
+  "method_level_denominator": 5,
+  "note": "Inherited from the parent protocol. This probe is a pilot and produces no method-level estimate; the rule governs the future R0 protocol it informs.",
+  "unit": "training_replicate"
+ },
+ "claim_boundary": [
+  "Supports only the horizon choice for a future frozen R0 protocol, and an observation about whether the R0 regime is reachable along the horizon dimension.",
+  "Does not support any statement about any v7 arm's performance on the 9 s task, any task PASS, any controller superiority, or any MOTION_TASK_SPEC criterion.",
+  "A truncated-horizon duty is a different estimand from the 9 s duty and must never be compared with it or substituted for it.",
+  "Does not support any physical feasibility, safety, sim-to-real or actuator claim."
+ ],
+ "contrasts": [
+  {"candidate_arm_id": "V7B_REDUCED_JOINT_ENVELOPE", "contrast_id": "C_B", "reference_arm_id": "V7A_REWARD_ONLY"},
+  {"candidate_arm_id": "V7C_FILTERED_ACTION", "contrast_id": "C_C", "reference_arm_id": "V7A_REWARD_ONLY"}
+ ],
+ "data_source": {
+  "horizon_trace_index_path": "backend/r0_probe_evidence/2026-09-11/horizon_trace_index.json",
+  "horizon_trace_index_schema": "R0_HORIZON_TRACE_INDEX_V1",
+  "parent_protocol_id": "SEEDVAR-V7-TRAINING-REPLICATE-DEV-V1",
+  "parent_protocol_sha256": "sha256:9ab17c74ddb021f9b69b1df843f9fa49ea45ecf790837204270d8bc01046b359",
+  "parent_summary_sha256": "sha256:42b4cfac2ffff47b922c2ffe8f74492a7310e5cdb637bde1201084e365027965",
+  "read_only": true,
+  "total_episodes": 450
+ },
+ "disclosure": "Pilot. Authored on 2026-09-11 against DEVELOPMENT data whose full-horizon results this project's author has already inspected: evaluation seeds 18000-18029 are DEVELOPMENT_EXHAUSTED. Its outputs are not evidence and are not a substitute for PUB-A1b. No training, no new evaluation, no new seeds, no access to 19000-19029 or 20000-20029. Every rule in this file was fixed before any truncated horizon was computed; the only pre-freeze measurement was the full-horizon recomputation identity, which involves no truncation. CONDITIONAL_ON_FIXED_WARM_START holds permanently for everything derived here.",
+ "duty_definition": {
+  "formula": "round(sum(over_threshold[0:H]) / (substeps_per_control_step * H) * 100.0, 6)",
+  "rounding_decimals": 6,
+  "substeps_per_control_step": 10,
+  "verified_identity": "At H = 450 this reproduces the frozen metrics.saturation_duty_pct for 450/450 episodes with zero mismatches."
+ },
+ "environment_lock_requirement": {
+  "contract_id": "ENVIRONMENT-LOCK-V1",
+  "required_lock_class": "MEASURED_ENVIRONMENT_LOCK",
+  "required_lock_completeness": "FULL_LOCK",
+  "verified_before_analysis": true
+ },
+ "execution_order": [
+  "R0-PRE-01 extract and version-control horizon_trace_index.json; no truncated computation",
+  "freeze this protocol and docs/R0_REGIME_PROBE_SPEC.md, commit and push",
+  "run the frozen search for each contrast under a verified environment lock on clean source",
+  "independently recompute with python -I -S and compare bit-exact",
+  "write the receipt"
+ ],
+ "exposure_definition": {
+  "label": "H_COVERED",
+  "rule": "an episode is H_COVERED at horizon H if and only if its realized control-step count is >= H",
+  "warning": "H_COVERED is deliberately NOT the audit contract's FULL_EXPOSURE, which is a judgement about the 9 s task. H_COVERED asserts only that the first H steps were observed; it asserts nothing about task completion or about the 9 s outcome_state."
+ },
+ "horizon_grid": {
+  "maximum_control_steps": 450,
+  "minimum_control_steps": 125,
+  "candidate_count": 326,
+  "rationale_maximum": "450 control steps is the full 9.0 s task horizon.",
+  "rationale_minimum": "125 control steps is 2.5 s, the start of STEADY_WALK in MOTION_TASK_SPEC's frozen phase table. A horizon below it contains no steady walk at all, so its duty is dominated by the stand-to-start transient, which is the region where the reference is near-degenerate by construction. The bound is set by a design constant, not by the data. It also satisfies the minimum sample requirement of 125 x 10 = 1250 >= 500 saturation substeps.",
+  "step": 1
+ },
+ "outcome_labels": {
+  "R0_EXPOSURE_ONLY": "at least one horizon satisfies R0-P0a, but none of those also satisfies R0-P0b",
+  "R0_NOT_REACHABLE": "no horizon satisfies R0-P0a",
+  "R0_PROBE_METHOD_FAILURE": "any contract violation: missing trace, digest mismatch, terminal_record_state other than COMPLETED, substep total inconsistent with the control-step count, or any method failure",
+  "R0_WINDOW_FOUND": "at least one horizon satisfies both R0-P0a and R0-P0b"
+ },
+ "outcome_semantics": "R0_EXPOSURE_ONLY and R0_NOT_REACHABLE are results, not failures, and must be reported as such in the Track A taxonomy. A null result may not be followed by a re-run with relaxed thresholds: any threshold change requires a new protocol version that discloses it was designed with this result already known. R0_PROBE_METHOD_FAILURE may never be downgraded to any of the other three.",
+ "protocol_id": "R0-REGIME-HORIZON-PROBE-V1",
+ "publication_gate": "PUB-A2",
+ "schema_version": "R0_REGIME_PROBE_PROTOCOL_V1",
+ "selection_rule": {
+  "rationale": "Taking the maximum keeps the rule independent of the values: the largest adequate horizon retains the most of the task and is uniquely determined by the grid, so no tie-break is needed.",
+  "rule": "among the horizons satisfying both R0-P0a and R0-P0b, select the largest"
+ },
+ "specification_path": "docs/R0_REGIME_PROBE_SPEC.md",
+ "specification_sha256": "sha256:a15cada64637800a9fa50184d0e4dec1eaad958602c296c3211b90edf031c03a",
+ "status": "FROZEN_BEFORE_EXECUTION"
+}
