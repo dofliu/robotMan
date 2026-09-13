@@ -12,7 +12,7 @@ Milestone ID：`PDR4-EXPERIMENT-MATRIX-COMPLETENESS-V1`
 
 本 milestone 只建立 fail-closed experiment-matrix completeness validator，回答：
 
-> 凍結的 expected controller × training seed × evaluation seed × scenario cells，是否各有且僅有一個 integrity-valid `PAPER_RUN_MANIFEST_V1` bundle，且沒有遺漏、重複、未預期或未索引 run？
+> 凍結的 expected controller × training seed × evaluation seed × scenario cells，是否各有且僅有一個 integrity-valid `PAPER_RUN_MANIFEST` bundle（`V1` 或 `V2`），且沒有遺漏、重複、未預期或未索引 run？
 
 本 milestone 不執行 Study A、v7 PILOT、controller ranking、statistics、confidence
 interval、power analysis或 paper table/figure export，也不解除 P1/V1、PDR-6 或 V3 gate。
@@ -54,7 +54,7 @@ Validator 讀取同一 dedicated matrix root 下的兩個 strict JSON files：
 | `MX-01` | Spec、index與 run manifests均以 bounded strict JSON讀取；unknown fields、duplicate keys、NaN、infinity、pathological integer或 nesting parser failure均 fail closed。V1 matrix cell上限為 1,000。 |
 | `MX-02` | Spec與index位於同一 matrix root；index保存的 spec SHA-256必須與實檔完全一致。 |
 | `MX-03` | `expected_cell_count`必須等於 explicit cell數；`cell_id`、canonical logical cell tuple與 derived seed-schedule hash各自 exact。Scenario numeric equality將 `0`/`0.0`/`-0.0`正規化，但 boolean與number保持不同 type。 |
-| `MX-04` | 每個 indexed `paper_run_manifest.json` path必須是 root內 canonical POSIX relative path，且 bytes、SHA-256與 `PAPER_RUN_MANIFEST_V1` artifact readback全部一致。 |
+| `MX-04` | 每個 indexed `paper_run_manifest.json` path必須是 root內 canonical POSIX relative path，且 bytes、SHA-256與 `PAPER_RUN_MANIFEST` artifact readback全部一致。 |
 | `MX-05` | 每個 run的 common identity、protocol/environment/model artifacts及 cell-specific controller/resolved-config/seeds/scenario必須與 frozen spec exact match；requested label不得取代 actual identity。 |
 | `MX-06` | 每個 expected cell恰有一個 run；missing、duplicate或 unexpected cell均使 `matrix_complete=false`。 |
 | `MX-07` | Indexed manifest path與 actual `run_id`各自唯一；matrix root採 bounded no-follow scan，任何未列入 index 的 `paper_run_manifest.json`、大小寫異體、symlink、junction、scan error或上限超出均 fail closed。 |
@@ -97,7 +97,7 @@ validity。
 contract；actual Study statistics、validated paired binary CI、PDR-7 formal reproduction、
 完整 V1/V2/V3及任何 HIL/bench/robot evidence仍須獨立完成。
 
-[BLOCKER] `PAPER_RUN_MANIFEST_V1`沒有 `scenario_id/replicate_id`欄位；V1 matrix
+[BLOCKER] `PAPER_RUN_MANIFEST` 兩版皆沒有 `scenario_id/replicate_id`欄位；V1 matrix
 因此以 explicit cell label加上 exact controller/seeds/scenario/config fingerprint完成
 cross-check。這不是 run-manifest self-binding；若後續需要原生欄位，必須建立新的
 manifest schema version，不能暗改 V1。

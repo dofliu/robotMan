@@ -4,24 +4,11 @@
 
 ## 1. 安裝與啟動
 
-~~~powershell
-py -3.12 -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-pip install -r backend/requirements-dev.txt -r backend/requirements-rl.txt
+安裝與啟動指令見 [README 快速啟動](../README.md)，那是唯一出處，本手冊不重複。Repository clone、tracked/excluded artifacts 與發布驗證流程見 [REPOSITORY_GUIDE](REPOSITORY_GUIDE.md)。
 
-Set-Location frontend
-npm ci
-npm run build
-Set-Location ..
-python -X utf8 backend/main.py
-~~~
+關於**環境身分**，只有一點必須在動手前知道：`requirements-rl.txt` 只給 dependency ranges，`requirements.txt` 只宣告 `>=` floors，兩者都**不是** frozen training environment。版本號相同不保證數值相同——本專案實測過同一環境下 stdlib 逐項求和與 `numpy` 求和會在末位不同。
 
-開啟 http://127.0.0.1:8710。
-
-`requirements-rl.txt` 提供現有 RL inference 所需的 dependency ranges，但尚未鎖定完整 training environment。analysis `/api/simulate` 會回傳 partial runtime provenance，但尚無 environment lock。重現 PPO training 前，仍須記錄 Python、MuJoCo、NumPy、Gymnasium、Stable-Baselines3、PyTorch、CUDA 與 checkpoint SHA-256；資訊不完整時只能做 exploratory run。
-
-Repository clone、tracked/excluded artifacts 與發布驗證流程見 [REPOSITORY_GUIDE](REPOSITORY_GUIDE.md)。
+自 2026-09-08 起，環境身分由 [`ENVIRONMENT-LOCK-V1`](ENVIRONMENT_LOCK_SPEC.md) 實測並可重驗；自 2026-09-13 起，[`RUN-MANIFEST-LOCK-BINDING-V1`](RUN_MANIFEST_LOCK_BINDING_SPEC.md) 以 SHA-256 把 lock record 綁進 run manifest。要產生**可引用**的 run，用 §7 的 wrapper；直接呼叫 driver 產生的 run 會被 gate 判為 `RUN_LOCK_UNBOUND`，那是一個具名結果，不是通過。
 
 ## 2. 先選擇 evidence intent
 
@@ -156,6 +143,26 @@ python backend/rl/eval_policy.py backend/rl/ppo_walk_final.zip --profile walk_0p
 
 失敗後修改 reward、network、plant 或 metric，必須建立新的 protocol version；不得混入原 formal result。
 
+### 7.1 產生可引用的 run：綁定 environment lock
+
+上面兩個命令是 **development pipeline**，它們不寫綁定記錄，所以產出的 run 在分析期會被判為 `RUN_LOCK_UNBOUND`。要產生可引用的 run，改用 wrapper——它先量測環境、再原封不動地以 subprocess 執行 driver、最後把 lock record 與綁定記錄寫進 run 目錄：
+
+```powershell
+python backend/rl/bind_run_lock.py `
+    --producer backend/rl/train_ppo.py `
+    --run-dir backend/rl/artifacts/<run_id> `
+    --manifest run_manifest.json `
+    --require-full-lock `
+    -- python rl/train_ppo.py --profile <profile> --run-id <run_id>
+```
+
+- `--producer` 必須是凍結 protocol 內列出的 producer 路徑；wrapper 從該 protocol 讀出 `binding_mode` 與 `sidecar_reason`，不接受自由文字。
+- `--lock-record <path>`（可選）把環境**釘死**：本機若與該 record 不一致，run 拒絕開始。
+- `--require-full-lock` 是受凍結 protocol 管轄之 run 的規則：未達 `MEASURED_ENVIRONMENT_LOCK` + `FULL_LOCK` 就拒絕開始。smoke／本機開發可省略，此時仍會據實記錄實測的 class 與 completeness。
+- Evaluation 用同一個 wrapper，只是把 `--producer` 換成 `backend/rl/eval_policy.py`、`--manifest` 換成該次 evaluation 的輸出檔名。
+
+成功時會印出 `RUN_LOCK_BOUND` 與三個 digest（lock 檔案位元組、`locked` 子樹、被綁 manifest）。這三者是**三個不同的量**，不可互相替換。
+
 ## 8. Dynamic Run Trace：從第二模式回到第一模式分析
 
 1. 進入「即時互動」或「三機同步比較」。
@@ -187,8 +194,9 @@ python backend/run_motion_task.py --controller rl
 1. 切換至「RL 訓練」查看 versioned profiles、seed、planned timesteps 與目前 status。
 2. 頁面只顯示 inventory，不會在瀏覽器內即時更新 weights；Live/Compare 仍執行 registry 中的 frozen policy。
 3. `stand_start_walk_stop_0p7_v1` 保留為 failed-speed run；v2 與 v5 已有各自的 registry identity 與 Live adapter。
-4. v2 在 Live 失敗於 lateral drift/saturation；v5 通過其他 10 項、失敗於 saturation duty。v6 reward-only fine-tune也未通過 DEV gate。
+4. v2 在 Live 失敗於 lateral drift/saturation；v5 通過其他 10 項、失敗於 saturation duty `38.422222%` > `30%`。v6 reward-only fine-tune 未降低 saturation；v7 三臂 pilot 與其後的 5-replicate seed-variance 執行皆**未選出 candidate**。
 5. training evaluator 現以 500 Hz substeps 計算 saturation；舊 50 Hz saturation PASS 已撤銷。
+6. [BLOCKER] v7 line 的 warm start provenance 不可重建，所有由它衍生的結果永久帶 `CONDITIONAL_ON_FIXED_WARM_START`。新訓練線必須把 checkpoint lineage 進版控，並用 §7.1 的 wrapper 執行。
 
 ```powershell
 python backend/rl/train_ppo.py --profile stand_start_walk_stop_0p7_curriculum_v2 --run-id start-stop-curriculum-seed3700-run02
@@ -198,13 +206,16 @@ Dynamic Trace 顯示的是 `SOFTWARE_ONLY_MUJOCO_REALIZED_SIMULATION`，不是�
 
 ## 11. Software checks
 
+完整測試套件的指令見 [README](../README.md)。本節只列它**不包含**的兩個窄範圍診斷：
+
 ~~~powershell
-pip install -r backend/requirements-dev.txt
 python -X utf8 -m pytest -p no:cacheprovider backend/test_pipeline.py backend/test_p0_contract.py backend/test_live_contract.py
 python -X utf8 -B backend/test_pipeline.py
 ~~~
 
-第一個命令執行 REST/WebSocket schema、actual metric、provenance 與既有 pipeline tests；第二個保留可直接閱讀的 legacy diagnostics。這些 checks 不代表 V1 已通過。執行後須保留 command、environment、stdout/stderr、exit code 與 code hash。新增 physics 功能時，優先加入 residual、conservation、constraint 與 convergence oracle。
+第一個只跑 REST/WebSocket schema、actual metric 與 provenance；第二個保留可直接閱讀的 legacy diagnostics。兩者都不代表 V1 已通過。執行後須保留 command、environment、stdout/stderr、exit code 與 code hash。新增 physics 功能時，優先加入 residual、conservation、constraint 與 convergence oracle。
+
+[RESULT] 完整套件目前為 **1 failed / 816 passed**，那一個失敗是在具名 environment lock 下**記錄為量測結果、未放寬**的 reduction-order 差異。看到它不必修；理由見 [PROJECT_STATUS §9](PROJECT_STATUS.md)。
 
 ## 12. 結果記錄最低要求
 
@@ -217,7 +228,7 @@ Exploratory note 至少包含：
 - environment versions；
 - observed result、limitations、blockers。
 
-Formal run 使用 [EXPERIMENT_PROTOCOL](EXPERIMENT_PROTOCOL.md) 的完整 manifest。/api/simulate meta.provenance 可作初始 identity evidence，但仍須補 environment lock、immutable raw bundle、artifact inventory 與 validator receipt。
+Formal run 使用 [EXPERIMENT_PROTOCOL](EXPERIMENT_PROTOCOL.md) 的完整 manifest，並須在 run 目錄留下 `environment_lock.json` 與 `run_lock_binding.json`（由 §7.1 的 wrapper 產生）。`/api/simulate` 的 `meta.provenance` 可作初始 identity evidence，但它**明示不在** lock 綁定範圍內（見 [RUN_MANIFEST_LOCK_BINDING_SPEC §3.4](RUN_MANIFEST_LOCK_BINDING_SPEC.md)），且仍須補 immutable raw bundle、artifact inventory 與 validator receipt。
 
 ## 13. 常見誤解
 

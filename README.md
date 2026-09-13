@@ -24,6 +24,7 @@ Repository：[github.com/dofliu/robotMan](https://github.com/dofliu/robotMan) �
 | 最強的一個結果 | V7B 相對 V7A 的 saturation duty method-level bound `[-13.503408, -12.435259]` pp，排除 0，5/5 independent training replicates 方向可識別；**條件於一個不可重建的 warm start** | [PROJECT_STATUS §4](docs/PROJECT_STATUS.md) |
 | 被推翻的一個結果 | V7C 表面上的 `-36` pp 改善經量測確認為 exposure artifact | [PROJECT_STATUS §4.2](docs/PROJECT_STATUS.md) |
 | 學術產出 | 三條路線；Track A 於 2026-09-09 重構為「censoring regime 的評估效度研究」（`PUBLICATION-PLAN-V3`）：`PUB-A1a` PASS（Walker2d-v5 第二案例）、`PUB-A1b` CLOSED_NOT_ATTAINED（三個 budget probe 後停止）；`PUB-A0` 關鍵兩篇已原文核對、gap 仍成立，A-C5 補充 scan 完成後降為 artifact 級（其餘條目待核）；下一步 `PUB-A2` claim freeze，其輸入之一是 2026-09-11 凍結的 `R0` regime probe | [PUBLICATION_PLAN](docs/PUBLICATION_PLAN.md)、[TRACK_A_REFRAME](docs/TRACK_A_REFRAME_2026-09-09.md) |
+| 證據環境綁定 | `ENVIRONMENT-LOCK-V1` 量測環境身分；`RUN-MANIFEST-LOCK-BINDING-V1`（2026-09-13）以 SHA-256 把 lock record 綁進 run manifest，fail-closed。**前向**，V0 blocker 收窄未清除 | [RUN_MANIFEST_LOCK_BINDING_RECEIPT](docs/RUN_MANIFEST_LOCK_BINDING_RECEIPT_2026-09-13.md) |
 | 動作任務範圍 | 2026-09-11 決定現在**不**新增跳躍／轉身；順序為先綁 lock record 與建有版控 lineage 的新訓練線，轉身需 `PUB-B2`、跳躍需 V1 PASS | [MOTION_SCOPE_DECISION](docs/MOTION_SCOPE_DECISION_2026-09-11.md) |
 | 下一個決策 | formal evaluation 已於 2026-09-10 授權；剩兩個子問題：用現行 post-hoc 規則或先預註冊替代規則、唯一未檢視的 FORMAL seed 範圍花在 v7 線或新訓練線 | [PUBLICATION_PLAN §5](docs/PUBLICATION_PLAN.md)、[PUB_B0 receipt](docs/PUB_B0_AUTHORIZATION_RECEIPT_2026-09-10.md) |
 | 測試 | `backend/` 1 failed / 816 passed；那一個是在具名 environment lock 下記錄的 reduction-order 差異，未放寬 | [PROJECT_STATUS §9](docs/PROJECT_STATUS.md) |
@@ -91,11 +92,13 @@ python -X utf8 backend/main.py
 python -m pytest backend -q
 ~~~
 
+以上是本專案安裝與測試指令的**唯一出處**；[USAGE](docs/USAGE.md) 與 [REPOSITORY_GUIDE](docs/REPOSITORY_GUIDE.md) 指回此處，不重複。
+
 ## Repository 內容
 
-- Git 追蹤 source、tests、docs、frontend lockfile、registry 指定的三個 inference artifacts、小型 receipts 與 `backend/seed_variance_evidence/` 等已保留的證據 bundle。
-- 不追蹤 `node_modules`、frontend build、runtime traces、historical RL checkpoints、training smoke artifacts、logs 或本機 debug files。**注意**：`backend/rl/artifacts/` 被 gitignore 這件事已經永久毀掉 v7 line 的 pretraining provenance（見 [pretraining infeasibility receipt](docs/V7_PRETRAINING_SEED_VARIANCE_INFEASIBILITY_RECEIPT_2026-09-08.md)）；任何新的訓練線都必須把 checkpoint lineage 放進版控或 immutable storage。
-- Clone、驗證、artifact policy 與發布檢查見 [REPOSITORY_GUIDE](docs/REPOSITORY_GUIDE.md)。
+追蹤 source、tests、docs、frontend lockfile、registry 指定的三個 inference artifacts，以及已保留的證據 bundle（`backend/environment_locks/`、`second_case_evidence/`、`seed_variance_evidence/`、`r0_probe_evidence/`）。完整 tracked/excluded 清單、驗證與發布檢查見 [REPOSITORY_GUIDE](docs/REPOSITORY_GUIDE.md)。
+
+[BLOCKER] `backend/rl/artifacts/` 被 gitignore 這件事**已經永久毀掉 v7 line 的 pretraining provenance**（見 [infeasibility receipt](docs/V7_PRETRAINING_SEED_VARIANCE_INFEASIBILITY_RECEIPT_2026-09-08.md)）。任何新的訓練線都必須把 checkpoint lineage 放進版控或 immutable storage，並經 `backend/rl/bind_run_lock.py` 執行以取得 `RUN_LOCK_BOUND`。
 
 ## Nominal benchmark snapshot
 
@@ -196,12 +199,15 @@ python -m pytest backend -q
 
 ## 下一階段
 
-專案同時推進兩條軌道，互不阻擋：
+兩條軌道並行，互不阻擋。逐項理由與順序見 [PROJECT_STATUS §8](docs/PROJECT_STATUS.md)；此處只列標題。
 
-- **學術**：先做 Track A（評估效度／可重現性方法論，2026-09-09 起以 censoring regime 為論點，見 [TRACK_A_REFRAME](docs/TRACK_A_REFRAME_2026-09-09.md)）。剩餘前置是 `PUB-A0` 其餘 `U` 條目的原文核對（關鍵兩篇已於 2026-09-09 核對，gap 仍成立）與 `PUB-A2` claim freeze；第二案例線已關閉，不再開 probe 或 protocol。2026-09-11 凍結並執行 `R0` regime probe（唯讀重算既有 450 個 episode，不訓練、不動 seed）：兩個對比皆 `R0_WINDOW_FOUND`，taxonomy 六格全部有實例。Track B（原定 Study A 方法比較）的 formal authorization 已於 2026-09-10 取得，但仍需 `PUB-B4` 外部預註冊與三項 execution precondition 的 amendment，且量測顯示 v7 線上 `SEL-C2` 幾乎確定不成立，故仍需一條有版控 artifact 的新訓練線；Track C（教學工具）需要另立學習成效研究設計。
-- **工程**：environment lock 綁定已於 2026-09-13 以 `RUN-MANIFEST-LOCK-BINDING-V1` **前向**完成（[receipt](docs/RUN_MANIFEST_LOCK_BINDING_RECEIPT_2026-09-13.md)），但只是把 blocker 變窄而非清除；接著是一條有版控 artifact 的新訓練線、Compare／Dynamic trace 的 browser visual verification，以及 V1 articulated dynamic／pendulum／energy oracles。順序見 [ROADMAP §9](docs/ROADMAP.md)。
+| 軌道 | 下一件事 |
+|---|---|
+| 學術 | `PUB-A0` 其餘 `U` 條目原文核對（受限於 egress）→ `PUB-A2` claim freeze。第二案例線已關閉，不再開 probe 或 protocol。 |
+| 工程 | 一條**有版控 checkpoint lineage** 的新訓練線（同時是 Track B 的硬前置）→ browser visual verification → V1 articulated dynamic／pendulum／energy oracles。 |
+| 決策（僅專案負責人） | [PUBLICATION_PLAN §5](docs/PUBLICATION_PLAN.md) 的兩個子問題：用現行 post-hoc 規則或先預註冊替代規則；唯一未檢視的 FORMAL seed 範圍花在哪條訓練線。 |
 
-formal evaluation 已於 2026-09-10 授權，但授權只解除凍結順序的第一格：`PUB-B4` 外部預註冊仍在解封之前，`EP-01`／`EP-02` 未解除，`EP-03` 在 frozen protocol JSON 內仍為 `BLOCKING`。因此目前仍：不做 selection、不調 threshold、不存取 FORMAL seeds `20000–20029`。詳細狀態與理由見 [PROJECT_STATUS](docs/PROJECT_STATUS.md) 與 [PUB_B0 receipt](docs/PUB_B0_AUTHORIZATION_RECEIPT_2026-09-10.md)。
+[BLOCKER] formal evaluation 已於 2026-09-10 授權，但授權只解除凍結順序的第一格：`PUB-B4` 外部預註冊仍在解封之前，`EP-01`／`EP-02` 未解除，`EP-03` 在 frozen protocol JSON 內仍為 `BLOCKING`。因此目前仍：**不做 selection、不調 threshold、不存取 FORMAL seeds `20000–20029`**。
 
 ## 資料聲明
 

@@ -8,7 +8,7 @@
 
 | Gate | 目的 | 狀態 | 解除條件 |
 |---|---|---|---|
-| V0 Evidence & Provenance | 凍結 requirements、metrics、scenario、hash、hardware evidence class 與 raw artifact schema | PARTIAL IMPLEMENTED / NOT PASS | bounded input contracts、metric semantics、partial runtime provenance、UI evidence state 與 `ENVIRONMENT-LOCK-V1` 的可量測 environment identity 已有；仍須 immutable bundle、把 lock record 綁進 run manifest、validator 與完整 hash readback |
+| V0 Evidence & Provenance | 凍結 requirements、metrics、scenario、hash、hardware evidence class 與 raw artifact schema | PARTIAL IMPLEMENTED / NOT PASS | bounded input contracts、metric semantics、partial runtime provenance、UI evidence state、`ENVIRONMENT-LOCK-V1` 的可量測 environment identity 與 `RUN-MANIFEST-LOCK-BINDING-V1` 的前向綁定已有；仍須 immutable bundle、validator、完整 hash readback，以及綁定的三項殘餘缺口 |
 | V1 Plant & Numerical Verification | 驗證 equations、base wrench closure、constraints 與 numerical convergence | BLOCKED BY V0 | 所有 V1 oracle 通過，失敗案例保留 |
 | V2 Actuator / Sensor / Estimator Fidelity | 建立 torque-speed、thermal、joint limits、latency/noise 與 estimator models | NOT STARTED | 來源與參數不確定性可追溯 |
 | V3 Fair Benchmark & UQ | 公平 controller comparison、scenario strata、Monte Carlo、CI | FOUNDATION SOFTWARE PARTIAL / FORMAL NOT STARTED | protocol frozen、raw traces 完整、統計 gate 通過 |

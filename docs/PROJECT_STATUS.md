@@ -36,7 +36,7 @@
 |---|---|---|
 | PDR-0 Claim | PARTIAL | RQ 與 claim boundary 有；primary outcomes 未對 formal study 凍結 |
 | PDR-1 Model evidence | PARTIAL | 見 V1 |
-| PDR-2 Run identity | IN PROGRESS | 各層 identity 都能量測；**lock record 尚未綁進任何 run manifest**；v7 retained bundles 的 environment 為 `ABSENT_UNRECOVERABLE` |
+| PDR-2 Run identity | IN PROGRESS | 各層 identity 都能量測；`RUN-MANIFEST-LOCK-BINDING-V1`（2026-09-13）已把 lock record **前向**綁進 run manifest 並提供 fail-closed gate；v7 retained bundles 的 environment 仍為 `ABSENT_UNRECOVERABLE` |
 | PDR-3 Raw integrity | IN PROGRESS | path/bytes/SHA-256 readback PASS；failure/NULL/censoring 全數保留 |
 | PDR-4 Matrix completeness | SOFTWARE ONLY | validator 有，**actual Study A matrix 未跑** |
 | PDR-5 Independent metrics | PARTIAL | 每一層都有 `python -I -S` stdlib-only exact replay；Study A outcomes 未覆蓋 |
@@ -149,7 +149,8 @@
 - UI：`development_compare_mode` 與 `dynamic_run_trace` 皆 `BROWSER_VISUAL_PENDING`；frontend 不獨立驗證 server config hash。
 - Live：immutable live run identity 與 raw bundle 未實作。
 - `requirements.txt` 仍只宣告 `>=` floors。
-- 測試：1 failed / 640 passed；那一個是 `PRIMARY_CASE_RECEIPT_IDENTITY`，在具名 lock 下記錄為量測結果，未放寬。
+- Lock 綁定：`RUN-MANIFEST-LOCK-BINDING-V1` 是前向的——sidecar 可被遺漏、`backend/simulator.py` 明示排除、2026-09-08 bundle 未重建。
+- 測試現況見 §9（不在此重述）。
 
 ## 7. Milestone 歷史
 
@@ -173,6 +174,7 @@
 | 2026-09-10 | `PUB-A0` A-C5 補充 scan（preregistration／multiverse） | A-C5 降為 artifact 級併入 A-C4；`KEY_TWO_VERIFIED_AND_A_C5_SCANNED / REMAINING_U`；gate 未 PASS |
 | 2026-09-10 | 專案負責人授權 formal evaluation；[PUBLICATION_PLAN](PUBLICATION_PLAN.md) 升版 V3 | `PUB-B0` `AUTHORIZED / SUB_OPTION_OPEN`；protocol 仍不可執行；量測 `SEL-C2` 在 v7 線上幾乎確定不成立；FORMAL seeds 未存取 |
 | 2026-09-11 | 動作任務範圍決定；凍結並執行 `R0-REGIME-HORIZON-PROBE-V1` | 不新增跳躍／轉身；`R0` probe 凍結後執行，兩個對比皆 `R0_WINDOW_FOUND`，taxonomy 六格全部有實例；replay bit-exact |
+| 2026-09-13 | 凍結並實作 `RUN-MANIFEST-LOCK-BINDING-V1` | lock record 前向綁進 run manifest；`LB-01`..`LB-12` 通過；三個被釘住的 driver／simulator 檔案逐位元未變；V0 blocker 再收窄一次仍未解除 |
 
 ## 8. 下一步
 
@@ -186,10 +188,10 @@
 
 **工程（見 [ROADMAP](ROADMAP.md) §9）**
 
-1. 把 `ENVIRONMENT-LOCK-V1` lock record 綁進每一條 pipeline 的 run manifest（V0 具名 blocker）。
+1. 一條**有版控 artifact** 的新訓練線：每個 checkpoint 與 warm start 進版控或 immutable storage，每個 run 經 `backend/rl/bind_run_lock.py` 執行以取得 `RUN_LOCK_BOUND`。這是 Track B 的硬前置，也是 §6.2 的解法。
 2. Compare / Dynamic trace 的 browser visual verification（Playwright）。
 3. V1 articulated dynamic／pendulum／energy oracles。
-4. 一條**有版控 artifact** 的新訓練線（Track B 的前置；同時是 §6.2 的解法）。
+4. Lock 綁定的三項殘餘缺口（sidecar 可被遺漏、`simulator.py` 明示排除、2026-09-08 bundle 不可重驗）——第一項的正解是讓新訓練線一律走 wrapper，後兩項各自需要獨立的 contract。
 
 ## 9. 測試現況
 

@@ -2,6 +2,19 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-13 (q)
+
+### 文件整理：去重、修正過期陳述、對齊 `RUN-MANIFEST-LOCK-BINDING-V1`
+
+- **安裝與測試指令去重**：原本同一段 PowerShell 安裝區塊出現在 [README](README.md)、[USAGE §1](docs/USAGE.md) 與 [REPOSITORY_GUIDE §4](docs/REPOSITORY_GUIDE.md) **三處**。現在只留 README 一份，另外兩處改為指回。完整測試指令同理。
+- [BLOCKER] **修正八處過期陳述**：`ENVIRONMENT_LOCK_SPEC`、`EXPERIMENT_PROTOCOL`、`PAPER_DATA_READINESS`、`PROJECT_STATUS`、`PUBLICATION_PLAN`、`ROADMAP`、`VV_PLAN`、`STATUS.yaml` 都還寫著「沒有任何 pipeline 把 lock record 綁進 run manifest」。該句自 2026-09-13 起為假。改寫時一併保留三項**仍然成立**的殘餘缺口，避免從一個錯誤陳述換成另一個：sidecar 可被遺漏、`backend/simulator.py` 明示排除、2026-09-08 bundle 的兩個 lock 斷言不可重驗。
+- [RESULT] **具日期的 receipt 與 decision record 一律不改寫**（`ENVIRONMENT_LOCK_IMPLEMENTATION_RECEIPT_2026-09-08`、`MOTION_SCOPE_DECISION_2026-09-11` 等），凍結且被 digest 釘住的 spec 亦同。它們記錄的是當時的狀態，事後改寫會毀掉它們的用途。
+- **USAGE 補上缺的操作**：新增 §7.1「產生可引用的 run」，說明 `backend/rl/bind_run_lock.py` 的用法與三個旗標語義。原本手冊只教直接呼叫 driver，而那樣產生的 run 現在會被 gate 判為 `RUN_LOCK_UNBOUND`。§1 原稱「尚無 environment lock」，§10 只寫到 v6，§12 未提綁定記錄，皆已更正。
+- **REPOSITORY_GUIDE 更正版本與預期測試結果**：release 由過期的 `0.1.0` 改為 `0.2.0-dev`（權威值在 `STATUS.yaml`）；§5 明寫預期為 1 failed / 816 passed，**新增任何失敗才算 regression**，避免下一個人把已知的 reduction-order 差異誤判為自己弄壞的。tracked 清單補上四個證據 bundle 目錄。
+- **README 壓縮**：`Repository 內容` 與 `下一階段` 兩節原本是 `REPOSITORY_GUIDE` 與 `PROJECT_STATUS §8` 的散文複述，改為表格加連結；`現況一覽` 新增證據環境綁定一列。載重的 `backend/rl/artifacts/` gitignore 警告保留並升為 `[BLOCKER]`。
+- `PAPER_RUN_MANIFEST_V1` 在 `EXPERIMENT_MATRIX_CONTRACT`、`RESEARCH_EXECUTION_PLAN` 中改為版本中立寫法；`PAPER_DATA_READINESS` 新增第 14 項記錄綁定，原第 14 項順延為 15。
+- 未改任何程式、contract、protocol、門檻或 digest；`paper_data_ready` 等四個 flag 不變。
+
 ## Unreleased — 2026-09-13 (p)
 
 ### `RUN-MANIFEST-LOCK-BINDING-V1`：lock record 綁進 run manifest，而且沒有讓任何既有為真的事變成假的
