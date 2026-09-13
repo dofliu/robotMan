@@ -222,7 +222,13 @@ def test_v1_oracle_builds_integrity_validated_regression_bundle(tmp_path):
     assert receipt["replay_status"] == "PASS"
     assert receipt["validation"]["validation_status"] == "REGRESSION_BUNDLE_VALID_ONLY"
     assert receipt["validation"]["paper_data_ready"] is False
-    assert receipt["validation"]["artifact_count"] == 10
+    assert receipt["validation"]["artifact_count"] == 11
+    # RUN-MANIFEST-LOCK-BINDING-V1: the bundle carries its own environment identity
+    # inline and binds the manifest bytes from a sidecar record.
+    assert manifest["schema_version"] == "PAPER_RUN_MANIFEST_V2"
+    assert manifest["environment_lock"]["verified_before_run"] is True
+    assert receipt["lock_binding_label"] == "RUN_LOCK_BOUND"
+    assert {item["role"] for item in manifest["artifacts"]} >= {"environment_lock"}
     assert manifest["status"] == "COMPLETED"
     assert manifest["protocol_version"] == "4.0.0"
     assert manifest["metric_set_id"] == "V1-STATIC-CONTACT-METRICS-V4"
@@ -377,7 +383,7 @@ def test_v1_bundle_retains_primary_oracle_exception_as_failed_bundle(
     assert receipt["primary_status"] == "ERROR"
     assert receipt["replay_status"] == "ERROR"
     assert receipt["validation"]["validation_status"] == "REGRESSION_BUNDLE_VALID_ONLY"
-    assert receipt["validation"]["artifact_count"] == 10
+    assert receipt["validation"]["artifact_count"] == 11
     assert manifest["status"] == "FAILED"
     assert manifest["failures"][0]["failure_type"] == "PRIMARY_ORACLE_EXCEPTION"
     assert raw_receipt["status"] == "ERROR"
@@ -466,7 +472,7 @@ def test_v1_bundle_retains_non_finite_primary_result_as_failed_bundle(
 
     assert receipt["primary_status"] == "ERROR"
     assert receipt["replay_status"] == "ERROR"
-    assert receipt["validation"]["artifact_count"] == 10
+    assert receipt["validation"]["artifact_count"] == 11
     assert manifest["status"] == "FAILED"
     assert manifest["failures"][0]["failure_type"] == "PRIMARY_RESULT_NONFINITE"
     assert raw_receipt["status"] == "ERROR"

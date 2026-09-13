@@ -21,9 +21,11 @@ Git identity、exact model-package identity 與 checkpoint bytes/SHA-256；第�
 `environment` 至今只有 `backend/requirements*.txt` 的 `>=` floors。Floor 描述的是
 一個無上界的環境集合，不是一個環境，因此不能用來重驗任何數值結果。
 
-本 contract 只建立「environment identity 的量測與比對機制」。它**不**宣稱
-project-wide environment lock 已完成：把 lock record 綁進每一條 pipeline 的
-run manifest 是另一件未完成的工作，V0 blocker 因此只收窄，不解除。
+本 contract 只建立「environment identity 的量測與比對機制」。把 lock record 綁進
+run manifest 是另一份 contract：`RUN-MANIFEST-LOCK-BINDING-V1`（2026-09-13，見
+[RUN_MANIFEST_LOCK_BINDING_SPEC](RUN_MANIFEST_LOCK_BINDING_SPEC.md)）以 sidecar
+記錄前向完成該綁定。兩者合起來把 V0 blocker 再收窄一次，但仍未解除——sidecar 可被
+遺漏、`backend/simulator.py` 明示排除、2026-09-08 bundle 的兩個 lock 斷言不可重驗。
 
 ## 2. Locked 與 observed 的分界
 
@@ -180,8 +182,9 @@ reduction order；因此不同 summation order 或 SIMD width 給出不同但都
 
 [RESULT] 本節只凍結 contract，尚無 lock measurement。
 
-[BLOCKER] 本 contract 不提供 immutable artifact storage、不把 lock record 綁進
-既有 pipelines 的 run manifest、不回溯 v7 的環境，也不解除 V0/V1/V3 gate。
+[BLOCKER] 本 contract 不提供 immutable artifact storage、不回溯 v7 的環境，也不解除
+V0/V1/V3 gate。綁定由 `RUN-MANIFEST-LOCK-BINDING-V1` 另行處理，且該綁定是**前向**的：
+它不改寫、也不追溯任何既有保留證據。
 
 Primary/official sources：
 

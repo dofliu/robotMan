@@ -23,7 +23,13 @@ import numpy as np
 
 from config_schema import GaitParams, default_robot
 from model_builder import build_mjcf
-from paper_data_contract import artifact_record, sha256_file, validate_paper_run_bundle
+from paper_data_contract import (
+    CURRENT_SCHEMA_VERSION,
+    artifact_record,
+    sha256_file,
+    validate_paper_run_bundle,
+)
+import run_manifest_lock as rml
 from vv_oracles import STATIC_DOUBLE_SUPPORT_CONTRACT, run_static_double_support_oracle
 
 
@@ -684,7 +690,7 @@ def _captured_process_text(value: object) -> str:
     return str(value)
 
 
-def build_v1_paper_bundle(output_dir: Path) -> dict:
+def build_v1_paper_bundle(output_dir: Path, *, lock_record_path: Path | None = None) -> dict:
     """建立第一包 paper-contract regression evidence並立即 readback。"""
     source_before = _source_identity()
     output_dir = output_dir.resolve()
@@ -692,6 +698,12 @@ def build_v1_paper_bundle(output_dir: Path) -> dict:
     output_dir.mkdir(exist_ok=False)
     started_at = _utc_now()
     run_id = f"v1-regression-{datetime.now(timezone.utc):%Y%m%dt%H%M%S}-{uuid.uuid4().hex[:8]}"
+    # RUN-MANIFEST-LOCK-BINDING-V1 section 6.1: measure the environment before any
+    # bundle data exists, so the record describes the environment that produced it.
+    lock_capture = rml.capture_lock_for_run(
+        output_dir, pinned_lock_record_path=lock_record_path,
+    )
+    lock_artifact_path = lock_capture["lock_record_path"]
     robot = default_robot()
     gait = GaitParams()
     model_xml = build_mjcf(robot, [], dynamic=True)
@@ -902,6 +914,7 @@ def build_v1_paper_bundle(output_dir: Path) -> dict:
         ("evaluator_receipt", replay_path, "application/json"),
         ("stdout", stdout_path, "text/plain"),
         ("stderr", stderr_path, "text/plain"),
+        ("environment_lock", lock_artifact_path, "application/json"),
     ]
     artifacts = [
         artifact_record(
@@ -969,7 +982,7 @@ def build_v1_paper_bundle(output_dir: Path) -> dict:
             ),
         })
     manifest = {
-        "schema_version": "PAPER_RUN_MANIFEST_V1",
+        "schema_version": CURRENT_SCHEMA_VERSION,
         "run_id": run_id,
         "experiment_id": "EXP-V1-MODEL-EVIDENCE-REGRESSION",
         "protocol_id": "V1-STATIC-CONTACT-REGRESSION",
@@ -1042,13 +1055,32 @@ def build_v1_paper_bundle(output_dir: Path) -> dict:
         "tuning_performed_after_freeze": False,
         "artifacts": artifacts,
         "failures": failures,
+        "environment_lock": None,
     }
     manifest_path = output_dir / "paper_run_manifest.json"
+    manifest["environment_lock"] = rml.lock_block_from_record(
+        lock_artifact_path, verified_before_run=lock_capture["verified_before_run"],
+    )
     _write_json(manifest_path, manifest)
+    # The sidecar pins the manifest, so it can only be built once the manifest's
+    # final bytes exist. The inline block above is what the manifest itself carries.
+    binding = rml.build_binding_record(
+        root=output_dir,
+        manifest_path=manifest_path,
+        manifest_schema_version=manifest["schema_version"],
+        lock_record_path=lock_artifact_path,
+        binding_mode=rml.MODE_EMBEDDED_AND_SIDECAR,
+        sidecar_reason=None,
+        verified_before_run=lock_capture["verified_before_run"],
+        lock_verified_at_utc=lock_capture["lock_verified_at_utc"],
+    )
+    rml.write_binding_record(output_dir, binding)
     validation = validate_paper_run_bundle(manifest_path)
+    lock_binding = rml.evaluate_run(output_dir, "paper_run_manifest.json", root=output_dir)
     return {
         "bundle_root": str(output_dir),
         "manifest": str(manifest_path),
+        "lock_binding_label": lock_binding["label"],
         "primary_status": result["status"],
         "replay_status": replay_receipt["status"],
         "source_dirty": source_dirty,
@@ -1061,8 +1093,15 @@ def main() -> None:
 
     parser = argparse.ArgumentParser(description="Build a V1 paper-contract regression bundle")
     parser.add_argument("output_dir", type=Path)
+    parser.add_argument(
+        "--lock-record",
+        type=Path,
+        default=None,
+        help="pinned ENVIRONMENT-LOCK-V1 record; the run refuses to start unless this "
+             "environment is identical to it. Omit to retain a fresh measurement.",
+    )
     args = parser.parse_args()
-    receipt = build_v1_paper_bundle(args.output_dir)
+    receipt = build_v1_paper_bundle(args.output_dir, lock_record_path=args.lock_record)
     print(json.dumps(receipt, ensure_ascii=False, indent=2))
 
 

@@ -5,7 +5,7 @@
 - GitHub：`https://github.com/dofliu/robotMan`
 - Default branch：`main`
 - License：MIT（沿用遠端 initial commit 的 `LICENSE`）
-- Release：`0.1.0` development prototype
+- Development version：`0.2.0-dev`（權威值在 [`STATUS.yaml`](../STATUS.yaml)）
 
 ## 2. Tracked source of truth
 
@@ -17,6 +17,7 @@ Repository 保存：
 - `backend/rl/ppo_walk_final.zip`、`ppo_stand_start_walk_stop_0p7_curriculum_v2.zip`、`ppo_stand_start_walk_stop_0p7_phase_observable_v5.zip`：registry 指定的 inference artifacts；啟用前皆須通過 identity、observation contract、size 與 SHA-256 gate。
 - `frontend/src`、package manifests 與 build configuration。
 - `README.md`、`STATUS.yaml`、`CHANGELOG.md` 與 `docs/`。
+- 已保留的證據 bundle：`backend/environment_locks/`、`backend/second_case_evidence/`、`backend/seed_variance_evidence/`、`backend/r0_probe_evidence/`。這些是**證據**，內容由 digest 釘住，不得就地編輯或重新產生。
 
 ## 3. Deliberately excluded artifacts
 
@@ -35,21 +36,7 @@ Repository 保存：
 
 建議 Python 3.12、Node.js 20 以上。完整三 controller 模式需要 RL dependencies 與 repository 內的 registry-selected policy。
 
-~~~powershell
-py -3.12 -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-pip install -r backend/requirements-dev.txt -r backend/requirements-rl.txt
-
-Set-Location frontend
-npm ci
-npm run build
-Set-Location ..
-
-python -X utf8 backend/main.py
-~~~
-
-開啟 `http://127.0.0.1:8710/`。
+安裝與啟動指令見 [README 快速啟動](../README.md)，那是唯一出處，本文件不重複。
 
 ## 5. Verification before push
 
@@ -59,12 +46,15 @@ Set-Location frontend
 npm run check
 ~~~
 
+第一個命令目前的預期結果是 **1 failed / 816 passed**；唯一的失敗是在具名 environment lock 下記錄為量測結果的 reduction-order 差異（[PROJECT_STATUS §9](PROJECT_STATUS.md)）。**新增任何失敗才算 regression。**
+
 發布前另須確認：
 
 1. staged file inventory 不含 runtime/training/local artifacts。
 2. 沒有 credential、token、private key 或個人 absolute path。
 3. 所有 policy registry artifacts 的 bytes/SHA-256 與 observation/runtime adapter contract 相同。
 4. GitHub remote branch/commit 在 push 後讀回一致。
+5. 新產生的 evidence run 目錄帶有 `run_lock_binding.json` 且 gate 判為 `RUN_LOCK_BOUND`（見 [RUN_MANIFEST_LOCK_BINDING_SPEC](RUN_MANIFEST_LOCK_BINDING_SPEC.md) 與 [USAGE §7.1](USAGE.md)）。
 
 ## 6. Evidence boundary
 

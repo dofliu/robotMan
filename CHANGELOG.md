@@ -2,6 +2,33 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-13 (q)
+
+### 文件整理：去重、修正過期陳述、對齊 `RUN-MANIFEST-LOCK-BINDING-V1`
+
+- **安裝與測試指令去重**：原本同一段 PowerShell 安裝區塊出現在 [README](README.md)、[USAGE §1](docs/USAGE.md) 與 [REPOSITORY_GUIDE §4](docs/REPOSITORY_GUIDE.md) **三處**。現在只留 README 一份，另外兩處改為指回。完整測試指令同理。
+- [BLOCKER] **修正八處過期陳述**：`ENVIRONMENT_LOCK_SPEC`、`EXPERIMENT_PROTOCOL`、`PAPER_DATA_READINESS`、`PROJECT_STATUS`、`PUBLICATION_PLAN`、`ROADMAP`、`VV_PLAN`、`STATUS.yaml` 都還寫著「沒有任何 pipeline 把 lock record 綁進 run manifest」。該句自 2026-09-13 起為假。改寫時一併保留三項**仍然成立**的殘餘缺口，避免從一個錯誤陳述換成另一個：sidecar 可被遺漏、`backend/simulator.py` 明示排除、2026-09-08 bundle 的兩個 lock 斷言不可重驗。
+- [RESULT] **具日期的 receipt 與 decision record 一律不改寫**（`ENVIRONMENT_LOCK_IMPLEMENTATION_RECEIPT_2026-09-08`、`MOTION_SCOPE_DECISION_2026-09-11` 等），凍結且被 digest 釘住的 spec 亦同。它們記錄的是當時的狀態，事後改寫會毀掉它們的用途。
+- **USAGE 補上缺的操作**：新增 §7.1「產生可引用的 run」，說明 `backend/rl/bind_run_lock.py` 的用法與三個旗標語義。原本手冊只教直接呼叫 driver，而那樣產生的 run 現在會被 gate 判為 `RUN_LOCK_UNBOUND`。§1 原稱「尚無 environment lock」，§10 只寫到 v6，§12 未提綁定記錄，皆已更正。
+- **REPOSITORY_GUIDE 更正版本與預期測試結果**：release 由過期的 `0.1.0` 改為 `0.2.0-dev`（權威值在 `STATUS.yaml`）；§5 明寫預期為 1 failed / 816 passed，**新增任何失敗才算 regression**，避免下一個人把已知的 reduction-order 差異誤判為自己弄壞的。tracked 清單補上四個證據 bundle 目錄。
+- **README 壓縮**：`Repository 內容` 與 `下一階段` 兩節原本是 `REPOSITORY_GUIDE` 與 `PROJECT_STATUS §8` 的散文複述，改為表格加連結；`現況一覽` 新增證據環境綁定一列。載重的 `backend/rl/artifacts/` gitignore 警告保留並升為 `[BLOCKER]`。
+- `PAPER_RUN_MANIFEST_V1` 在 `EXPERIMENT_MATRIX_CONTRACT`、`RESEARCH_EXECUTION_PLAN` 中改為版本中立寫法；`PAPER_DATA_READINESS` 新增第 14 項記錄綁定，原第 14 項順延為 15。
+- 未改任何程式、contract、protocol、門檻或 digest；`paper_data_ready` 等四個 flag 不變。
+
+## Unreleased — 2026-09-13 (p)
+
+### `RUN-MANIFEST-LOCK-BINDING-V1`：lock record 綁進 run manifest，而且沒有讓任何既有為真的事變成假的
+
+- 凍結先於實作：[spec](docs/RUN_MANIFEST_LOCK_BINDING_SPEC.md)（`sha256:1b3a7b26…`）與 `backend/run_manifest_lock_binding_protocol.json`（`sha256:2e3bde9a…`）在 commit `00f8e62` 推送，該 commit **不含任何程式碼改動**。[receipt](docs/RUN_MANIFEST_LOCK_BINDING_RECEIPT_2026-09-13.md)。
+- [RESULT] **量到一個活著的 provenance 缺陷**：同一個欄位名 `environment_lock_sha256` 在 `second_case_evidence` 存的是 lock **檔案位元組**（`sha256:911b4362…`），在 `seed_variance_evidence` 存的是 **`locked` 子樹** digest（`sha256:93d23a27…`），而兩次執行所用 lock record 的 `locked_sha256` **完全相同**。兩個保留值不同**只因為兩條 pipeline 對該欄位的定義不同**；讀者比較它們會錯誤地推論「證據來自不同環境」。新記錄以 `lock_record_sha256` 與 `environment_locked_sha256` 兩個名字保留兩個量，並在兩處拒絕那個模糊名稱。舊 bundle 未改寫（digest 已被釘住），缺陷具名記錄。
+- [RESULT] **綁定採 sidecar**，因為三個 producer 若直接改寫會讓某件今天為真的事變成假的：`rl/eval_policy.py` 被 `test_v7_candidate_selection_contract.py` **主動重算**並比對 owner 於 2026-09-10 授權之 protocol 的 pin；`rl/train_ppo.py` 被已執行的 `SEEDVAR-...-V1` 釘住而執行期無人重算；`simulator.py` 的 `meta.provenance` 進入 deterministic content hash。[INFERENCE] 為了修一個 provenance blocker 而讓兩個既有 pinned digest 變成假的，等於拿本專案存在的理由去換方便。
+- [RESULT] 結果是**沒有任何 pinned digest 變假、沒有任何綠測試變紅、不需要任何 protocol amendment**，`v7_candidate_selection_contract.PROTOCOL_SHA256` 未重釘，2026-09-10 的授權仍指向同一份 protocol。`LB-12` 以測試重算那三個檔案的 SHA-256，把「我不碰它們」從宣稱變成機器檢查。
+- [RESULT] 新增 `RUN_LOCK_BINDING_V1`（18 欄位、key set 雙向精確）、五個 fail-closed 標籤（`RUN_LOCK_BOUND` / `UNBOUND` / `INSUFFICIENT` / `MISMATCH` / `BINDING_METHOD_FAILURE`，最後一個永不降級），gate 要求 `satisfies_full_lock_requirement`（`MEASURED` **且** `FULL_LOCK`）而非只看 `lock_class`，且該旗標為**推得**而非宣告。`backend/run_manifest_lock.py` module scope 僅 import stdlib（AST 測試 + `python -I -S` 子行程實跑）。
+- [RESULT] `PAPER_RUN_MANIFEST` 升至 `V2`（必備 `environment_lock` 區塊、可選 `environment_lock` artifact role）；`V1` 仍可讀故既有 bundle 不失效，但 `V1` 永不可能通過綁定 gate。兩個 V1 bundle builder 改為產生 `V2` 並在回傳前要求 `RUN_LOCK_BOUND`。`backend/rl/bind_run_lock.py` 以 subprocess 包覆未經修改的 driver，其 `binding_mode` 與 `sidecar_reason` **由凍結 protocol 依 producer 路徑查出**，包覆器無法宣稱更弱的理由。
+- [BLOCKER] **blocker 只是變窄，不是清除**：sidecar 可以被遺漏（直接呼叫 driver 仍得 `RUN_LOCK_UNBOUND`，這是具名結果而非靜默通過）；`backend/simulator.py` 為第一天就存在的明示例外；2026-09-08 seed-variance bundle 未重建，`build_training_seed_variance_bundle.py:204`／`:208` 的兩個寫死 `True` 仍是**不可重新驗證的斷言**。
+- [BLOCKER] **自承缺陷**：規格 §12 寫「兩條指令都必須全綠」，這在我凍結它之前就已是錯的——`PRIMARY_CASE_RECEIPT_IDENTITY` 自 2026-09-08 起即被記錄為量測結果而非放寬。本次就地定位其成因（fixture 用 `np.mean`、replay 用 stdlib `sum(...)/len(...)`，`196.2` 對 `196.19999999999854`，差 `1.46e-12`；把四個 thread 變數 pin 回 `1` 不改變結果，故非 thread drift）。依 §7.2「門檻不得因結果而放寬」，凍結的 §12 與 `1e-12` 門檻**都未修改**，正確措辭留給下一個 contract 版本。
+- 測試：`backend/` **1 failed / 816 passed**（405.58 s）。新增 62 個測試，未新增任何失敗；基線為 1 failed / 754 passed。規格 §12 的針對性指令 362 passed 全綠。
+
 ## Unreleased — 2026-09-11 (o)
 
 ### `R0-REGIME-HORIZON-PROBE-V1` 執行完成：兩個對比皆 `R0_WINDOW_FOUND`

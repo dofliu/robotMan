@@ -17,6 +17,13 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 SCHEMA_VERSION = "PAPER_RUN_MANIFEST_V1"
+SCHEMA_VERSION_V2 = "PAPER_RUN_MANIFEST_V2"
+# New bundles emit V2, which requires the ENVIRONMENT-LOCK-V1 binding block.
+# V1 stays readable so no retained bundle is invalidated by the upgrade, but a V1
+# manifest can never satisfy RUN-MANIFEST-LOCK-BINDING-V1: it has no such block.
+CURRENT_SCHEMA_VERSION = SCHEMA_VERSION_V2
+MEASURED_LOCK_CLASS = "MEASURED_ENVIRONMENT_LOCK"
+FULL_LOCK = "FULL_LOCK"
 SHA256_PATTERN = r"^sha256:[0-9a-f]{64}$"
 GIT_SHA_PATTERN = r"^[0-9a-f]{40}$"
 ID_PATTERN = r"^[A-Za-z0-9][A-Za-z0-9_.-]{2,95}$"
@@ -60,6 +67,7 @@ class ArtifactRecord(ContractModel):
         "statistics",
         "table_input",
         "figure_input",
+        "environment_lock",
     ]
     path: str = Field(min_length=1, max_length=240)
     media_type: str = Field(min_length=1, max_length=120)
@@ -95,11 +103,42 @@ class FailureRecord(ContractModel):
     detail: str = Field(min_length=1, max_length=1000)
 
 
+class EnvironmentLockBinding(ContractModel):
+    """The RUN-MANIFEST-LOCK-BINDING-V1 block a ``PAPER_RUN_MANIFEST_V2`` carries.
+
+    Two digests under two names, deliberately.  ``lock_record_sha256`` is the lock
+    file's bytes and ``environment_locked_sha256`` is the canonical digest of its
+    ``locked`` subtree.  The single name ``environment_lock_sha256`` already means
+    the first in one retained bundle and the second in another, so ``extra="forbid"``
+    keeping it out is load-bearing rather than incidental.
+    """
+
+    environment_lock_class: str = Field(min_length=1, max_length=120)
+    environment_lock_completeness: str = Field(min_length=1, max_length=120)
+    environment_lock_threading_determinism: str = Field(min_length=1, max_length=120)
+    environment_locked_sha256: str = Field(pattern=SHA256_PATTERN)
+    lock_record_sha256: str = Field(pattern=SHA256_PATTERN)
+    satisfies_full_lock_requirement: bool
+    verified_before_run: bool
+
+    @model_validator(mode="after")
+    def derive_rather_than_trust_the_flag(self):
+        derived = (
+            self.environment_lock_class == MEASURED_LOCK_CLASS
+            and self.environment_lock_completeness == FULL_LOCK
+        )
+        if self.satisfies_full_lock_requirement != derived:
+            raise ValueError(
+                "satisfies_full_lock_requirement 必須由 class與 completeness推得，不可自行宣告"
+            )
+        return self
+
+
 ScenarioValue = str | int | float | bool
 
 
 class PaperRunManifest(ContractModel):
-    schema_version: Literal["PAPER_RUN_MANIFEST_V1"]
+    schema_version: Literal["PAPER_RUN_MANIFEST_V1", "PAPER_RUN_MANIFEST_V2"]
     run_id: str = Field(pattern=ID_PATTERN)
     experiment_id: str = Field(pattern=ID_PATTERN)
     protocol_id: str = Field(pattern=ID_PATTERN)
@@ -131,9 +170,16 @@ class PaperRunManifest(ContractModel):
     tuning_performed_after_freeze: bool
     artifacts: list[ArtifactRecord] = Field(min_length=1, max_length=100)
     failures: list[FailureRecord] = Field(default_factory=list, max_length=1000)
+    environment_lock: EnvironmentLockBinding | None = Field(default=None)
 
     @model_validator(mode="after")
     def enforce_inventory_and_formal_rules(self):
+        if self.schema_version == SCHEMA_VERSION_V2 and self.environment_lock is None:
+            raise ValueError("PAPER_RUN_MANIFEST_V2 必須攜帶 environment_lock binding block")
+        if self.schema_version == SCHEMA_VERSION and self.environment_lock is not None:
+            raise ValueError(
+                "PAPER_RUN_MANIFEST_V1 不得攜帶 environment_lock；帶了就必須宣告為 V2"
+            )
         if self.controller_id != self.controller.identity_id:
             raise ValueError("controller_id 必須等於 actual controller identity_id")
         roles = [item.role for item in self.artifacts]

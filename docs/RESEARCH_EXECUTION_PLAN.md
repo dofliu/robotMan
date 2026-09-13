@@ -86,7 +86,7 @@ Policy 在同一 simulator 與 reward 中表現良好，不等於 model validati
   reporting與 agent/environment RNG分離；Agarwal et al.（NeurIPS 2021）要求在少量
   runs情境保留 uncertainty與 run distributions。
 - [RESULT] `EXPERIMENT_MATRIX_SPEC_V1`與 run index以 spec hash綁定 explicit cells；
-  validator逐 run重驗 `PAPER_RUN_MANIFEST_V1` artifact path/bytes/SHA-256，並 exact
+  validator逐 run重驗 `PAPER_RUN_MANIFEST` artifact path/bytes/SHA-256，並 exact
   比對 source、protocol/environment/model/controller/config、seed與scenario identity。
 - [RESULT] Seed schedule digest由 sorted expected cells重算；scenario numeric
   canonicalization避免 `0`/`0.0`/`-0.0`與 boolean/number equality繞過，dedicated root
@@ -99,7 +99,7 @@ Policy 在同一 simulator 與 reward 中表現良好，不等於 model validati
   receipt SHA-256為 `8ebe7aa2509135143371774147dc85cc35fd5072c046522d1aabf90a74eb4691`。
 - [INFERENCE] 這可降低 supplied matrix root內的漏報與 cherry-pick風險；不能證明
   explicit cells已涵蓋所有科學上必要 strata、sample size充分或 controller較優。
-- [BLOCKER] `PAPER_RUN_MANIFEST_V1`尚無 native `scenario_id/replicate_id`；V1以
+- [BLOCKER] `PAPER_RUN_MANIFEST` 兩版皆無 native `scenario_id/replicate_id`；V1以
   matrix labels加 exact fingerprint cross-check，不宣稱 self-binding。外部 preregistration、
   immutable storage、actual matrix與 formal statistical evidence仍缺。
 

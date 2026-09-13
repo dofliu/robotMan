@@ -95,7 +95,7 @@ V2 補一句：Track A 的論點不再是「在公開 benchmark 上重現 v7 的
 | Gate | Exit condition | 狀態 |
 |---|---|---|
 | `PUB-B0` Authorization decision | 專案負責人書面決定：授權 formal evaluation 於現行 `SELECT-V7-CANDIDATE-FORMAL-V1`，或改為 preregister 新規則 | `AUTHORIZED_2026-09-10 / SUB_OPTION_OPEN` — 授權已取得（[receipt](PUB_B0_AUTHORIZATION_RECEIPT_2026-09-10.md)）；用哪條規則、FORMAL seeds 花在哪條訓練線兩問未決；protocol 仍不可執行（`EP-01`／`EP-02` 未解除，`EP-03` 待 narrowing amendment），且 `PUB-B4` 仍在解封之前 |
-| `PUB-B1` Tracked training line | 新線每個 checkpoint 與 warm start 進版控或 immutable storage；lock record 綁進 run manifest | `NOT_STARTED` |
+| `PUB-B1` Tracked training line | 新線每個 checkpoint 與 warm start 進版控或 immutable storage；每個 run 以 `RUN-MANIFEST-LOCK-BINDING-V1` 綁定 lock record（經 `backend/rl/bind_run_lock.py`，否則 gate 判為 `RUN_LOCK_UNBOUND`） | `NOT_STARTED`；綁定機制已於 2026-09-13 就緒 |
 | `PUB-B2` Reliable-completion baseline | reference policy 在 DEV seeds 上達到**事先凍結**的 full-exposure 比例 | `NOT_STARTED` |
 | `PUB-B3` Pilot variance → N | point-valued between-replicate SD；N 由 power analysis 決定並寫進 preregistration；不得事後上調 | `BLOCKED` by B2 |
 | `PUB-B4` External preregistration | OSF（或同級）time-stamped、read-only 登錄；**在解封 FORMAL seeds 之前** | `NOT_STARTED` |
@@ -166,7 +166,7 @@ V2 補一句：Track A 的論點不再是「在公開 benchmark 上重現 v7 的
 
 | 工程項目（ROADMAP §9） | 同時解除的 PUB gate |
 |---|---|
-| lock record 綁進 run manifest | A3、B1 |
+| ~~lock record 綁進 run manifest~~ → 2026-09-13 前向完成 | A3、B1（機制已就緒；實際綁定隨新訓練線產生） |
 | 有版控 lineage 的新訓練線 | B1、B2 |
 | browser visual verification | C0 |
 | V1 dynamic／pendulum／energy | B5 |

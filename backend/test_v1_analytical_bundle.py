@@ -29,6 +29,7 @@ EXPECTED_ROLES = {
     "evaluator_receipt",
     "stdout",
     "stderr",
+    "environment_lock",
 }
 
 
@@ -241,13 +242,17 @@ def test_successful_bundle_has_ten_roles_and_passes_paper_validator(
         "REGRESSION_BUNDLE_VALID_ONLY"
     )
     assert receipt["validation"]["paper_data_ready"] is False
-    assert receipt["validation"]["artifact_count"] == 10
+    assert receipt["validation"]["artifact_count"] == 11
     assert manifest["status"] == "COMPLETED"
     assert manifest["failures"] == []
     assert {item["role"] for item in manifest["artifacts"]} == EXPECTED_ROLES
     assert receipt["validation"] == validate_paper_run_bundle(
         root / "paper_run_manifest.json"
     )
+    # RUN-MANIFEST-LOCK-BINDING-V1: the bundle binds its own environment.
+    assert manifest["schema_version"] == "PAPER_RUN_MANIFEST_V2"
+    assert manifest["environment_lock"]["verified_before_run"] is True
+    assert receipt["lock_binding_label"] == "RUN_LOCK_BOUND"
     # The fixture must stay lightweight and never regenerate the large physics trace.
     assert receipt["validation"]["artifact_bytes"] < 100_000
 
