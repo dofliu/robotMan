@@ -1,0 +1,143 @@
+{
+ "acceptance_criteria": [
+  "LB-01 the binding record's key set matches the frozen schema exactly; a missing, extra or mistyped key is RUN_LOCK_BINDING_METHOD_FAILURE",
+  "LB-02 bound_manifest_sha256 matches the bound manifest byte for byte; flipping one byte of the manifest yields RUN_LOCK_MISMATCH",
+  "LB-03 lock_record_sha256 and environment_locked_sha256 are two different quantities, each with a positive control proving they differ on the same record",
+  "LB-04 no field of RUN_LOCK_BINDING_V1 is named environment_lock_sha256; a test asserts the absence directly",
+  "LB-05 MEASURED plus PARTIAL_LOCK yields RUN_LOCK_INSUFFICIENT and never RUN_LOCK_BOUND; an input that would pass a lock_class-only check must be refused",
+  "LB-06 a run directory with no binding record yields RUN_LOCK_UNBOUND, and that label is never treated as PASS by any consumer",
+  "LB-07 binding_mode SIDECAR_ONLY with a null sidecar_reason, and EMBEDDED_AND_SIDECAR with a non-null sidecar_reason, both fail closed",
+  "LB-08 an absolute path, a path containing .., or a non-canonical POSIX path in bound_manifest_path or lock_record_path fails closed",
+  "LB-09 each of the five labels has a positive control; RUN_LOCK_BINDING_METHOD_FAILURE has a test proving it is never downgraded",
+  "LB-10 PAPER_RUN_MANIFEST_V2 without the environment_lock block fails closed; PAPER_RUN_MANIFEST_V1 carrying it also fails closed; every existing V1 fixture keeps passing",
+  "LB-11 the analysis module is stdlib-only, proved by an AST-parsing test, so it can be replayed under python -I -S",
+  "LB-12 after implementation the SHA-256 of backend/rl/train_ppo.py, backend/rl/eval_policy.py and backend/simulator.py equal the values pinned in immutable_sources below"
+ ],
+ "binding_modes": {
+  "EMBEDDED_AND_SIDECAR": "the manifest schema carries the lock block itself AND a sidecar binding record is written; sidecar_reason must be null",
+  "SIDECAR_ONLY": "only the sidecar binding record is written, because embedding would falsify a pinned digest or turn a currently green test red; sidecar_reason must name that digest or test"
+ },
+ "claim_boundary": [
+  "Passing this contract establishes only that a retained run manifest and one ENVIRONMENT-LOCK-V1 record are linked by a recomputable relation, and that the record is MEASURED and FULL_LOCK.",
+  "It supports no statement about the correctness of any numeric result, any task PASS, any controller superiority, or any change to paper_data_ready, statistics_ready or method_level_power_ready.",
+  "It supports no physical feasibility, safety, sim-to-real or actuator claim.",
+  "It does not assert that a run can be reproduced on another machine: the lock detects environment differences, it does not guarantee cross-environment numeric identity.",
+  "This contract is infrastructure, not evidence. It produces no citable measurement."
+ ],
+ "contract_id": "RUN-MANIFEST-LOCK-BINDING-V1",
+ "disclosure": "Three facts were measured before this design was fixed, and each one changed the scope. (1) The field name environment_lock_sha256 already carries two different quantities in two retained bundles whose lock records share an identical locked_sha256, so the retained values differ for definitional rather than environmental reasons. (2) backend/test_v7_candidate_selection_contract.py re-hashes backend/rl/eval_policy.py and asserts it equals a digest pinned in a protocol the project owner authorized on 2026-09-10, so editing that driver turns a green test red. (3) backend/rl/training_seed_variance_protocol.json pins backend/rl/train_ppo.py by digest with nothing enforcing it at runtime, so editing that driver would silently falsify an executed protocol. Fact (2) corrects an earlier statement made during design that nothing re-hashes the driver digests: that was true of the seed-variance source_baseline and false of the candidate-selection execution_precondition_source_digests.",
+ "enforcement_scope": {
+  "fail_closed_schemas": ["RUN_LOCK_BINDING_V1", "PAPER_RUN_MANIFEST_V2"],
+  "rationale": "Retained contracts compare key sets exactly and their retained evidence digests are pinned, so adding a field without versioning would make retained evidence fail its own contract. Fail-closed enforcement is therefore added to new schemas only.",
+  "unchanged_contracts": [
+   "SECONDCASE_EXPOSURE_RAW_V1 and its analysis schemas",
+   "SEEDVAR CELL_FIELDS and RAW_FIELDS in backend/training_seed_variance_contract.py",
+   "RL_TRAINING_RUN_V2",
+   "RL_TRAINING_ENV_EVALUATION_V3 and V4",
+   "ENVIRONMENT_LOCK_RECORD_V1 and every function in backend/environment_lock.py"
+  ]
+ },
+ "execution_order": [
+  "LB-PRE-01 measure and record the SHA-256 of the three files that must not change, and the three disclosure facts",
+  "freeze this protocol and docs/RUN_MANIFEST_LOCK_BINDING_SPEC.md, commit and push; no producer may be edited before this push",
+  "implement backend/run_manifest_lock.py, stdlib-only",
+  "implement backend/test_run_manifest_lock.py covering LB-01 .. LB-12",
+  "modify backend/paper_data_contract.py and the two bundle builders",
+  "provide a sidecar binding entry point for the two RL drivers without editing the drivers",
+  "run the verification gate; write the receipt only after it is green"
+ ],
+ "forward_only_posture": {
+  "retained_seed_variance_bundle": {
+   "assertions_not_reverifiable": [
+    "evaluation_environment_lock_verified at backend/build_training_seed_variance_bundle.py:204",
+    "training_environment_lock_verified at backend/build_training_seed_variance_bundle.py:208"
+   ],
+   "reason_not_regenerated": "The 15 retained run_manifest.json files carry no lock field at all, so nothing can support or refute the two hard-coded True values. Reading them from the manifest would force both to False and fail CELL_LOCK_FIELDS; regenerating the bundle would change the raw_replicates.json digest that the analysis directory and r0_regime_probe_protocol.json parent_summary_sha256 already pin; and the 15 training runs cannot be re-executed because the v5 warm start provenance is unrecoverable.",
+   "resolution": "Record them as known, non-reverifiable assertions. The binding constrains only runs produced after this freeze."
+  },
+  "retro_fit_forbidden": "No binding record is manufactured for evidence retained before this freeze. A record created afterwards could not honestly claim verified_before_run=true."
+ },
+ "immutable_sources": {
+  "backend/rl/eval_policy.py": "sha256:0cf274341a10a56fbf544d86eab4bfbfd6f630056689280af51aff111b0058d4",
+  "backend/rl/train_ppo.py": "sha256:877da3b41e7c44ce73758877f40e257e45c6203b045eb9e2d3cd5aa6f606f6ce",
+  "backend/simulator.py": "sha256:c27e00a0e59b13e9e8b9c4c7fd17d885008287cdde8d8bdab68250cb17ec4cc5",
+  "rule": "LB-12 requires these three to be byte-unchanged after implementation. Each is immutable for a distinct measured reason recorded in the specification sections 2.2, 2.3 and 3.4."
+ },
+ "lock_requirement": {
+  "evidence_run_rule": "A run governed by a frozen protocol (its manifest carries seedvar_protocol or pilot_protocol, or its run_class is FORMAL_EVALUATION) refuses to start when satisfies_full_lock_requirement is false.",
+  "forbidden_gate": "lock_class alone. A MEASURED record with PARTIAL_LOCK means a fingerprint could not be measured and is RUN_LOCK_INSUFFICIENT, not a pass.",
+  "other_run_rule": "Smoke, preflight and local development runs record the measured class and completeness truthfully and are not blocked; the analysis-time gate carries the other half.",
+  "required_lock_class": "MEASURED_ENVIRONMENT_LOCK",
+  "required_lock_completeness": "FULL_LOCK",
+  "sequencing": "The lock is captured and verified before any bound data is produced. verified_before_run may be true only when that order held. Capturing at manifest-assembly time records the environment at write time, not the environment that produced the data."
+ },
+ "outcome_labels": {
+  "RUN_LOCK_BINDING_METHOD_FAILURE": "any contract violation: unknown schema, key-set mismatch, malformed digest, path escape, sidecar_reason inconsistent with binding_mode, or a lock record that cannot be read or validated",
+  "RUN_LOCK_BOUND": "the binding record is present and schema-valid, bound_manifest_sha256 matches the manifest byte for byte, and satisfies_full_lock_requirement is true",
+  "RUN_LOCK_INSUFFICIENT": "the binding record is present and consistent, but satisfies_full_lock_requirement is false",
+  "RUN_LOCK_MISMATCH": "the binding record is present but bound_manifest_sha256 does not match the manifest, or bound_manifest_path points elsewhere",
+  "RUN_LOCK_UNBOUND": "the run directory carries no binding record"
+ },
+ "outcome_semantics": "RUN_LOCK_UNBOUND and RUN_LOCK_INSUFFICIENT are results rather than failures and must be reported as such, but neither is a PASS and no upstream contract may treat either as bound. RUN_LOCK_BINDING_METHOD_FAILURE may never be downgraded to any of the other four. A threshold may not be relaxed because of a result: any change requires a new contract version disclosing that it was designed with the result already known.",
+ "out_of_scope": {
+  "backend/simulator.py": "The meta.provenance record enters a deterministic content hash whose excluded-field list is frozen and independently recomputed by backend/test_p0_contract.py, and /api/simulate is a stateless request/response rather than a retained run manifest (backend/run_traces/ is gitignored). This is the one explicit exception to 'every pipeline' on day one and must not be dropped from later documents.",
+  "already_bound_differently": [
+   "backend/rl/second_case_runner.py",
+   "backend/rl/second_case_budget_probe.py",
+   "backend/run_r0_regime_probe.py"
+  ],
+  "roadmap_item_1_remainder": "Actual matrix execution and immutable evidence storage are the other half of ROADMAP section 9 item 1 and are not in this contract."
+ },
+ "producers_in_scope": [
+  {"binding_mode": "SIDECAR_ONLY", "manifest_schema": "RL_TRAINING_RUN_V2", "producer": "backend/rl/train_ppo.py", "sidecar_reason": "Editing this file would silently falsify source_baseline.training_driver_source_sha256 in the executed SEEDVAR-V7-TRAINING-REPLICATE-DEV-V1 protocol, which nothing re-derives at runtime; that protocol JSON is itself pinned by test_training_seed_variance_contract.py and by r0_regime_probe_protocol.json parent_protocol_sha256."},
+  {"binding_mode": "SIDECAR_ONLY", "manifest_schema": "RL_TRAINING_ENV_EVALUATION_V4", "producer": "backend/rl/eval_policy.py", "sidecar_reason": "backend/test_v7_candidate_selection_contract.py re-hashes this file and asserts it equals execution_precondition_source_digests.evaluation_driver_source_sha256 of SELECT-V7-CANDIDATE-FORMAL-V1, the protocol the project owner authorized on 2026-09-10 against sha256:b4e16370b5744c510fa11b06343dafb3c1893711639721a406504720bbe99b58."},
+  {"binding_mode": "EMBEDDED_AND_SIDECAR", "manifest_schema": "PAPER_RUN_MANIFEST_V2", "producer": "backend/build_v1_paper_bundle.py", "sidecar_reason": null},
+  {"binding_mode": "EMBEDDED_AND_SIDECAR", "manifest_schema": "PAPER_RUN_MANIFEST_V2", "producer": "backend/build_v1_analytical_bundle.py", "sidecar_reason": null}
+ ],
+ "protocol_id": "RUN-MANIFEST-LOCK-BINDING-V1",
+ "record": {
+  "fields": [
+   "binding_mode",
+   "bound_at_utc",
+   "bound_manifest_path",
+   "bound_manifest_schema_version",
+   "bound_manifest_sha256",
+   "claim_boundary",
+   "contract_id",
+   "environment_lock_class",
+   "environment_lock_completeness",
+   "environment_lock_threading_determinism",
+   "environment_locked_sha256",
+   "lock_record_path",
+   "lock_record_sha256",
+   "lock_verified_at_utc",
+   "satisfies_full_lock_requirement",
+   "schema_version",
+   "sidecar_reason",
+   "verified_before_run"
+  ],
+  "filename": "run_lock_binding.json",
+  "location": "the same directory as the manifest it binds",
+  "schema_version": "RUN_LOCK_BINDING_V1",
+  "serialization": "json.dumps(payload, indent=1, sort_keys=True) + newline"
+ },
+ "schema_version": "RUN_MANIFEST_LOCK_BINDING_PROTOCOL_V1",
+ "specification_path": "docs/RUN_MANIFEST_LOCK_BINDING_SPEC.md",
+ "specification_sha256": "sha256:1b3a7b26cd1e86807a3de66c9177bc2159c2f58e6d87701f552360152993ffdf",
+ "status": "FROZEN_BEFORE_IMPLEMENTATION",
+ "verification_gate": {
+  "ci_present": false,
+  "commands": [
+   "python -m pytest backend/test_run_manifest_lock.py backend/test_paper_data_contract.py backend/test_v1_analytical_bundle.py backend/test_paired_statistics_contract.py backend/test_experiment_matrix_contract.py backend/test_v7_candidate_selection_contract.py backend/test_training_seed_variance_contract.py backend/test_p0_contract.py -q",
+   "python -m pytest backend -q"
+  ],
+  "note": "This repository has no .github directory and no CI at all, so the gate is exactly these two commands run from the repository root. Both must be green before a receipt is written.",
+  "working_directory": "repository root"
+ },
+ "vocabulary": {
+  "environment_locked_sha256": "the canonical digest of the locked subtree, from environment_lock.validate_lock_record(record)['locked_sha256']",
+  "forbidden_field_name": "environment_lock_sha256",
+  "forbidden_reason": "The same name already carries the lock file bytes in backend/second_case_evidence/2026-09-08/bundle/raw_replicates.json (sha256:911b436231c8e0b1d7a3d07bca6894ce4c42c517c4a5cbbbdd0f9dff694ff631) and the locked subtree digest in backend/seed_variance_evidence/2026-09-08/bundle/raw_replicates.json (sha256:93d23a2703adc86a1394eacf5dece8d7229fdf742857f1a271656aa1cfeac72d), while both executions ran under records whose locked_sha256 is identical. A reader comparing the two retained values would wrongly conclude the two bundles came from different environments.",
+  "lock_record_sha256": "the SHA-256 of the lock record file bytes"
+ }
+}
