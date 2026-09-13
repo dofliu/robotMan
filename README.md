@@ -117,6 +117,7 @@ python -m pytest backend -q
 | [R0_REGIME_PROBE_SPEC](docs/R0_REGIME_PROBE_SPEC.md) | 凍結的 `R0-REGIME-HORIZON-PROBE-V1`：以截斷 horizon 探測無 censoring 的比較是否可達；兩段式 reference-adequacy 規則 |
 | [R0_REGIME_PROBE_RECEIPT_2026-09-11](docs/R0_REGIME_PROBE_RECEIPT_2026-09-11.md) | probe 執行結果：兩個對比皆 `R0_WINDOW_FOUND`；同一批 policy 與 seed 只改 horizon 就跨 regime |
 | [MOTION_SCOPE_DECISION_2026-09-11](docs/MOTION_SCOPE_DECISION_2026-09-11.md) | 動作任務範圍決定：現在不新增跳躍／轉身，以及新增動作的凍結順序 |
+| [TRACKED_LINEAGE_TRAINING_SPEC](docs/TRACKED_LINEAGE_TRAINING_SPEC.md) | **草稿**（兩格待決）：`PUB-B1`／`PUB-B2` 的新訓練線——scratch、5 replicates、版控 checkpoint lineage |
 | [ROADMAP](docs/ROADMAP.md) | V0–V4 gate-first 工程工作順序 |
 | [RESEARCH_EXECUTION_PLAN](docs/RESEARCH_EXECUTION_PLAN.md) | model validity 與 method effectiveness 雙證據鏈、RQ、P-stage gates |
 | [PAPER_DATA_READINESS](docs/PAPER_DATA_READINESS.md) | paper-data-first 架構、run bundle、PDR gates、統計與文獻依據 |

@@ -2,6 +2,19 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-13 (s)
+
+### `TRACKED-LINEAGE-TRAINING-V1` 草稿：新訓練線的設計，兩格待專案負責人決定
+
+- 新增 [TRACKED_LINEAGE_TRAINING_SPEC](docs/TRACKED_LINEAGE_TRAINING_SPEC.md)，狀態 `DRAFT_TWO_DECISIONS_OPEN`。**尚未凍結、沒有 protocol JSON、沒有任何 digest 被釘住**；§4 填定後才 freeze、push、執行。
+- [RESULT] **凍結的設計決定：必須 scratch，不得 warm start。** [ROADMAP §9 第 2 項](docs/ROADMAP.md) 原文是「scratch **或** tracked warm start」，本規格收窄為 scratch。版控內唯一的 warm start 候選是 v5 artifact——它的**檔案**可由 digest 重建，**訓練過程**不可重建，而那正是本線要移除的缺陷。從它 warm start 會原封不動保留 `CONDITIONAL_ON_FIXED_WARM_START`：用一條新線去複製它要移除的限制，等於沒做。
+- [BLOCKER] 代價明說：scratch 比 fine-tune 難得多，v5 是經 v1→v2→v3→v4→v5 多輪 curriculum 才到 Live 10/11，單發 scratch 未必能到。§9 預先宣告 `TL_REFERENCE_NOT_ATTAINED` 與 `TL_BUDGET_EXHAUSTED` 為**結果而非失敗**，且上限不得因結果上調。
+- [RESULT] 凍結：5 replicates、training seeds `9100/9112/9124/9136/9148`（與既有 11 個全部不相交、environment seed block 互不重疊）、`parallel_envs 12`、上限 `2,000,000` steps／replicate、evaluation seeds `22000–22029`（全新）。`18000–18029` EXHAUSTED、`19000–19029` retired、`20000–20029` sealed 三者皆不得使用。
+- [RESULT] 依 seedvar 實測吞吐（約 `1,683` steps/s）估 `2M` steps ≈ 20 分／replicate、5 個 ≈ 1.7 小時。容器為 ephemeral，故執行順序要求**逐 replicate** 保留而非全部跑完才保留。
+- [BLOCKER] 本線會修改 `backend/rl/train_ppo.py`，使已執行 seedvar protocol 的 `training_driver_source_sha256` 對活著的 repo 不再為真。§6.2 要求本 protocol **同時保留兩個 digest** 並具名揭露——這正是 [RUN_MANIFEST_LOCK_BINDING_SPEC §15.4](docs/RUN_MANIFEST_LOCK_BINDING_SPEC.md) 指定的揭露位置。§6.3 另補上 seedvar 沒有的執行期 digest 重算。
+- [BLOCKER] `TL-CK-04`：reference checkpoint 的選擇規則必須在**看到評估結果之前**凍結。v5 的 checkpoint 是看過結果後從一個 regressed run 裡挑出來的，那是它 provenance 說不清楚的原因之一；本線不得重演。
+- 兩格待決（見 §4，皆須在看到任何訓練曲線之前固定）：`CHECKPOINT_STORAGE`（無 git-lfs、`.git` 現 11 MB、估 40 個 checkpoint ≈ 76 MB）與 `FULL_EXPOSURE_THRESHOLD`（`PUB-B2` 出口條件，建議高於 v7 reference 的 `0.953333`）。
+
 ## Unreleased — 2026-09-13 (r)
 
 ### `LOCKBIND-AMENDMENT-01-LB12-SCOPE`：修掉我自己在 `LB-12` 留下的過度約束
