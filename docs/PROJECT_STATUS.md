@@ -175,6 +175,7 @@
 | 2026-09-10 | 專案負責人授權 formal evaluation；[PUBLICATION_PLAN](PUBLICATION_PLAN.md) 升版 V3 | `PUB-B0` `AUTHORIZED / SUB_OPTION_OPEN`；protocol 仍不可執行；量測 `SEL-C2` 在 v7 線上幾乎確定不成立；FORMAL seeds 未存取 |
 | 2026-09-11 | 動作任務範圍決定；凍結並執行 `R0-REGIME-HORIZON-PROBE-V1` | 不新增跳躍／轉身；`R0` probe 凍結後執行，兩個對比皆 `R0_WINDOW_FOUND`，taxonomy 六格全部有實例；replay bit-exact |
 | 2026-09-13 | 凍結並實作 `RUN-MANIFEST-LOCK-BINDING-V1` | lock record 前向綁進 run manifest；`LB-01`..`LB-12` 通過；三個被釘住的 driver／simulator 檔案逐位元未變；V0 blocker 再收窄一次仍未解除 |
+| 2026-09-13 | `LOCKBIND-AMENDMENT-01-LB12-SCOPE` | `LB-12` 原本以工作樹比對，等於永久凍結三個檔案；改以 git 讀取本 contract 自己的兩個 commit 比對。非放寬：主張未改、量測更正，且更強。解除了新訓練線必須修改 `train_ppo.py` 的阻礙 |
 
 ## 8. 下一步
 

@@ -2,6 +2,18 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-13 (r)
+
+### `LOCKBIND-AMENDMENT-01-LB12-SCOPE`：修掉我自己在 `LB-12` 留下的過度約束
+
+- [BLOCKER] **缺陷**：`LB-12` 條文宣稱「**本 contract** 的實作沒有修改 `train_ppo.py`／`eval_policy.py`／`simulator.py`」，但實作出來的測試比對的是**工作樹當下**的內容。那回答的是另一個問題——「有沒有任何人在任何時候改過」——屬於各檔案自己的 contract，本 contract 沒有立場加這道限制。兩種讀法在實作當下給出相同答案，所以驗收時沒有顯現，只在**未來的修改**上分歧。
+- [RESULT] **具體傷害**：[ROADMAP §9 第 2 項](docs/ROADMAP.md) 的新訓練線必須改 `backend/rl/train_ppo.py`——`:705` 的 `checkpoint_interval = 2_000_000` 使 2M timesteps 以下的 run **不保存任何中間 checkpoint**，而「有版控 checkpoint lineage」正是該項的定義。在原始 `LB-12` 之下，那次修改會讓一個無關的 contract 變紅，唯一出路是修改凍結的驗收條件——正是本專案最不該養成的習慣。
+- [RESULT] **更正**：`LB-12` 改以 git 讀取凍結父 commit `501a7ee` 與實作 commit `c4bd470` 兩點的內容比對，把主張固定成不受未來影響的歷史事實；另新增一個測試斷言本 contract **不**凍結這三個檔案，並在 protocol 內具名各檔案的持續保護歸屬。實測：`train_ppo.py` 改成非釘住值後本 contract 63 測試全綠，同樣修改在原版為紅。
+- [BLOCKER] **這不是門檻放寬**，必須明說否則會被正確地質疑：條文主張一字未改，本 contract 的實作仍然不得修改那三個檔案。放寬會是把「不得修改」改成「可以修改」；本次沒有。更正後**更強**——原版只在工作樹恰好乾淨時成立，之後無法區分「本 contract 動過手腳」與「別人後來改過」。
+- [RESULT] `train_ppo.py` **在執行期無人重算**這個缺口（規格 §2.3）**不在此處補**。正確位置是修改該 driver 的那條線自己的 protocol：它必須具名記載自己的 driver 與 2026-09-08 保留證據所用的 driver 不同並同時保留兩個 digest。曾考慮並否決的 `LB-13`（在本 protocol 內設 source-drift 登記簿）理由記於規格 §15.4，以免下一個人以為沒想過。
+- Digest 連鎖重 pin：規格 `1b3a7b26…` → `717bb910…`；protocol `2e3bde9a…` → `5202173f…`；`run_manifest_lock.PROTOCOL_SHA256` 同步。於**任何保留證據依賴本 contract 之前**套用，不使任何既有證據失效。
+- `LB-01`..`LB-11`、五個標籤、兩個 digest 詞彙、範圍、`simulator.py` 例外、capture-before-run、分析期 gate、前向立場與 claim boundary 全部逐字不變。
+
 ## Unreleased — 2026-09-13 (q)
 
 ### 文件整理：去重、修正過期陳述、對齊 `RUN-MANIFEST-LOCK-BINDING-V1`

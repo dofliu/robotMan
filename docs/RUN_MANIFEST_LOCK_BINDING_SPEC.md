@@ -99,17 +99,19 @@
 
 [BLOCKER] 這是「每一條 pipeline」在第一天就有的**一個明示例外**，不得在後續文件中被省略或被讀成「已全部覆蓋」。解除它需要 `/api/simulate` 先有保留的 run 身分，屬另一個工作項。
 
-### 3.5 不得修改的三個檔案（凍結，供 `LB-12` 比對）
+### 3.5 本 contract 不修改的三個檔案（凍結，供 `LB-12` 比對）
 
-[RESULT] 下列三個檔案在本規格凍結之日的 SHA-256 如下。本工作項完成後必須逐位元相同；任何一個改變都表示範圍被悄悄擴大了。
+[RESULT] 下列三個檔案在本規格凍結之日的 SHA-256 如下。**本 contract 的實作不得修改它們**；`LB-12` 以 git 讀取本 contract 自己的 commit 內容來驗證這件事。
 
-| 檔案 | 凍結時 SHA-256 | 不可修改的理由 |
-|---|---|---|
-| `backend/rl/train_ppo.py` | `sha256:877da3b41e7c44ce73758877f40e257e45c6203b045eb9e2d3cd5aa6f606f6ce` | §2.3 |
-| `backend/rl/eval_policy.py` | `sha256:0cf274341a10a56fbf544d86eab4bfbfd6f630056689280af51aff111b0058d4` | §2.2 |
-| `backend/simulator.py` | `sha256:c27e00a0e59b13e9e8b9c4c7fd17d885008287cdde8d8bdab68250cb17ec4cc5` | §3.4 |
+| 檔案 | 凍結時 SHA-256 | 本 contract 不動它的理由 | 持續保護由誰負責 |
+|---|---|---|---|
+| `backend/rl/train_ppo.py` | `sha256:877da3b41e7c44ce73758877f40e257e45c6203b045eb9e2d3cd5aa6f606f6ce` | §2.3 | **無人**——執行期沒有任何東西重算它（§2.3 已記錄為缺口） |
+| `backend/rl/eval_policy.py` | `sha256:0cf274341a10a56fbf544d86eab4bfbfd6f630056689280af51aff111b0058d4` | §2.2 | `test_v7_candidate_selection_contract.py` 重算並比對 owner 已授權 protocol 的 pin |
+| `backend/simulator.py` | `sha256:c27e00a0e59b13e9e8b9c4c7fd17d885008287cdde8d8bdab68250cb17ec4cc5` | §3.4 | `test_p0_contract.py` 以獨立重算比對 deterministic content hash |
 
-[INFERENCE] 這三個 digest 同時也是本規格的自我約束：它們把「我承諾不碰哪些東西」變成一個可機器檢查的斷言，而不是一句話。
+[INFERENCE] 這三個 digest 是本規格的自我約束：把「我承諾不碰哪些東西」變成可機器檢查的斷言，而不是一句話。
+
+[BLOCKER] 但它**只約束本 contract**，不是對這三個檔案的永久凍結。持續保護屬於上表第四欄各自的 contract，不屬於這裡。原始版本的 `LB-12` 混淆了這兩件事，已由 §15 的 amendment 更正。
 
 ---
 
@@ -282,7 +284,7 @@
 | `LB-09` | 五個標籤各有一個正控制測試；`RUN_LOCK_BINDING_METHOD_FAILURE` 有一個測試證明它不會被降級 |
 | `LB-10` | `PAPER_RUN_MANIFEST_V2` 缺 `environment_lock` 區塊 fail closed；`PAPER_RUN_MANIFEST_V1` 帶該區塊亦 fail closed；既有 V1 fixture 全部維持通過 |
 | `LB-11` | 分析模組為 stdlib-only（無第三方 import），由一個解析 AST 的測試證明，使其可在 `python -I -S` 下重跑 |
-| `LB-12` | 本規格實作後，`backend/rl/train_ppo.py`、`backend/rl/eval_policy.py`、`backend/simulator.py` 三個檔案的 SHA-256 **與實作前相同**，由 §11 的執行順序第 1 步所記錄的值比對 |
+| `LB-12` | **本 contract 的實作沒有修改**這三個檔案：在凍結父 commit 與實作 commit 兩點上，三者的 SHA-256 皆等於 §3.5 釘住的值，由測試以 git 讀取歷史內容比對。這是一項關於本 contract 的**永久事實**，不是對這三個檔案的永久凍結（§15） |
 
 ---
 
@@ -339,3 +341,49 @@ python -m pytest backend -q
 ## 14. 凍結身分
 
 本規格於實作開始前 commit。其 SHA-256 由 `backend/run_manifest_lock_binding_protocol.json` 的 `specification_sha256` 釘住；該 protocol 的 SHA-256 再由 `backend/run_manifest_lock.py` 的 `PROTOCOL_SHA256` 釘住，並由測試比對。任何一層不符即 `RUN_LOCK_BINDING_METHOD_FAILURE`。
+
+[RESULT] 本文件於 2026-09-13 經 `LOCKBIND-AMENDMENT-01-LB12-SCOPE`（§15）修訂一次，三層 digest 隨之重新 pin。原始凍結版本為 `sha256:1b3a7b26cd1e86807a3de66c9177bc2159c2f58e6d87701f552360152993ffdf`。
+
+---
+
+## 15. Amendment `LOCKBIND-AMENDMENT-01-LB12-SCOPE`（2026-09-13）
+
+### 15.1 缺陷
+
+[BLOCKER] `LB-12` 原文寫的是「本規格實作後三個檔案的 SHA-256 與實作前相同」，但實作出來的測試比對的是**工作樹當下的內容**。這兩者回答的是不同的問題：
+
+| 問題 | 誰該回答 |
+|---|---|
+| 「**本 contract** 有沒有偷改這三個檔案？」 | 本 contract —— 這是 `LB-12` 條文實際宣稱的事 |
+| 「**有沒有任何人在任何時候**改過這三個檔案？」 | 各檔案自己的 contract（§3.5 第四欄）—— **不是**本 contract，本 contract 也沒有立場加這道限制 |
+
+[RESULT] 兩種讀法在實作當下給出**相同**的答案（三個檔案確實未變），所以缺陷沒有在驗收時顯現。它們只在**未來的修改**上分歧，而條文從未談及未來的修改。
+
+### 15.2 具體傷害
+
+[SOURCE] [ROADMAP §9 第 2 項](ROADMAP.md) 的新訓練線要求「每個 checkpoint 進版控或 immutable storage」。`backend/rl/train_ppo.py:705` 目前把全量 run 的 `checkpoint_interval` 設為 `2_000_000`，因此 2M timesteps 以下的 run **實際上不保存任何中間 checkpoint**。要有 lineage 就必須修改該檔案。
+
+[INFERENCE] 在原始 `LB-12` 之下，那次修改會讓一個與它**無關**的 contract 變紅，而唯一的出路是修改 lock-binding 的凍結驗收條件——正是本專案最不該養成的習慣。缺陷必須在那之前修掉。
+
+### 15.3 這是缺陷修正，不是門檻放寬
+
+[BLOCKER] 必須明說，否則本 amendment 會被正確地質疑。**條文的主張一個字都沒有改變**，改變的只有量測方式，使其對應到主張本身：
+
+- 放寬會是：把「不得修改」改成「可以修改」。本 amendment 沒有這樣做——本 contract 的實作仍然**不得**修改這三個檔案，而且現在是以 git 歷史永久可驗證的方式。
+- 本 amendment 實際做的是：停止用本 contract 的驗收條件，去回答一個屬於別人的問題。
+
+[RESULT] 更正後的 `LB-12` 比原版**更強**：原版只在工作樹恰好乾淨時才成立，任何後續修改都會把它變成無法區分「本 contract 動過手腳」與「別人後來改過」的狀態；新版把它固定成一項不受未來影響的歷史事實。
+
+### 15.4 `train_ppo.py` 的缺口不在此處補
+
+[BLOCKER] §2.3 已記錄：`backend/rl/training_seed_variance_protocol.json` 以 digest 釘住 `train_ppo.py`，而**執行期沒有任何東西重算它**。本 amendment **不**新增該保護。
+
+[INFERENCE] 理由是位置：正確的揭露處是**修改該 driver 的那條線自己的 protocol**——它必須具名記載自己的 driver 與 2026-09-08 保留證據所用的 driver 不同，並同時保留兩個 digest。把一個 repo-wide 的 source-drift 登記簿塞進一份談 lock binding 的 contract，會讓每一次 driver 變動都連鎖重 pin `PROTOCOL_SHA256`，而且把揭露放在最不會有人讀到的地方。
+
+[RESULT] 曾考慮並**否決**的方案：新增 `LB-13`「driver 與釘住值不符時，protocol 內必須存在一筆 disclosure」。否決理由如上。此處記錄，以免下一個人以為沒想過。
+
+### 15.5 本 amendment 未改變的事
+
+`LB-01` .. `LB-11`、五個 fail-closed 標籤與其語義、兩個 digest 的詞彙與被禁的名稱、§3 的範圍與 `simulator.py` 明示排除、§6 的 capture-before-run 規則、§7 的分析期 gate、§8 的前向立場、§9 的 claim boundary、§12 的驗收指令，以及 §6.2 的 `FULL_LOCK` 門檻，全部逐字不變。
+
+[RESULT] 本 amendment 於**任何保留證據依賴本 contract 之前**套用：版本控制內沒有任何 `PAPER_RUN_MANIFEST_V2` bundle，也沒有任何 `RUN_LOCK_BINDING_V1` 記錄。因此它不使任何既有證據失效。

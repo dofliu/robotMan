@@ -51,9 +51,12 @@ RECORD_SCHEMA = "RUN_LOCK_BINDING_V1"
 PROTOCOL_SCHEMA = "RUN_MANIFEST_LOCK_BINDING_PROTOCOL_V1"
 
 # Pinned at the freeze, pushed before any producer was edited.  A mismatch is a
-# method failure, never a silent re-pin.
-PROTOCOL_SHA256 = "sha256:2e3bde9ad8a691a3242f6afac6d6189f5084fc0d42d632581fb0e8fbd51364f1"
-SPECIFICATION_SHA256 = "sha256:1b3a7b26cd1e86807a3de66c9177bc2159c2f58e6d87701f552360152993ffdf"
+# method failure, never a silent re-pin.  Re-pinned once, by
+# LOCKBIND-AMENDMENT-01-LB12-SCOPE (specification section 15), which corrected
+# LB-12 from a permanent repo-wide freeze on three files into what its text
+# always claimed: that *this contract* did not edit them.
+PROTOCOL_SHA256 = "sha256:5202173fb5dc205100b4e11c0a896903460723dd13b5a44898b4058065cab96f"
+SPECIFICATION_SHA256 = "sha256:717bb9103b18a0f669d517e03eeaaca91fc7de61b8a98db3d94d83f331003fec"
 
 BINDING_FILENAME = "run_lock_binding.json"
 DEFAULT_PROTOCOL_PATH = Path(__file__).resolve().parent / "run_manifest_lock_binding_protocol.json"
