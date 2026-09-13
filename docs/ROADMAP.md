@@ -39,9 +39,9 @@
 2. [PARTIAL] Current REST/Live simulation inputs 已有 bounded fail-closed schema、cross-field numerical-resolution gate 與 structured WebSocket errors；尚未等同 project-wide formal evidence validator。
 3. [PARTIAL] `ANALYSIS_METRICS_V1` 已明定 sampled motion/energy/CoT、peak/P99.5、window 與 null semantics；尚缺獨立 raw evaluator。
 4. [TODO] 為每個 claim 建立 requirement ID、metric definition、oracle、acceptance gate 與 owner。
-5. [PARTIAL] `PAPER_RUN_MANIFEST_V1` 已凍結 run-level protocol/controller/plant/scenario/seed/artifact fields；`ENVIRONMENT-LOCK-V1` 已提供可量測、可重驗的 environment identity，但 training/checkpoint 與 lock record 尚未串入所有 pipelines 的 run manifest。
+5. [PARTIAL] `PAPER_RUN_MANIFEST_V2` 已凍結 run-level protocol/controller/plant/scenario/seed/artifact fields 並內嵌 environment lock block；`RUN-MANIFEST-LOCK-BINDING-V1`（2026-09-13）以 sidecar 記錄把 lock record 與 run manifest 以 SHA-256 綁定，並提供五個 fail-closed 標籤。仍未清除：sidecar 可被遺漏（直接呼叫 driver 會得到 `RUN_LOCK_UNBOUND`）、`backend/simulator.py` 明示排除、2026-09-08 bundle 的兩個 lock 斷言不可重驗。
 6. [PARTIAL] V1 static V4與 analytical fixture V1均可輸出含 raw relative Jacobians的 10-role regression bundle，由 stdlib-only process重建 generalized force並回指 raw trace；project-wide immutable storage尚未完成。
-7. [PARTIAL] Artifact inventory/bytes/SHA-256/path、clean-source/content-sensitive Git identity、exact model-package、experiment matrix validator、paired statistics/export V1 aggregate inventory/replay與 `ENVIRONMENT-LOCK-V1` measured environment identity已實作；lock record綁進 run manifest、project-wide immutable storage與 actual Study matrix尚未完成。
+7. [PARTIAL] Artifact inventory/bytes/SHA-256/path、clean-source/content-sensitive Git identity、exact model-package、experiment matrix validator、paired statistics/export V1 aggregate inventory/replay、`ENVIRONMENT-LOCK-V1` measured environment identity與 `RUN-MANIFEST-LOCK-BINDING-V1` 的前向綁定均已實作；project-wide immutable storage與 actual Study matrix尚未完成。
 8. [DONE-D0] 將 built-in hardware catalog 定位為 D0 representative demo data。
 9. [TODO] 建立 DEVELOPMENT、CALIBRATION、FORMAL_EVALUATION 分區。
 
@@ -152,7 +152,7 @@ Development 已完成 v1–v7 failure-retaining iteration：v2 解決前進與�
 工程軌道與學術軌道並行（學術軌道見 [PUBLICATION_PLAN](PUBLICATION_PLAN.md)）。工程順序：
 
 0. [DONE] 執行 `SEEDVAR-V7-TRAINING-REPLICATE-DEV-V1`：`1,843,200` realized timesteps、450 records、replay exact；V7B 方向 5/5 可識別，`between_replicate_sd` 因 exposure censoring 為 null。
-1. 把 `ENVIRONMENT-LOCK-V1` 的 lock record 綁進每一條 pipeline 的 run manifest（V0 具名 blocker），再完成 actual matrix execution 與 immutable evidence storage。Environment identity 量測、run-level manifest/inventory 與 matrix completeness validators 均已 bounded implemented。
+1. [PARTIAL] Lock 綁定已於 2026-09-13 以 `RUN-MANIFEST-LOCK-BINDING-V1` 前向完成（[spec](RUN_MANIFEST_LOCK_BINDING_SPEC.md)、[receipt](RUN_MANIFEST_LOCK_BINDING_RECEIPT_2026-09-13.md)），`LB-01`..`LB-12` 通過且三個被釘住的 driver／simulator 檔案逐位元未變。**blocker 只是變窄**：sidecar 可被遺漏、`simulator.py` 明示排除、2026-09-08 bundle 未重建。本項剩下的部分是 actual matrix execution 與 immutable evidence storage。
 2. 建立一條**有版控 checkpoint lineage** 的新訓練線（scratch 或 tracked warm start，每個 checkpoint 進版控或 immutable storage）。這同時是 Track B 的硬前置，也是解除 exposure-censoring 對 between-replicate variance 封鎖的唯一途徑：需要一個能穩定跑完 9 s 任務的 reference policy。v7 line 因 provenance 不可重建，不能再作為這條線的起點。
 3. Compare／Dynamic trace 的 browser visual verification（Playwright），解除兩個 `BROWSER_VISUAL_PENDING`。
 4. 完成 V1 contact/plant/numerical verification（articulated dynamic、pendulum、energy、solver convergence）。

@@ -24,7 +24,7 @@
 
 | Gate | 狀態 | 已有 | 缺 |
 |---|---|---|---|
-| V0 Evidence & Provenance | `PARTIAL_IMPLEMENTED_NOT_PASS` | bounded fail-closed input contracts、`ANALYSIS_METRICS_V1`、run-level `PAPER_RUN_MANIFEST_V1`、artifact inventory/SHA-256、clean-source Git identity、`ENVIRONMENT-LOCK-V1` 可量測 environment identity（一份實測 record） | project-wide immutable artifact storage；**lock record 綁進每一條 pipeline 的 run manifest**；full raw artifact inventory；complete requirement registry；actual Study A matrix |
+| V0 Evidence & Provenance | `PARTIAL_IMPLEMENTED_NOT_PASS` | bounded fail-closed input contracts、`ANALYSIS_METRICS_V1`、run-level `PAPER_RUN_MANIFEST_V2`、artifact inventory/SHA-256、clean-source Git identity、`ENVIRONMENT-LOCK-V1` 可量測 environment identity（一份實測 record）、`RUN-MANIFEST-LOCK-BINDING-V1` fail-closed 綁定（2026-09-13，前向） | project-wide immutable artifact storage；lock 綁定的三項殘餘缺口（sidecar 可被遺漏、`simulator.py` 明示排除、2026-09-08 bundle 的兩個斷言不可重驗）；full raw artifact inventory；complete requirement registry；actual Study A matrix |
 | V1 Plant & Numerical | `PARTIAL_IMPLEMENTED_NOT_PASS` | static double-support V4 16/14 exact；analytical fixture（passive single-support、centered 5 kg payload、4/2/1 ms grid）4/4 PASS，含 raw Jacobian stdlib-only replay | articulated dynamic、known pendulum、dynamic contact、energy balance、完整 solver／finite-difference convergence；receipts 皆 same-engine，fixture 非 articulated |
 | V2 Actuator / Sensor / Estimator | `NOT_STARTED` | — | torque-speed/thermal envelope、joint limits、latency/noise、estimator |
 | V3 Fair Benchmark & UQ | `FOUNDATION_SOFTWARE_PARTIAL` | experiment matrix validator、paired statistics/export contract、exposure-censoring audit、seed-variance contract（皆 synthetic + 部分實資料驗證） | actual Study A、binary paired CI（無 golden-case oracle）、external preregistration；formal authorization 已於 2026-09-10 取得但 protocol 仍不可執行 |
@@ -104,7 +104,8 @@
 
 | Contract | ID | 驗證程度 |
 |---|---|---|
-| Run manifest | `PAPER_RUN_MANIFEST_V1` | static/analytical/v7 bundle readback PASS |
+| Run manifest | `PAPER_RUN_MANIFEST_V2` | static/analytical bundle readback PASS，11 roles、內嵌 lock block；`V1` 仍可讀但永不滿足綁定 gate |
+| Run lock binding | `RUN-MANIFEST-LOCK-BINDING-V1` | `LB-01`..`LB-12` PASS（62 tests）；`python -I -S` gate 重跑相符 |
 | Experiment matrix | `EXPERIMENT_MATRIX_SPEC_V1` | synthetic 3/3 cells，FAILED/CANCELLED retention |
 | Paired statistics/export | `PAIRED_STATISTICS_SPEC_V1` | synthetic 191 artifacts，exact replay；binary paired CI blocked |
 | Action-interface pilot | `PILOT-V7-ACTION-INTERFACE-DEV-V1` | 實資料，14 artifacts / 109,520,182 bytes |
@@ -192,4 +193,6 @@
 
 ## 9. 測試現況
 
-`backend/`：**1 failed / 754 passed**（2026-09-11，511.86 s；含 87 個 second-case、47 個 selection 與 25 個 R0 probe 測試。同日稍早未含 R0 測試時為 1 failed / 729 passed，執行時間 602.32 s 與 412.27 s 的差異來自容器負載而非測試內容）。失敗項為 `test_v1_analytical_suite.py::test_stdlib_replay_passes_exact_synthetic_fixture`（`PRIMARY_CASE_RECEIPT_IDENTITY`），與 §4.3 的 reduction-order 差異同源，記錄為量測結果、未放寬。
+`backend/`：**1 failed / 816 passed**（2026-09-13，405.58 s；新增 62 個 `RUN-MANIFEST-LOCK-BINDING-V1` 測試，未新增任何失敗。前一次記錄為 1 failed / 754 passed）。失敗項仍是同一個 `test_v1_analytical_suite.py::test_stdlib_replay_passes_exact_synthetic_fixture`（`PRIMARY_CASE_RECEIPT_IDENTITY`），與 §4.3 的 reduction-order 差異同源，記錄為量測結果、未放寬。
+
+[RESULT] 2026-09-13 就地定位：fixture 由 `v1_analytical_suite.py:640` 的 `float(np.mean([...]))` 產生，replay 由 `v1_analytical_replay.py:952` 的 `sum(...) / len(...)` 重算，`mean_vertical_grf_n` 為 `196.2` 對 `196.19999999999854`，差 `1.46e-12`，略高於 `1.0e-12` 門檻。把四個 thread-count 環境變數 pin 回 `1` **不會**改變結果，故不是 thread drift，而是 §4.3 的 reduction-order 差異本身。門檻未放寬。

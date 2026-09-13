@@ -22,7 +22,13 @@ import traceback
 from typing import Any
 import uuid
 
-from paper_data_contract import artifact_record, sha256_file, validate_paper_run_bundle
+from paper_data_contract import (
+    CURRENT_SCHEMA_VERSION,
+    artifact_record,
+    sha256_file,
+    validate_paper_run_bundle,
+)
+import run_manifest_lock as rml
 from v1_analytical_suite import (
     ANALYTICAL_SUITE_CONTRACT,
     CASE_SPECS,
@@ -616,8 +622,12 @@ def _artifact_records_with_readback(
     return records
 
 
-def build_v1_analytical_bundle(output_dir: Path) -> dict:
-    """Build and validate one 10-role ``PAPER_RUN_MANIFEST_V1`` bundle."""
+def build_v1_analytical_bundle(
+    output_dir: Path,
+    *,
+    lock_record_path: Path | None = None,
+) -> dict:
+    """Build and validate one 11-role ``PAPER_RUN_MANIFEST_V2`` bundle."""
     source_before = _source_identity()
     output_dir = Path(output_dir).resolve()
     output_dir.parent.mkdir(parents=True, exist_ok=True)
@@ -627,6 +637,11 @@ def build_v1_analytical_bundle(output_dir: Path) -> dict:
         f"v1-analytical-{datetime.now(timezone.utc):%Y%m%dt%H%M%S}-"
         f"{uuid.uuid4().hex[:8]}"
     )
+    # RUN-MANIFEST-LOCK-BINDING-V1 section 6.1: before any bundle data exists.
+    lock_capture = rml.capture_lock_for_run(
+        output_dir, pinned_lock_record_path=lock_record_path,
+    )
+    lock_artifact_path = lock_capture["lock_record_path"]
 
     protocol_path = output_dir / "protocol.json"
     config_path = output_dir / "resolved_config.json"
@@ -990,6 +1005,7 @@ def build_v1_analytical_bundle(output_dir: Path) -> dict:
         ("evaluator_receipt", replay_path, "application/json"),
         ("stdout", stdout_path, "text/plain"),
         ("stderr", stderr_path, "text/plain"),
+        ("environment_lock", lock_artifact_path, "application/json"),
     ]
     artifacts = _artifact_records_with_readback(output_dir, role_files)
     model_artifact_sha256 = next(
@@ -1037,7 +1053,7 @@ def build_v1_analytical_bundle(output_dir: Path) -> dict:
         ))
 
     manifest = {
-        "schema_version": "PAPER_RUN_MANIFEST_V1",
+        "schema_version": CURRENT_SCHEMA_VERSION,
         "run_id": run_id,
         "experiment_id": "EXP-V1-ANALYTICAL-FIXTURE-REGRESSION",
         "protocol_id": "V1-ANALYTICAL-FIXTURE-SUITE",
@@ -1102,6 +1118,10 @@ def build_v1_analytical_bundle(output_dir: Path) -> dict:
         "tuning_performed_after_freeze": False,
         "artifacts": artifacts,
         "failures": failures,
+        "environment_lock": rml.lock_block_from_record(
+            lock_artifact_path,
+            verified_before_run=lock_capture["verified_before_run"],
+        ),
     }
     manifest_path = output_dir / "paper_run_manifest.json"
     _write_json(manifest_path, manifest)
@@ -1112,11 +1132,30 @@ def build_v1_analytical_bundle(output_dir: Path) -> dict:
         raise RuntimeError("unexpected bundle validation status")
     if validation["paper_data_ready"] is not False:
         raise RuntimeError("regression bundle must not be paper-data ready")
-    if validation["artifact_count"] != 10:
-        raise RuntimeError("analytical bundle must contain exactly 10 artifact roles")
+    if validation["artifact_count"] != 11:
+        raise RuntimeError("analytical bundle must contain exactly 11 artifact roles")
+    # The sidecar pins the manifest, so it is built only once the manifest's final
+    # bytes exist. The inline block above is what the manifest itself carries.
+    rml.write_binding_record(
+        output_dir,
+        rml.build_binding_record(
+            root=output_dir,
+            manifest_path=manifest_path,
+            manifest_schema_version=manifest["schema_version"],
+            lock_record_path=lock_artifact_path,
+            binding_mode=rml.MODE_EMBEDDED_AND_SIDECAR,
+            sidecar_reason=None,
+            verified_before_run=lock_capture["verified_before_run"],
+            lock_verified_at_utc=lock_capture["lock_verified_at_utc"],
+        ),
+    )
+    lock_binding = rml.evaluate_run(output_dir, "paper_run_manifest.json", root=output_dir)
+    if lock_binding["label"] != rml.LABEL_BOUND:
+        raise RuntimeError(f"lock binding not verified: {lock_binding['label']}")
     return {
         "bundle_root": str(output_dir),
         "manifest": str(manifest_path),
+        "lock_binding_label": lock_binding["label"],
         "primary_status": primary_status,
         "replay_status": replay_status,
         "source_dirty": source_before["dirty"],
@@ -1131,8 +1170,15 @@ def main() -> None:
         description="Build one bounded V1 analytical regression bundle"
     )
     parser.add_argument("output_dir", type=Path)
+    parser.add_argument(
+        "--lock-record",
+        type=Path,
+        default=None,
+        help="pinned ENVIRONMENT-LOCK-V1 record; the run refuses to start unless this "
+             "environment is identical to it. Omit to retain a fresh measurement.",
+    )
     args = parser.parse_args()
-    receipt = build_v1_analytical_bundle(args.output_dir)
+    receipt = build_v1_analytical_bundle(args.output_dir, lock_record_path=args.lock_record)
     print(json.dumps(receipt, ensure_ascii=False, indent=2, allow_nan=False))
 
 

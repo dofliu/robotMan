@@ -26,7 +26,7 @@ Repository：[github.com/dofliu/robotMan](https://github.com/dofliu/robotMan) �
 | 學術產出 | 三條路線；Track A 於 2026-09-09 重構為「censoring regime 的評估效度研究」（`PUBLICATION-PLAN-V3`）：`PUB-A1a` PASS（Walker2d-v5 第二案例）、`PUB-A1b` CLOSED_NOT_ATTAINED（三個 budget probe 後停止）；`PUB-A0` 關鍵兩篇已原文核對、gap 仍成立，A-C5 補充 scan 完成後降為 artifact 級（其餘條目待核）；下一步 `PUB-A2` claim freeze，其輸入之一是 2026-09-11 凍結的 `R0` regime probe | [PUBLICATION_PLAN](docs/PUBLICATION_PLAN.md)、[TRACK_A_REFRAME](docs/TRACK_A_REFRAME_2026-09-09.md) |
 | 動作任務範圍 | 2026-09-11 決定現在**不**新增跳躍／轉身；順序為先綁 lock record 與建有版控 lineage 的新訓練線，轉身需 `PUB-B2`、跳躍需 V1 PASS | [MOTION_SCOPE_DECISION](docs/MOTION_SCOPE_DECISION_2026-09-11.md) |
 | 下一個決策 | formal evaluation 已於 2026-09-10 授權；剩兩個子問題：用現行 post-hoc 規則或先預註冊替代規則、唯一未檢視的 FORMAL seed 範圍花在 v7 線或新訓練線 | [PUBLICATION_PLAN §5](docs/PUBLICATION_PLAN.md)、[PUB_B0 receipt](docs/PUB_B0_AUTHORIZATION_RECEIPT_2026-09-10.md) |
-| 測試 | `backend/` 1 failed / 729 passed；那一個是在具名 environment lock 下記錄的 reduction-order 差異，未放寬 | [PROJECT_STATUS §9](docs/PROJECT_STATUS.md) |
+| 測試 | `backend/` 1 failed / 816 passed；那一個是在具名 environment lock 下記錄的 reduction-order 差異，未放寬 | [PROJECT_STATUS §9](docs/PROJECT_STATUS.md) |
 
 ## 兩種模式
 
@@ -152,6 +152,7 @@ python -m pytest backend -q
 | [EXPERIMENT_MATRIX_CONTRACT](docs/EXPERIMENT_MATRIX_CONTRACT.md) | controller × seed × scenario exact matrix 與 completeness receipt |
 | [PAIRED_STATISTICS_CONTRACT](docs/PAIRED_STATISTICS_CONTRACT.md) | paired estimand、failure/null/censoring semantics、CI、paper input |
 | [ENVIRONMENT_LOCK_SPEC](docs/ENVIRONMENT_LOCK_SPEC.md) | locked/observed 分界、behaviour fingerprints、verification semantics |
+| [RUN_MANIFEST_LOCK_BINDING_SPEC](docs/RUN_MANIFEST_LOCK_BINDING_SPEC.md) | lock record 與 run manifest 之間的綁定：範圍、兩個 digest 的詞彙、五個 fail-closed 標籤 |
 | [V7_ACTION_INTERFACE_PILOT_SPEC](docs/V7_ACTION_INTERFACE_PILOT_SPEC.md) | v7 三臂 action math、seeds、acceptance、claim boundary |
 | [V7_EXPOSURE_CENSORING_AUDIT_SPEC](docs/V7_EXPOSURE_CENSORING_AUDIT_SPEC.md) | read-only audit 的 horizon、censoring vocabulary、identification bounds |
 | [TRAINING_SEED_VARIANCE_SPEC](docs/TRAINING_SEED_VARIANCE_SPEC.md) | independent training replicates、replicate-level analysis unit、禁止 selection |
@@ -184,6 +185,7 @@ python -m pytest backend -q
 | [V7_EXPOSURE_CENSORING_AUDIT_IMPLEMENTATION_RECEIPT_2026-09-08](docs/V7_EXPOSURE_CENSORING_AUDIT_IMPLEMENTATION_RECEIPT_2026-09-08.md) | audit software synthetic receipt、phase-convention finding |
 | [V7_EXPOSURE_CENSORING_AUDIT_FROZEN_BUNDLE_RECEIPT_2026-09-08](docs/V7_EXPOSURE_CENSORING_AUDIT_FROZEN_BUNDLE_RECEIPT_2026-09-08.md) | 對 frozen pilot bundle 的 read-only audit run |
 | [ENVIRONMENT_LOCK_IMPLEMENTATION_RECEIPT_2026-09-08](docs/ENVIRONMENT_LOCK_IMPLEMENTATION_RECEIPT_2026-09-08.md) | 實測 lock record、reduction-order 差異 |
+| [RUN_MANIFEST_LOCK_BINDING_RECEIPT_2026-09-13](docs/RUN_MANIFEST_LOCK_BINDING_RECEIPT_2026-09-13.md) | `LB-01`..`LB-12`、兩個 digest 的正控制、三個承諾不碰的檔案逐位元未變、以及凍結 §12 的一個具名缺陷 |
 | [TRAINING_SEED_VARIANCE_IMPLEMENTATION_RECEIPT_2026-09-08](docs/TRAINING_SEED_VARIANCE_IMPLEMENTATION_RECEIPT_2026-09-08.md) | plant identity、結構性規則、synthetic regression |
 | [TRAINING_SEED_VARIANCE_EXECUTION_RECEIPT_2026-09-08](docs/TRAINING_SEED_VARIANCE_EXECUTION_RECEIPT_2026-09-08.md) | 1,843,200 timesteps 的實際執行與 method-level bounds |
 | [V7_PRETRAINING_SEED_VARIANCE_INFEASIBILITY_RECEIPT_2026-09-08](docs/V7_PRETRAINING_SEED_VARIANCE_INFEASIBILITY_RECEIPT_2026-09-08.md) | 為何 pretraining-seed variance 不可量測 |
@@ -197,7 +199,7 @@ python -m pytest backend -q
 專案同時推進兩條軌道，互不阻擋：
 
 - **學術**：先做 Track A（評估效度／可重現性方法論，2026-09-09 起以 censoring regime 為論點，見 [TRACK_A_REFRAME](docs/TRACK_A_REFRAME_2026-09-09.md)）。剩餘前置是 `PUB-A0` 其餘 `U` 條目的原文核對（關鍵兩篇已於 2026-09-09 核對，gap 仍成立）與 `PUB-A2` claim freeze；第二案例線已關閉，不再開 probe 或 protocol。2026-09-11 凍結並執行 `R0` regime probe（唯讀重算既有 450 個 episode，不訓練、不動 seed）：兩個對比皆 `R0_WINDOW_FOUND`，taxonomy 六格全部有實例。Track B（原定 Study A 方法比較）的 formal authorization 已於 2026-09-10 取得，但仍需 `PUB-B4` 外部預註冊與三項 execution precondition 的 amendment，且量測顯示 v7 線上 `SEL-C2` 幾乎確定不成立，故仍需一條有版控 artifact 的新訓練線；Track C（教學工具）需要另立學習成效研究設計。
-- **工程**：把 environment lock record 綁進每一條 pipeline 的 run manifest、Compare／Dynamic trace 的 browser visual verification、V1 articulated dynamic／pendulum／energy oracles、以及一條有版控 artifact 的新訓練線。順序見 [ROADMAP §9](docs/ROADMAP.md)。
+- **工程**：environment lock 綁定已於 2026-09-13 以 `RUN-MANIFEST-LOCK-BINDING-V1` **前向**完成（[receipt](docs/RUN_MANIFEST_LOCK_BINDING_RECEIPT_2026-09-13.md)），但只是把 blocker 變窄而非清除；接著是一條有版控 artifact 的新訓練線、Compare／Dynamic trace 的 browser visual verification，以及 V1 articulated dynamic／pendulum／energy oracles。順序見 [ROADMAP §9](docs/ROADMAP.md)。
 
 formal evaluation 已於 2026-09-10 授權，但授權只解除凍結順序的第一格：`PUB-B4` 外部預註冊仍在解封之前，`EP-01`／`EP-02` 未解除，`EP-03` 在 frozen protocol JSON 內仍為 `BLOCKING`。因此目前仍：不做 selection、不調 threshold、不存取 FORMAL seeds `20000–20029`。詳細狀態與理由見 [PROJECT_STATUS](docs/PROJECT_STATUS.md) 與 [PUB_B0 receipt](docs/PUB_B0_AUTHORIZATION_RECEIPT_2026-09-10.md)。
 

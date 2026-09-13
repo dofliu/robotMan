@@ -98,7 +98,9 @@ stdout.txt
 stderr.txt
 ```
 
-`paper_run_manifest.json` 使用 `PAPER_RUN_MANIFEST_V1`，每個 artifact 保存 relative path、role、media type、bytes 與 SHA-256。Manifest 不把自己放進 inventory，以避免 circular hash。
+`paper_run_manifest.json` 自 2026-09-13 起使用 `PAPER_RUN_MANIFEST_V2`，每個 artifact 保存 relative path、role、media type、bytes 與 SHA-256。Manifest 不把自己放進 inventory，以避免 circular hash；改由同目錄的 `run_lock_binding.json`（`RUN_LOCK_BINDING_V1`）以 SHA-256 從外部釘住它，見 [RUN_MANIFEST_LOCK_BINDING_SPEC](RUN_MANIFEST_LOCK_BINDING_SPEC.md)。
+
+`V2` 相對 `V1` 的差異只有兩項：必備的 `environment_lock` 區塊（`ENVIRONMENT-LOCK-V1` 的 class／completeness／threading determinism、兩個不同的 digest `environment_locked_sha256` 與 `lock_record_sha256`、`satisfies_full_lock_requirement` 與 `verified_before_run`），以及一個**可選**的 `environment_lock` artifact role。`V1` 仍可讀，既有 bundle 不因升版失效，但 `V1` 永遠不可能通過綁定 gate——它沒有那個區塊。
 
 正式 paper-data-ready run 必須額外符合：
 
