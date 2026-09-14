@@ -37,7 +37,7 @@ SPECIFICATION_PATH = REPO_ROOT / "docs" / "TRACKED_LINEAGE_TRAINING_SPEC.md"
 # Layer two of the three-layer chain: this module pins the protocol, the
 # protocol pins the specification. Layer three, the driver digest, is pinned
 # inside the protocol itself.
-PROTOCOL_SHA256 = "sha256:9963a2b25ee1640186e721ba9b7e745126b593eb083454aa33a64a709765e2fa"
+PROTOCOL_SHA256 = "sha256:0b29672ed9b92a5d805a62e5e04d354bb6152150177642bd9cdaa03bdd4a9946"
 
 LABEL_ATTAINED = "TL_REFERENCE_ATTAINED"
 LABEL_PARTIAL = "TL_REFERENCE_PARTIAL"
@@ -458,7 +458,7 @@ def classify(
     protocol: dict[str, Any],
     per_replicate_full: list[tuple[int, int]],
     *,
-    budget_exhausted: bool = False,
+    curve_converged: bool,
 ) -> dict[str, Any]:
     """Assign one of the five frozen labels.
 
@@ -466,6 +466,22 @@ def classify(
     never as a rounded float: at 30 episodes the attainable proportions are
     thirtieths, which is why 0.98 does not exist under this design and why the
     frozen value is 30/30.
+
+    curve_converged has NO DEFAULT, deliberately, and that is a fix to a defect
+    in the first version of this function. It previously took
+    budget_exhausted=False, so the caller could obtain a label without ever
+    measuring the condition that separates TL_REFERENCE_NOT_ATTAINED from
+    TL_BUDGET_EXHAUSTED -- and on 2026-09-14 that is exactly what happened: the
+    line was reported as TL_REFERENCE_NOT_ATTAINED with the default accepted and
+    convergence never measured. A determination that can be skipped silently
+    will be. Callers must now measure it; backend/rl/retain_tracked_lineage_curves.py
+    does so from the retained training curves under a rule declared before use.
+
+    Precedence follows specification amendment 03: section 9 as frozen let both
+    labels be true at once, since TL_BUDGET_EXHAUSTED's condition is
+    TL_REFERENCE_NOT_ATTAINED's plus "the curve has not converged". The more
+    specific label wins, because it is the one that says why and constrains what
+    may follow.
     """
     threshold = protocol["full_exposure_threshold"]
     numerator, _, denominator = str(threshold["value"]).partition("/")
@@ -488,9 +504,11 @@ def classify(
         label = LABEL_ATTAINED
     elif any(attained):
         label = LABEL_PARTIAL
-    elif budget_exhausted:
-        # Only reachable when no replicate met the threshold; a run that did
-        # meet it has not exhausted anything.
+    elif not curve_converged:
+        # No replicate attained AND the curve was still rising: the budget ran
+        # out before the method did. Strictly more specific than
+        # TL_REFERENCE_NOT_ATTAINED, and it carries its own standing rule -- the
+        # ceiling may not be raised on account of it (specification section 9).
         label = LABEL_BUDGET_EXHAUSTED
     else:
         label = LABEL_NOT_ATTAINED
@@ -507,5 +525,6 @@ def classify(
             for index, (full, total) in enumerate(per_replicate_full)
         ],
         "replicates_attaining_threshold": sum(attained),
+        "curve_converged": bool(curve_converged),
         "pub_b2_pass": label == LABEL_ATTAINED,
     }

@@ -2,6 +2,21 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-14 (w)
+
+### `TRACKED-LINEAGE-AMENDMENT-03`：更正我自己給錯的結果標籤
+
+- [BLOCKER] **`TL_REFERENCE_NOT_ATTAINED` 是錯的，正確標籤為 `TL_BUDGET_EXHAUSTED`。** 這是在結果已發布並隨 PR #17 合併**之後**才發現並更正的，與 §15／§16 那兩份「執行前收窄」性質不同，必須說清楚。
+- [BLOCKER] **錯因是我根本沒量。** §9 定義 `TL_BUDGET_EXHAUSTED` 為「未達門檻**且曲線未收斂**」——條件是 `TL_REFERENCE_NOT_ATTAINED` 再加一項。而 `classify()` 第一版簽章是 `budget_exhausted: bool = False`，我直接採用預設值，**從未量測曲線是否收斂**。一個可以被靜默跳過的判定，就會被跳過。
+- [RESULT] 事後量測（規則在套用前先宣告於 `backend/rl/retain_tracked_lineage_curves.py`：末四分位斜率 ≤ 首四分位的 `10%` **且**絕對值 ≤ `1.0`，單位為每 `500,000` 步的 reward 增幅）：比值 `0.377`／`0.403`／`0.536`／`0.475`／`0.341`，末四分位斜率 `+7.309`–`+11.888`——**五個 replicate 全部未收斂**。訓練在被上限截斷時仍在進步。可於 `python -I -S` 下離線重算。
+- [RESULT] **沒有任何量測數值改變**：`0/30` × 5、`fall_rate 1.0`、`2,015,232` 步、20 個 checkpoint 全部照舊。`PUB-B1` 仍達成，`PUB-B2` 在兩種標籤下**都是** `NOT_ATTAINED`（只有 `TL_REFERENCE_ATTAINED` 能讓它過）。四個 flag 不變。改變的只有描述結果的名字。
+- [BLOCKER] **這個更正讓後續變難不是變易**，這點必須強調否則會被誤讀成替自己找台階：`TL_BUDGET_EXHAUSTED` 隨附一條 `TL_REFERENCE_NOT_ATTAINED` 沒有的規則——§9 明文禁止以「再多跑一點就到了」為由上調上限。曲線未收斂正是最會誘發該念頭的情形，而 §9 在看到任何曲線之前就封住了它。
+- [RESULT] **§9 的兩個標籤並非互斥**（我的缺陷）：amendment 03 規定兩者同時成立時報較具體的 `TL_BUDGET_EXHAUSTED`，因為它說明了原因並帶著上述限制；降級成較泛的標籤等於丟掉那條限制。
+- [RESULT] **加嚴**：`classify()` 的 `curve_converged` 改為必填具名參數、**無預設值**，`budget_exhausted` 參數移除。新增測試直接斷言該參數沒有預設值，並斷言少傳會 `TypeError`。
+- [BLOCKER] **證據搶救**：訓練曲線原本只存在於 gitignored 的 `backend/rl/artifacts/` 下，會隨容器消失——與 v7 pilot 的 `control_step_trace` 同一個坑，而那個坑正是本線存在的理由之一。五份 `progress.csv` 已連同 digest 保留至 `backend/tracked_lineage_evidence/2026-09-14/training_curves/`，判定因此可重驗。
+- [BLOCKER] **仍不得宣稱「再多跑就會達標」。** 曲線未收斂只說明訓練尚未停止進步，**不**說明它會收斂到哪裡，也**不**說明它會跨過 `30/30`。
+- Digest 連鎖重釘：規格 `96bbae55…` → `1919bf8a…`；protocol `9963a2b2…` → `0b29672e…`；`tracked_lineage_contract.PROTOCOL_SHA256` 同步。receipt 於頂端加上顯著更正聲明並新增 §12，**§0–§11 初版原文刻意不改寫**，保留當時的判斷與依據。
+
 ## Unreleased — 2026-09-14 (v)
 
 ### `TRACKED-LINEAGE-TRAINING-V1` 執行完成：`PUB-B1` 達成、`PUB-B2` `NOT_ATTAINED`

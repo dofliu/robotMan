@@ -2,7 +2,17 @@
 
 執行日期：2026-09-14 ｜ Protocol ID：`TRACKED-LINEAGE-TRAINING-V1` ｜ 規格：[TRACKED_LINEAGE_TRAINING_SPEC](TRACKED_LINEAGE_TRAINING_SPEC.md)
 
-結果標籤：**`TL_REFERENCE_NOT_ATTAINED`**
+> ## ⚠️ 更正（2026-09-14，本 receipt 首次發布之後）
+>
+> **本文件初版所報的標籤 `TL_REFERENCE_NOT_ATTAINED` 是錯的。正確標籤為 `TL_BUDGET_EXHAUSTED`。**
+>
+> 原因：§9 定義 `TL_BUDGET_EXHAUSTED` 為「未達門檻**且曲線未收斂**」，而我在第一次分析時**根本沒有量測收斂**——`classify()` 當時的簽章是 `budget_exhausted: bool = False`，我採用了預設值。事後量測五個 replicate 的訓練曲線：末四分位斜率仍有 `+7.3` 到 `+11.9`（每 500k 步），與首四分位的比值 `0.341`–`0.536`，遠高於 `0.10` 的收斂門檻，**沒有一個收斂**。
+>
+> **沒有任何量測數值改變**：`0/30` × 5、`fall_rate 1.0`、`2,015,232` 步、20 個 checkpoint 全部照舊。`PUB-B1` 仍達成，`PUB-B2` 在兩種標籤下**都是** `NOT_ATTAINED`。改變的只是描述它的標籤——以及隨之而來、**更嚴**的後續限制：§9 規定 `TL_BUDGET_EXHAUSTED` **不得以「再多跑一點就到了」為由上調上限**。
+>
+> 完整記錄見 [規格 §17](TRACKED_LINEAGE_TRAINING_SPEC.md)（`TRACKED-LINEAGE-AMENDMENT-03-LABEL-PRECEDENCE`）與本文件 §12。**以下 §0–§11 為初版原文，刻意不改寫**，以保留當時的判斷與其依據。
+
+結果標籤：~~`TL_REFERENCE_NOT_ATTAINED`~~ → **`TL_BUDGET_EXHAUSTED`**（見上方更正）
 
 證據等級：`DEVELOPMENT / SIM_ONLY_MUJOCO`
 
@@ -210,3 +220,46 @@
 | `backend/tracked_lineage_evidence/2026-09-14/evaluations/r<0..4>/` | 每 replicate 的 evaluation 輸出、`environment_lock.json`、`run_lock_binding.json` |
 
 [BLOCKER] `backend/rl/artifacts/` 下的 run 目錄（含 `policy.zip`）是 **gitignored 且不是證據**。`policy.zip` 依 amendment 02 為 unretained byproduct：比 reference 多訓練 `15,264` 步、未被評估、不得作為本線產出呈現；其 digest 記在索引內，使日後若被偷換可被偵測。
+
+
+---
+
+## 12. 更正記錄：標籤由 `TL_REFERENCE_NOT_ATTAINED` 改為 `TL_BUDGET_EXHAUSTED`
+
+日期：2026-09-14，於本 receipt 首次發布並隨 PR #17 合併**之後**。
+
+### 12.1 錯在哪裡
+
+[BLOCKER] §9 的兩個標籤條件是包含關係：`TL_BUDGET_EXHAUSTED` = `TL_REFERENCE_NOT_ATTAINED` 的條件 **+「曲線未收斂」**。我在 §6 宣稱所有驗收準則通過、並在 §0 指派 `TL_REFERENCE_NOT_ATTAINED` 時，**沒有量測那個附加條件**。`tracked_lineage_contract.classify()` 當時的簽章讓 `budget_exhausted` 有預設值 `False`，我就這樣拿到了標籤。
+
+[BLOCKER] 這是我的疏失，不是工具的問題——但工具讓它變得容易發生，所以兩者都已修正：**一個可以被靜默跳過的判定，就會被跳過**。
+
+### 12.2 量測
+
+[RESULT] 收斂規則在套用**之前**宣告於 `backend/rl/retain_tracked_lineage_curves.py`（末四分位斜率 ≤ 首四分位的 `10%` **且**絕對值 ≤ `1.0`，單位為每 `500,000` 步的 reward 增幅）：
+
+| replicate | 首四分位 | 末四分位 | 比值 | 收斂？ |
+|---|---:|---:|---:|---|
+| r0 | `+19.396` | `+7.309` | `0.377` | 否 |
+| r1 | `+21.079` | `+8.497` | `0.403` | 否 |
+| r2 | `+14.493` | `+7.766` | `0.536` | 否 |
+| r3 | `+25.040` | `+11.888` | `0.475` | 否 |
+| r4 | `+24.721` | `+8.433` | `0.341` | 否 |
+
+[RESULT] 五個全部未收斂。訓練在被上限截斷時仍在進步，速率約為初期的三分之一到二分之一。可於 `python -I -S` 下離線重算。
+
+### 12.3 修正了什麼
+
+| 對象 | 修正 |
+|---|---|
+| 規格 | 新增 §17（amendment 03）：兩標籤同時成立時報較具體的 `TL_BUDGET_EXHAUSTED` |
+| contract | `classify()` 的 `curve_converged` 改為**必填且無預設值** |
+| 證據 | 訓練曲線由 gitignored 的 `artifacts/` 搶救進 `tracked_lineage_evidence/2026-09-14/training_curves/`，附 digest |
+
+### 12.4 這個更正對本線不利
+
+[BLOCKER] 新標籤帶著一條舊標籤沒有的限制：§9 明文規定 `TL_BUDGET_EXHAUSTED` **不得以「再多跑一點就到了」為由上調上限**。曲線未收斂正是最會誘發那個念頭的情形，而 §9 在看到任何曲線之前就封住了這條路。因此本次更正**縮小**了後續可做的事，不是放寬。
+
+[RESULT] §10 的四條路線因此要重新排序：證據現在指向**預算不足而非方法撞牆**，但正因如此，「加 budget」必須走**新的 protocol 版本**並揭露它是在已知本結果的情況下設計的。這不是繞過 §9，而是 §9 指定的唯一合法途徑。
+
+[BLOCKER] 仍然**不能**宣稱「再多跑就會達標」。曲線未收斂只說明訓練尚未停止進步，**不**說明它會收斂到哪裡，更不說明它會跨過 `30/30`。要回答那個問題需要實際執行，而那需要新的 protocol。

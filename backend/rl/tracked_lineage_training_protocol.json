@@ -148,7 +148,7 @@
     "training_driver_source_sha256_note": "Pinned in the implementation commit, as the freeze said it would be: null at freeze time because pinning a digest for a driver change that had not been made yet would be a pin written after the fact. This is the digest of backend/rl/train_ppo.py AFTER this line's edit, and it differs from superseded_training_driver_source_sha256, the digest SEEDVAR-V7-TRAINING-REPLICATE-DEV-V1 pins and the one behind the 2026-09-08 retained evidence. Nothing re-derives that pin at runtime, so from this commit onward it is no longer true of the live repository - which is the fact this protocol exists to disclose, per RUN_MANIFEST_LOCK_BINDING_SPEC section 15.4."
   },
   "specification_path": "docs/TRACKED_LINEAGE_TRAINING_SPEC.md",
-  "specification_sha256": "sha256:96bbae557de189ab3c96f698447dbbe2c6630a405992b35b112075bb6bbee674",
+  "specification_sha256": "sha256:1919bf8a65f916cffcad46c4f420110fc3ad8885ebb0140f83fa0c4dda03a1f6",
   "training_design": {
     "ceiling_rule": "Fixed before any curve was seen and never raised. TL_BUDGET_EXHAUSTED may not be answered by raising it; that requires a new protocol version disclosing it was designed with the result already known.",
     "checkpoint_interval": 500000,
@@ -237,6 +237,21 @@
       "byproduct_rule": "policy.zip is an unretained byproduct: it lives in the gitignored run directory, is not version-controlled, is not evaluated, and may not be presented as this line's output. Its digest is still recorded in checkpoint_index.json as unretained_byproduct_sha256, so the fact that it exists and was not used is itself on the record and a later substitution would be detectable.",
       "rejected_alternative": "Retaining policy.zip as a fifth file per replicate. Rejected for two reasons: it raises the repository cost from the 38 MB the project owner accepted as part of the section 4.1 decision to about 47 MB; and TL-CK-04 already designates the last checkpoint as the reference, so keeping a file that is never used and is 15264 steps further trained would create two things that both look like the final policy - exactly the pathology that makes v5's provenance unexplainable. If the owner prefers to retain it, that is a change to the section 4.1 cost decision and needs a new protocol version, not an amendment.",
       "unchanged_word_for_word": "checkpoint_interval, 4 per replicate, 20 total, the 38 MB estimate, FULL_EXPOSURE_THRESHOLD, the seeds, the budget and TL-CK-04's selection rule."
+    },
+    {
+      "amendment_id": "TRACKED-LINEAGE-AMENDMENT-03-LABEL-PRECEDENCE",
+      "date": "2026-09-14",
+      "kind": "narrowing_only_post_execution",
+      "applied_after_execution_and_after_the_first_label_was_published": true,
+      "changes_a_published_result": true,
+      "direction": "against this line: the new label carries a stricter standing rule than the one it replaces",
+      "defect_1_labels_overlap": "Section 9 defines TL_REFERENCE_NOT_ATTAINED as no replicate reaching the threshold and TL_BUDGET_EXHAUSTED as the threshold not being reached AND the curve not having converged. The second condition is the first plus one more, so both can hold at once and section 9 never said which to report. Narrowed: when both hold, report TL_BUDGET_EXHAUSTED, because it is strictly more specific and section 9 attaches to it a rule the other lacks - the ceiling may not be raised on the grounds that a little more training would have reached the threshold. Downgrading to the vaguer label would discard that rule.",
+      "defect_2_convergence_never_measured": "The actual cause of the wrong label, and my own oversight. classify() was first written with budget_exhausted: bool = False, so a caller could obtain a label without ever measuring the condition that separates the two, and the 2026-09-14 analysis accepted that default and never measured convergence. Tightened: curve_converged is now a required keyword argument with NO DEFAULT, so the determination cannot be skipped silently.",
+      "measured": "Convergence rule declared before application in backend/rl/retain_tracked_lineage_curves.py: converged iff the final-quarter reward slope is at most 10 percent of the first-quarter slope AND its absolute value is at most 1.0, both as reward gain per 500000 steps. Measured ratios were 0.377, 0.403, 0.536, 0.475 and 0.341 with final-quarter slopes from +7.309 to +11.888, so NONE of the five replicates converged. Re-derivable offline under python -I -S.",
+      "corrected_label": "TL_BUDGET_EXHAUSTED, replacing the TL_REFERENCE_NOT_ATTAINED first reported",
+      "unchanged": "No measured value changes: 0/30 on all five replicates, fall_rate 1.0, 2015232 realized timesteps, 20 retained checkpoints. PUB-B2 is NOT_ATTAINED under either label since only TL_REFERENCE_ATTAINED passes it; PUB-B1 stays attained; the four readiness flags stay false; thresholds, seeds, budget, arm definitions and TL-CK-04 are untouched. Only the name given to the outcome changed.",
+      "evidence_retained": "The training curves lived in gitignored backend/rl/artifacts/ and would have died with the container, the same trap that cost the v7 pilot its control_step_trace. They are now retained with digests under backend/tracked_lineage_evidence/2026-09-14/training_curves/ with training_curve_index.json, so the determination can be re-verified."
     }
-  ]
+  ],
+  "outcome_label_precedence": "When TL_REFERENCE_NOT_ATTAINED and TL_BUDGET_EXHAUSTED both hold, report TL_BUDGET_EXHAUSTED - amendment 03. It is strictly more specific and carries section 9's rule that the ceiling may not be raised on account of it."
 }
