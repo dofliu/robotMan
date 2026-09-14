@@ -32,6 +32,7 @@ REPO_ROOT = BACKEND.parent
 if str(BACKEND) not in sys.path:
     sys.path.insert(0, str(BACKEND))
 
+import run_manifest_lock  # noqa: E402
 from rl.train_ppo import (  # noqa: E402
     TRACKED_LINEAGE_PROFILE_PREFIX,
     TRACKED_LINEAGE_V2_PROFILE_PREFIX,
@@ -123,26 +124,13 @@ def derive_run_lock_label(directory: Path, manifest_filename: str) -> str:
     a placeholder, and V1's retained index records "see gate output" for all five
     evaluations -- a criterion whose evidence existed only in a terminal.
 
-    run_manifest_lock.evaluate_run cannot be re-run verbatim on a retained copy:
-    it requires bound_manifest_path to resolve under the root it is given, and a
-    retained copy sits somewhere else by design. What survives relocation is the
-    claim that actually matters, so that is what is recomputed here -- the
-    retained manifest still hashes to the digest the binding bound, and the lock
-    behind it was MEASURED / FULL_LOCK and verified before the run. Anything else
-    returns a non-bound label rather than an optimistic one.
+    The derivation itself lives in run_manifest_lock, beside evaluate_run, which
+    is where lock semantics belong. It was briefly duplicated here, and the
+    duplicate immediately diverged: the contract runner kept reading the absent
+    label field and failed closed on all ten runs. One implementation, two
+    callers.
     """
-    binding_path = directory / "run_lock_binding.json"
-    manifest_path = directory / manifest_filename
-    if not binding_path.is_file() or not manifest_path.is_file():
-        return "RUN_LOCK_UNBOUND"
-    binding = json.loads(binding_path.read_text(encoding="utf-8"))
-    if sha256_file(manifest_path) != binding.get("bound_manifest_sha256"):
-        return "RUN_LOCK_MANIFEST_MISMATCH"
-    if binding.get("satisfies_full_lock_requirement") is not True:
-        return "RUN_LOCK_INSUFFICIENT"
-    if binding.get("verified_before_run") is not True:
-        return "RUN_LOCK_INSUFFICIENT"
-    return "RUN_LOCK_BOUND"
+    return run_manifest_lock.evaluate_relocated_run(directory, manifest_filename)["label"]
 
 
 def retain(replicate_index: int, date: str, *, line: str = "v1", dry_run: bool = False) -> dict:

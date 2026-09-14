@@ -630,3 +630,118 @@ def test_the_contract_runner_declares_its_convergence_aggregate_and_records_both
     # It must read retained evidence only: an artifacts/ path would make the
     # verdict stop being re-derivable the moment the container is reclaimed.
     assert "artifacts" not in source
+
+
+def test_the_replicate_count_is_derived_from_the_frozen_protocol(protocol):
+    """The bug the first full contract run found, and why delegation hid it.
+
+    V1's protocol states training_design.replicate_count outright. V2's does
+    not, and V2's protocol is frozen, so the key cannot be added. Delegating
+    verify_checkpoint_lineage to V1 therefore raised KeyError on the real
+    protocol -- invisible until now because the delegation had only ever been
+    exercised against V1-shaped fixtures, never the frozen V2 bytes.
+    """
+    assert "replicate_count" not in protocol["training_design"], (
+        "if the frozen protocol ever gains this key, delete the derivation"
+    )
+    assert tl2.replicate_count(protocol) == 5
+
+
+def test_an_internally_inconsistent_replicate_count_fails_closed(protocol):
+    """Three frozen facts imply the count; disagreement is a method failure.
+
+    Picking one as authoritative would let a protocol that contradicts itself
+    still produce a confident answer.
+    """
+    broken = copy.deepcopy(protocol)
+    broken["training_design"]["training_seeds"] = [9100, 9112, 9124]
+    with pytest.raises(tl2.TrackedLineageMethodFailure, match="TL2_REPLICATE_COUNT_AMBIGUOUS"):
+        tl2.replicate_count(broken)
+
+    ragged = copy.deepcopy(protocol)
+    ragged["checkpoint_lineage"]["total_count"] = 19
+    with pytest.raises(
+        tl2.TrackedLineageMethodFailure, match="TL2_CHECKPOINT_TOTAL_NOT_DIVISIBLE"
+    ):
+        tl2.replicate_count(ragged)
+
+
+def test_verifying_the_lineage_does_not_mutate_the_protocol(protocol):
+    """A verifier that edits what it verifies has stopped being one."""
+    import json as _json
+
+    from rl import run_tracked_lineage_v2_contract as runner
+
+    before = _json.dumps(protocol, sort_keys=True)
+    index = _json.loads(
+        (
+            REPO_ROOT / "backend/tracked_lineage_evidence/2026-09-14/checkpoint_index_v2.json"
+        ).read_text(encoding="utf-8")
+    )
+    tl2.verify_checkpoint_lineage(protocol, index)
+    assert _json.dumps(protocol, sort_keys=True) == before
+    assert "replicate_count" not in protocol["training_design"]
+    assert runner.REPLICATES == range(5)
+
+
+def test_a_relocated_run_can_still_prove_it_was_lock_bound():
+    """TL2-07 must survive the container, and evaluate_run cannot carry it.
+
+    evaluate_run pins bound_manifest_path, which copying evidence into version
+    control necessarily changes, so it reports a retained copy as mismatched.
+    The relocated form recomputes what survives the move -- the manifest still
+    hashes to the digest the binding bound, the lock was the required class and
+    completeness, verified before the run -- and drops the path comparison
+    visibly rather than approximating it.
+    """
+    import run_manifest_lock as lock
+
+    evidence = REPO_ROOT / "backend/tracked_lineage_evidence/2026-09-14"
+    for index in range(5):
+        training = lock.evaluate_relocated_run(
+            evidence / "training_runs_v2" / f"r{index}", "run_manifest.json"
+        )
+        evaluation = lock.evaluate_relocated_run(
+            evidence / "evaluations_v2" / f"r{index}", "evaluation_dev22000_22029.json"
+        )
+        assert training["label"] == lock.LABEL_BOUND, f"r{index} training"
+        assert evaluation["label"] == lock.LABEL_BOUND, f"r{index} evaluation"
+
+
+def test_a_relocated_run_with_the_wrong_manifest_is_not_bound(tmp_path):
+    """The digest check is the whole load-bearing part; prove it bites."""
+    import json as _json
+    import shutil as _shutil
+
+    import run_manifest_lock as lock
+
+    source = REPO_ROOT / "backend/tracked_lineage_evidence/2026-09-14/training_runs_v2/r0"
+    for name in ("run_manifest.json", "run_lock_binding.json", "environment_lock.json"):
+        _shutil.copyfile(source / name, tmp_path / name)
+    assert lock.evaluate_relocated_run(tmp_path, "run_manifest.json")["label"] == lock.LABEL_BOUND
+
+    tampered = _json.loads((tmp_path / "run_manifest.json").read_text(encoding="utf-8"))
+    tampered["actual_total_timesteps"] = 99
+    (tmp_path / "run_manifest.json").write_text(_json.dumps(tampered), encoding="utf-8")
+    assert lock.evaluate_relocated_run(tmp_path, "run_manifest.json")["label"] != lock.LABEL_BOUND
+
+    (tmp_path / "run_lock_binding.json").unlink()
+    assert (
+        lock.evaluate_relocated_run(tmp_path, "run_manifest.json")["label"] == lock.LABEL_UNBOUND
+    )
+
+
+def test_the_line_label_is_the_contract_runners_output_not_a_written_claim():
+    """The whole point of the runner: the label is computed, then recorded."""
+    from rl import run_tracked_lineage_v2_contract as runner
+
+    receipt = runner.run("2026-09-14")
+    assert receipt["result"]["label"] == tl2.LABEL_BUDGET_EXHAUSTED
+    assert receipt["result"]["replicates_attaining_threshold"] == 0
+    assert receipt["result"]["pub_b2_pass"] is False
+    assert receipt["curve_converged"] is False
+    assert receipt["curve_converged_measured_on"] == "lineage"
+    # Same verdict under the reading that was NOT chosen, so the pre-declared
+    # choice did not decide the label.
+    assert receipt["curve_converged_any"] == receipt["curve_converged_all"] is False
+    assert all(item["full"] == 0 for item in receipt["per_replicate_full_exposure"])
