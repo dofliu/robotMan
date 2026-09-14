@@ -1,0 +1,141 @@
+{
+  "checks": {
+    "TL2-01/TL2-02": {
+      "backend/rl/eval_policy.py": "sha256:0cf274341a10a56fbf544d86eab4bfbfd6f630056689280af51aff111b0058d4",
+      "backend/rl/train_ppo.py": "sha256:88ba5437772ba8a7d8b50ed161e48b164570ddf9fcfd545baa2bc35126a2c9f0"
+    },
+    "TL2-03/TL2-04": "resume pinned by digest, source version-controlled",
+    "TL2-05": {
+      "evaluation_seeds": "22000..22029",
+      "training_seeds": [
+        9100,
+        9112,
+        9124,
+        9136,
+        9148
+      ]
+    },
+    "TL2-06": "20 checkpoints, re-hashed from the repository",
+    "TL2-07": {
+      "runs_bound": 10
+    },
+    "TL2-08": "every evaluated policy is a retained V2 checkpoint"
+  },
+  "contract_id": "TRACKED-LINEAGE-TRAINING-V2",
+  "curve_converged": false,
+  "curve_converged_aggregate": "any_replicate_converged",
+  "curve_converged_aggregate_note": "Declared before any V2 curve existed. 'any' makes converged easier and so yields TL2_REFERENCE_NOT_ATTAINED rather than TL2_BUDGET_EXHAUSTED; it is the choice that is stricter against adding further budget. Both aggregates are recorded below so the other reading is checkable.",
+  "curve_converged_all": false,
+  "curve_converged_any": false,
+  "curve_converged_measured_on": "lineage",
+  "evidence_date": "2026-09-14",
+  "per_replicate_full_exposure": [
+    {
+      "episodes": 30,
+      "full": 0,
+      "replicate_index": 0
+    },
+    {
+      "episodes": 30,
+      "full": 0,
+      "replicate_index": 1
+    },
+    {
+      "episodes": 30,
+      "full": 0,
+      "replicate_index": 2
+    },
+    {
+      "episodes": 30,
+      "full": 0,
+      "replicate_index": 3
+    },
+    {
+      "episodes": 30,
+      "full": 0,
+      "replicate_index": 4
+    }
+  ],
+  "protocol_sha256": "sha256:a38662d99c6c6a25015e3ab5f8d642b0bc601be8b1d5d157d7f5e00b8d9292d0",
+  "reference_checkpoints": {
+    "0": {
+      "bytes": 1983092,
+      "realized_timesteps": 3999936,
+      "relative_path": "backend/tracked_lineage_evidence/2026-09-14/checkpoints/r0-3999936.zip",
+      "replicate_index": 0,
+      "sha256": "sha256:dcf2cc869abcae66fcb7f5c525f1671b968e9868b1a13ef0064bb11e2c985191"
+    },
+    "1": {
+      "bytes": 1983092,
+      "realized_timesteps": 3999936,
+      "relative_path": "backend/tracked_lineage_evidence/2026-09-14/checkpoints/r1-3999936.zip",
+      "replicate_index": 1,
+      "sha256": "sha256:5b81f921da114eb73832a310bb76dda9d3721b02e4b366ea95ed97e602295a32"
+    },
+    "2": {
+      "bytes": 1983092,
+      "realized_timesteps": 3999936,
+      "relative_path": "backend/tracked_lineage_evidence/2026-09-14/checkpoints/r2-3999936.zip",
+      "replicate_index": 2,
+      "sha256": "sha256:f8f0e229c9c93c5328cf0ba7544edd68e808860fb534e35245e5de7a01dbd295"
+    },
+    "3": {
+      "bytes": 1983092,
+      "realized_timesteps": 3999936,
+      "relative_path": "backend/tracked_lineage_evidence/2026-09-14/checkpoints/r3-3999936.zip",
+      "replicate_index": 3,
+      "sha256": "sha256:7aa97f834c78eb0ab810d0b894282be4bd28f4bda0c5d71a7eda75aec3549ce4"
+    },
+    "4": {
+      "bytes": 1983088,
+      "realized_timesteps": 3999936,
+      "relative_path": "backend/tracked_lineage_evidence/2026-09-14/checkpoints/r4-3999936.zip",
+      "replicate_index": 4,
+      "sha256": "sha256:716bfab944f336d22346d2d4859f822d58d3fcc6a75569c0cf2f1b74e13c9f65"
+    }
+  },
+  "result": {
+    "analysis_unit": "training_replicate",
+    "contract_id": "TRACKED-LINEAGE-TRAINING-V2",
+    "curve_converged": false,
+    "forbidden_denominators": [
+      30,
+      150,
+      450
+    ],
+    "label": "TL2_BUDGET_EXHAUSTED",
+    "method_level_denominator": 5,
+    "not_independent_of_v1": true,
+    "per_replicate_full_exposure": [
+      {
+        "full": 0,
+        "replicate_index": 0,
+        "total": 30
+      },
+      {
+        "full": 0,
+        "replicate_index": 1,
+        "total": 30
+      },
+      {
+        "full": 0,
+        "replicate_index": 2,
+        "total": 30
+      },
+      {
+        "full": 0,
+        "replicate_index": 3,
+        "total": 30
+      },
+      {
+        "full": 0,
+        "replicate_index": 4,
+        "total": 30
+      }
+    ],
+    "pub_b2_pass": false,
+    "replicates_attaining_threshold": 0,
+    "threshold": "30/30"
+  },
+  "schema_version": "TRACKED_LINEAGE_TRAINING_V2_CONTRACT_RECEIPT_V1"
+}
