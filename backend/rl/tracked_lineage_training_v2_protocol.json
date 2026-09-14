@@ -1,0 +1,185 @@
+{
+  "protocol_id": "TRACKED-LINEAGE-TRAINING-V2",
+  "schema_version": "TRACKED_LINEAGE_TRAINING_PROTOCOL_V2",
+  "protocol_status": "FROZEN_BEFORE_EXECUTION",
+  "frozen_date": "2026-09-14",
+  "specification_path": "docs/TRACKED_LINEAGE_TRAINING_V2_SPEC.md",
+  "specification_sha256": "sha256:ea1a56f0809f5a588c420fb8c52104fbc2b0eb10567be1baae8c152a35662289",
+  "predecessor": "TRACKED-LINEAGE-TRAINING-V1",
+  "run_class": "DEVELOPMENT",
+  "evidence_scope": "SIM_ONLY_MUJOCO",
+  "publication_gates": [
+    "PUB-B2"
+  ],
+  "mandatory_disclosure": {
+    "designed_after_the_v1_result_was_known": true,
+    "what_was_known": "V1 returned 0/30 full exposure on all five replicates, every one falling at about 2.5 s of the 9.0 s task, labelled TL_BUDGET_EXHAUSTED because all five training curves were still rising at the ceiling with final-quarter slopes of +7.309 to +11.888 per 500000 steps. V1's evidence therefore did not rule out insufficient budget as the explanation.",
+    "required_by": "V1 specification sections 9 and 14: TL_BUDGET_EXHAUSTED may not be answered by raising the ceiling on the grounds that a little more training would have reached the threshold; a budget increase must be a NEW protocol version that discloses it was designed with the result already known. This is that version.",
+    "evidential_weight": "Parameters chosen with that knowledge carry LESS evidential weight than parameters frozen in ignorance. This protocol does not pretend otherwise, and any reading of V2's result must include this fact.",
+    "does_not_claim": "That more steps would reach 30/30. A curve that has not converged says only that training had not stopped improving - nothing about where it would converge or whether it would ever cross the threshold. Extrapolating V1's slope to the threshold has no basis and is not done here.",
+    "does_not_claim_superiority": "That V2 is better than V1. V2 continues V1's replicates rather than rerunning them, so the two are not two independent samples."
+  },
+  "unchanged_from_v1": {
+    "full_exposure_threshold": "30/30 = 1.000000, judged per replicate - WORD FOR WORD UNCHANGED",
+    "threshold_rule": "V2 raises the INPUT, not the PASS MARK. Lowering a threshold after seeing a result would be the worst violation available to this project. If V2 misses, V3 may not lower it either.",
+    "environment_id": "motion_task_phase_observable_v5",
+    "task_id": "stand_start_walk_stop_v1",
+    "parallel_envs": 12,
+    "replicate_count": 5,
+    "episodes_per_replicate": 30,
+    "evaluation_seeds": "22000-22029",
+    "analysis_unit": "training_replicate, method-level denominator 5",
+    "forbidden_denominators": [
+      30,
+      150,
+      450
+    ],
+    "eval_policy_not_modified": "Same reason as V1 section 6.4: editing it turns a green test red under the protocol the owner authorized on 2026-09-10. V2 therefore produces no control_step_trace and does not cover PUB-B3."
+  },
+  "tracked_warm_start": {
+    "rule": "Every replicate resumes from its own V1 retained reference checkpoint at 1999968 steps.",
+    "why_legitimate_now": "V1 section 3 banned warm starts because the only candidate, the v5 artifact, had unreconstructable training. V1's own checkpoints do not have that defect: seeds resolved from the protocol, pinned driver digests, a byte-recorded environment lock and every 500000-step checkpoint in version control. This is the tracked warm start ROADMAP section 9 item 2 allowed all along, available for the first time because PUB-B1 was attained. Using V1's output is not loosening V1's rule.",
+    "source_must_not_be_policy_zip": "policy.zip is V1's unretained byproduct at 2015232 steps, 15264 steps past the reference and not in version control. Resuming from it would make V2's starting point impossible to reconstruct offline.",
+    "accepted_cost": "V2's replicates share their first 1999968 steps with V1's, so the two lines are NOT independent samples. They may not be placed side by side as two measurements and may not be used to estimate method variance.",
+    "rejected_alternative": "Five fresh scratch replicates at a 4000000 ceiling. Rejected because it discards 5 x 2015232 already-completed and version-controlled steps to buy only independence, which is not required by the question V2 asks, and because the only policy that ever reached Live 10/11 on this task did so as a trained base plus a roughly 2000000-step final stage - the structure V2 reproduces. The cost of that rejection: without a scratch control V2 CANNOT separate more total steps helping from this continuation structure helping, and must not claim to.",
+    "sources": {
+      "0": {
+        "seed_base": 9100,
+        "relative_path": "backend/tracked_lineage_evidence/2026-09-14/checkpoints/r0-1999968.zip",
+        "sha256": "sha256:7df3fbae65cb73780a9278b78da7c597c77e54865ae5465d470d0f68e956e494",
+        "realized_timesteps": 1999968
+      },
+      "1": {
+        "seed_base": 9112,
+        "relative_path": "backend/tracked_lineage_evidence/2026-09-14/checkpoints/r1-1999968.zip",
+        "sha256": "sha256:9910b34aa0475e9416af534a92a75f797228eb9e56453585015e15ced659c393",
+        "realized_timesteps": 1999968
+      },
+      "2": {
+        "seed_base": 9124,
+        "relative_path": "backend/tracked_lineage_evidence/2026-09-14/checkpoints/r2-1999968.zip",
+        "sha256": "sha256:25becd8d8d0017c30ccdeaec1a2afdf2963d89648fa64fc3dc38efeac6c02c4a",
+        "realized_timesteps": 1999968
+      },
+      "3": {
+        "seed_base": 9136,
+        "relative_path": "backend/tracked_lineage_evidence/2026-09-14/checkpoints/r3-1999968.zip",
+        "sha256": "sha256:a08e606931410196f1f5e74f171b86aae95bafc52466ca9aa64c3ae19674e7bc",
+        "realized_timesteps": 1999968
+      },
+      "4": {
+        "seed_base": 9148,
+        "relative_path": "backend/tracked_lineage_evidence/2026-09-14/checkpoints/r4-1999968.zip",
+        "sha256": "sha256:dd3eb73c78a61a988d32c76c0f513dab6aa29207f2a2fad74263c78e2d198181",
+        "realized_timesteps": 1999968
+      }
+    }
+  },
+  "training_design": {
+    "resume_from_realized_timesteps": 1999968,
+    "increment_planned_timesteps": 2000000,
+    "stop_condition_num_timesteps": 3999968,
+    "increment_realized_timesteps": 2015232,
+    "total_realized_timesteps": 4015200,
+    "rollout_size": 24576,
+    "checkpoint_interval": 500000,
+    "profile_id_pattern": "stand_start_walk_stop_0p7_tracked_lineage_b2_r<replicate_index>",
+    "profile_protocol_field": "tracked_lineage_protocol_id",
+    "training_seeds": [
+      9100,
+      9112,
+      9124,
+      9136,
+      9148
+    ],
+    "seeds_note": "Identical to V1 and in the same order; V2 continues those replicates rather than drawing new ones.",
+    "budget_anchor": "NOT extrapolated from V1's slope, which the disclosure forbids. Anchored on v5, a fact that predates V1 and is independent of its result: v5's final stage was planned 2000000 on top of a trained predecessor and reached Live 10/11, while V1 spent the same 2000000 from scratch and fell at 2.5 s. Same quantity, different starting point, different outcome. V2 adds one v5-sized final stage to a reconstructable base.",
+    "budget_anchor_weakness": "v5's predecessor came through a v1-to-v4 curriculum while V1's base is a single scratch run, so the structures are analogous, not equivalent.",
+    "forbidden_reading_of_the_curriculum_total": "The 84000000 sum of the v1-to-v5 planned budgets may NOT be read as the budget that historically sufficed: three of those profiles carry EARLY_STOPPED, DEVELOPMENT_4M and DEVELOPMENT_0P5M statuses, so planned is not realized. This protocol does not use that number.",
+    "ceiling_rule": "The increment is fixed before any V2 curve was seen and may not be raised after the fact. TL2_BUDGET_EXHAUSTED is judged against the frozen increment of 2000000.",
+    "arithmetic_verified_before_freezing": "SB3's _setup_learn does total_timesteps += self.num_timesteps when reset_num_timesteps is False, so resuming at 1999968 with an increment of 2000000 stops at num_timesteps >= 3999968, realizing 82 rollouts of 24576 for a total of 4015200. Verified by execution of the arithmetic before the freeze, per V1 amendment 01's lesson."
+  },
+  "checkpoint_lineage": {
+    "storage": "GIT_DIRECT",
+    "owner_decision": "Option A, checkpoint_interval 500000, decided by the project owner on 2026-09-14 before any V2 curve existed. Chosen over option B (1000000, half the resolution, about 19 MB less) so lineage granularity stays uniform across 0 to 4015200.",
+    "expected_realized_timesteps": [
+      2499960,
+      2999952,
+      3499944,
+      3999936
+    ],
+    "expected_note": "1999968 + 499992k, because save_freq is 500000 // 12 = 41666 and the callback restarts its count on each learn() call. Multiples of 500000 are unreachable at n_envs 12, as V1 amendment 01 established.",
+    "per_replicate_count": 4,
+    "total_count": 20,
+    "approximate_added_bytes": 39899261,
+    "accepted_cost": "The repository's .git grows from 47 MB to about 85 MB, which EXCEEDS the about 49 MB accepted in V1 section 4.1. Named and accepted here rather than carried over. V1 section 4.1's requirement to re-evaluate external immutable storage before a THIRD line is NOT cancelled by this decision - only judged not yet due.",
+    "must_not_be_gitignored": true,
+    "no_checkpoint_may_be_deleted": "Neither V1's 20 nor V2's 20. V1's are the only reconstructable source of V2's starting point."
+  },
+  "driver_changes": {
+    "change_1": "A fourth mutually exclusive protocol identity whose request guard REQUIRES --resume-from pointing at the reference checkpoint this protocol pins. V1's guard is untouched and still rejects resume.",
+    "change_2": "Allow a resume source under backend/tracked_lineage_evidence/. This STRENGTHENS rather than loosens: the current guard requires the resume artifact to sit under the gitignored backend/rl/artifacts/, so permitting a version-controlled evidence path admits a source that can be reconstructed offline. The existing artifacts/ path stays accepted and existing behaviour is unchanged.",
+    "disclosure": "This line edits train_ppo.py again, so V1's pinned training_driver_source_sha256 sha256:2a3f50c0 stops being true of the live repository - the same shape as what V1 did to the seedvar protocol. This protocol carries both digests and names the fact, the disclosure location RUN_MANIFEST_LOCK_BINDING_SPEC section 15.4 designates."
+  },
+  "source_baseline": {
+    "training_driver_source": "backend/rl/train_ppo.py",
+    "training_driver_source_sha256": null,
+    "training_driver_source_sha256_note": "Null at freeze by construction, as in V1: pinning a digest for a driver change not yet made would be a pin written after the fact. Filled in the implementation commit.",
+    "superseded_training_driver_source_sha256": "sha256:2a3f50c0bb64c5af720d406f4ace103fe8af19f0c17d65762d6815a52faaff59",
+    "superseded_disclosure": "That is the digest TRACKED-LINEAGE-TRAINING-V1 pins and the one behind its retained 2026-09-14 evidence. Nothing re-derives that pin at runtime, so once V2 edits the driver it is no longer true of the live repo.",
+    "evaluation_driver_source": "backend/rl/eval_policy.py",
+    "evaluation_driver_source_sha256": "sha256:0cf274341a10a56fbf544d86eab4bfbfd6f630056689280af51aff111b0058d4"
+  },
+  "evaluation_design": {
+    "driver": "backend/rl/eval_policy.py generic path",
+    "driver_is_modified": false,
+    "evaluation_seed_start": 22000,
+    "evaluation_seed_end": 22029,
+    "seed_reuse_disclosure": "22000-22029 was used once by V1; V2 is its second use, so the range is no longer unexamined for this task. V2 reuses it so V1 and V2 differ only in budget rather than also in seeds. After V2 the range should be treated as DEVELOPMENT_EXHAUSTED.",
+    "forbidden_seed_ranges": {
+      "18000-18029": "DEVELOPMENT_EXHAUSTED",
+      "19000-19029": "retired_seed_range",
+      "20000-20029": "sealed FORMAL"
+    },
+    "episodes_per_replicate": 30,
+    "full_exposure_rule": "duration_s == 9.0 AND outcome_state == 'OBSERVED'",
+    "seed_schedule_enforcement": "ANALYSIS TIME ONLY - the generic path has no *_EVALUATION_SEED_SCHEDULE_OVERRIDE_FORBIDDEN guard, so TL2-05 checks the retained evaluation_seeds are exactly 22000..22029.",
+    "reference_selection_rule": "Each replicate's LAST retained V2 checkpoint, at 3999936 steps. Frozen before any evaluation result is seen, as in V1 TL-CK-04."
+  },
+  "outcome_labels": {
+    "TL2_REFERENCE_ATTAINED": "all five replicates reach 30/30",
+    "TL2_REFERENCE_PARTIAL": "at least one but not all reach it",
+    "TL2_REFERENCE_NOT_ATTAINED": "no replicate reaches it AND the curve has converged",
+    "TL2_BUDGET_EXHAUSTED": "no replicate reaches it AND the curve has not converged",
+    "TL2_METHOD_FAILURE": "any contract violation; never downgraded"
+  },
+  "label_precedence_fixed": "Mutually exclusive by construction, applying V1 amendment 03's correction rather than repeating its defect: TL2_REFERENCE_NOT_ATTAINED now carries the converged condition.",
+  "convergence_rule": "The rule already declared and applied in V1: converged iff the final-quarter reward slope is at most 10 percent of the first-quarter slope AND at most 1.0 in absolute value, per 500000 steps, implemented in backend/rl/retain_tracked_lineage_curves.py. It MAY NOT be retuned to obtain a preferred label, and the verdict parameter stays required with no default.",
+  "escalation_rule": "If V2 returns TL2_BUDGET_EXHAUSTED again, that is a RESULT and must be reported as such. It does NOT authorize simply adding more budget: V3 would again need a new protocol version disclosing it was designed knowing both V1's and V2's results. Paying that disclosure cost every time is the mechanism that stops indefinite escalation until something passes.",
+  "acceptance_criteria": [
+    "TL2-01 re-derive train_ppo.py and eval_policy.py digests before execution and compare the pins; eval_policy.py must equal its unmodified value",
+    "TL2-02 the protocol carries both the V2 and the superseded V1 training driver digests",
+    "TL2-03 every run's resume is non-null and its sha256 equals the V1 reference checkpoint this protocol pins for that replicate; warm_start must be null",
+    "TL2-04 the resume source path lies under backend/tracked_lineage_evidence/, not a gitignored directory",
+    "TL2-05 the five training seeds match V1's in order, and the retained evaluation_seeds are exactly 22000..22029",
+    "TL2-06 checkpoints land exactly at 2499960 / 2999952 / 3499944 / 3999936; a gap, duplicate or digest mismatch fails closed",
+    "TL2-07 every run's gate returns RUN_LOCK_BOUND",
+    "TL2-08 the evaluated policy digest equals one retained V2 checkpoint",
+    "TL2-09 one positive control per label; a test proving TL2_METHOD_FAILURE is never downgraded; the convergence verdict parameter has no default"
+  ],
+  "claim_boundary": [
+    "Supports only the full-exposure proportion of V1's five replicates on seeds 22000-22029 after a further 2015232 steps.",
+    "Does NOT support that more steps would reach 30/30.",
+    "Does NOT support any independent comparison of V1 with V2 or any method-variance estimate - same replicates, continued.",
+    "Does NOT support that continuation beats scratch or that total steps is the operative factor - no control.",
+    "Does NOT support controller superiority, FORMAL_EVALUATION conclusions, or saturation and censoring-regime analysis.",
+    "Does NOT unseal 20000-20029, does not touch SELECT-V7-CANDIDATE-FORMAL-V1, and changes none of the four readiness flags."
+  ],
+  "execution_order": [
+    "the project owner confirms the storage cost (done 2026-09-14, option A)",
+    "freeze this protocol and the specification, commit and push; no driver may be edited before this push",
+    "edit the driver per the driver_changes section, implement the contract and acceptance criteria, pin the digests",
+    "execute replicate by replicate: resume, retain checkpoints, evaluate, commit and push immediately",
+    "measure convergence, assign the label, write the receipt, align the documents"
+  ]
+}
