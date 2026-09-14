@@ -123,8 +123,8 @@
   },
   "source_baseline": {
     "training_driver_source": "backend/rl/train_ppo.py",
-    "training_driver_source_sha256": null,
-    "training_driver_source_sha256_note": "Null at freeze by construction, as in V1: pinning a digest for a driver change not yet made would be a pin written after the fact. Filled in the implementation commit.",
+    "training_driver_source_sha256": "sha256:6d923ba65cbbd9746537aaa21d709eea2bf2cfa3155e321fe62a023b331c7ee0",
+    "training_driver_source_sha256_note": "Pinned in the implementation commit, as the freeze said it would be. This is train_ppo.py AFTER V2's edit and it differs from superseded_training_driver_source_sha256, the digest TRACKED-LINEAGE-TRAINING-V1 pins and the one behind its retained 2026-09-14 evidence. Nothing re-derives that pin at runtime, so from this commit it is no longer true of the live repository - the fact this protocol exists to disclose, per RUN_MANIFEST_LOCK_BINDING_SPEC section 15.4.",
     "superseded_training_driver_source_sha256": "sha256:2a3f50c0bb64c5af720d406f4ace103fe8af19f0c17d65762d6815a52faaff59",
     "superseded_disclosure": "That is the digest TRACKED-LINEAGE-TRAINING-V1 pins and the one behind its retained 2026-09-14 evidence. Nothing re-derives that pin at runtime, so once V2 edits the driver it is no longer true of the live repo.",
     "evaluation_driver_source": "backend/rl/eval_policy.py",
