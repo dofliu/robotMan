@@ -27,6 +27,34 @@
       "relative_path": "backend/tracked_lineage_evidence/2026-09-14/checkpoints/r0-3999936.zip",
       "replicate_index": 0,
       "sha256": "sha256:dcf2cc869abcae66fcb7f5c525f1671b968e9868b1a13ef0064bb11e2c985191"
+    },
+    {
+      "bytes": 1983091,
+      "realized_timesteps": 2499960,
+      "relative_path": "backend/tracked_lineage_evidence/2026-09-14/checkpoints/r1-2499960.zip",
+      "replicate_index": 1,
+      "sha256": "sha256:6d758a852cb075e27e4e76751daba69fcda0ff9f8afd11a4089b3eae144f7cfd"
+    },
+    {
+      "bytes": 1983091,
+      "realized_timesteps": 2999952,
+      "relative_path": "backend/tracked_lineage_evidence/2026-09-14/checkpoints/r1-2999952.zip",
+      "replicate_index": 1,
+      "sha256": "sha256:bf243f05e25c3f6450e3995fbd672c2826124543aa473b85cac81a9224355c1f"
+    },
+    {
+      "bytes": 1983090,
+      "realized_timesteps": 3499944,
+      "relative_path": "backend/tracked_lineage_evidence/2026-09-14/checkpoints/r1-3499944.zip",
+      "replicate_index": 1,
+      "sha256": "sha256:05517998eb582980f0699562e6e99e206b8d51db13e7b4ccb1f94ecd1f262600"
+    },
+    {
+      "bytes": 1983092,
+      "realized_timesteps": 3999936,
+      "relative_path": "backend/tracked_lineage_evidence/2026-09-14/checkpoints/r1-3999936.zip",
+      "replicate_index": 1,
+      "sha256": "sha256:5b81f921da114eb73832a310bb76dda9d3721b02e4b366ea95ed97e602295a32"
     }
   ],
   "contract_id": "TRACKED-LINEAGE-TRAINING-V2",
@@ -69,6 +97,25 @@
       "seed_base": 9100,
       "unretained_byproduct_note": "backend/rl/artifacts/<run_id>/policy.zip, saved at realized_timesteps rather than at a checkpoint boundary. Not version-controlled, not evaluated, not this line's output. See specification amendment 02.",
       "unretained_byproduct_sha256": "sha256:4686c90760ef72aa8616ffc9e44364f1fe14ceab0a8178982f451d828c1be9f7"
+    },
+    "1": {
+      "environment_lock_sha256_note": "see run_lock_binding.json in the run directory",
+      "profile_id": "stand_start_walk_stop_0p7_tracked_lineage_b2_r1",
+      "realized_timesteps": 4015200,
+      "reference_checkpoint_realized_timesteps": 3999936,
+      "reference_checkpoint_sha256": "sha256:5b81f921da114eb73832a310bb76dda9d3721b02e4b366ea95ed97e602295a32",
+      "resume_source": {
+        "artifact": "backend/tracked_lineage_evidence/2026-09-14/checkpoints/r1-1999968.zip",
+        "bytes": 1983087,
+        "mode": "PPO_FULL_STATE_RESUME_V1",
+        "sha256": "sha256:9910b34aa0475e9416af534a92a75f797228eb9e56453585015e15ced659c393",
+        "source_num_timesteps": 1999968
+      },
+      "run_id": "stand_start_walk_stop_0p7_tracked_lineage_b2_r1-run",
+      "run_manifest_sha256": "sha256:acdc585a245de124416748272abc9e54a0226268de29392854554eb2c7d8c781",
+      "seed_base": 9112,
+      "unretained_byproduct_note": "backend/rl/artifacts/<run_id>/policy.zip, saved at realized_timesteps rather than at a checkpoint boundary. Not version-controlled, not evaluated, not this line's output. See specification amendment 02.",
+      "unretained_byproduct_sha256": "sha256:c285c2a77b35689e534056684471f33b52480df577b5da825bd360c2a5b49d0e"
     }
   },
   "shares_date_directory_note": "V1 and V2 both executed on this date. Checkpoint filenames cannot collide (V1 ends at 1999968, V2 starts at 2499960) so both lines' checkpoints sit in one checkpoints/ directory, but each line keeps its own index and its own evaluations directory and neither rewrites the other's records.",

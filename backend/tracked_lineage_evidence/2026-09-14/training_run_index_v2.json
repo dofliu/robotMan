@@ -21,6 +21,27 @@
       "run_lock_label": "RUN_LOCK_BOUND",
       "seed_base": 9100,
       "warm_start": null
+    },
+    "1": {
+      "profile_id": "stand_start_walk_stop_0p7_tracked_lineage_b2_r1",
+      "realized_timesteps": 4015200,
+      "relative_dir": "backend/tracked_lineage_evidence/2026-09-14/training_runs_v2/r1",
+      "resume": {
+        "artifact": "backend/tracked_lineage_evidence/2026-09-14/checkpoints/r1-1999968.zip",
+        "bytes": 1983087,
+        "mode": "PPO_FULL_STATE_RESUME_V1",
+        "sha256": "sha256:9910b34aa0475e9416af534a92a75f797228eb9e56453585015e15ced659c393",
+        "source_num_timesteps": 1999968
+      },
+      "retained_sha256": {
+        "environment_lock.json": "sha256:5458261b04b2685dea0aa42cf93d500aa87b26c5e8bc6d2358a08b8269deac75",
+        "run_lock_binding.json": "sha256:b5f48355d9135fe09387a37fbdac06ba2c7e80b2cd7e1c65417eed7e080b515d",
+        "run_manifest.json": "sha256:acdc585a245de124416748272abc9e54a0226268de29392854554eb2c7d8c781"
+      },
+      "run_id": "stand_start_walk_stop_0p7_tracked_lineage_b2_r1-run",
+      "run_lock_label": "RUN_LOCK_BOUND",
+      "seed_base": 9112,
+      "warm_start": null
     }
   },
   "why_this_index_exists": "The training run manifests, lock records and lock bindings live in gitignored backend/rl/artifacts/ and die with the container. Every criterion judged on a training manifest needs them, not just their digests. Kept in its own file so no already-retained index is rewritten."
