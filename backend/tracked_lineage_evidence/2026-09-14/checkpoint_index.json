@@ -55,6 +55,34 @@
       "relative_path": "backend/tracked_lineage_evidence/2026-09-14/checkpoints/r1-1999968.zip",
       "replicate_index": 1,
       "sha256": "sha256:9910b34aa0475e9416af534a92a75f797228eb9e56453585015e15ced659c393"
+    },
+    {
+      "bytes": 1983072,
+      "realized_timesteps": 499992,
+      "relative_path": "backend/tracked_lineage_evidence/2026-09-14/checkpoints/r2-0499992.zip",
+      "replicate_index": 2,
+      "sha256": "sha256:9b5f9473c9606f0540a70dd336173413b7405b7f85551b52b80e9395996ca29e"
+    },
+    {
+      "bytes": 1983072,
+      "realized_timesteps": 999984,
+      "relative_path": "backend/tracked_lineage_evidence/2026-09-14/checkpoints/r2-0999984.zip",
+      "replicate_index": 2,
+      "sha256": "sha256:66a665ee93917c194ef7260617da2dab54c64a14505b1d615c1ff7f6149cdc28"
+    },
+    {
+      "bytes": 1983074,
+      "realized_timesteps": 1499976,
+      "relative_path": "backend/tracked_lineage_evidence/2026-09-14/checkpoints/r2-1499976.zip",
+      "replicate_index": 2,
+      "sha256": "sha256:aac3d2e282498e5f09527fde61fb07d06d75083431ad63985d71094fa0f0f66f"
+    },
+    {
+      "bytes": 1983087,
+      "realized_timesteps": 1999968,
+      "relative_path": "backend/tracked_lineage_evidence/2026-09-14/checkpoints/r2-1999968.zip",
+      "replicate_index": 2,
+      "sha256": "sha256:25becd8d8d0017c30ccdeaec1a2afdf2963d89648fa64fc3dc38efeac6c02c4a"
     }
   ],
   "contract_id": "TRACKED-LINEAGE-TRAINING-V1",
@@ -119,6 +147,18 @@
       "seed_base": 9112,
       "unretained_byproduct_note": "backend/rl/artifacts/<run_id>/policy.zip, saved at realized_timesteps rather than at a checkpoint boundary. Not version-controlled, not evaluated, not this line's output. See specification amendment 02.",
       "unretained_byproduct_sha256": "sha256:dada4caead3bc5f4aa483fcaa5f8dc700d0c699a8c2f6bdf86b3691b6a6deed5"
+    },
+    "2": {
+      "environment_lock_sha256_note": "see run_lock_binding.json in the run directory",
+      "profile_id": "stand_start_walk_stop_0p7_tracked_lineage_b1_r2",
+      "realized_timesteps": 2015232,
+      "reference_checkpoint_realized_timesteps": 1999968,
+      "reference_checkpoint_sha256": "sha256:25becd8d8d0017c30ccdeaec1a2afdf2963d89648fa64fc3dc38efeac6c02c4a",
+      "run_id": "stand_start_walk_stop_0p7_tracked_lineage_b1_r2-run",
+      "run_manifest_sha256": "sha256:d2179b58ac1b5f1f1cc29036f89c1dcc137aaa69ae0de21426b1fc2ccf0b8e90",
+      "seed_base": 9124,
+      "unretained_byproduct_note": "backend/rl/artifacts/<run_id>/policy.zip, saved at realized_timesteps rather than at a checkpoint boundary. Not version-controlled, not evaluated, not this line's output. See specification amendment 02.",
+      "unretained_byproduct_sha256": "sha256:0de5aa12a39450c61b0e06d5fa9636f5c030598a36e30e842a4a20ff9b58f08f"
     }
   }
 }
