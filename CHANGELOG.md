@@ -2,6 +2,26 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-14 (v)
+
+### `TRACKED-LINEAGE-TRAINING-V1` 執行完成：`PUB-B1` 達成、`PUB-B2` `NOT_ATTAINED`
+
+- [RESULT] **標籤 `TL_REFERENCE_NOT_ATTAINED`**（[receipt](docs/TRACKED_LINEAGE_TRAINING_RECEIPT_2026-09-14.md)）。五個 scratch replicate 全部訓練完成、全部產出版控 checkpoint lineage，但**沒有任何一個** reference policy 達到事先凍結的 `30/30`：五個皆 `0/30`。
+- [BLOCKER] **這是事先宣告的結果，不是失敗。** 規格 §3、§4.2 與 §9 在看到任何訓練曲線之前就寫明 v5 是經 v1→v5 多輪 curriculum 才到 Live 10/11、單發 scratch 未必能到、`30/30` 很可能得到 `TL_REFERENCE_NOT_ATTAINED`。門檻**不得因此下調**；未達即 `PUB-B2` `NOT_ATTAINED`，那是一項結果。
+- [RESULT] **不對稱的結論，也是本次最重要的一點**：本線**達成了它存在的主要目的**——一條 pretraining provenance 可重建的訓練線現在存在（`PUB-B1`）——但**沒有**產出一個能可靠完成任務的 reference policy（`PUB-B2`）。兩者是不同的事，不可互相代替。
+- [RESULT] 量測：5 replicates、seeds `9100/9112/9124/9136/9148`、每個 realized **恰為 `2,015,232`** 步（五次皆與 amendment 01 的預測相同）、`warm_start` 與 `resume` 全為 null、20 個 checkpoint 共 `39,899,261` bytes（`38.0 MiB`）落在 `499,992`／`999,984`／`1,499,976`／`1,999,968`、無一被 gitignore、digest 與大小皆與磁碟位元組相符。
+- [RESULT] **10 次執行（5 訓練 + 5 評估）gate 全部回 `RUN_LOCK_BOUND`**，環境為 `MEASURED_ENVIRONMENT_LOCK` + `FULL_LOCK` + `AMBIENT_THREADING_PINNED`，其 `locked_sha256 = sha256:93d23a27` 與 2026-09-08 seedvar 執行**逐位元相同**——本線與其前身跑在同一個可量測環境上。
+- [RESULT] 評估對象是 `TL-CK-04` 指定的 reference policy（最後一個保留 checkpoint，`1,999,968` 步），seeds `22000–22029`、每 replicate 30 episodes。五個 replicate 的 `fall_rate` 皆 `1.0`，`150` 個 episode 的 `outcome_state` 全為 `NULL`，平均 `duration_s` 為 `2.477333`／`2.680000`／`2.520000`／`2.811333`／`2.440000`（任務長 `9.0` s），五者平均 `2.585733`。
+- [RESULT] 失敗型態是量到的：跌倒集中在 `2.44`–`2.81` s，而 `STEADY_WALK` 起於 `2.5` s；`mean_saturation_duty_pct = 0.0`、側向 drift `0.219598` m。scratch policy 學到了站立，沒學到起步行走。**但本 receipt 不宣稱「curriculum 是必要的」**——只跑了一個 recipe、一個 budget，沒有對照。
+- [BLOCKER] **`150` 是 forbidden denominator**，不得把結果寫成 `0/150`。判定逐 replicate，method-level 分母恆為 `5`；本線的 method-level 結果是 **`0/5` 個 replicate 達標**。
+- [RESULT] **`TL-01`、`TL-01b`、`TL-02`..`TL-08`、`TL-CK-01`..`TL-CK-06` 全數通過**，因此這是一次乾淨量測的否定結果，**不是** `TL_METHOD_FAILURE`。特別是 `TL_EXPOSURE_SIGNALS_DISAGREE` 在 150 個 episode 上都沒觸發：短 `duration_s` 與非 `OBSERVED` 的 `outcome_state` 每次同時成立。
+- [RESULT] **`TRACKED-LINEAGE-AMENDMENT-02-FINAL-ARTIFACT`**（第三份、也是最後一份）：`TL-CK-03` 要求最終 artifact 是保留 checkpoint 的副本或最後一個，實測**兩者皆不可能**——`policy.zip` 寫於 `learn()` 返回後的 rollout 邊界 `2,015,232`，比最後一個 checkpoint 多 `15,264` 步。更正為「最終 policy artifact 指 `TL-CK-04` 已指定的 reference policy」，並**加嚴**新增 `TL-CK-06`（被評估 policy 的 digest 必須等於某個保留 checkpoint），把原本只是文字的主張變成每次分析都重算的檢查。`policy.zip` 定性為 unretained byproduct，digest 仍記入索引以便日後偵測抽換。
+- [BLOCKER] 否決並記錄的替代方案：把 `policy.zip` 也保留為每 replicate 第 5 個檔案。理由是 repo 成本由負責人接受的 `38 MB` 升為約 `47 MB`，且會留下兩個都像「最終 policy」的檔案——正是 v5 provenance 說不清楚的病灶。若負責人偏好保留，那是 §4.1 成本決定的修改，需要新的 protocol 版本而非 amendment。
+- [BLOCKER] **更正規格 §5 的一個估計**：§5 依 seedvar 實測寫「約 `1,683` steps/s、5 個 replicate ≈ `1.7` 小時」，實測為 `1,133.5` steps/s、`2.469` 小時。估計值不是凍結參數，沒有任何門檻或設計因此改變；記下以免下一個人沿用那個偏樂觀的數字排程。
+- [RESULT] repo `.git` 由 `11 MB` 增為 `47 MB`，落在 §4.1 具名接受的「約 `49 MB`」之內。**20 個已保留 checkpoint 不得刪除**——它們是 `PUB-B1` 的唯一產出，也是任何後續線的可重建起點。
+- [BLOCKER] 後續四條路線（提高 budget／引入 curriculum／改 reward 或環境／改以其他方式解 `PUB-B3`）全部需要**新的 protocol 版本**，並須揭露它是在已知本結果的情況下設計的；`2,000,000` 步上限**不得**事後上調。見 receipt §10。
+- `paper_data_ready` 等四個 flag 全部不變，仍為 `false`。本線是 `DEVELOPMENT`：不解封 `20000–20029`、不觸及 `SELECT-V7-CANDIDATE-FORMAL-V1`、不支持與 v7 線的任何直接數值比較。
+
 ## Unreleased — 2026-09-14 (u)
 
 ### `TRACKED-LINEAGE-AMENDMENT-01` 與 driver／contract 實作：我在當天凍結裡留下的兩個缺陷
