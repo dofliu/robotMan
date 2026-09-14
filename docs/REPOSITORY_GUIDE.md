@@ -18,6 +18,7 @@ Repository 保存：
 - `frontend/src`、package manifests 與 build configuration。
 - `README.md`、`STATUS.yaml`、`CHANGELOG.md` 與 `docs/`。
 - 已保留的證據 bundle：`backend/environment_locks/`、`backend/second_case_evidence/`、`backend/seed_variance_evidence/`、`backend/r0_probe_evidence/`。這些是**證據**，內容由 digest 釘住，不得就地編輯或重新產生。
+- `backend/tracked_lineage_evidence/`（**尚未建立**，由 [TRACKED-LINEAGE-TRAINING-V1](TRACKED_LINEAGE_TRAINING_SPEC.md) §7 指定）：該線每 `500,000` 步保留的 policy checkpoint（`.zip`，預估 20 個 ≈ `38 MB`）與 `checkpoint_index.json` **進版控**。這是本 repo 唯一刻意 tracked 的 binary training artifact 目錄，與下節排除的 `backend/rl/checkpoints/` 不同：後者是沒有 frozen environment 的 smoke output，前者是 `PUB-B1` 要求的 lineage 證據，**不得**加進 `.gitignore`，也不得為了縮小 repo 而刪除任何已保留的 checkpoint。
 
 ## 3. Deliberately excluded artifacts
 
@@ -26,7 +27,7 @@ Repository 保存：
 - `frontend/node_modules/`、`frontend/dist/`：可由 lockfile 重建。
 - Python caches、test caches、local virtual environments。
 - `backend/run_traces/`：每次互動產生的 runtime NPZ/manifest；不是公開 immutable evidence bundle。
-- `backend/rl/checkpoints/`、`backend/rl/artifacts/`、training logs：歷史或 smoke training outputs，沒有完整 frozen environment。
+- `backend/rl/checkpoints/`、`backend/rl/artifacts/`、training logs：歷史或 smoke training outputs，沒有完整 frozen environment。**與 `backend/tracked_lineage_evidence/` 不同**——後者是上節指定 tracked 的 lineage 證據。
 - `backend/debug_shot.*`：本機 UI debug screenshot。
 - `.env*`、private keys、local assistant/evaluation state。
 
@@ -46,7 +47,7 @@ Set-Location frontend
 npm run check
 ~~~
 
-第一個命令目前的預期結果是 **1 failed / 816 passed**；唯一的失敗是在具名 environment lock 下記錄為量測結果的 reduction-order 差異（[PROJECT_STATUS §9](PROJECT_STATUS.md)）。**新增任何失敗才算 regression。**
+第一個命令目前的預期結果是 **1 failed / 882 passed**；唯一的失敗是在具名 environment lock 下記錄為量測結果的 reduction-order 差異（[PROJECT_STATUS §9](PROJECT_STATUS.md)）。**新增任何失敗才算 regression。**
 
 發布前另須確認：
 

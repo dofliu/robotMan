@@ -2,6 +2,85 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-14 (v)
+
+### `TRACKED-LINEAGE-TRAINING-V1` 執行完成：`PUB-B1` 達成、`PUB-B2` `NOT_ATTAINED`
+
+- [RESULT] **標籤 `TL_REFERENCE_NOT_ATTAINED`**（[receipt](docs/TRACKED_LINEAGE_TRAINING_RECEIPT_2026-09-14.md)）。五個 scratch replicate 全部訓練完成、全部產出版控 checkpoint lineage，但**沒有任何一個** reference policy 達到事先凍結的 `30/30`：五個皆 `0/30`。
+- [BLOCKER] **這是事先宣告的結果，不是失敗。** 規格 §3、§4.2 與 §9 在看到任何訓練曲線之前就寫明 v5 是經 v1→v5 多輪 curriculum 才到 Live 10/11、單發 scratch 未必能到、`30/30` 很可能得到 `TL_REFERENCE_NOT_ATTAINED`。門檻**不得因此下調**；未達即 `PUB-B2` `NOT_ATTAINED`，那是一項結果。
+- [RESULT] **不對稱的結論，也是本次最重要的一點**：本線**達成了它存在的主要目的**——一條 pretraining provenance 可重建的訓練線現在存在（`PUB-B1`）——但**沒有**產出一個能可靠完成任務的 reference policy（`PUB-B2`）。兩者是不同的事，不可互相代替。
+- [RESULT] 量測：5 replicates、seeds `9100/9112/9124/9136/9148`、每個 realized **恰為 `2,015,232`** 步（五次皆與 amendment 01 的預測相同）、`warm_start` 與 `resume` 全為 null、20 個 checkpoint 共 `39,899,261` bytes（`38.0 MiB`）落在 `499,992`／`999,984`／`1,499,976`／`1,999,968`、無一被 gitignore、digest 與大小皆與磁碟位元組相符。
+- [RESULT] **10 次執行（5 訓練 + 5 評估）gate 全部回 `RUN_LOCK_BOUND`**，環境為 `MEASURED_ENVIRONMENT_LOCK` + `FULL_LOCK` + `AMBIENT_THREADING_PINNED`，其 `locked_sha256 = sha256:93d23a27` 與 2026-09-08 seedvar 執行**逐位元相同**——本線與其前身跑在同一個可量測環境上。
+- [RESULT] 評估對象是 `TL-CK-04` 指定的 reference policy（最後一個保留 checkpoint，`1,999,968` 步），seeds `22000–22029`、每 replicate 30 episodes。五個 replicate 的 `fall_rate` 皆 `1.0`，`150` 個 episode 的 `outcome_state` 全為 `NULL`，平均 `duration_s` 為 `2.477333`／`2.680000`／`2.520000`／`2.811333`／`2.440000`（任務長 `9.0` s），五者平均 `2.585733`。
+- [RESULT] 失敗型態是量到的：跌倒集中在 `2.44`–`2.81` s，而 `STEADY_WALK` 起於 `2.5` s；`mean_saturation_duty_pct = 0.0`、側向 drift `0.219598` m。scratch policy 學到了站立，沒學到起步行走。**但本 receipt 不宣稱「curriculum 是必要的」**——只跑了一個 recipe、一個 budget，沒有對照。
+- [BLOCKER] **`150` 是 forbidden denominator**，不得把結果寫成 `0/150`。判定逐 replicate，method-level 分母恆為 `5`；本線的 method-level 結果是 **`0/5` 個 replicate 達標**。
+- [RESULT] **`TL-01`、`TL-01b`、`TL-02`..`TL-08`、`TL-CK-01`..`TL-CK-06` 全數通過**，因此這是一次乾淨量測的否定結果，**不是** `TL_METHOD_FAILURE`。特別是 `TL_EXPOSURE_SIGNALS_DISAGREE` 在 150 個 episode 上都沒觸發：短 `duration_s` 與非 `OBSERVED` 的 `outcome_state` 每次同時成立。
+- [RESULT] **`TRACKED-LINEAGE-AMENDMENT-02-FINAL-ARTIFACT`**（第三份、也是最後一份）：`TL-CK-03` 要求最終 artifact 是保留 checkpoint 的副本或最後一個，實測**兩者皆不可能**——`policy.zip` 寫於 `learn()` 返回後的 rollout 邊界 `2,015,232`，比最後一個 checkpoint 多 `15,264` 步。更正為「最終 policy artifact 指 `TL-CK-04` 已指定的 reference policy」，並**加嚴**新增 `TL-CK-06`（被評估 policy 的 digest 必須等於某個保留 checkpoint），把原本只是文字的主張變成每次分析都重算的檢查。`policy.zip` 定性為 unretained byproduct，digest 仍記入索引以便日後偵測抽換。
+- [BLOCKER] 否決並記錄的替代方案：把 `policy.zip` 也保留為每 replicate 第 5 個檔案。理由是 repo 成本由負責人接受的 `38 MB` 升為約 `47 MB`，且會留下兩個都像「最終 policy」的檔案——正是 v5 provenance 說不清楚的病灶。若負責人偏好保留，那是 §4.1 成本決定的修改，需要新的 protocol 版本而非 amendment。
+- [BLOCKER] **更正規格 §5 的一個估計**：§5 依 seedvar 實測寫「約 `1,683` steps/s、5 個 replicate ≈ `1.7` 小時」，實測為 `1,133.5` steps/s、`2.469` 小時。估計值不是凍結參數，沒有任何門檻或設計因此改變；記下以免下一個人沿用那個偏樂觀的數字排程。
+- [RESULT] repo `.git` 由 `11 MB` 增為 `47 MB`，落在 §4.1 具名接受的「約 `49 MB`」之內。**20 個已保留 checkpoint 不得刪除**——它們是 `PUB-B1` 的唯一產出，也是任何後續線的可重建起點。
+- [BLOCKER] 後續四條路線（提高 budget／引入 curriculum／改 reward 或環境／改以其他方式解 `PUB-B3`）全部需要**新的 protocol 版本**，並須揭露它是在已知本結果的情況下設計的；`2,000,000` 步上限**不得**事後上調。見 receipt §10。
+- `paper_data_ready` 等四個 flag 全部不變，仍為 `false`。本線是 `DEVELOPMENT`：不解封 `20000–20029`、不觸及 `SELECT-V7-CANDIDATE-FORMAL-V1`、不支持與 v7 線的任何直接數值比較。
+
+## Unreleased — 2026-09-14 (u)
+
+### `TRACKED-LINEAGE-AMENDMENT-01` 與 driver／contract 實作：我在當天凍結裡留下的兩個缺陷
+
+- [BLOCKER] **兩個缺陷都是我自己的，都在任何訓練之前發現並更正，且都不是門檻放寬。**性質先說清楚，否則會被正確地質疑：第一項把初凍結**未指定**的欄位縮到唯一值（收窄），第二項把一個**機制產生不出來的數字**換成實際會產生的數字（更正）。門檻、seed、replicate 數、`checkpoint_interval`、`planned_timesteps` 上限、arm 定義與 `TL-CK-04` 選擇規則**一字未改**。規格 §14 要求變更那五類才需新 protocol 版本，兩項皆不屬於，故以 amendment 處理（作法沿用 `SEEDVAR-AMENDMENT-01` 與 `LOCKBIND-AMENDMENT-01`）。
+- [BLOCKER] **缺陷一：§5 自稱「凍結的訓練設計」，卻沒指定 `environment_id`。** 同樣漏掉 `step_length_m`／`duty`／`clearance_m`（profile id 裡的 `0p7` 只釘住速度），而 `TrainingProfile.environment_id` 是必填 `Literal`——換言之**照初凍結的文字根本寫不出一個合法 profile**，缺的欄位得由實作者當場選，正是本專案的紀律要避免的事。補定為 `motion_task_phase_observable_v5` 與 v5 的 `0.7`／`0.35`／`0.62`／`0.07`。理由不是隨便挑：本線要造 v5 那個不可重建 warm start 的 provenance 可重建替身，而 v5 環境正是這個任務**實際達成過** Live 10/11 的那一個；改用任何 `motion_task_v7_*` 會把本線綁進它明示不觸及的 arm 比較，改用 v6 則引入已被證明不足的 saturation reward。
+- [BLOCKER] **缺陷二：§7.1 的 `500_000` 整數倍 checkpoint 不可達**，與 §4.2 的 `0.98` 完全同類——我寫下了一個機制產生不出來的數字。量測：`save_freq = max(checkpoint_interval // n_envs, 1)` = `500_000 // 12` = `41_666`（整數除法丟掉 `0.67`），SB3 2.9.0 判斷 `n_calls % save_freq == 0` 而 `num_timesteps = n_calls × n_envs`，故實際落點是 `499_992`／`999_984`／`1_499_976`／`1_999_968`。`n_envs = 12` 之下 `500_000` 的整數倍**永遠不可達**（`500000/12` 不是整數），而 `n_envs` 與 `checkpoint_interval` 都已凍結，故正解是更正文件不是改設計。個數 `4`／replicate、合計 `20` **不變**。
+- [RESULT] 連帶更正 realized timesteps 為 `2_015_232`（`⌈2_000_000 / 24_576⌉ × 24_576`，rollout = `n_steps × n_envs` = `2048 × 12`）。**交叉驗證**：同一算式對 seedvar 線的 planned `100_000` 給出 `122_880`，與該線實際記錄的 realized 值完全相同，故這是量到的 driver 行為而非推測。
+- [BLOCKER] `2_015_232 > 2_000_000` **不是上調上限**。上限訂在 `planned_timesteps`，超出的 `15_232` 是 rollout 粒度的既有行為（seedvar 線在同一 driver 上已超出 `22_880` 並記錄接受）。`TL_BUDGET_EXHAUSTED` 仍以凍結的 `2_000_000` 判定，且不得因結果上調。
+- [RESULT] **已知但刻意不改的一項**：規格 §6 小節順序為 `6.1 → 6.4 → 6.2 → 6.3`（§6.4 是凍結前補上而我插錯位置）。重編號會動到 §2 與 §11 目前全部正確的交叉引用，為純版面問題churn 一份 digest 釘住的文件代價大於收益；記在 §15.3 以免下一個人以為是遺漏。
+- **Driver 實作**：`backend/rl/train_ppo.py` 新增第三個互斥身分 `tracked_lineage_protocol_id`（scratch、v5 環境、非 v7 arm，既有 pilot／seedvar 分支的檢查順序**逐行未動**，依規格 §6.1；新的 request guard 是**獨立函式**而非既有函式裡的分支，因為不碰它是不改動它順序最可靠的辦法），並讓 `checkpoint_interval` 由 protocol 決定——原本 `:705` 寫死 `2_000_000`，使 2M 步的 run 一個中間 checkpoint 都不留，那正是 ROADMAP §9 第 2 項要補的缺口。
+- [RESULT] Training seed **不可由命令列到達**：replicate index 由 profile id 推導、seed 由 protocol 依該 index 解析，故沒有任何 invocation 能把一個 profile 配上另一個 replicate 的 seed。新增 5 個 profile `stand_start_walk_stop_0p7_tracked_lineage_b1_r0..r4`。
+- **Contract**：新增 `backend/tracked_lineage_contract.py`（stdlib-only、fail-closed）與 `backend/test_tracked_lineage_contract.py` 共 **65 個測試**，涵蓋 `TL-01`..`TL-08` 與 `TL-01b`，每個準則**雙向**測試（只測 happy path 只證明程式跑得動，不證明 guard 會擋）。五個標籤各有正控制，並有一個測試證明 `TL_METHOD_FAILURE` 不會被降級成其他四個之一。
+- [RESULT] 三層 digest 連鎖補齊：規格 `sha256:7c9d6fe0…` ← protocol `sha256:8d82637d…` ← `tracked_lineage_contract.PROTOCOL_SHA256`；protocol 的 `training_driver_source_sha256` 由 `null` 補釘為 `sha256:2a3f50c0…`，與 superseded 的 `sha256:877da3b4…` 並存。`backend/rl/eval_policy.py` 逐位元仍等於 `sha256:0cf27434…`，由 `TL-01` 每次執行前重算比對。
+- [RESULT] 測試：全套 **1 failed / 882 passed**（512.03 s）。唯一失敗是既有的 `test_stdlib_replay_passes_exact_synthetic_fixture` reduction-order 差異，與 2026-09-13 記錄的同一個，**未新增任何失敗**。數字對得起來：`816 + 1 + 65 = 882`。
+- 仍未執行任何訓練、未產生任何證據、未改任何 flag。
+
+## Unreleased — 2026-09-14 (t)
+
+### `TRACKED-LINEAGE-TRAINING-V1` 凍結：兩格已定案，在修改任何 driver 之前 push
+
+- [RESULT] 專案負責人於 2026-09-14 定案 §4 的兩格，**兩者皆在看到任何訓練曲線之前**——這是本節唯一重要的時序事實，也是這兩個值日後能被引用的唯一理由：
+  - `CHECKPOINT_STORAGE = GIT_DIRECT`，`checkpoint_interval = 500_000`（每 replicate `4` 個、合計 `20` 個 ≈ `38 MB`）。理由是它是唯一同時「離線可驗」且「不需新基礎設施」的組合：本容器沒有 `git lfs`，`RELEASE_ASSETS` 與 `EXTERNAL_IMMUTABLE` 都需要網路才能驗，而 release assets 還可被有寫入權者刪改。
+  - `FULL_EXPOSURE_THRESHOLD = 30/30 = 1.000000`，逐 replicate 判定。理由是 `PUB-B2` 的用途是讓後續比較落在 `R0`／`R1` 而非 `R3`／`R4`；reference 只要還有任何一個 episode 早期終止就仍是 censored，而 v7 線 `between_replicate_sd` 為 null 正是這個原因，`29/30` 會以較輕的形式複製同一個問題。
+- [BLOCKER] **兩項代價在定案時即已知並接受，不得事後當成意外或當成「門檻訂得不合理」的理由**：repo 由 `11 MB` 增為約 `49 MB` 且每條新訓練線再加（第三條線之前應重新評估外部 immutable storage，本 protocol 不預先承諾該轉換）；scratch policy 在 5 個 replicate 上全部做到 30/30 是很高的門檻，**很可能**得到 `TL_REFERENCE_NOT_ATTAINED`。門檻凍結後不得因結果下調——未達門檻是 `PUB-B2` `NOT_ATTAINED`，是一項結果。
+- [RESULT] 新增 [`backend/rl/tracked_lineage_training_protocol.json`](backend/rl/tracked_lineage_training_protocol.json)（`sha256:e5566eb6bbcb3abf7f95ad9a7b25566b59133b70caf9692fe5e52489e25273ae`），其 `specification_sha256` 釘住規格 `sha256:c584ef4e018abad0f73524efc19686a5734002662c6445abf6c68deddfe5357c`。規格狀態由 `DRAFT_TWO_DECISIONS_OPEN` 轉為 `FROZEN_BEFORE_EXECUTION`。
+- [BLOCKER] 三層互釘目前只完成**第一層**：contract 模組的 `PROTOCOL_SHA256` 要到實作 commit 才補上，`source_baseline.training_driver_source_sha256` 在凍結時**刻意為 `null`**——本線的 driver 修改尚未發生，先釘一個還不存在的 digest 等於事後補釘。兩者都由實作 commit 補上並由測試比對。這與 `R0-REGIME-HORIZON-PROBE-V1` 的凍結順序相同：先 push 規則，再寫讀規則的程式。
+- [BLOCKER] **本次凍結 push 時 `train_ppo.py`、`eval_policy.py`、`simulator.py` 三個檔案逐位元未變**（`877da3b4…`／`0cf27434…`／`c27e00a0…`），與 §10 執行順序第 3 步的要求一致。
+- [RESULT] **新增 §6.4，更正我自己在初稿 §6.1 留下的一個假陳述。** 初稿寫「只改 `train_ppo.py`」，但要取得逐控制步 trace 就必須改 `eval_policy.py`——`rl/eval_policy.py:391` 的 `control_step_trace` 只在 `pilot_interface is not None` 時寫出，而那只在 v7 pilot 與 seedvar 路徑成立。改它會弄紅 `test_v7_candidate_selection_contract.py::test_precondition_digests_match_the_pinned_sources`，也就是弄紅一個綁在 owner 已於 2026-09-10 授權的 protocol 上的綠測試。
+- [RESULT] 因此**範圍收窄為 `PUB-B1` 與 `PUB-B2`**：generic evaluation 路徑仍寫出 `duration_s`（`rl/eval_policy.py:325` 為 `round(len(rewards) * 0.02, 3)`，實測 450 步得 `9.0`、449 步得 `8.98`，三位小數可乾淨分離），足以量 full-exposure 比例。`PUB-B3` 需要另一份 protocol，且該 protocol 必須先處理 `eval_policy.py` 這個 owner-gated 問題。§8.3 具名列出本線**量不到**什麼：任何 saturation 重算、任何 `R0`..`R5` regime 分類、任何可與 `V7_EXPOSURE_CENSORING_AUDIT` 比較的 exposure 分析。
+- [BLOCKER] generic 路徑**沒有** v7／seedvar 路徑那兩道 `*_EVALUATION_SEED_SCHEDULE_OVERRIDE_FORBIDDEN` 保護（`rl/eval_policy.py:124`、`:161`），所以 seed schedule 只能在**分析期**強制。新增驗收 `TL-01b`：保留輸出的 `evaluation_seeds` 必須恰為 `22000..22029`，不符即 `TL_METHOD_FAILURE`。
+- 未執行任何訓練、未產生任何證據、未改任何 flag。`paper_data_ready` 等四個 flag 不變。
+
+## Unreleased — 2026-09-13 (s)
+
+### `TRACKED-LINEAGE-TRAINING-V1` 草稿：新訓練線的設計，兩格待專案負責人決定
+
+- 新增 [TRACKED_LINEAGE_TRAINING_SPEC](docs/TRACKED_LINEAGE_TRAINING_SPEC.md)，狀態 `DRAFT_TWO_DECISIONS_OPEN`。**尚未凍結、沒有 protocol JSON、沒有任何 digest 被釘住**；§4 填定後才 freeze、push、執行。
+- [RESULT] **凍結的設計決定：必須 scratch，不得 warm start。** [ROADMAP §9 第 2 項](docs/ROADMAP.md) 原文是「scratch **或** tracked warm start」，本規格收窄為 scratch。版控內唯一的 warm start 候選是 v5 artifact——它的**檔案**可由 digest 重建，**訓練過程**不可重建，而那正是本線要移除的缺陷。從它 warm start 會原封不動保留 `CONDITIONAL_ON_FIXED_WARM_START`：用一條新線去複製它要移除的限制，等於沒做。
+- [BLOCKER] 代價明說：scratch 比 fine-tune 難得多，v5 是經 v1→v2→v3→v4→v5 多輪 curriculum 才到 Live 10/11，單發 scratch 未必能到。§9 預先宣告 `TL_REFERENCE_NOT_ATTAINED` 與 `TL_BUDGET_EXHAUSTED` 為**結果而非失敗**，且上限不得因結果上調。
+- [RESULT] 凍結：5 replicates、training seeds `9100/9112/9124/9136/9148`（與既有 11 個全部不相交、environment seed block 互不重疊）、`parallel_envs 12`、上限 `2,000,000` steps／replicate、evaluation seeds `22000–22029`（全新）。`18000–18029` EXHAUSTED、`19000–19029` retired、`20000–20029` sealed 三者皆不得使用。
+- [RESULT] 依 seedvar 實測吞吐（約 `1,683` steps/s）估 `2M` steps ≈ 20 分／replicate、5 個 ≈ 1.7 小時。容器為 ephemeral，故執行順序要求**逐 replicate** 保留而非全部跑完才保留。
+- [BLOCKER] 本線會修改 `backend/rl/train_ppo.py`，使已執行 seedvar protocol 的 `training_driver_source_sha256` 對活著的 repo 不再為真。§6.2 要求本 protocol **同時保留兩個 digest** 並具名揭露——這正是 [RUN_MANIFEST_LOCK_BINDING_SPEC §15.4](docs/RUN_MANIFEST_LOCK_BINDING_SPEC.md) 指定的揭露位置。§6.3 另補上 seedvar 沒有的執行期 digest 重算。
+- [BLOCKER] `TL-CK-04`：reference checkpoint 的選擇規則必須在**看到評估結果之前**凍結。v5 的 checkpoint 是看過結果後從一個 regressed run 裡挑出來的，那是它 provenance 說不清楚的原因之一；本線不得重演。
+- 兩格待決（見 §4，皆須在看到任何訓練曲線之前固定）：`CHECKPOINT_STORAGE`（無 git-lfs、`.git` 現 11 MB；`500k` 間隔 20 個 ≈ 38 MB，`250k` 間隔 40 個 ≈ 76 MB；建議 `GIT_DIRECT` + `500k`，因為它是唯一同時離線可驗且不需新基礎設施的組合）與 `FULL_EXPOSURE_THRESHOLD`（建議 `30/30`）。
+- [BLOCKER] §4.2 初稿的精度錯誤已就地更正：初稿建議的 `0.98` 在本設計下**不存在**——判定是逐 replicate，而每個 replicate 只有 30 個 episode，`0.98` 會進位成 `30/30`。真正可選的只有 `30/30` 與 `29/30`（`28/30` 比 v7 reference 還鬆，不可取）。
+
+## Unreleased — 2026-09-13 (r)
+
+### `LOCKBIND-AMENDMENT-01-LB12-SCOPE`：修掉我自己在 `LB-12` 留下的過度約束
+
+- [BLOCKER] **缺陷**：`LB-12` 條文宣稱「**本 contract** 的實作沒有修改 `train_ppo.py`／`eval_policy.py`／`simulator.py`」，但實作出來的測試比對的是**工作樹當下**的內容。那回答的是另一個問題——「有沒有任何人在任何時候改過」——屬於各檔案自己的 contract，本 contract 沒有立場加這道限制。兩種讀法在實作當下給出相同答案，所以驗收時沒有顯現，只在**未來的修改**上分歧。
+- [RESULT] **具體傷害**：[ROADMAP §9 第 2 項](docs/ROADMAP.md) 的新訓練線必須改 `backend/rl/train_ppo.py`——`:705` 的 `checkpoint_interval = 2_000_000` 使 2M timesteps 以下的 run **不保存任何中間 checkpoint**，而「有版控 checkpoint lineage」正是該項的定義。在原始 `LB-12` 之下，那次修改會讓一個無關的 contract 變紅，唯一出路是修改凍結的驗收條件——正是本專案最不該養成的習慣。
+- [RESULT] **更正**：`LB-12` 改以 git 讀取凍結父 commit `501a7ee` 與實作 commit `c4bd470` 兩點的內容比對，把主張固定成不受未來影響的歷史事實；另新增一個測試斷言本 contract **不**凍結這三個檔案，並在 protocol 內具名各檔案的持續保護歸屬。實測：`train_ppo.py` 改成非釘住值後本 contract 63 測試全綠，同樣修改在原版為紅。
+- [BLOCKER] **這不是門檻放寬**，必須明說否則會被正確地質疑：條文主張一字未改，本 contract 的實作仍然不得修改那三個檔案。放寬會是把「不得修改」改成「可以修改」；本次沒有。更正後**更強**——原版只在工作樹恰好乾淨時成立，之後無法區分「本 contract 動過手腳」與「別人後來改過」。
+- [RESULT] `train_ppo.py` **在執行期無人重算**這個缺口（規格 §2.3）**不在此處補**。正確位置是修改該 driver 的那條線自己的 protocol：它必須具名記載自己的 driver 與 2026-09-08 保留證據所用的 driver 不同並同時保留兩個 digest。曾考慮並否決的 `LB-13`（在本 protocol 內設 source-drift 登記簿）理由記於規格 §15.4，以免下一個人以為沒想過。
+- Digest 連鎖重 pin：規格 `1b3a7b26…` → `717bb910…`；protocol `2e3bde9a…` → `5202173f…`；`run_manifest_lock.PROTOCOL_SHA256` 同步。於**任何保留證據依賴本 contract 之前**套用，不使任何既有證據失效。
+- `LB-01`..`LB-11`、五個標籤、兩個 digest 詞彙、範圍、`simulator.py` 例外、capture-before-run、分析期 gate、前向立場與 claim boundary 全部逐字不變。
+
 ## Unreleased — 2026-09-13 (q)
 
 ### 文件整理：去重、修正過期陳述、對齊 `RUN-MANIFEST-LOCK-BINDING-V1`

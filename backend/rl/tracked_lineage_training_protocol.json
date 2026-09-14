@@ -1,0 +1,242 @@
+{
+  "acceptance_criteria": [
+    "TL-01 before execution the digests of train_ppo.py and eval_policy.py are re-derived and compared with the protocol pins; eval_policy.py must equal its unmodified 2026-09-14 value and train_ppo.py must equal this line's declared new value; either mismatch refuses to run",
+    "TL-01b the retained evaluation output's evaluation_seeds are exactly 22000..22029; otherwise TL_METHOD_FAILURE",
+    "TL-02 the protocol carries both the current and the superseded training driver digest; a missing one fails closed",
+    "TL-03 every profile has warm_start_policy_id and resume null; non-null fails closed",
+    "TL-04 the five training seeds are disjoint from the eleven already in use and their environment seed blocks do not overlap; a violation fails closed",
+    "TL-05 every evaluation seed lies in 22000..22029; touching 18000-18029, 19000-19029 or 20000-20029 fails closed",
+    "TL-06 the checkpoint sequence satisfies TL-CK-01 through TL-CK-03; a gap, duplicate or digest mismatch fails closed",
+    "TL-07 every run's run_lock_binding.json is judged RUN_LOCK_BOUND by the gate",
+    "TL-08 each of the five labels has a positive control test, and TL_METHOD_FAILURE has a test proving it is never downgraded"
+  ],
+  "analysis_unit": {
+    "forbidden_denominators": [
+      30,
+      150,
+      450
+    ],
+    "method_level_denominator": 5,
+    "note": "Inherited from SEEDVAR-V7-TRAINING-REPLICATE-DEV-V1. 30 is added because this line's per-replicate episode count is 30; an episode-level denominator is never a method-level one.",
+    "unit": "training_replicate"
+  },
+  "checkpoint_lineage": {
+    "TL-CK-04_rationale": "v5's checkpoint was chosen after its results were seen, out of a run that had regressed. That is part of why its provenance cannot be explained. This line must not repeat it.",
+    "accepted_cost": "The repository grows from about 11 MB to about 49 MB, and every future training line adds more. Re-evaluate before a third line. No retained checkpoint may ever be deleted to save space; deleting one destroys this line's only output.",
+    "approximate_total_bytes": 39845888,
+    "filename_pattern": "r<replicate_index>-<realized_timesteps zero-padded to 7>.zip, e.g. r0-0499992.zip",
+    "index_path": "backend/tracked_lineage_evidence/<execution date>/checkpoint_index.json",
+    "must_not_be_gitignored": true,
+    "per_replicate_count": 4,
+    "root": "backend/tracked_lineage_evidence/<execution date>/checkpoints/",
+    "rules": {
+      "TL-CK-01": "each retained checkpoint records relative_path, bytes, sha256, realized_timesteps and replicate_index",
+      "TL-CK-02": "per replicate the checkpoints are strictly increasing in realized_timesteps with no gap and no duplicate",
+      "TL-CK-03": "the final policy artifact, meaning the reference policy TL-CK-04 designates, is each replicate's last retained checkpoint - see amendment 02; the driver's policy.zip is an unretained byproduct at a different step count and is never this line's output",
+      "TL-CK-04": "the rule selecting which checkpoint becomes the reference policy is frozen BEFORE any evaluation result is seen: the last checkpoint of each replicate",
+      "TL-CK-05": "every run is executed through backend/rl/bind_run_lock.py and the gate must return RUN_LOCK_BOUND; a RUN_LOCK_UNBOUND run is not evidence for this line",
+      "TL-CK-06": "the SHA-256 of the evaluated policy equals the SHA-256 of one retained checkpoint; otherwise TL_METHOD_FAILURE"
+    },
+    "storage": "GIT_DIRECT",
+    "total_count": 20,
+    "why_git_direct": "It is the only option that is both offline-verifiable and free of new infrastructure: anyone can re-hash the files straight out of the repository with no network and no trust in the index. git-lfs is not installed here and not enabled on the repository; release assets and external stores are mutable by their owners and need a network at verification time.",
+    "expected_realized_timesteps": [
+      499992,
+      999984,
+      1499976,
+      1999968
+    ],
+    "expected_realized_timesteps_note": "Corrected by amendment 01. save_freq = checkpoint_interval // n_envs = 500000 // 12 = 41666 and SB3 2.9.0 fires on n_calls % save_freq == 0 with num_timesteps = n_calls * n_envs, so multiples of 500000 are unreachable at n_envs = 12. Count per replicate stays 4 and the total stays 20.",
+    "unretained_byproduct": "backend/rl/artifacts/<run_id>/policy.zip, saved at realized_timesteps rather than at a checkpoint boundary. Not version-controlled, not evaluated, recorded by digest only."
+  },
+  "claim_boundary": [
+    "Supports only that a DEVELOPMENT training line with reconstructable pretraining provenance exists, and that line's reference-policy full-exposure proportion on seeds 22000-22029 (PUB-B1, PUB-B2).",
+    "Supports no controller superiority, no FORMAL_EVALUATION conclusion, and no change to paper_data_ready, statistics_ready, method_level_power_ready or sample_size_decision_input_ready.",
+    "Supports no direct numeric comparison with the v7 line: different driver, different starting point, different seeds.",
+    "Supports no saturation, censoring-regime or exposure analysis; this line does not produce control_step_trace.",
+    "Supports no physical feasibility, safety or sim-to-real claim.",
+    "Even at TL_REFERENCE_ATTAINED, PUB-B3 still needs a separate variance measurement and PUB-B4 external preregistration still precedes unsealing. This line does not unseal 20000-20029."
+  ],
+  "evaluation_design": {
+    "driver": "backend/rl/eval_policy.py generic path",
+    "driver_is_modified": false,
+    "episodes_per_replicate": 30,
+    "evaluation_seed_end": 22029,
+    "evaluation_seed_start": 22000,
+    "forbidden_seed_ranges": {
+      "18000-18029": "DEVELOPMENT_EXHAUSTED",
+      "19000-19029": "retired_seed_range",
+      "20000-20029": "sealed FORMAL"
+    },
+    "full_exposure_cross_check": "An early termination makes duration_s < 9.0 and simultaneously makes outcome_state NULL (EARLY_TERMINATION_REQUIRED_OUTCOME_UNOBSERVED). If the two disagree, that is TL_METHOD_FAILURE rather than a reason to trust one of them.",
+    "full_exposure_rule": "duration_s == 9.0 AND outcome_state == 'OBSERVED'",
+    "horizon_control_steps": 450,
+    "measured_resolution": "duration_s = round(len(rewards) * 0.02, 3) at rl/eval_policy.py:325, so 450 control steps gives 9.0 and 449 gives 8.98 - cleanly separable at three decimals.",
+    "not_measured": [
+      "any per-control-step saturation recomputation or truncated-horizon analysis",
+      "any censoring regime (R0..R5) classification",
+      "any exposure analysis comparable with V7_EXPOSURE_CENSORING_AUDIT_SPEC or R0_REGIME_PROBE_SPEC"
+    ],
+    "not_measured_reason": "control_step_trace is written only when pilot_interface is not None (rl/eval_policy.py:391), which is true only on the v7 pilot and seedvar paths. Obtaining it would require editing eval_policy.py - see source_baseline.eval_policy_not_modified.",
+    "output_schema": "RL_TRAINING_ENV_EVALUATION_V3",
+    "seed_schedule_enforcement": "ANALYSIS TIME ONLY. The generic path has no *_EVALUATION_SEED_SCHEDULE_OVERRIDE_FORBIDDEN guard, unlike the v7 and seedvar paths, so the contract must compare the retained output's evaluation_seeds against 22000..22029 and fail closed. This is weaker than driver-level enforcement and is recorded rather than left for a reader to discover.",
+    "total_episodes": 150
+  },
+  "evidence_scope": "SIM_ONLY_MUJOCO",
+  "execution_order": [
+    "the project owner fixes CHECKPOINT_STORAGE and FULL_EXPOSURE_THRESHOLD (done 2026-09-14)",
+    "complete the specification's section 7 storage rules from that decision (done)",
+    "freeze this protocol and docs/TRACKED_LINEAGE_TRAINING_SPEC.md, commit and push; no driver may be edited before this push",
+    "edit train_ppo.py per specification section 6.1, implement the contract and tests, pin the new training driver digest",
+    "run replicate by replicate: train, retain checkpoints, evaluate, commit and push immediately - the container is ephemeral",
+    "analyse, write the receipt, align the project documents"
+  ],
+  "frozen_date": "2026-09-14",
+  "full_exposure_threshold": {
+    "accepted_cost": "A scratch policy reaching 30/30 on all five replicates is a high bar and TL_REFERENCE_NOT_ATTAINED is a likely outcome. That was known and accepted when the threshold was fixed and may not later be used as an argument that the threshold was unreasonable.",
+    "attainable_values_note": "TL_REFERENCE_ATTAINED is judged per replicate over 30 episodes, so attainable proportions are thirtieths. The realistic choice was 30/30 versus 29/30; 28/30 = 0.933333 is looser than the v7 reference's 0.953333 and was struck out.",
+    "judged": "per replicate",
+    "may_not_be_lowered": "A threshold may never be lowered on account of a result. Missing it is PUB-B2 NOT_ATTAINED, which is a result.",
+    "numeric": 1.0,
+    "reason": "Any early termination leaves the reference censored, which is exactly why between_replicate_sd is null on the v7 line. 29/30 reproduces the problem in milder form and PUB-B3 stays blocked.",
+    "reference_points": {
+      "V7A_REWARD_ONLY": "143/150 = 0.953333",
+      "V7B_REDUCED_JOINT_ENVELOPE": "120/150 = 0.8",
+      "V7C_FILTERED_ACTION": "0/150"
+    },
+    "value": "30/30"
+  },
+  "outcome_labels": {
+    "TL_BUDGET_EXHAUSTED": "the threshold is not reached within the 2,000,000 step ceiling and the curve has not converged",
+    "TL_METHOD_FAILURE": "any contract violation: driver digest mismatch, a gap in the checkpoint sequence, RUN_LOCK_UNBOUND, a seed outside 22000..22029, duration_s disagreeing with outcome_state, or any run that crashed",
+    "TL_REFERENCE_ATTAINED": "all five replicates reach the full-exposure threshold",
+    "TL_REFERENCE_NOT_ATTAINED": "no replicate reaches it",
+    "TL_REFERENCE_PARTIAL": "at least one but not all replicates reach it"
+  },
+  "outcome_semantics": "The first four are results and must be reported as such; only TL_REFERENCE_ATTAINED lets PUB-B2 pass. TL_METHOD_FAILURE is never downgraded to any of the others. TL_BUDGET_EXHAUSTED may not be answered by raising the ceiling.",
+  "owner_decisions": {
+    "CHECKPOINT_STORAGE": "GIT_DIRECT",
+    "FULL_EXPOSURE_THRESHOLD": "30/30",
+    "decided_before_any_training_curve": true,
+    "decided_date": "2026-09-14",
+    "note": "Both were fixed before any training curve existed; that ordering is the only fact about this section that matters."
+  },
+  "protocol_id": "TRACKED-LINEAGE-TRAINING-V1",
+  "protocol_status": "FROZEN_BEFORE_EXECUTION",
+  "publication_gates": [
+    "PUB-B1",
+    "PUB-B2"
+  ],
+  "purpose": "Create a training line whose pretraining provenance can be reconstructed, so that PUB-B3's point-valued between-replicate SD becomes possible in principle. Everything the v7 line measured carries CONDITIONAL_ON_FIXED_WARM_START permanently, because its v5 warm start came from a gitignored local artifact whose own training cannot be reconstructed.",
+  "run_class": "DEVELOPMENT",
+  "schema_version": "TRACKED_LINEAGE_TRAINING_PROTOCOL_V1",
+  "scratch_only": {
+    "accepted_cost": "Scratch is far harder than fine-tuning. v5 reached Live 10/11 only through a v1 to v5 curriculum, so a single scratch run may not get there. TL_REFERENCE_NOT_ATTAINED is pre-declared as a result, not a failure.",
+    "narrows_roadmap": "ROADMAP section 9 item 2 allows 'scratch or tracked warm start'. This protocol narrows it to scratch.",
+    "reason": "The only warm-start candidate in version control is the v5 artifact. Its FILE is reproducible by digest; its TRAINING is not, which is the exact defect this line exists to remove. Warm-starting from it would carry CONDITIONAL_ON_FIXED_WARM_START through unchanged - a new line reproducing the limitation it was built to remove.",
+    "rule": "Every replicate trains from scratch: warm_start_policy_id and resume are both null."
+  },
+  "source_baseline": {
+    "eval_policy_not_modified": "This line does NOT modify eval_policy.py. Editing it would turn test_v7_candidate_selection_contract.py::test_precondition_digests_match_the_pinned_sources red, because that test re-hashes the file against the pin in SELECT-V7-CANDIDATE-FORMAL-V1 - the protocol the project owner authorized on 2026-09-10 against sha256:b4e16370b5744c510fa11b06343dafb3c1893711639721a406504720bbe99b58. Amending that protocol and re-pinning v7_candidate_selection_contract.PROTOCOL_SHA256 would leave the authorization pointing at a protocol that no longer exists, which is an owner decision and not this protocol's to make.",
+    "evaluation_driver_source": "backend/rl/eval_policy.py",
+    "evaluation_driver_source_sha256": "sha256:0cf274341a10a56fbf544d86eab4bfbfd6f630056689280af51aff111b0058d4",
+    "rejected_alternative": "A dedicated evaluation driver for this line. SEEDVAR-AMENDMENT-01 already recorded why that loses: comparability rests on the drivers being the same file rather than two similar ones, and silent divergence between copies is the larger hazard.",
+    "superseded_disclosure": "That is the digest SEEDVAR-V7-TRAINING-REPLICATE-DEV-V1 pins and the one behind the 2026-09-08 retained evidence. Nothing re-derives that pin at runtime, so once this line edits the driver the pin stops being true of the live repository. RUN_MANIFEST_LOCK_BINDING_SPEC section 15.4 designates this protocol as the place that discloses it. Any narrative placing this line's numbers beside the seed-variance numbers must carry the fact that they came from different drivers.",
+    "superseded_training_driver_source_sha256": "sha256:877da3b41e7c44ce73758877f40e257e45c6203b045eb9e2d3cd5aa6f606f6ce",
+    "training_driver_source": "backend/rl/train_ppo.py",
+    "training_driver_source_sha256": "sha256:2a3f50c0bb64c5af720d406f4ace103fe8af19f0c17d65762d6815a52faaff59",
+    "training_driver_source_sha256_note": "Pinned in the implementation commit, as the freeze said it would be: null at freeze time because pinning a digest for a driver change that had not been made yet would be a pin written after the fact. This is the digest of backend/rl/train_ppo.py AFTER this line's edit, and it differs from superseded_training_driver_source_sha256, the digest SEEDVAR-V7-TRAINING-REPLICATE-DEV-V1 pins and the one behind the 2026-09-08 retained evidence. Nothing re-derives that pin at runtime, so from this commit onward it is no longer true of the live repository - which is the fact this protocol exists to disclose, per RUN_MANIFEST_LOCK_BINDING_SPEC section 15.4."
+  },
+  "specification_path": "docs/TRACKED_LINEAGE_TRAINING_SPEC.md",
+  "specification_sha256": "sha256:96bbae557de189ab3c96f698447dbbe2c6630a405992b35b112075bb6bbee674",
+  "training_design": {
+    "ceiling_rule": "Fixed before any curve was seen and never raised. TL_BUDGET_EXHAUSTED may not be answered by raising it; that requires a new protocol version disclosing it was designed with the result already known.",
+    "checkpoint_interval": 500000,
+    "environment_seed_blocks": [
+      [
+        9100,
+        9111
+      ],
+      [
+        9112,
+        9123
+      ],
+      [
+        9124,
+        9135
+      ],
+      [
+        9136,
+        9147
+      ],
+      [
+        9148,
+        9159
+      ]
+    ],
+    "parallel_envs": 12,
+    "planned_timesteps_is_a_ceiling": true,
+    "planned_timesteps_per_replicate": 2000000,
+    "profile_id_pattern": "stand_start_walk_stop_0p7_tracked_lineage_b1_r<replicate_index>",
+    "profile_protocol_field": "tracked_lineage_protocol_id",
+    "replicate_count": 5,
+    "seeds_disjoint_from_existing": [
+      1400,
+      1700,
+      2000,
+      2700,
+      3700,
+      4700,
+      5700,
+      6700,
+      7700,
+      8700,
+      8720
+    ],
+    "task_id": "stand_start_walk_stop_v1",
+    "training_seeds": [
+      9100,
+      9112,
+      9124,
+      9136,
+      9148
+    ],
+    "environment_id": "motion_task_phase_observable_v5",
+    "gait": {
+      "speed_mps": 0.7,
+      "step_length_m": 0.35,
+      "duty": 0.62,
+      "clearance_m": 0.07
+    },
+    "gait_source": "Field for field the same as the stand_start_walk_stop_0p7_phase_observable_v5 profile in backend/rl/training_profiles.json. Added by amendment 01; the initial freeze pinned only the speed, through the 0p7 in the profile id.",
+    "realized_timesteps_per_replicate": 2015232,
+    "realized_timesteps_note": "SB3 collects whole rollouts of n_steps * n_envs = 24576 and stops at num_timesteps >= total_timesteps, so planned 2000000 realizes as 82 * 24576 = 2015232. The overshoot is rollout granularity, not a raised ceiling; the same arithmetic reproduces the seedvar line's recorded 122880 from its planned 100000. TL_BUDGET_EXHAUSTED is judged against planned_timesteps_per_replicate."
+  },
+  "amendments": [
+    {
+      "amendment_id": "TRACKED-LINEAGE-AMENDMENT-01-PROFILE-AND-STEP-ARITHMETIC",
+      "date": "2026-09-14",
+      "kind": "narrowing_only_execution_before",
+      "applied_before_any_execution": true,
+      "falsifies_retained_evidence": false,
+      "item_1_environment_id": "The initial freeze called section 5 the frozen training design but never specified environment_id, which train_ppo.TrainingProfile requires as a Literal, nor speed_mps, step_length_m, duty or clearance_m - only the 0p7 in the frozen profile id pinned the speed. A legal profile could not be written from the frozen text, and the missing fields would have been chosen by whoever implemented it. Narrowed to motion_task_phase_observable_v5 with 0.7 / 0.35 / 0.62 / 0.07, field for field the same as the stand_start_walk_stop_0p7_phase_observable_v5 profile. Not an arbitrary pick: this line exists to build a provenance-reconstructable stand-in for v5's unreconstructable warm start, and the v5 environment is the one where the task was actually achieved at Live 10/11. Any motion_task_v7_* environment would tie this line into the arm comparison section 2 item 2 says it does not touch, and motion_task_substep_saturation_v6 would import the saturation reward v6 already showed to be insufficient.",
+      "item_2_step_arithmetic": "Section 7.1 said the four checkpoints per replicate fall at 500000/1000000/1500000/2000000. Measured false, the same class of error as the 0.98 threshold in section 4.2: a number the mechanism cannot produce. train_ppo.py builds CheckpointCallback with save_freq = max(checkpoint_interval // n_envs, 1); SB3 2.9.0 tests self.n_calls % self.save_freq == 0 where n_calls advances once per VECTORIZED step while num_timesteps advances by n_envs. So save_freq = 500000 // 12 = 41666, integer division dropping 0.67, and the checkpoints actually land at 499992 / 999984 / 1499976 / 1999968. Multiples of 500000 are unreachable at n_envs = 12 because 500000/12 is not an integer, and neither n_envs nor checkpoint_interval may move, so the document is corrected rather than the design. Count per replicate stays 4 and the total stays 20.",
+      "item_2_realized_timesteps": "Consequently realized timesteps are corrected too: SB3 collects rollouts of n_steps * n_envs = 2048 * 12 = 24576 and learn() runs until num_timesteps >= total_timesteps, so planned 2000000 realizes as ceil(2000000/24576) * 24576 = 82 * 24576 = 2015232. The same arithmetic applied to the seedvar line's planned 100000 gives 122880, identical to the realized value SEEDVAR-V7-TRAINING-REPLICATE-DEV-V1 actually recorded, so this is measured driver behaviour rather than a guess. 2015232 > 2000000 is NOT a raised ceiling: the ceiling is on planned_timesteps, the 15232 overshoot is pre-existing rollout granularity already recorded and accepted on this driver (100000 -> 122880, a 22880 overshoot), and TL_BUDGET_EXHAUSTED is still judged against the frozen planned_timesteps of 2000000, which may not be raised on account of a result.",
+      "unchanged_word_for_word": "FULL_EXPOSURE_THRESHOLD, checkpoint_interval, the five training seeds, replicate_count, the planned_timesteps ceiling, the arm and task definitions, and the TL-CK-04 selection rule. Section 14 requires a NEW PROTOCOL VERSION for changes to thresholds, seeds, budget, arm definitions or selection rules; neither item falls in those five classes, so an amendment with a re-pinned digest chain is the correct instrument, as in SEEDVAR-AMENDMENT-01 and LOCKBIND-AMENDMENT-01.",
+      "known_defect_not_corrected": "Section 6's subsections run 6.1, 6.4, 6.2, 6.3 because 6.4 was inserted in the wrong place before the freeze. Deliberately left alone: renumbering would move the cross-references in sections 2 and 11, all of which are currently correct, and churning a digest-pinned document for a cosmetic issue costs more than it returns."
+    },
+    {
+      "amendment_id": "TRACKED-LINEAGE-AMENDMENT-02-FINAL-ARTIFACT",
+      "date": "2026-09-14",
+      "kind": "narrowing_only_evaluation_before",
+      "applied_before_any_evaluation": true,
+      "falsifies_retained_evidence": false,
+      "measured_fact": "Replicate 0's retention dry-run measured that TL-CK-03 as written cannot be satisfied in this configuration. CheckpointCallback's last save lands at 1999968 because it fires on n_calls % save_freq, while model.save() runs after learn() returns, when num_timesteps is already the rollout boundary 2015232. The two files are 15264 steps apart: last checkpoint sha256:7df3fbae..., policy.zip sha256:6378115d..., both 1983087 bytes. So policy.zip is neither a copy of a retained checkpoint nor the last one, and never will be.",
+      "correction": "TL-CK-03's 'final policy artifact' means the reference policy designated by TL-CK-04, that is each replicate's LAST RETAINED CHECKPOINT, which satisfies TL-CK-03's own second clause. This is not a reading chosen after the fact to pass: TL-CK-04 designated the last checkpoint as the reference at freeze time, so this line's evidence chain never ran through policy.zip. The defect is that TL-CK-03 used a phrase that means something else in the driver's vocabulary.",
+      "tightened": "New TL-CK-06: the SHA-256 of the evaluated policy must equal the SHA-256 of one retained checkpoint, or TL_METHOD_FAILURE. What was an assertion in prose is now recomputed on every analysis.",
+      "byproduct_rule": "policy.zip is an unretained byproduct: it lives in the gitignored run directory, is not version-controlled, is not evaluated, and may not be presented as this line's output. Its digest is still recorded in checkpoint_index.json as unretained_byproduct_sha256, so the fact that it exists and was not used is itself on the record and a later substitution would be detectable.",
+      "rejected_alternative": "Retaining policy.zip as a fifth file per replicate. Rejected for two reasons: it raises the repository cost from the 38 MB the project owner accepted as part of the section 4.1 decision to about 47 MB; and TL-CK-04 already designates the last checkpoint as the reference, so keeping a file that is never used and is 15264 steps further trained would create two things that both look like the final policy - exactly the pathology that makes v5's provenance unexplainable. If the owner prefers to retain it, that is a change to the section 4.1 cost decision and needs a new protocol version, not an amendment.",
+      "unchanged_word_for_word": "checkpoint_interval, 4 per replicate, 20 total, the 38 MB estimate, FULL_EXPOSURE_THRESHOLD, the seeds, the budget and TL-CK-04's selection rule."
+    }
+  ]
+}

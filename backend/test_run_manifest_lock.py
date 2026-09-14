@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import ast
 import copy
+import hashlib
 import json
 import shutil
 import sys
@@ -93,18 +94,66 @@ def test_a_retagged_protocol_is_refused_rather_than_silently_repinned(tmp_path):
 # --------------------------------------------------------------------------- #
 
 
-def test_lb12_the_immutable_sources_are_byte_unchanged():
-    """The promise 'I will not edit these' is checked, not asserted.
+def _git_blob_sha256(commit: str, relative: str) -> str | None:
+    """SHA-256 of a file's contents at one commit, or None if git cannot answer."""
+    import subprocess
 
-    rl/eval_policy.py is re-hashed by the candidate-selection contract against an
-    owner-authorized protocol; rl/train_ppo.py is pinned by an executed protocol
-    that nothing re-derives; simulator.py enters a deterministic content hash.
+    completed = subprocess.run(
+        ["git", "-C", str(REPO_ROOT), "show", f"{commit}:{relative}"],
+        capture_output=True,
+    )
+    if completed.returncode != 0:
+        return None
+    return "sha256:" + hashlib.sha256(completed.stdout).hexdigest()
+
+
+def test_lb12_this_contract_did_not_edit_the_three_pinned_sources():
+    """The promise is 'THIS contract did not edit these', so check that.
+
+    LOCKBIND-AMENDMENT-01-LB12-SCOPE: the original version compared the working
+    tree, which answers 'has anyone ever edited them' - a different question,
+    belonging to each file's own contract rather than to this one. Both readings
+    agreed at implementation time; they diverge only on future edits, which the
+    criterion never spoke about. Reading the two commits from git fixes the claim
+    as a historical fact that no later commit can alter.
     """
     pinned = rml.load_protocol()["immutable_sources"]
-    for relative, digest in pinned.items():
-        if relative == "rule":
-            continue
-        assert rml.sha256_file(REPO_ROOT / relative) == digest, relative
+    commits = pinned["verified_at_commits"]
+    sources = {
+        key: value for key, value in pinned.items()
+        if key.endswith(".py") and isinstance(value, str)
+    }
+    assert len(sources) == 3, sorted(sources)
+
+    checked = 0
+    for label, commit in commits.items():
+        for relative, digest in sources.items():
+            actual = _git_blob_sha256(commit, relative)
+            if actual is None:
+                pytest.skip(f"git history for {commit} is unavailable in this checkout")
+            assert actual == digest, f"{label} {commit[:7]} {relative}"
+            checked += 1
+    assert checked == 6, checked
+
+
+def test_lb12_does_not_freeze_those_files_for_the_rest_of_the_repository():
+    """Section 15.3: this contract constrains itself, not everyone forever.
+
+    A future line that legitimately edits rl/train_ppo.py - ROADMAP section 9
+    item 2 needs to, because checkpoint_interval is 2_000_000 for full runs and
+    lineage requires intermediate checkpoints - must not turn this contract red.
+    Ongoing protection is named per file and lives in those contracts.
+    """
+    protection = rml.load_protocol()["immutable_sources"]["ongoing_protection"]
+    assert set(protection) == {
+        "backend/rl/eval_policy.py",
+        "backend/rl/train_ppo.py",
+        "backend/simulator.py",
+    }
+    # The gap is named rather than quietly patched here (section 15.4).
+    assert protection["backend/rl/train_ppo.py"].startswith("NONE")
+    for path in ("backend/rl/eval_policy.py", "backend/simulator.py"):
+        assert "test_" in protection[path], path
 
 
 # --------------------------------------------------------------------------- #

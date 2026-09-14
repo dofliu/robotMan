@@ -108,3 +108,23 @@
 ## 8. 沒有改變的事
 
 `paper_data_ready`、`statistics_ready`、`method_level_power_ready`、`sample_size_decision_input_ready` 皆為 false 不變。沒有訓練、沒有評估、沒有動任何 seed、沒有存取 `19000–19029` 或 `20000–20029`。沒有修改任何既有 protocol、門檻、arm 定義或 claim。`SELECT-V7-CANDIDATE-FORMAL-V1` 的三個 execution precondition 與其 `PROTOCOL_SHA256` 逐位元不變；`PUB-A`／`PUB-B` 所有 gate 狀態不變。
+
+## 9. Amendment `LOCKBIND-AMENDMENT-01-LB12-SCOPE`（同日）
+
+[BLOCKER] 本 receipt §5 記錄 `LB-12` PASS，那仍然為真；但**該條的量測方式當時是錯的**，同日已由 [規格 §15](RUN_MANIFEST_LOCK_BINDING_SPEC.md) 的 amendment 更正。
+
+[RESULT] 缺陷：`LB-12` 條文宣稱的是「**本 contract** 的實作沒有修改這三個檔案」，實作出來的測試卻比對**工作樹當下**的內容——那回答的是「有沒有任何人在任何時候改過」，屬於各檔案自己的 contract，不屬於本 contract。兩種讀法在實作當下給出相同答案，所以驗收時沒有顯現。
+
+[RESULT] 具體傷害：[ROADMAP §9 第 2 項](ROADMAP.md) 的新訓練線必須修改 `backend/rl/train_ppo.py`（`:705` 的 `checkpoint_interval = 2_000_000` 使 2M 以下的 run 不存任何中間 checkpoint，而 lineage 正是該項的定義）。在原始 `LB-12` 之下，那次修改會讓一個與它無關的 contract 變紅。
+
+[RESULT] 更正：`LB-12` 改為以 git 讀取**凍結父 commit `501a7ee`** 與**實作 commit `c4bd470`** 兩點的檔案內容比對釘住的 digest，並新增一個測試斷言本 contract **不**凍結這三個檔案、持續保護屬於各自具名的 contract。實測：把 `train_ppo.py` 改成 `fb012e85…`（非釘住值）後，本 contract 63 個測試全綠；同樣的修改在原版會是紅的。
+
+[BLOCKER] 這**不是門檻放寬**：條文的主張一字未改，本 contract 的實作仍然不得修改這三個檔案，而且現在以 git 歷史永久可驗證。更正後比原版**更強**——原版只在工作樹恰好乾淨時成立。理由與被否決的 `LB-13` 方案見規格 §15.3、§15.4。
+
+| 層 | 原始 | amendment 後 |
+|---|---|---|
+| 規格 | `sha256:1b3a7b26…` | `sha256:717bb910…` |
+| Protocol | `sha256:2e3bde9a…` | `sha256:5202173f…` |
+| `run_manifest_lock.PROTOCOL_SHA256` | 同上 | 同上（已重 pin） |
+
+[RESULT] 本 amendment 於**任何保留證據依賴本 contract 之前**套用：版本控制內沒有任何 `PAPER_RUN_MANIFEST_V2` bundle，也沒有任何 `RUN_LOCK_BINDING_V1` 記錄，因此不使任何既有證據失效。

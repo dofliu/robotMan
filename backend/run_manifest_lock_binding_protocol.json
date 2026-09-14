@@ -13,6 +13,31 @@
   "LB-11 the analysis module is stdlib-only, proved by an AST-parsing test, so it can be replayed under python -I -S",
   "LB-12 after implementation the SHA-256 of backend/rl/train_ppo.py, backend/rl/eval_policy.py and backend/simulator.py equal the values pinned in immutable_sources below"
  ],
+ "amendment": {
+  "amended_date": "2026-09-13",
+  "amendment_id": "LOCKBIND-AMENDMENT-01-LB12-SCOPE",
+  "applied_before_any_retained_evidence": true,
+  "concrete_harm": "ROADMAP section 9 item 2, the tracked training line, requires every checkpoint to enter version control or immutable storage. backend/rl/train_ppo.py:705 sets checkpoint_interval to 2000000 for full runs, so a run under 2M timesteps saves no intermediate checkpoint at all; producing lineage requires editing that file. Under the original LB-12 that edit would turn an unrelated contract red, and the only way out would be editing a frozen acceptance criterion - exactly the habit this project must not acquire.",
+  "considered_and_rejected": {
+   "proposal": "add LB-13 requiring a disclosure entry in this protocol whenever a driver's live digest differs from the pinned value",
+   "reason": "It would put a repository-wide source-drift registry inside a contract about lock binding, cascade a PROTOCOL_SHA256 re-pin on every driver change, and place the disclosure where nobody reading that driver's own protocol would look. The disclosure belongs to the protocol of whichever line changes the driver."
+  },
+  "defect": "LB-12's text claims 'this contract's implementation did not edit these three files', but the implemented test compared the CURRENT working tree, which answers a different question: 'has anyone ever edited them'. The two readings agreed at implementation time - the files really were unchanged - so the defect did not surface at acceptance. They diverge only on FUTURE edits, which the criterion never spoke about.",
+  "relaxes_no_threshold": true,
+  "resolution": "LB-12 verifies the pinned digests from git at the freeze parent and the implementation commit. Ongoing protection of each file is named in immutable_sources.ongoing_protection and belongs to those contracts.",
+  "unchanged_by_this_amendment": [
+   "LB-01 through LB-11",
+   "the five fail-closed labels and their semantics",
+   "the two-digest vocabulary and the forbidden field name",
+   "section 3 scope and the explicit simulator.py exception",
+   "section 6 capture-before-run and the FULL_LOCK requirement",
+   "section 7 the analysis-time gate",
+   "section 8 the forward-only posture",
+   "section 9 the claim boundary",
+   "section 12 the verification gate commands"
+  ],
+  "why_this_is_not_a_relaxation": "The criterion's claim is unchanged word for word: this contract's implementation still may not edit the three files. Only the measurement changed, so that it matches the claim. A relaxation would have turned 'must not edit' into 'may edit'; this did not. The corrected LB-12 is strictly stronger: the original held only while the working tree happened to be clean and afterwards could not distinguish 'this contract tampered' from 'someone edited it later', whereas the corrected one fixes a historical fact that no future commit can alter."
+ },
  "binding_modes": {
   "EMBEDDED_AND_SIDECAR": "the manifest schema carries the lock block itself AND a sidecar binding record is written; sidecar_reason must be null",
   "SIDECAR_ONLY": "only the sidecar binding record is written, because embedding would falsify a pinned digest or turn a currently green test red; sidecar_reason must name that digest or test"
@@ -27,7 +52,10 @@
  "contract_id": "RUN-MANIFEST-LOCK-BINDING-V1",
  "disclosure": "Three facts were measured before this design was fixed, and each one changed the scope. (1) The field name environment_lock_sha256 already carries two different quantities in two retained bundles whose lock records share an identical locked_sha256, so the retained values differ for definitional rather than environmental reasons. (2) backend/test_v7_candidate_selection_contract.py re-hashes backend/rl/eval_policy.py and asserts it equals a digest pinned in a protocol the project owner authorized on 2026-09-10, so editing that driver turns a green test red. (3) backend/rl/training_seed_variance_protocol.json pins backend/rl/train_ppo.py by digest with nothing enforcing it at runtime, so editing that driver would silently falsify an executed protocol. Fact (2) corrects an earlier statement made during design that nothing re-hashes the driver digests: that was true of the seed-variance source_baseline and false of the candidate-selection execution_precondition_source_digests.",
  "enforcement_scope": {
-  "fail_closed_schemas": ["RUN_LOCK_BINDING_V1", "PAPER_RUN_MANIFEST_V2"],
+  "fail_closed_schemas": [
+   "RUN_LOCK_BINDING_V1",
+   "PAPER_RUN_MANIFEST_V2"
+  ],
   "rationale": "Retained contracts compare key sets exactly and their retained evidence digests are pinned, so adding a field without versioning would make retained evidence fail its own contract. Fail-closed enforcement is therefore added to new schemas only.",
   "unchanged_contracts": [
    "SECONDCASE_EXPOSURE_RAW_V1 and its analysis schemas",
@@ -61,7 +89,16 @@
   "backend/rl/eval_policy.py": "sha256:0cf274341a10a56fbf544d86eab4bfbfd6f630056689280af51aff111b0058d4",
   "backend/rl/train_ppo.py": "sha256:877da3b41e7c44ce73758877f40e257e45c6203b045eb9e2d3cd5aa6f606f6ce",
   "backend/simulator.py": "sha256:c27e00a0e59b13e9e8b9c4c7fd17d885008287cdde8d8bdab68250cb17ec4cc5",
-  "rule": "LB-12 requires these three to be byte-unchanged after implementation. Each is immutable for a distinct measured reason recorded in the specification sections 2.2, 2.3 and 3.4."
+  "ongoing_protection": {
+   "backend/rl/eval_policy.py": "test_v7_candidate_selection_contract.py re-hashes it against the pin in the owner-authorized SELECT-V7-CANDIDATE-FORMAL-V1",
+   "backend/rl/train_ppo.py": "NONE - the seed-variance protocol pins it by digest but nothing re-derives that pin at runtime. Recorded as a gap in specification section 2.3; the disclosure belongs to whichever line changes the driver, not here (section 15.4).",
+   "backend/simulator.py": "test_p0_contract.py independently recomputes the deterministic content hash"
+  },
+  "rule": "LB-12 requires that THIS CONTRACT's implementation did not edit these three files: at the freeze parent commit and at the implementation commit their contents hash to the values above. That is a permanent fact about this contract, verified from git history. It is NOT a permanent freeze on these files - ongoing protection belongs to the contracts named in ongoing_protection. See specification section 15.",
+  "verified_at_commits": {
+   "freeze_parent": "501a7ee2257e2a76aa2e678b481c772105263743",
+   "implementation": "c4bd47090ec4e97a35f8c867e6e93932e61a2981"
+  }
  },
  "lock_requirement": {
   "evidence_run_rule": "A run governed by a frozen protocol (its manifest carries seedvar_protocol or pilot_protocol, or its run_class is FORMAL_EVALUATION) refuses to start when satisfies_full_lock_requirement is false.",
@@ -71,6 +108,15 @@
   "required_lock_completeness": "FULL_LOCK",
   "sequencing": "The lock is captured and verified before any bound data is produced. verified_before_run may be true only when that order held. Capturing at manifest-assembly time records the environment at write time, not the environment that produced the data."
  },
+ "out_of_scope": {
+  "already_bound_differently": [
+   "backend/rl/second_case_runner.py",
+   "backend/rl/second_case_budget_probe.py",
+   "backend/run_r0_regime_probe.py"
+  ],
+  "backend/simulator.py": "The meta.provenance record enters a deterministic content hash whose excluded-field list is frozen and independently recomputed by backend/test_p0_contract.py, and /api/simulate is a stateless request/response rather than a retained run manifest (backend/run_traces/ is gitignored). This is the one explicit exception to 'every pipeline' on day one and must not be dropped from later documents.",
+  "roadmap_item_1_remainder": "Actual matrix execution and immutable evidence storage are the other half of ROADMAP section 9 item 1 and are not in this contract."
+ },
  "outcome_labels": {
   "RUN_LOCK_BINDING_METHOD_FAILURE": "any contract violation: unknown schema, key-set mismatch, malformed digest, path escape, sidecar_reason inconsistent with binding_mode, or a lock record that cannot be read or validated",
   "RUN_LOCK_BOUND": "the binding record is present and schema-valid, bound_manifest_sha256 matches the manifest byte for byte, and satisfies_full_lock_requirement is true",
@@ -79,20 +125,31 @@
   "RUN_LOCK_UNBOUND": "the run directory carries no binding record"
  },
  "outcome_semantics": "RUN_LOCK_UNBOUND and RUN_LOCK_INSUFFICIENT are results rather than failures and must be reported as such, but neither is a PASS and no upstream contract may treat either as bound. RUN_LOCK_BINDING_METHOD_FAILURE may never be downgraded to any of the other four. A threshold may not be relaxed because of a result: any change requires a new contract version disclosing that it was designed with the result already known.",
- "out_of_scope": {
-  "backend/simulator.py": "The meta.provenance record enters a deterministic content hash whose excluded-field list is frozen and independently recomputed by backend/test_p0_contract.py, and /api/simulate is a stateless request/response rather than a retained run manifest (backend/run_traces/ is gitignored). This is the one explicit exception to 'every pipeline' on day one and must not be dropped from later documents.",
-  "already_bound_differently": [
-   "backend/rl/second_case_runner.py",
-   "backend/rl/second_case_budget_probe.py",
-   "backend/run_r0_regime_probe.py"
-  ],
-  "roadmap_item_1_remainder": "Actual matrix execution and immutable evidence storage are the other half of ROADMAP section 9 item 1 and are not in this contract."
- },
  "producers_in_scope": [
-  {"binding_mode": "SIDECAR_ONLY", "manifest_schema": "RL_TRAINING_RUN_V2", "producer": "backend/rl/train_ppo.py", "sidecar_reason": "Editing this file would silently falsify source_baseline.training_driver_source_sha256 in the executed SEEDVAR-V7-TRAINING-REPLICATE-DEV-V1 protocol, which nothing re-derives at runtime; that protocol JSON is itself pinned by test_training_seed_variance_contract.py and by r0_regime_probe_protocol.json parent_protocol_sha256."},
-  {"binding_mode": "SIDECAR_ONLY", "manifest_schema": "RL_TRAINING_ENV_EVALUATION_V4", "producer": "backend/rl/eval_policy.py", "sidecar_reason": "backend/test_v7_candidate_selection_contract.py re-hashes this file and asserts it equals execution_precondition_source_digests.evaluation_driver_source_sha256 of SELECT-V7-CANDIDATE-FORMAL-V1, the protocol the project owner authorized on 2026-09-10 against sha256:b4e16370b5744c510fa11b06343dafb3c1893711639721a406504720bbe99b58."},
-  {"binding_mode": "EMBEDDED_AND_SIDECAR", "manifest_schema": "PAPER_RUN_MANIFEST_V2", "producer": "backend/build_v1_paper_bundle.py", "sidecar_reason": null},
-  {"binding_mode": "EMBEDDED_AND_SIDECAR", "manifest_schema": "PAPER_RUN_MANIFEST_V2", "producer": "backend/build_v1_analytical_bundle.py", "sidecar_reason": null}
+  {
+   "binding_mode": "SIDECAR_ONLY",
+   "manifest_schema": "RL_TRAINING_RUN_V2",
+   "producer": "backend/rl/train_ppo.py",
+   "sidecar_reason": "Editing this file would silently falsify source_baseline.training_driver_source_sha256 in the executed SEEDVAR-V7-TRAINING-REPLICATE-DEV-V1 protocol, which nothing re-derives at runtime; that protocol JSON is itself pinned by test_training_seed_variance_contract.py and by r0_regime_probe_protocol.json parent_protocol_sha256."
+  },
+  {
+   "binding_mode": "SIDECAR_ONLY",
+   "manifest_schema": "RL_TRAINING_ENV_EVALUATION_V4",
+   "producer": "backend/rl/eval_policy.py",
+   "sidecar_reason": "backend/test_v7_candidate_selection_contract.py re-hashes this file and asserts it equals execution_precondition_source_digests.evaluation_driver_source_sha256 of SELECT-V7-CANDIDATE-FORMAL-V1, the protocol the project owner authorized on 2026-09-10 against sha256:b4e16370b5744c510fa11b06343dafb3c1893711639721a406504720bbe99b58."
+  },
+  {
+   "binding_mode": "EMBEDDED_AND_SIDECAR",
+   "manifest_schema": "PAPER_RUN_MANIFEST_V2",
+   "producer": "backend/build_v1_paper_bundle.py",
+   "sidecar_reason": null
+  },
+  {
+   "binding_mode": "EMBEDDED_AND_SIDECAR",
+   "manifest_schema": "PAPER_RUN_MANIFEST_V2",
+   "producer": "backend/build_v1_analytical_bundle.py",
+   "sidecar_reason": null
+  }
  ],
  "protocol_id": "RUN-MANIFEST-LOCK-BINDING-V1",
  "record": {
@@ -123,7 +180,7 @@
  },
  "schema_version": "RUN_MANIFEST_LOCK_BINDING_PROTOCOL_V1",
  "specification_path": "docs/RUN_MANIFEST_LOCK_BINDING_SPEC.md",
- "specification_sha256": "sha256:1b3a7b26cd1e86807a3de66c9177bc2159c2f58e6d87701f552360152993ffdf",
+ "specification_sha256": "sha256:717bb9103b18a0f669d517e03eeaaca91fc7de61b8a98db3d94d83f331003fec",
  "status": "FROZEN_BEFORE_IMPLEMENTATION",
  "verification_gate": {
   "ci_present": false,

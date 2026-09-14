@@ -163,6 +163,27 @@ python backend/rl/bind_run_lock.py `
 
 成功時會印出 `RUN_LOCK_BOUND` 與三個 digest（lock 檔案位元組、`locked` 子樹、被綁 manifest）。這三者是**三個不同的量**，不可互相替換。
 
+### 7.2 Tracked-lineage 訓練線（`TRACKED-LINEAGE-TRAINING-V1`）
+
+本線的 5 個 replicate 各自有自己的 profile，**training seed 不可由命令列指定**：replicate index 由 profile id 推導，seed 由 [frozen protocol](../backend/rl/tracked_lineage_training_protocol.json) 依該 index 解析。因此沒有任何 invocation 能把一個 profile 配上另一個 replicate 的 seed。
+
+```powershell
+python backend/rl/bind_run_lock.py `
+    --producer backend/rl/train_ppo.py `
+    --run-dir backend/rl/artifacts/stand_start_walk_stop_0p7_tracked_lineage_b1_r0-run `
+    --manifest run_manifest.json `
+    --require-full-lock `
+    -- python rl/train_ppo.py --profile stand_start_walk_stop_0p7_tracked_lineage_b1_r0
+```
+
+- `--run-id`、`--seed-base`、`--total-timesteps`、`--n-envs`、`--replicate-index`、`--warm-start-from`、`--resume-from`、`--smoke`、`--preflight` **全部會被拒絕**（各有具名的 `TRACKED_LINEAGE_*_FORBIDDEN` 錯誤）。工作樹不乾淨也拒絕開始。
+- `checkpoint_interval` 由 protocol 給（`500_000`），而**不是** driver 的全量預設 `2_000_000`——後者會讓 2M 步的 run 一個中間 checkpoint 都不留。
+- 每個 replicate 實際跑 `2,015,232` 步（SB3 以 `2048 × 12 = 24,576` 為一個 rollout，跑到 `>= planned` 才停），並在 `499_992`／`999_984`／`1_499_976`／`1_999_968` 各存一個 checkpoint。driver 會**主動比對**實際步數，不符即拒絕。
+- 訓練完成後把 4 個 checkpoint 複製到 `backend/tracked_lineage_evidence/<日期>/checkpoints/`，命名 `r<idx>-<步數補到 7 位>.zip`，並更新 `checkpoint_index.json`。這些檔案**進版控**（規格 §7.1），不得加進 `.gitignore`，也不得事後為了省空間刪除。
+- [BLOCKER] 容器是 ephemeral：**逐 replicate** 訓練 → 保留 → 評估 → 立即 commit／push，不要五個都跑完才保留。
+
+Evaluation 走 generic path（本線**不**修改 `eval_policy.py`），evaluation seeds 固定 `22000–22029`。該路徑沒有 driver 端的 seed schedule 保護，所以 seed 是在**分析期**由 `TL-01b` 強制：保留輸出的 `evaluation_seeds` 必須恰為 `22000..22029`，不符即 `TL_METHOD_FAILURE`。
+
 ## 8. Dynamic Run Trace：從第二模式回到第一模式分析
 
 1. 進入「即時互動」或「三機同步比較」。
