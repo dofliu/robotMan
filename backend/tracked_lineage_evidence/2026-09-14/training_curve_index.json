@@ -1,0 +1,79 @@
+{
+  "all_replicates_converged": false,
+  "any_replicate_converged": false,
+  "contract_id": "TRACKED-LINEAGE-TRAINING-V1",
+  "convergence_rule": {
+    "converged_absolute_slope": 1.0,
+    "converged_slope_fraction": 0.1,
+    "declared_before_application": true,
+    "definition": "converged iff final-quarter slope <= converged_slope_fraction of the first-quarter slope AND |final-quarter slope| <= converged_absolute_slope, both measured as reward gain per slope_window_steps",
+    "slope_window_steps": 500000
+  },
+  "replicates": {
+    "0": {
+      "bytes": 17232,
+      "converged": false,
+      "final_over_first": 0.376859,
+      "final_quarter_slope_per_500k": 7.309454,
+      "final_reward": 226.853592,
+      "final_timesteps": 2015232,
+      "first_quarter_slope_per_500k": 19.39574,
+      "peak_at_timesteps": 1916928,
+      "peak_reward": 230.340698,
+      "relative_path": "backend/tracked_lineage_evidence/2026-09-14/training_curves/r0-progress.csv",
+      "sha256": "sha256:277440ab6ff59369ab5588801fdaa2d152ceefbe56fb29ed7c24cda76b6c5ef4"
+    },
+    "1": {
+      "bytes": 17159,
+      "converged": false,
+      "final_over_first": 0.403113,
+      "final_quarter_slope_per_500k": 8.497201,
+      "final_reward": 231.573853,
+      "final_timesteps": 2015232,
+      "first_quarter_slope_per_500k": 21.078951,
+      "peak_at_timesteps": 2015232,
+      "peak_reward": 231.573853,
+      "relative_path": "backend/tracked_lineage_evidence/2026-09-14/training_curves/r1-progress.csv",
+      "sha256": "sha256:bbeaa9fa87b4f04405bb015ebaf4f11d7bfa8f6f67c6a7107be84838c42239ef"
+    },
+    "2": {
+      "bytes": 17279,
+      "converged": false,
+      "final_over_first": 0.535803,
+      "final_quarter_slope_per_500k": 7.765647,
+      "final_reward": 228.81105,
+      "final_timesteps": 2015232,
+      "first_quarter_slope_per_500k": 14.493471,
+      "peak_at_timesteps": 1990656,
+      "peak_reward": 232.127914,
+      "relative_path": "backend/tracked_lineage_evidence/2026-09-14/training_curves/r2-progress.csv",
+      "sha256": "sha256:be81cb0834d7bd7c9053347f5ebba0520649cef9885d42bf7050b55df28cf3c3"
+    },
+    "3": {
+      "bytes": 17254,
+      "converged": false,
+      "final_over_first": 0.474739,
+      "final_quarter_slope_per_500k": 11.887541,
+      "final_reward": 230.955963,
+      "final_timesteps": 2015232,
+      "first_quarter_slope_per_500k": 25.040143,
+      "peak_at_timesteps": 2015232,
+      "peak_reward": 230.955963,
+      "relative_path": "backend/tracked_lineage_evidence/2026-09-14/training_curves/r3-progress.csv",
+      "sha256": "sha256:8ad85d8be004bfcebd9a36cf0dc7a027b2daeca51679ba6502a9eb3baf89c580"
+    },
+    "4": {
+      "bytes": 17201,
+      "converged": false,
+      "final_over_first": 0.341136,
+      "final_quarter_slope_per_500k": 8.433172,
+      "final_reward": 224.749146,
+      "final_timesteps": 2015232,
+      "first_quarter_slope_per_500k": 24.72083,
+      "peak_at_timesteps": 1990656,
+      "peak_reward": 230.5793,
+      "relative_path": "backend/tracked_lineage_evidence/2026-09-14/training_curves/r4-progress.csv",
+      "sha256": "sha256:9bcaf495045aa714576fcff8abbbd2d2f7150fcd3e3de1a0128c232b1b88fa85"
+    }
+  }
+}

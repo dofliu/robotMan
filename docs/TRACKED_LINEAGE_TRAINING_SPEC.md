@@ -431,3 +431,56 @@
 [BLOCKER] `checkpoint_interval`、每 replicate `4` 個、合計 `20` 個、`38 MB` 估計、`FULL_EXPOSURE_THRESHOLD`、seed、budget、`TL-CK-04` 的選擇規則**一字未改**。本次只更正 `TL-CK-03` 的指涉並新增一條更嚴的 `TL-CK-06`。
 
 [RESULT] 套用時機：replicate 0 訓練完成、**任何評估執行之前**，因此不使任何已保留證據失效——此時尚無任何 evaluation 輸出。
+
+---
+
+## 17. Amendment 03：`TRACKED-LINEAGE-AMENDMENT-03-LABEL-PRECEDENCE`
+
+日期：2026-09-14（執行完成、標籤已指派並合併之後）｜狀態：**narrowing-only、post-execution**｜由執行後的曲線量測發現。
+
+[BLOCKER] 本次與 §15、§16 不同：它是在**結果已產生並已合併之後**才套用的，因此必須說得更清楚。它**更正了一個已發布結果的標籤**，而不是在執行前收窄設計。更正的方向**不利於**本線——新標籤帶著一條更嚴的後續限制——所以它不是為了讓結果好看。
+
+### 17.1 §9 的兩個標籤並非互斥（我的缺陷）
+
+[RESULT] §9 凍結的定義：
+
+| 標籤 | 條件 |
+|---|---|
+| `TL_REFERENCE_NOT_ATTAINED` | 沒有任何 replicate 達到門檻 |
+| `TL_BUDGET_EXHAUSTED` | 在 `2,000,000` 步上限內未達門檻**且曲線未收斂** |
+
+[BLOCKER] 第二個的條件是第一個的條件**再加一項**。兩者因此可以同時為真，而 §9 沒有規定此時該報哪一個。這是我在凍結時留下的缺陷。
+
+[RESULT] **更正（收窄）**：兩者同時成立時，報 **`TL_BUDGET_EXHAUSTED`**。理由是它嚴格更具體——它說明了未達門檻的**原因**，並且 §9 已為它綁了一條 `TL_REFERENCE_NOT_ATTAINED` 沒有的限制：**不得以「再多跑一點就到了」為由上調上限**。把更具體的標籤降級成較泛的那個，等於丟掉那條限制。
+
+### 17.2 我在第一次分析時根本沒有量測收斂
+
+[BLOCKER] **這才是實際造成錯誤標籤的原因，且是我自己的疏失。** `tracked_lineage_contract.classify()` 第一版的簽章是 `budget_exhausted: bool = False`。2026-09-14 的分析直接採用該預設值，**從未量測曲線是否收斂**，於是必然得到 `TL_REFERENCE_NOT_ATTAINED`。一個可以被靜默跳過的判定，就會被跳過。
+
+[RESULT] **更正（加嚴）**：`classify()` 改為要求 `curve_converged` 具名參數且**無預設值**。呼叫端不再可能在未做該判定的情況下取得標籤。
+
+### 17.3 量測到的事實
+
+[RESULT] 收斂規則在套用前先宣告於 `backend/rl/retain_tracked_lineage_curves.py`：以「每 `500,000` 步的 reward 增幅」比較訓練末四分位與首四分位，**兩個條件都成立才算收斂**——末四分位斜率 ≤ 首四分位的 `10%`，且其絕對值 ≤ `1.0`。
+
+| replicate | 首四分位斜率 | 末四分位斜率 | 比值 | 收斂？ |
+|---|---:|---:|---:|---|
+| r0 | `+19.396` | `+7.309` | `0.377` | 否 |
+| r1 | `+21.079` | `+8.497` | `0.403` | 否 |
+| r2 | `+14.493` | `+7.766` | `0.536` | 否 |
+| r3 | `+25.040` | `+11.888` | `0.475` | 否 |
+| r4 | `+24.721` | `+8.433` | `0.341` | 否 |
+
+[RESULT] **五個 replicate 全部未收斂**，比值 `0.341`–`0.536`，遠高於 `0.10` 的門檻；末四分位斜率仍在 `+7.3` 到 `+11.9` 之間。量測可在 `python -I -S` 下離線重算。
+
+[RESULT] 因此本線的正確標籤為 **`TL_BUDGET_EXHAUSTED`**，取代 receipt 初版所報的 `TL_REFERENCE_NOT_ATTAINED`。
+
+### 17.4 哪些沒有改變
+
+[BLOCKER] `PUB-B2` 兩種標籤下**都是 `NOT_ATTAINED`**——只有 `TL_REFERENCE_ATTAINED` 能讓它通過。`PUB-B1` 仍為達成。四個 flag 仍為 `false`。門檻、seed、budget、arm 定義與 `TL-CK-04` 一字未改。**沒有任何一項量測數值改變**：`0/30` × 5、`fall_rate 1.0`、`2,015,232` 步、20 個 checkpoint 全部照舊。改變的只有「該用哪個標籤描述它」。
+
+### 17.5 這個更正讓後續變**難**而不是變易
+
+[BLOCKER] `TL_BUDGET_EXHAUSTED` 隨附 §9 的規則：**上限不得因「再多跑一點就到了」而上調**。曲線未收斂正是最容易誘發該念頭的情況，而 §9 在看到任何曲線之前就把這條路封住了。要加 budget 必須是**新的 protocol 版本**，並在其中揭露它是在已知本結果的情況下設計的。
+
+[BLOCKER] 訓練曲線（`backend/tracked_lineage_evidence/2026-09-14/training_curves/`）本來位於 gitignored 的 `backend/rl/artifacts/` 下，會隨容器消失——與 v7 pilot 的 `control_step_trace` 同一個坑。本次已連同 digest 一併保留，使該判定日後可重驗。

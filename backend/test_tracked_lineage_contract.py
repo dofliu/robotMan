@@ -489,33 +489,33 @@ def test_the_wrong_episode_count_fails_closed(protocol):
 # ---------------------------------------------------------------------------
 
 def test_tl08_label_attained(protocol):
-    result = tl.classify(protocol, [(30, 30)] * 5)
+    result = tl.classify(protocol, [(30, 30)] * 5, curve_converged=True)
     assert result["label"] == tl.LABEL_ATTAINED
     assert result["pub_b2_pass"] is True
 
 
 def test_tl08_label_partial(protocol):
-    result = tl.classify(protocol, [(30, 30), (29, 30), (30, 30), (27, 30), (30, 30)])
+    result = tl.classify(protocol, [(30, 30), (29, 30), (30, 30), (27, 30), (30, 30)], curve_converged=True)
     assert result["label"] == tl.LABEL_PARTIAL
     assert result["replicates_attaining_threshold"] == 3
     assert result["pub_b2_pass"] is False
 
 
 def test_tl08_label_not_attained(protocol):
-    result = tl.classify(protocol, [(29, 30)] * 5)
+    result = tl.classify(protocol, [(29, 30)] * 5, curve_converged=True)
     assert result["label"] == tl.LABEL_NOT_ATTAINED
     assert result["pub_b2_pass"] is False
 
 
 def test_tl08_label_budget_exhausted(protocol):
-    result = tl.classify(protocol, [(28, 30)] * 5, budget_exhausted=True)
+    result = tl.classify(protocol, [(28, 30)] * 5, curve_converged=False)
     assert result["label"] == tl.LABEL_BUDGET_EXHAUSTED
 
 
 def test_tl08_budget_exhausted_cannot_mask_a_replicate_that_attained(protocol):
     """A run that met the threshold has not exhausted anything."""
     result = tl.classify(protocol, [(30, 30), (28, 30), (28, 30), (28, 30), (28, 30)],
-                         budget_exhausted=True)
+                         curve_converged=False)
     assert result["label"] == tl.LABEL_PARTIAL
 
 
@@ -550,7 +550,7 @@ def test_the_threshold_is_30_of_30_and_is_compared_exactly(protocol):
     assert threshold["value"] == "30/30"
     assert threshold["numeric"] == 1.0
     assert threshold["judged"] == "per replicate"
-    assert tl.classify(protocol, [(29, 30)] * 5)["label"] == tl.LABEL_NOT_ATTAINED
+    assert tl.classify(protocol, [(29, 30)] * 5, curve_converged=True)["label"] == tl.LABEL_NOT_ATTAINED
 
 
 def test_forbidden_denominators_are_declared_and_the_method_unit_is_the_replicate(protocol):
@@ -558,12 +558,12 @@ def test_forbidden_denominators_are_declared_and_the_method_unit_is_the_replicat
     assert unit["unit"] == "training_replicate"
     assert unit["method_level_denominator"] == tl.METHOD_LEVEL_DENOMINATOR == 5
     assert sorted(unit["forbidden_denominators"]) == sorted(tl.FORBIDDEN_DENOMINATORS)
-    assert tl.classify(protocol, [(30, 30)] * 5)["method_level_denominator"] == 5
+    assert tl.classify(protocol, [(30, 30)] * 5, curve_converged=True)["method_level_denominator"] == 5
 
 
 def test_the_wrong_replicate_count_fails_closed(protocol):
     with pytest.raises(tl.TrackedLineageMethodFailure, match="TL_REPLICATE_COUNT_MISMATCH"):
-        tl.classify(protocol, [(30, 30)] * 4)
+        tl.classify(protocol, [(30, 30)] * 4, curve_converged=True)
 
 
 # ---------------------------------------------------------------------------
@@ -720,3 +720,66 @@ def test_tl_ck_06_refuses_another_replicates_checkpoint(protocol, tmp_path: Path
         tl.TrackedLineageMethodFailure, match="TL_EVALUATED_POLICY_NOT_A_RETAINED_CHECKPOINT"
     ):
         tl.verify_evaluated_policy_is_a_retained_checkpoint(index, evaluated)
+
+
+# ---------------------------------------------------------------------------
+# Amendment 03: label precedence, and a verdict that cannot be skipped
+# ---------------------------------------------------------------------------
+
+def test_amendment_03_convergence_verdict_has_no_default(protocol):
+    """The defect that produced the wrong label on 2026-09-14.
+
+    classify() previously took budget_exhausted=False, so a caller could get a
+    label without ever measuring the condition separating the two, and that is
+    exactly what happened. A determination that can be skipped silently will be.
+    """
+    import inspect
+    sig = inspect.signature(tl.classify)
+    param = sig.parameters["curve_converged"]
+    assert param.default is inspect.Parameter.empty
+    assert param.kind is inspect.Parameter.KEYWORD_ONLY
+    assert "budget_exhausted" not in sig.parameters
+    with pytest.raises(TypeError):
+        tl.classify(protocol, [(0, 30)] * 5)
+
+
+def test_amendment_03_precedence_when_both_labels_hold(protocol):
+    """Not converged wins: it is more specific and carries the stricter rule."""
+    not_converged = tl.classify(protocol, [(0, 30)] * 5, curve_converged=False)
+    converged = tl.classify(protocol, [(0, 30)] * 5, curve_converged=True)
+    assert not_converged["label"] == tl.LABEL_BUDGET_EXHAUSTED
+    assert converged["label"] == tl.LABEL_NOT_ATTAINED
+    # Neither passes PUB-B2; only the name of the outcome differs.
+    assert not_converged["pub_b2_pass"] is False
+    assert converged["pub_b2_pass"] is False
+    assert protocol["outcome_label_precedence"]
+
+
+def test_amendment_03_retained_curves_show_no_replicate_converged():
+    """The measurement that corrected the line's label, re-derived here."""
+    index = json.loads(
+        (REPO_ROOT / "backend" / "tracked_lineage_evidence" / "2026-09-14"
+         / "training_curve_index.json").read_text(encoding="utf-8")
+    )
+    assert index["any_replicate_converged"] is False
+    assert len(index["replicates"]) == 5
+    for item in index["replicates"].values():
+        assert item["converged"] is False
+        # Still clearly rising when the ceiling cut training off.
+        assert item["final_quarter_slope_per_500k"] > 1.0
+        assert item["final_over_first"] > 0.10
+    rule = index["convergence_rule"]
+    assert rule["declared_before_application"] is True
+    assert rule["converged_slope_fraction"] == 0.10
+
+
+def test_amendment_03_retained_curve_files_match_their_digests():
+    index = json.loads(
+        (REPO_ROOT / "backend" / "tracked_lineage_evidence" / "2026-09-14"
+         / "training_curve_index.json").read_text(encoding="utf-8")
+    )
+    for item in index["replicates"].values():
+        path = REPO_ROOT / item["relative_path"]
+        assert path.is_file(), item["relative_path"]
+        assert _sha256(path) == item["sha256"]
+        assert path.stat().st_size == item["bytes"]
