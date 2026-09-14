@@ -418,3 +418,41 @@ def test_the_v2_guard_requires_the_pinned_resume():
 
 def test_the_v2_checkpoint_interval_comes_from_the_v2_protocol():
     assert train_ppo.tracked_lineage_v2_checkpoint_interval() == 500_000
+
+
+def test_a_v2_profile_passes_through_both_guards():
+    """The dispatch path main() actually takes, which no earlier test covered.
+
+    main() calls the V2 guard and then the V1 guard on every run. V1's guard
+    originally returned early only when tracked_lineage_protocol_id was None, so
+    a V2 profile - which sets that field - fell through into V1's branch and
+    raised TRACKED_LINEAGE_PROFILE_ID_MISMATCH on the b2_ profile id. Testing
+    each guard alone missed it; this exercises the pair the way main() does.
+    """
+    profile = train_ppo.resolve_profile("stand_start_walk_stop_0p7_tracked_lineage_b2_r3")
+    source = train_ppo.tracked_lineage_v2_resume_source(3)
+    common = dict(
+        profile=profile, run_id=train_ppo.tracked_lineage_v2_run_id(profile),
+        total=2_000_000, n_envs=12, seed_base=9136, replicate_index=None,
+        seed_base_from_cli=False, device="cpu",
+        resume_from=REPO_ROOT / source["relative_path"], warm_start_from=None,
+        smoke=False, preflight=False,
+        source_git={"available": True, "git_sha": "x", "working_tree_dirty": False},
+    )
+    train_ppo.validate_tracked_lineage_v2_request(**common)
+    # The V1 guard must now decline this profile rather than choke on it.
+    train_ppo.validate_tracked_lineage_request(**common)
+
+
+def test_a_v1_profile_passes_through_both_guards():
+    """The mirror case: V2's guard must decline a V1 profile, not choke."""
+    profile = train_ppo.resolve_profile("stand_start_walk_stop_0p7_tracked_lineage_b1_r2")
+    common = dict(
+        profile=profile, run_id=train_ppo.tracked_lineage_run_id(profile),
+        total=2_000_000, n_envs=12, seed_base=9124, replicate_index=None,
+        seed_base_from_cli=False, device="cpu", resume_from=None,
+        warm_start_from=None, smoke=False, preflight=False,
+        source_git={"available": True, "git_sha": "x", "working_tree_dirty": False},
+    )
+    train_ppo.validate_tracked_lineage_v2_request(**common)
+    train_ppo.validate_tracked_lineage_request(**common)

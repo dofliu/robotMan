@@ -677,7 +677,12 @@ def validate_tracked_lineage_request(
     order in which the existing pilot and seedvar checks fire, and the surest way
     not to change it is not to touch that function at all.
     """
-    if profile.tracked_lineage_protocol_id is None:
+    # Must compare against V1's id, not merely test for None: a V2 profile also
+    # sets this field, and before this guard returned early for it the V1 branch
+    # ran on a b2_ profile id and raised. This narrows V1's guard to exactly V1's
+    # profiles, which is what it always meant; behaviour for V1 profiles and for
+    # profiles with no tracked-lineage identity is unchanged.
+    if profile.tracked_lineage_protocol_id != TRACKED_LINEAGE_PROTOCOL_ID:
         return
     design = load_tracked_lineage_protocol()["training_design"]
     seeds = [int(seed) for seed in design["training_seeds"]]
