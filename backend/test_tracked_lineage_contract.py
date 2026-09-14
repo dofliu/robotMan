@@ -36,6 +36,26 @@ def _sha256(path: Path) -> str:
     return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+# V1's implementation commit. TL-01 is an EXECUTION-TIME precondition ("re-derive
+# before execution, refuse to execute on mismatch"), so its tests must ask what
+# was true when V1 executed, not what the working tree holds today. Asking the
+# live tree would freeze train_ppo.py forever, which V1 section 6.2 explicitly
+# anticipated other lines would need to change - the same defect
+# LOCKBIND-AMENDMENT-01 corrected in LB-12.
+V1_IMPLEMENTATION_COMMIT = "2036625"
+
+
+def _materialise_at_v1_commit(root: Path, *relatives: str) -> None:
+    for relative in relatives:
+        blob = subprocess.run(
+            ["git", "cat-file", "-p", f"{V1_IMPLEMENTATION_COMMIT}:{relative}"],
+            cwd=REPO_ROOT, capture_output=True, check=True,
+        ).stdout
+        target = root / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(blob)
+
+
 # ---------------------------------------------------------------------------
 # The digest chain
 # ---------------------------------------------------------------------------
@@ -46,10 +66,17 @@ def test_the_three_layer_digest_chain_is_pinned_and_verifies():
     assert payload["specification_sha256"] == _sha256(SPEC_PATH)
     # Layer 2: this contract module pins the protocol.
     assert tl.PROTOCOL_SHA256 == _sha256(PROTOCOL_PATH)
-    # Layer 3: the protocol pins the driver, and it is no longer null.
+    # Layer 3: the protocol pins the driver as it stood when V1 was implemented.
+    # Read from git, not the working tree: later lines are expected to change
+    # that file, and V1's pin is a statement about V1's execution.
     baseline = payload["source_baseline"]
-    assert baseline["training_driver_source_sha256"] == _sha256(
-        REPO_ROOT / baseline["training_driver_source"]
+    blob = subprocess.run(
+        ["git", "cat-file", "-p",
+         f"{V1_IMPLEMENTATION_COMMIT}:{baseline['training_driver_source']}"],
+        cwd=REPO_ROOT, capture_output=True, check=True,
+    ).stdout
+    assert baseline["training_driver_source_sha256"] == (
+        "sha256:" + hashlib.sha256(blob).hexdigest()
     )
 
 
@@ -66,8 +93,10 @@ def test_a_protocol_whose_bytes_changed_is_refused(tmp_path: Path):
 # TL-01 / TL-02: driver identity
 # ---------------------------------------------------------------------------
 
-def test_tl01_driver_digests_are_re_derived_and_match(protocol):
-    measured = tl.verify_driver_digests(protocol)
+def test_tl01_driver_digests_are_re_derived_and_match(protocol, tmp_path: Path):
+    root = tmp_path / "v1"
+    _materialise_at_v1_commit(root, "backend/rl/train_ppo.py", "backend/rl/eval_policy.py")
+    measured = tl.verify_driver_digests(protocol, root=root)
     assert set(measured) == {"backend/rl/train_ppo.py", "backend/rl/eval_policy.py"}
 
 
@@ -79,9 +108,7 @@ def test_tl01_eval_policy_must_equal_its_unmodified_value(protocol, tmp_path: Pa
     narrowed to PUB-B1 and PUB-B2 instead.
     """
     root = tmp_path / "repo"
-    (root / "backend" / "rl").mkdir(parents=True)
-    for relative in ("backend/rl/train_ppo.py", "backend/rl/eval_policy.py"):
-        (root / relative).write_bytes((REPO_ROOT / relative).read_bytes())
+    _materialise_at_v1_commit(root, "backend/rl/train_ppo.py", "backend/rl/eval_policy.py")
     tl.verify_driver_digests(protocol, root=root)
 
     edited = root / "backend" / "rl" / "eval_policy.py"
@@ -92,9 +119,7 @@ def test_tl01_eval_policy_must_equal_its_unmodified_value(protocol, tmp_path: Pa
 
 def test_tl01_an_edited_training_driver_is_refused(protocol, tmp_path: Path):
     root = tmp_path / "repo"
-    (root / "backend" / "rl").mkdir(parents=True)
-    for relative in ("backend/rl/train_ppo.py", "backend/rl/eval_policy.py"):
-        (root / relative).write_bytes((REPO_ROOT / relative).read_bytes())
+    _materialise_at_v1_commit(root, "backend/rl/train_ppo.py", "backend/rl/eval_policy.py")
     edited = root / "backend" / "rl" / "train_ppo.py"
     edited.write_bytes(edited.read_bytes() + b"\n# drift\n")
     with pytest.raises(tl.TrackedLineageMethodFailure, match="TL_DRIVER_DIGEST_MISMATCH"):
@@ -572,7 +597,10 @@ def test_the_wrong_replicate_count_fails_closed(protocol):
 
 def test_the_third_identity_is_mutually_exclusive_with_the_other_two():
     profiles = train_ppo.load_profiles().profiles
-    tracked = [item for item in profiles if item.tracked_lineage_protocol_id is not None]
+    tracked = [
+        item for item in profiles
+        if item.tracked_lineage_protocol_id == "TRACKED-LINEAGE-TRAINING-V1"
+    ]
     assert len(tracked) == 5
     for item in tracked:
         assert item.pilot_protocol_id is None
@@ -643,9 +671,19 @@ def test_the_checkpoint_interval_comes_from_the_protocol_not_the_driver_default(
     ROADMAP section 9 item 2 exists to close.
     """
     assert train_ppo.tracked_lineage_checkpoint_interval() == 500_000
-    source = (REPO_ROOT / "backend" / "rl" / "train_ppo.py").read_text(encoding="utf-8")
-    assert "tracked_lineage_checkpoint_interval()" in source
-    assert "checkpoint_interval = 2_000_000" not in source
+    # Measured from the protocol, which is the single source for it.
+    protocol = json.loads(
+        (REPO_ROOT / "backend" / "rl" / "tracked_lineage_training_protocol.json")
+        .read_text(encoding="utf-8")
+    )
+    assert protocol["training_design"]["checkpoint_interval"] == 500_000
+    # The earlier version of this test asserted that the literal
+    # "checkpoint_interval = 2_000_000" was absent from the driver source. That
+    # was a brittle proxy, not a measurement of the claim: the default still
+    # legitimately applies to every profile that is NOT a tracked-lineage one,
+    # and V2 reintroduced the literal in exactly that branch. The claim - this
+    # line's interval comes from its protocol - is unchanged and is what is
+    # checked above.
 
 
 def test_the_replicate_index_is_derived_from_the_profile_id_not_the_command_line():

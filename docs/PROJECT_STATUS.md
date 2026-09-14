@@ -201,6 +201,8 @@
 
 ## 9. 測試現況
 
-`backend/`：**1 failed / 882 passed**（2026-09-14，512.03 s；新增 65 個 `TRACKED-LINEAGE-TRAINING-V1` 測試，未新增任何失敗。數字對得起來：`816`（2026-09-13 記錄）+ `1`（`LOCKBIND-AMENDMENT-01` 的 `LB-12` 新測試）+ `65` = `882`。前兩次記錄為 1 failed / 816 passed 與 1 failed / 754 passed）。失敗項仍是同一個 `test_v1_analytical_suite.py::test_stdlib_replay_passes_exact_synthetic_fixture`（`PRIMARY_CASE_RECEIPT_IDENTITY`），與 §4.3 的 reduction-order 差異同源，記錄為量測結果、未放寬。
+`backend/`：**1 failed / 923 passed**（2026-09-14，511.87 s）。數字對得起來：`882` + `9`（amendment 02 的 `TL-CK-06` 與 amendment 03 的收斂測試，使 V1 contract 由 65 增為 74）+ `32`（`TRACKED-LINEAGE-TRAINING-V2` contract）= `923`。前三次記錄為 1 failed / 882 passed、1 failed / 816 passed 與 1 failed / 754 passed。
+
+[BLOCKER] **一次自造的假 regression，記於此以免重演。** 該次全套曾出現第二個失敗 `test_paper_data_contract.py::test_v1_oracle_builds_integrity_validated_regression_bundle`（`manifest["status"] == 'FAILED'`）。原因不是程式：`build_v1_paper_bundle` 以 `source_before == source_after` 比對建置前後的 git 身分，而我在那次 runner 執行期間執行了 `git commit`，HEAD 於 bundle 建置中途改變。在完全不碰 repo 的情況下重跑即回到 1 failed。**那道 clean-git guard 沒有壞，它正確地抓到了我**——「runner 執行期間不得改動 tracked 檔案」這條規則適用於全套測試，不只訓練。失敗項仍是同一個 `test_v1_analytical_suite.py::test_stdlib_replay_passes_exact_synthetic_fixture`（`PRIMARY_CASE_RECEIPT_IDENTITY`），與 §4.3 的 reduction-order 差異同源，記錄為量測結果、未放寬。
 
 [RESULT] 2026-09-13 就地定位：fixture 由 `v1_analytical_suite.py:640` 的 `float(np.mean([...]))` 產生，replay 由 `v1_analytical_replay.py:952` 的 `sum(...) / len(...)` 重算，`mean_vertical_grf_n` 為 `196.2` 對 `196.19999999999854`，差 `1.46e-12`，略高於 `1.0e-12` 門檻。把四個 thread-count 環境變數 pin 回 `1` **不會**改變結果，故不是 thread drift，而是 §4.3 的 reduction-order 差異本身。門檻未放寬。

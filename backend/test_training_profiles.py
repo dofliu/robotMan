@@ -52,9 +52,14 @@ def test_fixed_speed_and_motion_task_profiles_are_versioned_and_not_marked_train
         "stand_start_walk_stop_0p7_tracked_lineage_b1_r2",
         "stand_start_walk_stop_0p7_tracked_lineage_b1_r3",
         "stand_start_walk_stop_0p7_tracked_lineage_b1_r4",
+        "stand_start_walk_stop_0p7_tracked_lineage_b2_r0",
+        "stand_start_walk_stop_0p7_tracked_lineage_b2_r1",
+        "stand_start_walk_stop_0p7_tracked_lineage_b2_r2",
+        "stand_start_walk_stop_0p7_tracked_lineage_b2_r3",
+        "stand_start_walk_stop_0p7_tracked_lineage_b2_r4",
     ]
     assert [item.speed_mps for item in profiles.profiles] == pytest.approx(
-        [0.4, 0.7, 1.0] + [0.7] * 17
+        [0.4, 0.7, 1.0] + [0.7] * 22
     )
     by_id = {item.profile_id: item for item in profiles.profiles}
     assert by_id["stand_start_walk_stop_0p7_v1"].status == (
@@ -114,7 +119,7 @@ def test_public_training_inventory_is_read_only_and_explicit():
     body = public_training_inventory()
     assert body["schema_version"] == "RL_TRAINING_PROFILES_V4"
     assert body["execution_mode"] == "OFFLINE_EXPLICIT_COMMAND_ONLY"
-    assert len(body["profiles"]) == 20
+    assert len(body["profiles"]) == 25
     # Addressed by profile id rather than by position. The original slices broke
     # the moment a line was appended, which said nothing about the property they
     # were checking: that each family declares exactly one governing protocol.
@@ -152,6 +157,17 @@ def test_public_training_inventory_is_read_only_and_explicit():
     assert [by_id[item]["seed_base"] for item in tracked_ids] == [
         9100, 9112, 9124, 9136, 9148
     ]
+    # The V2 continuation family: same seeds in the same order, declaring the V2
+    # protocol instead, and carrying the INCREMENT as planned_timesteps.
+    v2_ids = [
+        f"stand_start_walk_stop_0p7_tracked_lineage_b2_r{index}" for index in range(5)
+    ]
+    assert [by_id[item]["tracked_lineage_protocol_id"] for item in v2_ids] == [
+        "TRACKED-LINEAGE-TRAINING-V2"
+    ] * 5
+    assert [by_id[item]["seed_base"] for item in v2_ids] == [9100, 9112, 9124, 9136, 9148]
+    assert [by_id[item]["warm_start_policy_id"] for item in v2_ids] == [None] * 5
+    assert [by_id[item]["planned_timesteps"] for item in v2_ids] == [2_000_000] * 5
 
 
 def test_training_profile_api_exposes_inventory_without_starting_a_run():

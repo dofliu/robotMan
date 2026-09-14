@@ -15,6 +15,27 @@ CONVERGED_SLOPE_FRACTION of the first-quarter slope AND is below
 CONVERGED_ABSOLUTE_SLOPE in absolute terms. Both thresholds are declared here,
 in one place, before being applied -- they are a measurement definition, not a
 result-dependent knob, and any change to them belongs in a protocol amendment.
+V2's protocol carries them forward unchanged and forbids retuning them to obtain
+a preferred label, so they are NOT restated for V2: there is one copy.
+
+WHICH CURVE V2'S VERDICT IS MEASURED ON -- declared here before any V2 curve was
+complete, and stated because the choice moves the label:
+
+  V2 continues V1's replicates, so a V2 run's own progress.csv covers only the
+  2_015_232-step increment, not the training that produced the evaluated policy.
+  The verdict is therefore measured on the LINEAGE curve: V1's retained curve
+  truncated at the resumed checkpoint, followed by V2's. V1's last logged point
+  sits at 2_015_232, past the 1_999_968 checkpoint V2 resumed from, and those
+  15_264 steps are not in the resumed policy, so they are dropped rather than
+  spliced in.
+
+  The increment-only measurement is computed and recorded alongside it, but is
+  NOT used to assign the label. The direction matters and is disclosed: the
+  lineage curve's first quarter is early training, so its slope is large, the
+  ratio is small, and "converged" is EASIER to reach -- which yields
+  TL2_REFERENCE_NOT_ATTAINED, the result that does not invite more budget. The
+  increment-only reading would make TL2_BUDGET_EXHAUSTED easier. The stricter
+  choice against this project's own escalation is the one taken.
 
 Stdlib only, so the measurement can be re-derived under python -I -S.
 """
@@ -31,6 +52,7 @@ from pathlib import Path
 BACKEND = Path(__file__).resolve().parents[1]
 EVIDENCE_ROOT = BACKEND / "tracked_lineage_evidence"
 PROFILE_PREFIX = "stand_start_walk_stop_0p7_tracked_lineage_b1_r"
+V2_PROFILE_PREFIX = "stand_start_walk_stop_0p7_tracked_lineage_b2_r"
 
 REWARD_COLUMN = "rollout/ep_rew_mean"
 STEP_COLUMN = "time/total_timesteps"
@@ -39,6 +61,9 @@ SLOPE_WINDOW = 500_000
 # A curve counts as converged only if BOTH hold. Declared before application.
 CONVERGED_SLOPE_FRACTION = 0.10   # final-quarter slope <= 10% of first-quarter
 CONVERGED_ABSOLUTE_SLOPE = 1.0    # and <= 1.0 reward per 500k steps
+
+# V2 resumed here; V1 points beyond it are not in the resumed policy.
+V2_RESUME_TIMESTEPS = 1_999_968
 
 
 def sha256_file(path: Path) -> str:
@@ -92,13 +117,30 @@ def measure(points: list[tuple[int, float]]) -> dict:
     }
 
 
-def retain(date: str, *, dry_run: bool = False) -> dict:
-    target_dir = EVIDENCE_ROOT / date / "training_curves"
-    index_path = EVIDENCE_ROOT / date / "training_curve_index.json"
+def lineage_points(
+    v1_curve: Path, v2_points: list[tuple[int, float]]
+) -> list[tuple[int, float]]:
+    """V1's curve up to the resumed checkpoint, then V2's. See the module docstring."""
+    kept = [point for point in read_curve(v1_curve) if point[0] <= V2_RESUME_TIMESTEPS]
+    if not kept:
+        raise SystemExit(f"{v1_curve}: no point at or before the resume point")
+    if kept[-1][0] >= v2_points[0][0]:
+        raise SystemExit("lineage curve is not monotone in timesteps")
+    return kept + v2_points
+
+
+def retain(date: str, *, line: str = "v1", dry_run: bool = False) -> dict:
+    if line == "v1":
+        prefix, dirname, index_name = PROFILE_PREFIX, "training_curves", "training_curve_index.json"
+    else:
+        prefix = V2_PROFILE_PREFIX
+        dirname, index_name = "training_curves_v2", "training_curve_index_v2.json"
+    target_dir = EVIDENCE_ROOT / date / dirname
+    index_path = EVIDENCE_ROOT / date / index_name
 
     per_replicate = {}
     for index in range(5):
-        source = BACKEND / "rl" / "artifacts" / f"{PROFILE_PREFIX}{index}-run" / "logs" / "progress.csv"
+        source = BACKEND / "rl" / "artifacts" / f"{prefix}{index}-run" / "logs" / "progress.csv"
         if not source.is_file():
             raise SystemExit(f"missing training curve {source}")
         target = target_dir / f"r{index}-progress.csv"
@@ -107,9 +149,21 @@ def retain(date: str, *, dry_run: bool = False) -> dict:
             if target.exists():
                 raise SystemExit(f"refusing to overwrite retained evidence {target}")
             shutil.copyfile(source, target)
-        result = measure(read_curve(source))
+        points = read_curve(source)
+        if line == "v1":
+            result = measure(points)
+        else:
+            v1_curve = EVIDENCE_ROOT / date / "training_curves" / f"r{index}-progress.csv"
+            result = measure(lineage_points(v1_curve, points))
+            result["measured_on"] = "lineage"
+            result["lineage_v1_curve"] = (
+                f"backend/tracked_lineage_evidence/{date}/training_curves/r{index}-progress.csv"
+            )
+            result["lineage_v1_truncated_at"] = V2_RESUME_TIMESTEPS
+            # Disclosure only. Not used to assign the label; see the module docstring.
+            result["increment_only_not_used_for_label"] = measure(points)
         result["relative_path"] = (
-            f"backend/tracked_lineage_evidence/{date}/training_curves/r{index}-progress.csv"
+            f"backend/tracked_lineage_evidence/{date}/{dirname}/r{index}-progress.csv"
         )
         result["sha256"] = sha256_file(source)
         result["bytes"] = source.stat().st_size
@@ -117,7 +171,9 @@ def retain(date: str, *, dry_run: bool = False) -> dict:
 
     any_converged = any(item["converged"] for item in per_replicate.values())
     payload = {
-        "contract_id": "TRACKED-LINEAGE-TRAINING-V1",
+        "contract_id": (
+            "TRACKED-LINEAGE-TRAINING-V1" if line == "v1" else "TRACKED-LINEAGE-TRAINING-V2"
+        ),
         "convergence_rule": {
             "slope_window_steps": SLOPE_WINDOW,
             "converged_slope_fraction": CONVERGED_SLOPE_FRACTION,
@@ -133,6 +189,16 @@ def retain(date: str, *, dry_run: bool = False) -> dict:
         "any_replicate_converged": any_converged,
         "all_replicates_converged": all(item["converged"] for item in per_replicate.values()),
     }
+    if line == "v2":
+        payload["measured_on"] = "lineage"
+        payload["measured_on_note"] = (
+            "V1's retained curve truncated at the resumed checkpoint (1999968) followed by "
+            "V2's own curve, because a V2 run's progress.csv covers only the increment and "
+            "not the training that produced the evaluated policy. The increment-only reading "
+            "is recorded per replicate under increment_only_not_used_for_label and is NOT "
+            "used to assign the label. Declared in the script before any V2 curve was "
+            "complete; see the module docstring for which way the choice moves the label."
+        )
     if not dry_run:
         index_path.write_text(
             json.dumps(payload, indent=2, ensure_ascii=False, sort_keys=True) + "\n",
@@ -144,15 +210,25 @@ def retain(date: str, *, dry_run: bool = False) -> dict:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--date", required=True)
+    parser.add_argument("--line", choices=("v1", "v2"), default="v1")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
-    payload = retain(args.date, dry_run=args.dry_run)
+    payload = retain(args.date, line=args.line, dry_run=args.dry_run)
     for index, item in sorted(payload["replicates"].items()):
         print(
             f"r{index}: first {item['first_quarter_slope_per_500k']:+8.3f}  "
             f"final {item['final_quarter_slope_per_500k']:+8.3f}  "
             f"ratio {item['final_over_first']:.3f}  converged={item['converged']}"
         )
+        disclosure = item.get("increment_only_not_used_for_label")
+        if disclosure:
+            print(
+                f"    increment-only (disclosure, not used): "
+                f"first {disclosure['first_quarter_slope_per_500k']:+8.3f}  "
+                f"final {disclosure['final_quarter_slope_per_500k']:+8.3f}  "
+                f"ratio {disclosure['final_over_first']:.3f}  "
+                f"converged={disclosure['converged']}"
+            )
     print(f"any converged: {payload['any_replicate_converged']}")
     return 0
 

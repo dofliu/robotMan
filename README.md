@@ -28,7 +28,7 @@ Repository：[github.com/dofliu/robotMan](https://github.com/dofliu/robotMan) �
 | 新訓練線 | `TRACKED-LINEAGE-TRAINING-V1` 於 2026-09-14 **執行完成**：scratch、5 replicates、20 個 checkpoint 進版控（`38.0 MiB`）、10 次執行皆 `RUN_LOCK_BOUND`。**`PUB-B1` 達成**（provenance 可重建的訓練線存在）；**`PUB-B2` 未達成**——5 個 replicate 的 full exposure 皆 `0/30`，標籤 **`TL_BUDGET_EXHAUSTED`**（曲線在上限處仍未收斂，見 amendment 03 的更正）。**門檻不得下調，上限亦不得因「再多跑一點」而上調** | [receipt](docs/TRACKED_LINEAGE_TRAINING_RECEIPT_2026-09-14.md) |
 | 動作任務範圍 | 2026-09-11 決定現在**不**新增跳躍／轉身；順序為先綁 lock record 與建有版控 lineage 的新訓練線，轉身需 `PUB-B2`、跳躍需 V1 PASS | [MOTION_SCOPE_DECISION](docs/MOTION_SCOPE_DECISION_2026-09-11.md) |
 | 下一個決策 | formal evaluation 已於 2026-09-10 授權；剩兩個子問題：用現行 post-hoc 規則或先預註冊替代規則、唯一未檢視的 FORMAL seed 範圍花在 v7 線或新訓練線 | [PUBLICATION_PLAN §5](docs/PUBLICATION_PLAN.md)、[PUB_B0 receipt](docs/PUB_B0_AUTHORIZATION_RECEIPT_2026-09-10.md) |
-| 測試 | `backend/` 1 failed / 882 passed；那一個是在具名 environment lock 下記錄的 reduction-order 差異，未放寬 | [PROJECT_STATUS §9](docs/PROJECT_STATUS.md) |
+| 測試 | `backend/` 1 failed / 923 passed；那一個是在具名 environment lock 下記錄的 reduction-order 差異，未放寬 | [PROJECT_STATUS §9](docs/PROJECT_STATUS.md) |
 
 ## 兩種模式
 
