@@ -487,3 +487,146 @@ def test_every_pinned_resume_source_is_recordable():
         assert train_ppo.resume_artifact_relative_path(
             REPO_ROOT / source["relative_path"]
         ) == source["relative_path"]
+
+
+def test_the_two_lines_cannot_overwrite_each_others_retained_records():
+    """V1 and V2 executed on the same date and share one evidence directory.
+
+    Checkpoint filenames cannot collide because the step ranges are disjoint,
+    but the index and the evaluations directory would, so V2 keeps its own. A
+    retention that silently rewrote V1's index would destroy the only
+    reconstructable source of V2's own starting point.
+    """
+    from rl import retain_tracked_lineage_checkpoints as retain
+
+    v1, v2 = retain.LINES["v1"], retain.LINES["v2"]
+    assert v1.index_filename != v2.index_filename
+    assert v1.evaluations_dirname != v2.evaluations_dirname
+    assert v1.profile_prefix != v2.profile_prefix
+    assert v1.protocol_filename != v2.protocol_filename
+    # V1's behaviour is unchanged: it is still the default and still writes
+    # exactly the paths its already-retained evidence lives at.
+    assert v1.index_filename == "checkpoint_index.json"
+    assert v1.evaluations_dirname == "evaluations"
+    assert v1.realized_field == "realized_timesteps_per_replicate"
+
+
+def test_the_two_lines_checkpoint_step_ranges_are_disjoint(protocol):
+    """Why one checkpoints/ directory is safe for both lines."""
+    from rl import retain_tracked_lineage_checkpoints as retain
+
+    v1_protocol = retain.LINES["v1"].protocol_loader()
+    v1_steps = [int(s) for s in v1_protocol["checkpoint_lineage"]["expected_realized_timesteps"]]
+    v2_steps = [int(s) for s in protocol["checkpoint_lineage"]["expected_realized_timesteps"]]
+    assert max(v1_steps) < min(v2_steps)
+    # And therefore the file names, which are the step counts, cannot collide.
+    assert not {f"r0-{s:07d}.zip" for s in v1_steps} & {f"r0-{s:07d}.zip" for s in v2_steps}
+
+
+def test_the_v2_convergence_verdict_is_measured_on_the_lineage_curve():
+    """A V2 run's own curve covers the increment, not the training behind the policy.
+
+    The verdict is measured on V1's curve truncated at the resumed checkpoint
+    followed by V2's. Points past the resume are dropped: V2 resumed from
+    1_999_968 and V1's last logged point is at 2_015_232, so those 15_264 steps
+    are not in the resumed policy and must not be spliced in.
+    """
+    from rl import retain_tracked_lineage_curves as curves
+
+    assert curves.V2_RESUME_TIMESTEPS == 1_999_968
+    v1_curve = (
+        REPO_ROOT / "backend/tracked_lineage_evidence/2026-09-14/training_curves/r0-progress.csv"
+    )
+    v1_points = curves.read_curve(v1_curve)
+    assert v1_points[-1][0] > curves.V2_RESUME_TIMESTEPS, "the dropped point is the reason for this"
+
+    v2_points = [(2_024_544 + i * 24_576, 230.0 + i) for i in range(82)]
+    lineage = curves.lineage_points(v1_curve, v2_points)
+    assert all(step <= curves.V2_RESUME_TIMESTEPS for step, _ in lineage[: -len(v2_points)])
+    assert lineage[-len(v2_points):] == v2_points
+    assert all(lineage[i][0] < lineage[i + 1][0] for i in range(len(lineage) - 1))
+    assert len(lineage) == len(v1_points) - 1 + len(v2_points)
+
+
+def test_a_non_monotone_lineage_curve_fails_closed():
+    """A resume source older than the V1 curve's kept tail would silently mislead."""
+    from rl import retain_tracked_lineage_curves as curves
+
+    v1_curve = (
+        REPO_ROOT / "backend/tracked_lineage_evidence/2026-09-14/training_curves/r0-progress.csv"
+    )
+    with pytest.raises(SystemExit, match="not monotone"):
+        curves.lineage_points(v1_curve, [(1_000_000, 1.0)] * 8)
+
+
+def test_the_lineage_choice_is_declared_and_its_direction_disclosed():
+    """The choice moves the label, so which way it moves is written down.
+
+    Measured on the lineage curve the first-quarter slope is early training, so
+    the ratio is small and 'converged' is easier to reach -- which yields
+    TL2_REFERENCE_NOT_ATTAINED, the label that does NOT invite more budget.
+    Declaring the stricter-against-our-own-escalation choice, before the curves
+    existed, is what keeps it from being a result-dependent knob.
+    """
+    from rl import retain_tracked_lineage_curves as curves
+
+    doc = curves.__doc__
+    assert "LINEAGE curve" in doc
+    assert "NOT used to assign the label" in doc
+    assert "TL2_REFERENCE_NOT_ATTAINED" in doc and "TL2_BUDGET_EXHAUSTED" in doc
+    assert "before any V2 curve was" in doc
+
+
+def test_the_training_run_records_are_retained_where_nothing_is_overwritten():
+    """TL2-03 is judged on a training manifest, and V1 never retained one.
+
+    V1 kept its evaluations' manifests but not its trainings', so every claim
+    resting on a training manifest rested on a gitignored file that dies with
+    the container -- only its digest reached the index, and a digest of a file
+    nobody has is not evidence. Both lines now retain them, each into its own
+    index, so no already-retained index is rewritten to add them.
+    """
+    from rl import retain_tracked_lineage_checkpoints as retain
+
+    v1, v2 = retain.LINES["v1"], retain.LINES["v2"]
+    assert v1.training_run_index_filename != v2.training_run_index_filename
+    assert v1.training_runs_dirname != v2.training_runs_dirname
+    for line in (v1, v2):
+        # The training-run index is a file of its own, never the checkpoint index.
+        assert line.training_run_index_filename != line.index_filename
+        assert line.training_runs_dirname != line.evaluations_dirname
+
+
+def test_a_retained_training_run_carries_what_the_criteria_are_judged_on():
+    """Whatever TL2-03, TL2-04, TL2-05 and TL2-07 read must survive the container."""
+    import inspect
+
+    from rl import retain_tracked_lineage_checkpoints as retain
+
+    source = inspect.getsource(retain.retain_training_run)
+    for field in ("resume", "warm_start", "seed_base", "run_lock_label", "realized_timesteps"):
+        assert f'"{field}"' in source, field
+    for name in ("run_manifest.json", "environment_lock.json", "run_lock_binding.json"):
+        assert name in source, name
+
+
+def test_the_contract_runner_declares_its_convergence_aggregate_and_records_both():
+    """Five replicates, one verdict: which aggregate is a choice, so it is declared.
+
+    'any' makes converged easier, which yields TL2_REFERENCE_NOT_ATTAINED -- the
+    label that does not invite more budget -- so it is the reading that is
+    stricter against this project's own escalation. Both aggregates reach the
+    receipt so the other reading stays checkable.
+    """
+    import inspect
+
+    from rl import run_tracked_lineage_v2_contract as runner
+
+    source = inspect.getsource(runner.run)
+    assert 'curve_index["any_replicate_converged"]' in source
+    assert '"curve_converged_aggregate": "any_replicate_converged"' in source
+    assert '"curve_converged_all"' in source
+    assert "stricter against" in source
+    # It must read retained evidence only: an artifacts/ path would make the
+    # verdict stop being re-derivable the moment the container is reclaimed.
+    assert "artifacts" not in source

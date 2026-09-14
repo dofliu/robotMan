@@ -1,0 +1,57 @@
+{
+  "checkpoints": [
+    {
+      "bytes": 1983091,
+      "realized_timesteps": 2499960,
+      "relative_path": "backend/tracked_lineage_evidence/2026-09-14/checkpoints/r0-2499960.zip",
+      "replicate_index": 0,
+      "sha256": "sha256:92c58fbba597412bb05c554ca6abb700551f8e9e5eaa3c6592a8aa9f49937bc6"
+    },
+    {
+      "bytes": 1983091,
+      "realized_timesteps": 2999952,
+      "relative_path": "backend/tracked_lineage_evidence/2026-09-14/checkpoints/r0-2999952.zip",
+      "replicate_index": 0,
+      "sha256": "sha256:088a3169f5b0cd706070edacc98dbf3c4b114d68fa3ad4f8d1797b1e09cdadf4"
+    },
+    {
+      "bytes": 1983090,
+      "realized_timesteps": 3499944,
+      "relative_path": "backend/tracked_lineage_evidence/2026-09-14/checkpoints/r0-3499944.zip",
+      "replicate_index": 0,
+      "sha256": "sha256:710e828091e922b13923f32b5ebc50f4e111d004522f4f350ca85399c5a07a83"
+    },
+    {
+      "bytes": 1983092,
+      "realized_timesteps": 3999936,
+      "relative_path": "backend/tracked_lineage_evidence/2026-09-14/checkpoints/r0-3999936.zip",
+      "replicate_index": 0,
+      "sha256": "sha256:dcf2cc869abcae66fcb7f5c525f1671b968e9868b1a13ef0064bb11e2c985191"
+    }
+  ],
+  "contract_id": "TRACKED-LINEAGE-TRAINING-V2",
+  "protocol_sha256": "sha256:a38662d99c6c6a25015e3ab5f8d642b0bc601be8b1d5d157d7f5e00b8d9292d0",
+  "replicates": {
+    "0": {
+      "environment_lock_sha256_note": "see run_lock_binding.json in the run directory",
+      "profile_id": "stand_start_walk_stop_0p7_tracked_lineage_b2_r0",
+      "realized_timesteps": 4015200,
+      "reference_checkpoint_realized_timesteps": 3999936,
+      "reference_checkpoint_sha256": "sha256:dcf2cc869abcae66fcb7f5c525f1671b968e9868b1a13ef0064bb11e2c985191",
+      "resume_source": {
+        "artifact": "backend/tracked_lineage_evidence/2026-09-14/checkpoints/r0-1999968.zip",
+        "bytes": 1983087,
+        "mode": "PPO_FULL_STATE_RESUME_V1",
+        "sha256": "sha256:7df3fbae65cb73780a9278b78da7c597c77e54865ae5465d470d0f68e956e494",
+        "source_num_timesteps": 1999968
+      },
+      "run_id": "stand_start_walk_stop_0p7_tracked_lineage_b2_r0-run",
+      "run_manifest_sha256": "sha256:bdbaa66bec52cf6d488db63a61a4ee8ef9af8668e53408daa2b9c9146a2c29c2",
+      "seed_base": 9100,
+      "unretained_byproduct_note": "backend/rl/artifacts/<run_id>/policy.zip, saved at realized_timesteps rather than at a checkpoint boundary. Not version-controlled, not evaluated, not this line's output. See specification amendment 02.",
+      "unretained_byproduct_sha256": "sha256:4686c90760ef72aa8616ffc9e44364f1fe14ceab0a8178982f451d828c1be9f7"
+    }
+  },
+  "shares_date_directory_note": "V1 and V2 both executed on this date. Checkpoint filenames cannot collide (V1 ends at 1999968, V2 starts at 2499960) so both lines' checkpoints sit in one checkpoints/ directory, but each line keeps its own index and its own evaluations directory and neither rewrites the other's records.",
+  "shares_date_directory_with": "checkpoint_index.json"
+}
