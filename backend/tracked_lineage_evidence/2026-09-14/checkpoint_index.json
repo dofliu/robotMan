@@ -27,6 +27,34 @@
       "relative_path": "backend/tracked_lineage_evidence/2026-09-14/checkpoints/r0-1999968.zip",
       "replicate_index": 0,
       "sha256": "sha256:7df3fbae65cb73780a9278b78da7c597c77e54865ae5465d470d0f68e956e494"
+    },
+    {
+      "bytes": 1983072,
+      "realized_timesteps": 499992,
+      "relative_path": "backend/tracked_lineage_evidence/2026-09-14/checkpoints/r1-0499992.zip",
+      "replicate_index": 1,
+      "sha256": "sha256:4543a8ad551cc982a4f89c6636034e5d9a1abc41ad52ea88e515a7be820bf3c0"
+    },
+    {
+      "bytes": 1983072,
+      "realized_timesteps": 999984,
+      "relative_path": "backend/tracked_lineage_evidence/2026-09-14/checkpoints/r1-0999984.zip",
+      "replicate_index": 1,
+      "sha256": "sha256:5ff834275bc674fbfaf863681c13a9f74d7a79ef0e22360752075a9e7f31609c"
+    },
+    {
+      "bytes": 1983074,
+      "realized_timesteps": 1499976,
+      "relative_path": "backend/tracked_lineage_evidence/2026-09-14/checkpoints/r1-1499976.zip",
+      "replicate_index": 1,
+      "sha256": "sha256:6466b3e6ce3350a450ec3aa779b7cd2bfe2859f72f5e8da8c3cb6577112c0bed"
+    },
+    {
+      "bytes": 1983087,
+      "realized_timesteps": 1999968,
+      "relative_path": "backend/tracked_lineage_evidence/2026-09-14/checkpoints/r1-1999968.zip",
+      "replicate_index": 1,
+      "sha256": "sha256:9910b34aa0475e9416af534a92a75f797228eb9e56453585015e15ced659c393"
     }
   ],
   "contract_id": "TRACKED-LINEAGE-TRAINING-V1",
@@ -47,6 +75,23 @@
         "run_lock_binding.json": "sha256:e688e49cbfa9e3efaabe5d43152847d3e1dcdd9117c3b3d6c820f6fcffcea839"
       },
       "run_lock_label": "see gate output"
+    },
+    "1": {
+      "episodes": 30,
+      "evaluated_policy_sha256": "sha256:9910b34aa0475e9416af534a92a75f797228eb9e56453585015e15ced659c393",
+      "evaluation_seeds": [
+        22000,
+        22029
+      ],
+      "full_exposure": 0,
+      "full_exposure_proportion": "0/30",
+      "relative_dir": "backend/tracked_lineage_evidence/2026-09-14/evaluations/r1",
+      "retained_sha256": {
+        "environment_lock.json": "sha256:57a1be73a0dae011f3188b0581ce6492dfd53b74562c2509806fd766e1e9e24c",
+        "evaluation_dev22000_22029.json": "sha256:7c72ecec06595c14bd8380f4b47689ac976c78304e15648377f66883c76fb0c0",
+        "run_lock_binding.json": "sha256:32f5780398434e0617da698c35e08b88053320436eb8133377e4f0ed43956d3b"
+      },
+      "run_lock_label": "see gate output"
     }
   },
   "protocol_sha256": "sha256:9963a2b25ee1640186e721ba9b7e745126b593eb083454aa33a64a709765e2fa",
@@ -62,6 +107,18 @@
       "seed_base": 9100,
       "unretained_byproduct_note": "backend/rl/artifacts/<run_id>/policy.zip, saved at realized_timesteps rather than at a checkpoint boundary. Not version-controlled, not evaluated, not this line's output. See specification amendment 02.",
       "unretained_byproduct_sha256": "sha256:6378115d21e805e1a6f72adff04e3aacf3a97a91b6395e63e7546294dca4480c"
+    },
+    "1": {
+      "environment_lock_sha256_note": "see run_lock_binding.json in the run directory",
+      "profile_id": "stand_start_walk_stop_0p7_tracked_lineage_b1_r1",
+      "realized_timesteps": 2015232,
+      "reference_checkpoint_realized_timesteps": 1999968,
+      "reference_checkpoint_sha256": "sha256:9910b34aa0475e9416af534a92a75f797228eb9e56453585015e15ced659c393",
+      "run_id": "stand_start_walk_stop_0p7_tracked_lineage_b1_r1-run",
+      "run_manifest_sha256": "sha256:78fe1b528897a331b33bf3cec60f37d3508ce76fc4292024f21fc634e23811c2",
+      "seed_base": 9112,
+      "unretained_byproduct_note": "backend/rl/artifacts/<run_id>/policy.zip, saved at realized_timesteps rather than at a checkpoint boundary. Not version-controlled, not evaluated, not this line's output. See specification amendment 02.",
+      "unretained_byproduct_sha256": "sha256:dada4caead3bc5f4aa483fcaa5f8dc700d0c699a8c2f6bdf86b3691b6a6deed5"
     }
   }
 }
