@@ -75,6 +75,23 @@
         "run_lock_binding.json": "sha256:8c65abef19974e1d7edfb8bf871566466fa3f6590dfd5a035ce83957df7b8504"
       },
       "run_lock_label": "RUN_LOCK_BOUND"
+    },
+    "1": {
+      "episodes": 30,
+      "evaluated_policy_sha256": "sha256:5b81f921da114eb73832a310bb76dda9d3721b02e4b366ea95ed97e602295a32",
+      "evaluation_seeds": [
+        22000,
+        22029
+      ],
+      "full_exposure": 0,
+      "full_exposure_proportion": "0/30",
+      "relative_dir": "backend/tracked_lineage_evidence/2026-09-14/evaluations_v2/r1",
+      "retained_sha256": {
+        "environment_lock.json": "sha256:12c9f06778a5f2316a43fe3766c62d6cd5179d9b90e7012b5bb2ea3d7390d43b",
+        "evaluation_dev22000_22029.json": "sha256:33f1146205727ce5b7987ea059e89018ca4dd3fb0f30c8684aa37414f8d08e80",
+        "run_lock_binding.json": "sha256:2bae2daf38bba7dae8293d80f7734bb85633b0fd2f29b9b694a981179ac801a3"
+      },
+      "run_lock_label": "RUN_LOCK_BOUND"
     }
   },
   "protocol_sha256": "sha256:a38662d99c6c6a25015e3ab5f8d642b0bc601be8b1d5d157d7f5e00b8d9292d0",
