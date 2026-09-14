@@ -574,6 +574,23 @@ def validate_v7_seedvar_request(
         raise ValueError("SEEDVAR_SOURCE_GIT_NOT_CLEAN")
 
 
+def resume_artifact_relative_path(resume_path: Path) -> str:
+    """How a resume source is recorded in the run manifest.
+
+    Sources under backend/rl/ are recorded relative to it, as they always were.
+    A version-controlled evidence source is recorded relative to the REPOSITORY
+    ROOT instead, which makes the manifest field directly comparable with the
+    path the protocol pins -- and relative_to(RL_DIR) would simply raise on it.
+    """
+    repository = RL_DIR.parent.parent
+    for root in (RL_DIR, repository):
+        try:
+            return str(resume_path.relative_to(root)).replace("\\", "/")
+        except ValueError:
+            continue
+    raise ValueError("RESUME_ARTIFACT_OUTSIDE_REPOSITORY")
+
+
 def tracked_lineage_v2_run_id(profile: TrainingProfile) -> str:
     return f"{profile.profile_id}-run"
 
@@ -1072,7 +1089,7 @@ def main():
         if not resume_path.is_file() or resume_path.suffix.lower() != ".zip":
             raise FileNotFoundError("resume policy artifact 不存在或不是 .zip")
         manifest["resume"] = {
-            "artifact": str(resume_path.relative_to(RL_DIR)).replace("\\", "/"),
+            "artifact": resume_artifact_relative_path(resume_path),
             "bytes": resume_path.stat().st_size,
             "sha256": f"sha256:{sha256_file(resume_path)}",
             "mode": "PPO_FULL_STATE_RESUME_V1",

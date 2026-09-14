@@ -456,3 +456,34 @@ def test_a_v1_profile_passes_through_both_guards():
     )
     train_ppo.validate_tracked_lineage_v2_request(**common)
     train_ppo.validate_tracked_lineage_request(**common)
+
+
+def test_a_resume_source_in_version_control_is_recordable_in_the_manifest():
+    """The second bug the first V2 run found, and why guard tests missed it.
+
+    Widening which paths the guard ACCEPTS was not enough: the manifest recorded
+    the artifact with relative_to(RL_DIR), which raises on anything outside
+    backend/rl/. Validation and recording are different code paths, and testing
+    only the first leaves the second unexercised.
+
+    An evidence source is recorded relative to the repository root, so the field
+    is directly comparable with the path the protocol pins.
+    """
+    source = train_ppo.tracked_lineage_v2_resume_source(0)
+    recorded = train_ppo.resume_artifact_relative_path(REPO_ROOT / source["relative_path"])
+    assert recorded == source["relative_path"]
+    # The historical behaviour for artifacts/ sources is unchanged.
+    assert train_ppo.resume_artifact_relative_path(
+        REPO_ROOT / "backend/rl/artifacts/some-run/policy.zip"
+    ) == "artifacts/some-run/policy.zip"
+    with pytest.raises(ValueError, match="RESUME_ARTIFACT_OUTSIDE_REPOSITORY"):
+        train_ppo.resume_artifact_relative_path(Path("/etc/passwd"))
+
+
+def test_every_pinned_resume_source_is_recordable():
+    """All five, not just one: a per-replicate path bug would be invisible otherwise."""
+    for index in range(5):
+        source = train_ppo.tracked_lineage_v2_resume_source(index)
+        assert train_ppo.resume_artifact_relative_path(
+            REPO_ROOT / source["relative_path"]
+        ) == source["relative_path"]
