@@ -656,3 +656,67 @@ def test_the_replicate_index_is_derived_from_the_profile_id_not_the_command_line
     for bad in ("stand_start_walk_stop_0p7_phase_observable_v5", "tracked_lineage_b1_rX"):
         with pytest.raises(ValueError, match="TRACKED_LINEAGE_PROFILE_ID_MISMATCH"):
             train_ppo.tracked_lineage_replicate_index(bad)
+
+
+# ---------------------------------------------------------------------------
+# TL-CK-06 (amendment 02): the evaluated policy is a retained checkpoint
+# ---------------------------------------------------------------------------
+
+def test_amendment_02_is_recorded_and_tl_ck_06_exists(protocol):
+    ids = [item["amendment_id"] for item in protocol["amendments"]]
+    assert "TRACKED-LINEAGE-AMENDMENT-02-FINAL-ARTIFACT" in ids
+    rules = protocol["checkpoint_lineage"]["rules"]
+    assert "TL-CK-06" in rules
+    # The costed parts of the section 4.1 decision are untouched.
+    assert protocol["checkpoint_lineage"]["per_replicate_count"] == 4
+    assert protocol["checkpoint_lineage"]["total_count"] == 20
+    assert protocol["training_design"]["checkpoint_interval"] == 500_000
+
+
+def test_tl_ck_04_reference_is_the_last_retained_checkpoint(protocol, tmp_path: Path):
+    index = _lineage(protocol, tmp_path)
+    for replicate_index in range(5):
+        reference = tl.reference_checkpoint(index, replicate_index)
+        assert reference["realized_timesteps"] == 1_999_968
+        assert reference["replicate_index"] == replicate_index
+
+
+def test_tl_ck_06_accepts_a_retained_checkpoint(protocol, tmp_path: Path):
+    index = _lineage(protocol, tmp_path)
+    evaluated = {
+        replicate_index: tl.reference_checkpoint(index, replicate_index)["sha256"]
+        for replicate_index in range(5)
+    }
+    tl.verify_evaluated_policy_is_a_retained_checkpoint(index, evaluated)
+
+
+def test_tl_ck_06_refuses_the_unretained_byproduct(protocol, tmp_path: Path):
+    """The measured case: policy.zip is 15_264 steps past the last checkpoint.
+
+    Amendment 02 exists because TL-CK-03 as written could never be satisfied
+    here, and this is the check that replaced the prose claim.
+    """
+    index = _lineage(protocol, tmp_path)
+    evaluated = {
+        replicate_index: tl.reference_checkpoint(index, replicate_index)["sha256"]
+        for replicate_index in range(5)
+    }
+    evaluated[2] = "sha256:6378115d21e805e1a6f72adff04e3aacf3a97a91b6395e63e7546294dca4480c"
+    with pytest.raises(
+        tl.TrackedLineageMethodFailure, match="TL_EVALUATED_POLICY_NOT_A_RETAINED_CHECKPOINT"
+    ):
+        tl.verify_evaluated_policy_is_a_retained_checkpoint(index, evaluated)
+
+
+def test_tl_ck_06_refuses_another_replicates_checkpoint(protocol, tmp_path: Path):
+    """A retained checkpoint is not enough; it must be THIS replicate's."""
+    index = _lineage(protocol, tmp_path)
+    evaluated = {
+        replicate_index: tl.reference_checkpoint(index, replicate_index)["sha256"]
+        for replicate_index in range(5)
+    }
+    evaluated[1] = tl.reference_checkpoint(index, 4)["sha256"]
+    with pytest.raises(
+        tl.TrackedLineageMethodFailure, match="TL_EVALUATED_POLICY_NOT_A_RETAINED_CHECKPOINT"
+    ):
+        tl.verify_evaluated_policy_is_a_retained_checkpoint(index, evaluated)

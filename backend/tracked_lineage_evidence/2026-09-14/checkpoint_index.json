@@ -1,0 +1,48 @@
+{
+  "checkpoints": [
+    {
+      "bytes": 1983072,
+      "realized_timesteps": 499992,
+      "relative_path": "backend/tracked_lineage_evidence/2026-09-14/checkpoints/r0-0499992.zip",
+      "replicate_index": 0,
+      "sha256": "sha256:0e20276fb52b9470f0c777bcf7e6d3eaa33c32cf95549ce163ed832e5123b7c6"
+    },
+    {
+      "bytes": 1983072,
+      "realized_timesteps": 999984,
+      "relative_path": "backend/tracked_lineage_evidence/2026-09-14/checkpoints/r0-0999984.zip",
+      "replicate_index": 0,
+      "sha256": "sha256:37f9a2d4cd2a54b20e227b2a0843b4dc578d43033ae4e7271a16593f552dba8f"
+    },
+    {
+      "bytes": 1983074,
+      "realized_timesteps": 1499976,
+      "relative_path": "backend/tracked_lineage_evidence/2026-09-14/checkpoints/r0-1499976.zip",
+      "replicate_index": 0,
+      "sha256": "sha256:58cb05bb76da73c726952bbaa9fb94f2767ca4b4ac53f78040b073b07590cd65"
+    },
+    {
+      "bytes": 1983087,
+      "realized_timesteps": 1999968,
+      "relative_path": "backend/tracked_lineage_evidence/2026-09-14/checkpoints/r0-1999968.zip",
+      "replicate_index": 0,
+      "sha256": "sha256:7df3fbae65cb73780a9278b78da7c597c77e54865ae5465d470d0f68e956e494"
+    }
+  ],
+  "contract_id": "TRACKED-LINEAGE-TRAINING-V1",
+  "protocol_sha256": "sha256:9963a2b25ee1640186e721ba9b7e745126b593eb083454aa33a64a709765e2fa",
+  "replicates": {
+    "0": {
+      "environment_lock_sha256_note": "see run_lock_binding.json in the run directory",
+      "profile_id": "stand_start_walk_stop_0p7_tracked_lineage_b1_r0",
+      "realized_timesteps": 2015232,
+      "reference_checkpoint_realized_timesteps": 1999968,
+      "reference_checkpoint_sha256": "sha256:7df3fbae65cb73780a9278b78da7c597c77e54865ae5465d470d0f68e956e494",
+      "run_id": "stand_start_walk_stop_0p7_tracked_lineage_b1_r0-run",
+      "run_manifest_sha256": "sha256:7a6ca6ee3c347621bc9793f18d6e657ce2f2059ffb27f618eace14732cd2c26a",
+      "seed_base": 9100,
+      "unretained_byproduct_note": "backend/rl/artifacts/<run_id>/policy.zip, saved at realized_timesteps rather than at a checkpoint boundary. Not version-controlled, not evaluated, not this line's output. See specification amendment 02.",
+      "unretained_byproduct_sha256": "sha256:6378115d21e805e1a6f72adff04e3aacf3a97a91b6395e63e7546294dca4480c"
+    }
+  }
+}

@@ -32,9 +32,10 @@
     "rules": {
       "TL-CK-01": "each retained checkpoint records relative_path, bytes, sha256, realized_timesteps and replicate_index",
       "TL-CK-02": "per replicate the checkpoints are strictly increasing in realized_timesteps with no gap and no duplicate",
-      "TL-CK-03": "the final policy artifact is a byte-for-byte copy of one retained checkpoint, or is itself the last one",
+      "TL-CK-03": "the final policy artifact, meaning the reference policy TL-CK-04 designates, is each replicate's last retained checkpoint - see amendment 02; the driver's policy.zip is an unretained byproduct at a different step count and is never this line's output",
       "TL-CK-04": "the rule selecting which checkpoint becomes the reference policy is frozen BEFORE any evaluation result is seen: the last checkpoint of each replicate",
-      "TL-CK-05": "every run is executed through backend/rl/bind_run_lock.py and the gate must return RUN_LOCK_BOUND; a RUN_LOCK_UNBOUND run is not evidence for this line"
+      "TL-CK-05": "every run is executed through backend/rl/bind_run_lock.py and the gate must return RUN_LOCK_BOUND; a RUN_LOCK_UNBOUND run is not evidence for this line",
+      "TL-CK-06": "the SHA-256 of the evaluated policy equals the SHA-256 of one retained checkpoint; otherwise TL_METHOD_FAILURE"
     },
     "storage": "GIT_DIRECT",
     "total_count": 20,
@@ -45,7 +46,8 @@
       1499976,
       1999968
     ],
-    "expected_realized_timesteps_note": "Corrected by amendment 01. save_freq = checkpoint_interval // n_envs = 500000 // 12 = 41666 and SB3 2.9.0 fires on n_calls % save_freq == 0 with num_timesteps = n_calls * n_envs, so multiples of 500000 are unreachable at n_envs = 12. Count per replicate stays 4 and the total stays 20."
+    "expected_realized_timesteps_note": "Corrected by amendment 01. save_freq = checkpoint_interval // n_envs = 500000 // 12 = 41666 and SB3 2.9.0 fires on n_calls % save_freq == 0 with num_timesteps = n_calls * n_envs, so multiples of 500000 are unreachable at n_envs = 12. Count per replicate stays 4 and the total stays 20.",
+    "unretained_byproduct": "backend/rl/artifacts/<run_id>/policy.zip, saved at realized_timesteps rather than at a checkpoint boundary. Not version-controlled, not evaluated, recorded by digest only."
   },
   "claim_boundary": [
     "Supports only that a DEVELOPMENT training line with reconstructable pretraining provenance exists, and that line's reference-policy full-exposure proportion on seeds 22000-22029 (PUB-B1, PUB-B2).",
@@ -146,7 +148,7 @@
     "training_driver_source_sha256_note": "Pinned in the implementation commit, as the freeze said it would be: null at freeze time because pinning a digest for a driver change that had not been made yet would be a pin written after the fact. This is the digest of backend/rl/train_ppo.py AFTER this line's edit, and it differs from superseded_training_driver_source_sha256, the digest SEEDVAR-V7-TRAINING-REPLICATE-DEV-V1 pins and the one behind the 2026-09-08 retained evidence. Nothing re-derives that pin at runtime, so from this commit onward it is no longer true of the live repository - which is the fact this protocol exists to disclose, per RUN_MANIFEST_LOCK_BINDING_SPEC section 15.4."
   },
   "specification_path": "docs/TRACKED_LINEAGE_TRAINING_SPEC.md",
-  "specification_sha256": "sha256:7c9d6fe0bdf81775f71e78ed657fc02584801c8631c5b4f80a31abd2a2a6e97f",
+  "specification_sha256": "sha256:96bbae557de189ab3c96f698447dbbe2c6630a405992b35b112075bb6bbee674",
   "training_design": {
     "ceiling_rule": "Fixed before any curve was seen and never raised. TL_BUDGET_EXHAUSTED may not be answered by raising it; that requires a new protocol version disclosing it was designed with the result already known.",
     "checkpoint_interval": 500000,
@@ -222,6 +224,19 @@
       "item_2_realized_timesteps": "Consequently realized timesteps are corrected too: SB3 collects rollouts of n_steps * n_envs = 2048 * 12 = 24576 and learn() runs until num_timesteps >= total_timesteps, so planned 2000000 realizes as ceil(2000000/24576) * 24576 = 82 * 24576 = 2015232. The same arithmetic applied to the seedvar line's planned 100000 gives 122880, identical to the realized value SEEDVAR-V7-TRAINING-REPLICATE-DEV-V1 actually recorded, so this is measured driver behaviour rather than a guess. 2015232 > 2000000 is NOT a raised ceiling: the ceiling is on planned_timesteps, the 15232 overshoot is pre-existing rollout granularity already recorded and accepted on this driver (100000 -> 122880, a 22880 overshoot), and TL_BUDGET_EXHAUSTED is still judged against the frozen planned_timesteps of 2000000, which may not be raised on account of a result.",
       "unchanged_word_for_word": "FULL_EXPOSURE_THRESHOLD, checkpoint_interval, the five training seeds, replicate_count, the planned_timesteps ceiling, the arm and task definitions, and the TL-CK-04 selection rule. Section 14 requires a NEW PROTOCOL VERSION for changes to thresholds, seeds, budget, arm definitions or selection rules; neither item falls in those five classes, so an amendment with a re-pinned digest chain is the correct instrument, as in SEEDVAR-AMENDMENT-01 and LOCKBIND-AMENDMENT-01.",
       "known_defect_not_corrected": "Section 6's subsections run 6.1, 6.4, 6.2, 6.3 because 6.4 was inserted in the wrong place before the freeze. Deliberately left alone: renumbering would move the cross-references in sections 2 and 11, all of which are currently correct, and churning a digest-pinned document for a cosmetic issue costs more than it returns."
+    },
+    {
+      "amendment_id": "TRACKED-LINEAGE-AMENDMENT-02-FINAL-ARTIFACT",
+      "date": "2026-09-14",
+      "kind": "narrowing_only_evaluation_before",
+      "applied_before_any_evaluation": true,
+      "falsifies_retained_evidence": false,
+      "measured_fact": "Replicate 0's retention dry-run measured that TL-CK-03 as written cannot be satisfied in this configuration. CheckpointCallback's last save lands at 1999968 because it fires on n_calls % save_freq, while model.save() runs after learn() returns, when num_timesteps is already the rollout boundary 2015232. The two files are 15264 steps apart: last checkpoint sha256:7df3fbae..., policy.zip sha256:6378115d..., both 1983087 bytes. So policy.zip is neither a copy of a retained checkpoint nor the last one, and never will be.",
+      "correction": "TL-CK-03's 'final policy artifact' means the reference policy designated by TL-CK-04, that is each replicate's LAST RETAINED CHECKPOINT, which satisfies TL-CK-03's own second clause. This is not a reading chosen after the fact to pass: TL-CK-04 designated the last checkpoint as the reference at freeze time, so this line's evidence chain never ran through policy.zip. The defect is that TL-CK-03 used a phrase that means something else in the driver's vocabulary.",
+      "tightened": "New TL-CK-06: the SHA-256 of the evaluated policy must equal the SHA-256 of one retained checkpoint, or TL_METHOD_FAILURE. What was an assertion in prose is now recomputed on every analysis.",
+      "byproduct_rule": "policy.zip is an unretained byproduct: it lives in the gitignored run directory, is not version-controlled, is not evaluated, and may not be presented as this line's output. Its digest is still recorded in checkpoint_index.json as unretained_byproduct_sha256, so the fact that it exists and was not used is itself on the record and a later substitution would be detectable.",
+      "rejected_alternative": "Retaining policy.zip as a fifth file per replicate. Rejected for two reasons: it raises the repository cost from the 38 MB the project owner accepted as part of the section 4.1 decision to about 47 MB; and TL-CK-04 already designates the last checkpoint as the reference, so keeping a file that is never used and is 15264 steps further trained would create two things that both look like the final policy - exactly the pathology that makes v5's provenance unexplainable. If the owner prefers to retain it, that is a change to the section 4.1 cost decision and needs a new protocol version, not an amendment.",
+      "unchanged_word_for_word": "checkpoint_interval, 4 per replicate, 20 total, the 38 MB estimate, FULL_EXPOSURE_THRESHOLD, the seeds, the budget and TL-CK-04's selection rule."
     }
   ]
 }

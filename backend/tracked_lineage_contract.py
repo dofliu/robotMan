@@ -37,7 +37,7 @@ SPECIFICATION_PATH = REPO_ROOT / "docs" / "TRACKED_LINEAGE_TRAINING_SPEC.md"
 # Layer two of the three-layer chain: this module pins the protocol, the
 # protocol pins the specification. Layer three, the driver digest, is pinned
 # inside the protocol itself.
-PROTOCOL_SHA256 = "sha256:8d82637ded8fffacf2676319343d417149b957377e237c2aecf0e690f2c5f2ef"
+PROTOCOL_SHA256 = "sha256:9963a2b25ee1640186e721ba9b7e745126b593eb083454aa33a64a709765e2fa"
 
 LABEL_ATTAINED = "TL_REFERENCE_ATTAINED"
 LABEL_PARTIAL = "TL_REFERENCE_PARTIAL"
@@ -333,6 +333,53 @@ def verify_checkpoint_lineage(
                 _fail("TL_CHECKPOINT_DIGEST_MISMATCH", f"{item['relative_path']}: {actual}")
             if path.stat().st_size != int(item["bytes"]):
                 _fail("TL_CHECKPOINT_SIZE_MISMATCH", item["relative_path"])
+
+
+def verify_evaluated_policy_is_a_retained_checkpoint(
+    index: dict, evaluated_policy_sha256_by_replicate: dict[int, str]
+) -> None:
+    """TL-CK-06 (amendment 02): the policy that was evaluated is a retained checkpoint.
+
+    TL-CK-03 as first written required the final policy artifact to be a copy of
+    a retained checkpoint or be the last one. Measured on replicate 0, that is
+    unsatisfiable in this configuration: CheckpointCallback's last save lands at
+    1_999_968 while the driver's policy.zip is written after learn() returns, at
+    the rollout boundary 2_015_232 -- 15_264 steps apart. Amendment 02 reads
+    TL-CK-03's "final policy artifact" as the reference policy TL-CK-04 already
+    designated, the last retained checkpoint, and adds this check so the claim is
+    recomputed rather than asserted. The driver's policy.zip is an unretained
+    byproduct and may never be what gets evaluated.
+    """
+    retained: dict[int, set[str]] = {}
+    for entry in index.get("checkpoints", []):
+        retained.setdefault(int(entry["replicate_index"]), set()).add(entry["sha256"])
+    if not evaluated_policy_sha256_by_replicate:
+        _fail("TL_NO_EVALUATED_POLICY_DIGESTS")
+    for replicate_index, digest in sorted(evaluated_policy_sha256_by_replicate.items()):
+        available = retained.get(int(replicate_index))
+        if not available:
+            _fail("TL_NO_RETAINED_CHECKPOINT_FOR_REPLICATE", str(replicate_index))
+        if digest not in available:
+            _fail(
+                "TL_EVALUATED_POLICY_NOT_A_RETAINED_CHECKPOINT",
+                f"r{replicate_index}: {digest}",
+            )
+
+
+def reference_checkpoint(index: dict, replicate_index: int) -> dict:
+    """TL-CK-04: the reference policy is the replicate's LAST retained checkpoint.
+
+    Frozen before any evaluation result was seen. v5's checkpoint was chosen
+    after its results were seen, out of a run that had regressed, which is part
+    of why its provenance cannot be explained.
+    """
+    entries = [
+        entry for entry in index.get("checkpoints", [])
+        if int(entry["replicate_index"]) == int(replicate_index)
+    ]
+    if not entries:
+        _fail("TL_NO_RETAINED_CHECKPOINT_FOR_REPLICATE", str(replicate_index))
+    return max(entries, key=lambda entry: int(entry["realized_timesteps"]))
 
 
 def verify_checkpoints_are_version_controlled(

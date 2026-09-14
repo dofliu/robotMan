@@ -390,3 +390,44 @@
 | protocol | `sha256:e5566eb6bbcb3abf7f95ad9a7b25566b59133b70caf9692fe5e52489e25273ae` | 見 CHANGELOG 與實作 commit |
 
 [RESULT] 套用時機：**任何保留證據依賴本 protocol 之前**。本線一次訓練都還沒跑，因此本次 amendment 不使任何既有證據失效，也不改變任何已保留的數字。
+
+---
+
+## 16. Amendment 02：`TRACKED-LINEAGE-AMENDMENT-02-FINAL-ARTIFACT`
+
+日期：2026-09-14（replicate 0 訓練完成後、任何評估之前）｜狀態：**narrowing-only、evaluation-before**｜由 replicate 0 的保留 dry-run 量測發現。
+
+[BLOCKER] 又是我自己的缺陷，與 §15 的兩項同一家族：**我寫了一條機制滿足不了的規則**。必須先說清楚它不是為了讓自己的結果過關而放寬——本次更正**縮小**了可接受的範圍，並把原本只是文字的主張改成機器檢查的。
+
+### 16.1 量測到的事實
+
+[RESULT] `TL-CK-03` 原文要求「最終 policy artifact 必須是某個保留 checkpoint 的逐位元副本，或自身即為最後一個 checkpoint」。replicate 0 實測：
+
+| 檔案 | 步數 | SHA-256（前 16） | 大小 |
+|---|---:|---|---:|
+| 最後一個保留 checkpoint | `1,999,968` | `7df3fbae65cb7378` | `1,983,087` |
+| driver 的 `policy.zip` | `2,015,232` | `6378115d21e805e1` | `1,983,087` |
+
+[BLOCKER] 兩者**相差 `15,264` 步**，因此 `policy.zip` 既不是任何保留 checkpoint 的副本，也不是最後一個 checkpoint。原因是機制性的：`CheckpointCallback` 依 `n_calls % save_freq` 存檔，最後一次落在 `1,999,968`；而 `model.save()` 在 `learn()` 回來之後執行，此時 `num_timesteps` 已是 rollout 邊界的 `2,015,232`。**在本設定下 `TL-CK-03` 原文無法被滿足**——不是這次沒滿足，是永遠不會滿足。
+
+### 16.2 更正
+
+[RESULT] `TL-CK-03` 的「最終 policy artifact」定義為 **`TL-CK-04` 指定的 reference policy**，也就是每個 replicate **最後一個保留的 checkpoint**。依該定義，`TL-CK-03` 由其原文第二款（「自身即為最後一個 checkpoint」）滿足。
+
+[INFERENCE] 這個讀法不是事後挑一個能過關的解釋：`TL-CK-04` 早在凍結時就已指定 reference policy 是「每個 replicate 的最後一個 checkpoint」，所以本線的證據鏈**從一開始就不經過 `policy.zip`**。真正的缺陷是 `TL-CK-03` 用了「最終 policy artifact」這個在 driver 語境下另有所指的詞。
+
+[RESULT] 同時**加嚴**：新增 `TL-CK-06`——被評估的 policy 其 SHA-256 必須等於某個保留 checkpoint 的 SHA-256，不符即 `TL_METHOD_FAILURE`。原本只是文字的主張因此變成每次分析都會重算的檢查。
+
+[RESULT] `policy.zip` 定性為 **unretained byproduct**：它存在於 gitignored 的 run 目錄、不進版控、不被評估、不得作為本線產出呈現。其 digest 仍記入 `checkpoint_index.json` 的 `unretained_byproduct_sha256`，使「它存在且未被使用」本身留下紀錄——若日後有人把它偷換成 reference，比對得出來。
+
+### 16.3 曾考慮並否決的替代方案
+
+[RESULT] 另一個作法是把 `policy.zip` 也保留進版控，成為每 replicate 第 5 個檔案。否決理由有二：其一，repo 成本由專案負責人接受的 `38 MB` 升為約 `47 MB`，而該數字是 §4.1 決定的一部分；其二，`TL-CK-04` 已指定 reference 是最後一個 checkpoint，保留一個**不會被使用且比 reference 多訓練 15,264 步**的檔案，只會製造兩個看起來都像「最終 policy」的東西——那正是 v5 的 provenance 說不清楚的病灶。
+
+[BLOCKER] 若專案負責人偏好保留該 byproduct，那是 §4.1 成本決定的修改，需要新的 protocol 版本而非 amendment。
+
+### 16.4 不變的部分
+
+[BLOCKER] `checkpoint_interval`、每 replicate `4` 個、合計 `20` 個、`38 MB` 估計、`FULL_EXPOSURE_THRESHOLD`、seed、budget、`TL-CK-04` 的選擇規則**一字未改**。本次只更正 `TL-CK-03` 的指涉並新增一條更嚴的 `TL-CK-06`。
+
+[RESULT] 套用時機：replicate 0 訓練完成、**任何評估執行之前**，因此不使任何已保留證據失效——此時尚無任何 evaluation 輸出。
