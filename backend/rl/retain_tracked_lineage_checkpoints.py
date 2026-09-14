@@ -145,13 +145,88 @@ def retain(replicate_index: int, date: str, *, dry_run: bool = False) -> dict:
     return index["replicates"][str(replicate_index)]
 
 
+def retain_evaluation(replicate_index: int, date: str, *, dry_run: bool = False) -> dict:
+    """Retain one replicate's evaluation output, lock record and binding.
+
+    The driver writes these into backend/rl/artifacts/, which is gitignored, so
+    an evaluation that is never retained disappears with the container exactly
+    like a checkpoint would. The lock record and the binding travel with the
+    output because TL-CK-05 is judged on them.
+    """
+    profile_id = f"{TRACKED_LINEAGE_PROFILE_PREFIX}{replicate_index}"
+    eval_dir = BACKEND / "rl" / "artifacts" / f"{profile_id}-eval"
+    target_dir = EVIDENCE_ROOT / date / "evaluations" / f"r{replicate_index}"
+    index_path = EVIDENCE_ROOT / date / INDEX_FILENAME
+
+    names = ["evaluation_dev22000_22029.json", "environment_lock.json", "run_lock_binding.json"]
+    retained = {}
+    for name in names:
+        source = eval_dir / name
+        if not source.is_file():
+            raise SystemExit(f"missing evaluation artefact {source}")
+        target = target_dir / name
+        if not dry_run:
+            target_dir.mkdir(parents=True, exist_ok=True)
+            if target.exists():
+                raise SystemExit(f"refusing to overwrite retained evidence {target}")
+            shutil.copyfile(source, target)
+        retained[name] = sha256_file(source)
+
+    payload = json.loads((eval_dir / names[0]).read_text(encoding="utf-8"))
+    episodes = payload["episode_results"]
+    full = sum(
+        1 for item in episodes
+        if float(item["duration_s"]) == 9.0 and item["outcome_state"] == "OBSERVED"
+    )
+    binding = json.loads((eval_dir / "run_lock_binding.json").read_text(encoding="utf-8"))
+
+    summary = {
+        "evaluation_seeds": [payload["evaluation_seeds"][0], payload["evaluation_seeds"][-1]],
+        "episodes": len(episodes),
+        "full_exposure": full,
+        "full_exposure_proportion": f"{full}/{len(episodes)}",
+        "evaluated_policy_sha256": _evaluated_policy_digest(payload),
+        "run_lock_label": binding.get("label", "see gate output"),
+        "retained_sha256": retained,
+        "relative_dir": f"backend/tracked_lineage_evidence/{date}/evaluations/r{replicate_index}",
+    }
+
+    index = json.loads(index_path.read_text(encoding="utf-8")) if index_path.is_file() else {}
+    index.setdefault("evaluations", {})[str(replicate_index)] = summary
+    if not dry_run:
+        index_path.write_text(
+            json.dumps(index, indent=2, ensure_ascii=False, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+    return summary
+
+
+def _evaluated_policy_digest(payload: dict) -> str:
+    """The digest of the policy the evaluation actually loaded (TL-CK-06).
+
+    Taken from the evaluation output's own model block rather than recomputed
+    from a path, so the claim survives in the retained evidence even when the
+    gitignored run directory is gone.
+    """
+    model = payload.get("model") or {}
+    digest = model.get("sha256")
+    if not digest:
+        raise SystemExit("evaluation output carries no model digest; TL-CK-06 unverifiable")
+    return digest
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--replicate-index", type=int, required=True)
     parser.add_argument("--date", required=True, help="execution date, e.g. 2026-09-14")
+    parser.add_argument("--evaluation", action="store_true",
+                        help="retain the evaluation output instead of the checkpoints")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
-    summary = retain(args.replicate_index, args.date, dry_run=args.dry_run)
+    if args.evaluation:
+        summary = retain_evaluation(args.replicate_index, args.date, dry_run=args.dry_run)
+    else:
+        summary = retain(args.replicate_index, args.date, dry_run=args.dry_run)
     print(json.dumps(summary, indent=2, ensure_ascii=False))
     return 0
 

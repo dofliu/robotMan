@@ -1,0 +1,20 @@
+{
+ "binding_mode": "SIDECAR_ONLY",
+ "bound_at_utc": "2026-09-14T08:12:30Z",
+ "bound_manifest_path": "backend/rl/artifacts/stand_start_walk_stop_0p7_tracked_lineage_b1_r0-eval/evaluation_dev22000_22029.json",
+ "bound_manifest_schema_version": "RL_TRAINING_ENV_EVALUATION_V3",
+ "bound_manifest_sha256": "sha256:d81fe3179f822d97f8b55de36fd5782cb9d21d8d3b36b1a248b6ce367f5d829e",
+ "claim_boundary": "RUN-MANIFEST-LOCK-BINDING-V1 establishes only that this run manifest and one ENVIRONMENT-LOCK-V1 record are linked by a recomputable relation, and that the record is MEASURED and FULL_LOCK. It supports no statement about the correctness of any numeric result, any task PASS, any controller superiority, or any change to paper_data_ready, statistics_ready or method_level_power_ready; no physical feasibility, safety, sim-to-real or actuator claim; and no claim that the run reproduces on another machine. The lock detects environment differences; it does not guarantee cross-environment numeric identity. This is infrastructure, not evidence.",
+ "contract_id": "RUN-MANIFEST-LOCK-BINDING-V1",
+ "environment_lock_class": "MEASURED_ENVIRONMENT_LOCK",
+ "environment_lock_completeness": "FULL_LOCK",
+ "environment_lock_threading_determinism": "AMBIENT_THREADING_PINNED",
+ "environment_locked_sha256": "sha256:93d23a2703adc86a1394eacf5dece8d7229fdf742857f1a271656aa1cfeac72d",
+ "lock_record_path": "backend/rl/artifacts/stand_start_walk_stop_0p7_tracked_lineage_b1_r0-eval/environment_lock.json",
+ "lock_record_sha256": "sha256:c68d5810a3bb2548a2f0ba1aac82b6a864f05578c8b4079710778b0e7e20341f",
+ "lock_verified_at_utc": "2026-09-14T08:12:13Z",
+ "satisfies_full_lock_requirement": true,
+ "schema_version": "RUN_LOCK_BINDING_V1",
+ "sidecar_reason": "backend/test_v7_candidate_selection_contract.py re-hashes this file and asserts it equals execution_precondition_source_digests.evaluation_driver_source_sha256 of SELECT-V7-CANDIDATE-FORMAL-V1, the protocol the project owner authorized on 2026-09-10 against sha256:b4e16370b5744c510fa11b06343dafb3c1893711639721a406504720bbe99b58.",
+ "verified_before_run": true
+}
