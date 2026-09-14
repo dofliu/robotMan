@@ -2,7 +2,7 @@
 
 最後更新：2026-09-14 ｜ Protocol ID：`TRACKED-LINEAGE-TRAINING-V2` ｜ 對應 gate：`PUB-B2` ｜ 前身：[TRACKED-LINEAGE-TRAINING-V1](TRACKED_LINEAGE_TRAINING_SPEC.md)
 
-狀態：`DRAFT_NOT_FROZEN`（`CHECKPOINT_STORAGE_COST` 待專案負責人確認，見 §5.3）
+狀態：`FROZEN_BEFORE_EXECUTION`（`CHECKPOINT_STORAGE_COST` 已於 2026-09-14 由專案負責人定案為選項 A，見 §5.3；本文件與其 protocol 在任何訓練、任何 driver 修改之前 commit 並 push）
 
 證據等級：`DEVELOPMENT / SIM_ONLY_MUJOCO / NOT_EVIDENCE_UNTIL_EXECUTED`
 
@@ -160,9 +160,9 @@
 
 [BLOCKER] **V1 的 20 個 checkpoint 不得刪除。** 它們是 V2 起點的唯一可重建來源；刪掉它們會讓 V2 的 provenance 立刻斷掉，也會摧毀 `PUB-B1` 的產出。
 
-### 5.3 ⚠️ 待專案負責人確認：儲存成本
+### 5.3 儲存成本（專案負責人已定案：選項 A）
 
-[BLOCKER] **這是本規格唯一未定的欄位，凍結前必須由專案負責人確認。**
+[RESULT] **定案：選項 A，`checkpoint_interval = 500_000`**（專案負責人，2026-09-14，在看到任何 V2 訓練曲線之前）。
 
 | 量 | 值 |
 |---|---:|
@@ -172,16 +172,18 @@
 
 [BLOCKER] V1 [§4.1](TRACKED_LINEAGE_TRAINING_SPEC.md) 具名接受的是「約 `49 MB`」，並寫明「**第三條線之前應重新評估是否改用外部 immutable storage**」。V2 是第二條線，`85 MB` **超出** V1 決定時所接受的範圍，因此需要一次新的確認而不是沿用。
 
-[RESULT] 兩個選項：
+[RESULT] 曾提供的兩個選項與定案：
 
-| 選項 | `checkpoint_interval` | V2 checkpoint 數 | 新增 | `.git` 之後 |
-|---|---:|---:|---:|---:|
-| **A（建議）** | `500_000` | `20` | `38 MB` | `85 MB` |
-| B | `1_000_000` | `10` | `19 MB` | `66 MB` |
+| 選項 | `checkpoint_interval` | V2 checkpoint 數 | 新增 | `.git` 之後 | |
+|---|---:|---:|---:|---:|---|
+| **A** | `500_000` | `20` | `38 MB` | `85 MB` | **定案** |
+| B | `1_000_000` | `10` | `19 MB` | `66 MB` | 未採用 |
 
-[INFERENCE] 建議 A：與 V1 粒度一致，使 `0`–`4,015,200` 的完整 lineage 均勻，較易辯護也較易推論。B 以一半的 lineage 解析度換約 `19 MB`。
+[INFERENCE] 選 A 的理由：與 V1 粒度一致，使 `0`–`4,015,200` 的完整 lineage 均勻，較易辯護也較易推論。B 以一半的 lineage 解析度換約 `19 MB`。
 
-[BLOCKER] 若專案負責人選 B，`checkpoint_interval` 改為 `1_000_000`，落點變為 `2,999,952` 與 `3,999,936`（每 replicate `2` 個）——該數字同樣須在凍結前驗證，不得直接假設是 `1,000,000` 的整數倍。
+[BLOCKER] **`85 MB` 是已具名接受的代價，不得事後當成意外。** 且 V1 §4.1 的「第三條線之前應重新評估外部 immutable storage」在本次**並未被取消**——它只是被判定尚未到期。第三條線之前仍須做該評估。
+
+[BLOCKER] **不得**為了省空間刪除任何已保留的 checkpoint，V1 的 20 個與 V2 的 20 個皆然。
 
 ---
 
@@ -234,7 +236,7 @@
 
 ## 9. 執行順序（順序不可反）
 
-1. 專案負責人確認 §5.3 的儲存成本（選項 A 或 B）。
+1. [DONE 2026-09-14] 專案負責人確認 §5.3 的儲存成本：選項 A。
 2. 凍結本規格與 `backend/rl/tracked_lineage_training_v2_protocol.json`，commit 並 **push**。此步之前不得修改 `train_ppo.py`。
 3. 依 §7 修改 driver，實作 contract 與驗收準則，補釘 digest。
 4. 逐 replicate 執行：續訓 → 保留 checkpoint → 評估 → 立即 commit／push（容器為 ephemeral）。
