@@ -61,6 +61,70 @@ SOURCE_FILES = (
 )
 
 
+# TRACKED-LINEAGE-TRAINING-V1 is the third mutually exclusive identity. It is
+# not a v7 arm: it trains from scratch on the v5 environment, so the pilot and
+# seedvar guards cannot express it. Two things it needs that no existing branch
+# provides: a training seed resolved from its own frozen protocol, and a
+# checkpoint_interval small enough that a 2M-step run retains intermediate
+# checkpoints at all -- the full-run default of 2_000_000 below saves none,
+# which is exactly the lineage gap ROADMAP section 9 item 2 exists to close.
+TRACKED_LINEAGE_PROTOCOL_PATH = RL_DIR / "tracked_lineage_training_protocol.json"
+TRACKED_LINEAGE_PROTOCOL_ID = "TRACKED-LINEAGE-TRAINING-V1"
+TRACKED_LINEAGE_PROFILE_PREFIX = "stand_start_walk_stop_0p7_tracked_lineage_b1_r"
+
+
+def load_tracked_lineage_protocol(path: Path = TRACKED_LINEAGE_PROTOCOL_PATH) -> dict:
+    """Load the frozen tracked-lineage protocol; the seed schedule lives there.
+
+    Same reasoning as the seed-variance loader: the schedule is deliberately not
+    restated in the training profile, because two sources for one frozen list is
+    how they drift apart.
+    """
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if payload.get("protocol_id") != TRACKED_LINEAGE_PROTOCOL_ID:
+        raise ValueError("TRACKED_LINEAGE_PROTOCOL_ID_MISMATCH")
+    design = payload.get("training_design", {})
+    seeds = design.get("training_seeds")
+    if not isinstance(seeds, list) or not seeds:
+        raise ValueError("TRACKED_LINEAGE_PROTOCOL_MISSING_TRAINING_SEEDS")
+    if len(seeds) != design.get("replicate_count"):
+        raise ValueError("TRACKED_LINEAGE_PROTOCOL_SEED_COUNT_MISMATCH")
+    return payload
+
+
+def tracked_lineage_training_seeds(path: Path = TRACKED_LINEAGE_PROTOCOL_PATH) -> list[int]:
+    design = load_tracked_lineage_protocol(path)["training_design"]
+    return [int(seed) for seed in design["training_seeds"]]
+
+
+def tracked_lineage_checkpoint_interval(path: Path = TRACKED_LINEAGE_PROTOCOL_PATH) -> int:
+    """The retention interval is the protocol's to set, not the driver's.
+
+    Without this the full-run branch pins 2_000_000 and a 2M-step run ends with
+    no intermediate checkpoint, so there is no lineage to version-control.
+    """
+    interval = load_tracked_lineage_protocol(path)["training_design"]["checkpoint_interval"]
+    if not isinstance(interval, int) or interval <= 0:
+        raise ValueError("TRACKED_LINEAGE_PROTOCOL_CHECKPOINT_INTERVAL_INVALID")
+    return interval
+
+
+def tracked_lineage_replicate_index(profile_id: str) -> int:
+    """Derive the replicate index from the profile id.
+
+    This line has one profile per replicate, so the index is already part of the
+    frozen profile identity. Deriving it here rather than accepting
+    --replicate-index keeps the seed unreachable from the command line: there is
+    no invocation that can pair a profile with another replicate's seed.
+    """
+    if not profile_id.startswith(TRACKED_LINEAGE_PROFILE_PREFIX):
+        raise ValueError("TRACKED_LINEAGE_PROFILE_ID_MISMATCH")
+    suffix = profile_id[len(TRACKED_LINEAGE_PROFILE_PREFIX):]
+    if not suffix.isdigit():
+        raise ValueError("TRACKED_LINEAGE_PROFILE_ID_MISMATCH")
+    return int(suffix)
+
+
 def load_seedvar_protocol(path: Path = SEEDVAR_PROTOCOL_PATH) -> dict:
     """Load the frozen seed-variance protocol; the seed schedule lives there.
 
@@ -113,23 +177,75 @@ class TrainingProfile(ProfileModel):
     warm_start_policy_id: str | None = None
     pilot_protocol_id: str | None = None
     seedvar_protocol_id: str | None = None
+    tracked_lineage_protocol_id: str | None = None
     pilot_arm_id: Literal[
         "V7A_REWARD_ONLY",
         "V7B_REDUCED_JOINT_ENVELOPE",
         "V7C_FILTERED_ACTION",
     ] | None = None
 
+    def validate_tracked_lineage_identity(self):
+        """Fail closed on any drift from the frozen TRACKED-LINEAGE-TRAINING-V1 design.
+
+        Every value compared here is read from the frozen protocol rather than
+        restated, so a profile cannot quietly disagree with the document that
+        governs it.
+        """
+        if self.tracked_lineage_protocol_id != TRACKED_LINEAGE_PROTOCOL_ID:
+            raise ValueError("TRACKED_LINEAGE_PROFILE_MISSING_FROZEN_IDENTITY")
+        design = load_tracked_lineage_protocol()["training_design"]
+        index = tracked_lineage_replicate_index(self.profile_id)
+        seeds = [int(seed) for seed in design["training_seeds"]]
+        if not 0 <= index < len(seeds):
+            raise ValueError("TRACKED_LINEAGE_REPLICATE_INDEX_OUT_OF_RANGE")
+        if self.environment_id != design["environment_id"]:
+            raise ValueError("TRACKED_LINEAGE_ENVIRONMENT_ID_MISMATCH")
+        if self.task_id != design["task_id"]:
+            raise ValueError("TRACKED_LINEAGE_TASK_ID_MISMATCH")
+        # Scratch is the whole point of this line (specification section 3), so
+        # a warm start is not a configuration choice here but a contradiction:
+        # it would carry CONDITIONAL_ON_FIXED_WARM_START straight back in.
+        if self.warm_start_policy_id is not None:
+            raise ValueError("TRACKED_LINEAGE_WARM_START_FORBIDDEN")
+        if self.seed_base != seeds[index]:
+            raise ValueError("TRACKED_LINEAGE_TRAINING_SEED_MISMATCH")
+        if self.parallel_envs != design["parallel_envs"]:
+            raise ValueError("TRACKED_LINEAGE_PARALLEL_ENVS_MISMATCH")
+        if self.planned_timesteps != design["planned_timesteps_per_replicate"]:
+            raise ValueError("TRACKED_LINEAGE_TRAINING_BUDGET_MISMATCH")
+        gait = design["gait"]
+        if (
+            self.speed_mps != gait["speed_mps"]
+            or self.step_length_m != gait["step_length_m"]
+            or self.duty != gait["duty"]
+            or self.clearance_m != gait["clearance_m"]
+        ):
+            raise ValueError("TRACKED_LINEAGE_GAIT_MISMATCH")
+        return self
+
     @model_validator(mode="after")
     def validate_pilot_identity(self):
         is_v7 = self.environment_id.startswith("motion_task_v7_")
         if not is_v7:
+            # This check and its message are unchanged. The tracked-lineage
+            # branch is added after it, never before: a non-v7 profile that
+            # declares a pilot identity must still be rejected for that reason
+            # first, whatever else it declares.
             if (
                 self.pilot_protocol_id is not None
                 or self.seedvar_protocol_id is not None
                 or self.pilot_arm_id is not None
             ):
                 raise ValueError("NON_V7_PROFILE_HAS_PILOT_IDENTITY")
+            if self.tracked_lineage_protocol_id is not None:
+                return self.validate_tracked_lineage_identity()
             return self
+        # The third identity is mutually exclusive with the other two, and its
+        # environment is not a v7 one, so a v7 profile may never declare it.
+        # Checked before the pilot/seedvar arbitration below so the rejection
+        # names the real problem instead of reporting an ambiguous identity.
+        if self.tracked_lineage_protocol_id is not None:
+            raise ValueError("V7_PROFILE_HAS_TRACKED_LINEAGE_IDENTITY")
         # Exactly one governing protocol. A profile that satisfied both could be
         # reported under either, which is precisely the confusion these guards
         # exist to prevent.
@@ -371,6 +487,67 @@ def validate_v7_seedvar_request(
         raise ValueError("SEEDVAR_SOURCE_GIT_NOT_CLEAN")
 
 
+def tracked_lineage_run_id(profile: TrainingProfile) -> str:
+    return f"{profile.profile_id}-run"
+
+
+def validate_tracked_lineage_request(
+    *,
+    profile: TrainingProfile,
+    run_id: str,
+    total: int,
+    n_envs: int,
+    seed_base: int,
+    replicate_index: int | None,
+    seed_base_from_cli: bool,
+    device: str,
+    resume_from: Path | None,
+    warm_start_from: Path | None,
+    smoke: bool,
+    preflight: bool,
+    source_git: dict,
+) -> None:
+    """Fail closed on any CLI or source drift from the frozen tracked-lineage design.
+
+    Deliberately a separate function rather than a branch inside
+    validate_v7_training_request: specification section 6.1 forbids changing the
+    order in which the existing pilot and seedvar checks fire, and the surest way
+    not to change it is not to touch that function at all.
+    """
+    if profile.tracked_lineage_protocol_id is None:
+        return
+    design = load_tracked_lineage_protocol()["training_design"]
+    seeds = [int(seed) for seed in design["training_seeds"]]
+    index = tracked_lineage_replicate_index(profile.profile_id)
+    # The index is carried by the profile, so passing one on the command line is
+    # a second source for a value that already has one.
+    if replicate_index is not None:
+        raise ValueError("TRACKED_LINEAGE_REPLICATE_INDEX_FORBIDDEN")
+    if seed_base_from_cli:
+        raise ValueError("TRACKED_LINEAGE_SEED_OVERRIDE_FORBIDDEN")
+    if seed_base != seeds[index]:
+        raise ValueError("TRACKED_LINEAGE_TRAINING_SEED_MISMATCH")
+    if run_id != tracked_lineage_run_id(profile):
+        raise ValueError("TRACKED_LINEAGE_RUN_ID_OVERRIDE_FORBIDDEN")
+    if (
+        total != design["planned_timesteps_per_replicate"]
+        or n_envs != design["parallel_envs"]
+    ):
+        raise ValueError("TRACKED_LINEAGE_TRAINING_OVERRIDE_FORBIDDEN")
+    if device != "cpu":
+        raise ValueError("TRACKED_LINEAGE_DEVICE_OVERRIDE_FORBIDDEN")
+    if resume_from is not None or warm_start_from is not None:
+        raise ValueError("TRACKED_LINEAGE_CHECKPOINT_OVERRIDE_FORBIDDEN")
+    if smoke or preflight:
+        raise ValueError("TRACKED_LINEAGE_RUN_KIND_OVERRIDE_FORBIDDEN")
+    if (
+        source_git.get("available") is not True
+        or source_git.get("working_tree_dirty") is not False
+        or not source_git.get("git_sha")
+    ):
+        raise ValueError("TRACKED_LINEAGE_SOURCE_GIT_NOT_CLEAN")
+
+
 def validate_v7_training_request(
     *,
     profile: TrainingProfile,
@@ -526,10 +703,14 @@ def main():
     profile = resolve_profile(args.profile)
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     is_seedvar = profile.seedvar_protocol_id is not None
+    is_tracked_lineage = profile.tracked_lineage_protocol_id is not None
     if is_seedvar and args.replicate_index is not None:
         # A deterministic run id per replicate, so the artifact directory is
         # itself part of the frozen identity rather than a timestamp.
         run_id = args.run_id or seedvar_run_id(profile, args.replicate_index)
+    elif is_tracked_lineage:
+        # Same reasoning; here the replicate is already in the profile id.
+        run_id = args.run_id or tracked_lineage_run_id(profile)
     else:
         run_id = args.run_id or f"{profile.profile_id}-{timestamp}"
     if not run_id.replace("-", "").replace("_", "").isalnum():
@@ -555,6 +736,12 @@ def main():
         if not 0 <= args.replicate_index < len(seeds):
             raise ValueError("SEEDVAR_REPLICATE_INDEX_OUT_OF_RANGE")
         seed_base = seeds[args.replicate_index]
+    if is_tracked_lineage:
+        seeds = tracked_lineage_training_seeds()
+        index = tracked_lineage_replicate_index(profile.profile_id)
+        if not 0 <= index < len(seeds):
+            raise ValueError("TRACKED_LINEAGE_REPLICATE_INDEX_OUT_OF_RANGE")
+        seed_base = seeds[index]
     if total <= 0 or n_envs <= 0 or seed_base < 0:
         raise ValueError("total-timesteps/n-envs 必須 > 0，seed-base 必須 >= 0")
 
@@ -573,6 +760,21 @@ def main():
         source_git=source_git_pre,
         replicate_index=args.replicate_index,
         seed_base_from_cli=args.seed_base is not None,
+    )
+    validate_tracked_lineage_request(
+        profile=profile,
+        run_id=run_id,
+        total=total,
+        n_envs=n_envs,
+        seed_base=seed_base,
+        replicate_index=args.replicate_index,
+        seed_base_from_cli=args.seed_base is not None,
+        device=args.device,
+        resume_from=args.resume_from,
+        warm_start_from=args.warm_start_from,
+        smoke=args.smoke,
+        preflight=args.preflight,
+        source_git=source_git_pre,
     )
     run_dir = RL_DIR / "artifacts" / run_id
     # exist_ok=False 是防覆寫 gate；重跑時必須提供新 run-id。
@@ -702,7 +904,15 @@ def main():
             checkpoint_interval = 32_768
         else:
             n_steps, batch_size, n_epochs = 2048, 8192, 5
-            checkpoint_interval = 2_000_000
+            # 2_000_000 means a 2M-step run keeps no intermediate checkpoint at
+            # all. The tracked-lineage line reads its interval from its own
+            # frozen protocol, which is what makes a version-controlled lineage
+            # possible; every other profile keeps the historical default.
+            checkpoint_interval = (
+                tracked_lineage_checkpoint_interval()
+                if is_tracked_lineage
+                else 2_000_000
+            )
         manifest["checkpoint_interval_timesteps"] = checkpoint_interval
         manifest["policy_contract"] = {
             "observation_dim": int(env.observation_space.shape[0]),
@@ -782,7 +992,21 @@ def main():
             raise ValueError(
                 f"V7_REALIZED_TIMESTEPS_MISMATCH:{model.num_timesteps}:122880"
             )
-        if profile.pilot_arm_id is not None:
+        if is_tracked_lineage:
+            # A prediction the run must satisfy, not a formality: SB3 collects
+            # whole rollouts of n_steps * n_envs, so the realized total is the
+            # first multiple of 24_576 at or above the planned ceiling. The same
+            # arithmetic reproduces the seedvar line's recorded 122_880 from its
+            # planned 100_000 (specification section 15.2).
+            expected = load_tracked_lineage_protocol()["training_design"][
+                "realized_timesteps_per_replicate"
+            ]
+            if model.num_timesteps != expected:
+                raise ValueError(
+                    f"TRACKED_LINEAGE_REALIZED_TIMESTEPS_MISMATCH:"
+                    f"{model.num_timesteps}:{expected}"
+                )
+        if profile.pilot_arm_id is not None or is_tracked_lineage:
             source_git_post = git_source_identity()
             manifest["source_git_post"] = source_git_post
             if (
@@ -790,7 +1014,11 @@ def main():
                 or source_git_post.get("working_tree_dirty") is not False
                 or source_git_post.get("git_sha") != source_git_pre.get("git_sha")
             ):
-                raise ValueError("V7_PILOT_SOURCE_GIT_DRIFT_DURING_TRAINING")
+                raise ValueError(
+                    "TRACKED_LINEAGE_SOURCE_GIT_DRIFT_DURING_TRAINING"
+                    if is_tracked_lineage
+                    else "V7_PILOT_SOURCE_GIT_DRIFT_DURING_TRAINING"
+                )
         model.save(str(run_dir / "policy"))
         artifact = run_dir / "policy.zip"
         manifest["status"] = {

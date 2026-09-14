@@ -176,6 +176,7 @@
 | 2026-09-10 | 專案負責人授權 formal evaluation；[PUBLICATION_PLAN](PUBLICATION_PLAN.md) 升版 V3 | `PUB-B0` `AUTHORIZED / SUB_OPTION_OPEN`；protocol 仍不可執行；量測 `SEL-C2` 在 v7 線上幾乎確定不成立；FORMAL seeds 未存取 |
 | 2026-09-11 | 動作任務範圍決定；凍結並執行 `R0-REGIME-HORIZON-PROBE-V1` | 不新增跳躍／轉身；`R0` probe 凍結後執行，兩個對比皆 `R0_WINDOW_FOUND`，taxonomy 六格全部有實例；replay bit-exact |
 | 2026-09-13 | 凍結並實作 `RUN-MANIFEST-LOCK-BINDING-V1` | lock record 前向綁進 run manifest；`LB-01`..`LB-12` 通過；三個被釘住的 driver／simulator 檔案逐位元未變；V0 blocker 再收窄一次仍未解除 |
+| 2026-09-14 | `TRACKED-LINEAGE-AMENDMENT-01` + driver／contract 實作 | 更正我自己凍結裡的兩個缺陷（`environment_id` 未指定、`500_000` 整數倍 checkpoint 不可達），皆在任何訓練之前、皆非門檻放寬。`train_ppo.py` 加第三個互斥身分與 protocol 決定的 `checkpoint_interval`；新增 contract 與 65 個雙向測試；三層 digest 補齊。全套 1 failed / 882 passed，無新增失敗 |
 | 2026-09-14 | 凍結 `TRACKED-LINEAGE-TRAINING-V1`（[spec](TRACKED_LINEAGE_TRAINING_SPEC.md)） | 兩格由負責人在看到任何曲線之前定案：`GIT_DIRECT` + `500_000`、`30/30`。ROADMAP §9 第 2 項收窄為 scratch。凍結 push 時三個 driver／simulator 檔案逐位元未變；範圍收窄為 `PUB-B1`／`PUB-B2`，`PUB-B3` 另需 protocol。**尚未執行、未產生任何證據** |
 | 2026-09-13 | `LOCKBIND-AMENDMENT-01-LB12-SCOPE` | `LB-12` 原本以工作樹比對，等於永久凍結三個檔案；改以 git 讀取本 contract 自己的兩個 commit 比對。非放寬：主張未改、量測更正，且更強。解除了新訓練線必須修改 `train_ppo.py` 的阻礙 |
 
@@ -191,13 +192,13 @@
 
 **工程（見 [ROADMAP](ROADMAP.md) §9）**
 
-1. 執行 [`TRACKED-LINEAGE-TRAINING-V1`](TRACKED_LINEAGE_TRAINING_SPEC.md)（protocol 已於 2026-09-14 凍結並 push，**尚未執行**）。依規格 §10 的凍結順序，下一步是第 4 步：依 §6.1 修改 `backend/rl/train_ppo.py`（第三個互斥的 `tracked_lineage_protocol_id` 身分、由 protocol 決定的 `checkpoint_interval`），實作 contract 與 `TL-01`..`TL-08`（含 `TL-01b`），並把新的 `training_driver_source_sha256` 與 `PROTOCOL_SHA256` 補釘上去。接著第 5 步**逐 replicate**執行（訓練 → 保留 checkpoint → 評估 → 立即 commit／push，因為容器是 ephemeral）。每個 run 經 `backend/rl/bind_run_lock.py` 執行以取得 `RUN_LOCK_BOUND`。這是 Track B 的硬前置，也是 §6.2 的解法。
+1. 執行 [`TRACKED-LINEAGE-TRAINING-V1`](TRACKED_LINEAGE_TRAINING_SPEC.md)（protocol 已於 2026-09-14 凍結並 push、driver 與 contract 已實作，**尚未執行**）。規格 §10 的第 4 步（driver、contract、`TL-01`..`TL-08` 與 `TL-01b`、三層 digest 補釘）已完成。**下一步是第 5 步**：**逐 replicate**執行（訓練 → 保留 checkpoint → 評估 → 立即 commit／push，因為容器是 ephemeral），5 個 replicate 依實測吞吐約 `1.7` 小時。每個 run 經 `backend/rl/bind_run_lock.py` 執行以取得 `RUN_LOCK_BOUND`。這是 Track B 的硬前置，也是 §6.2 的解法。
 2. Compare / Dynamic trace 的 browser visual verification（Playwright）。
 3. V1 articulated dynamic／pendulum／energy oracles。
 4. Lock 綁定的三項殘餘缺口（sidecar 可被遺漏、`simulator.py` 明示排除、2026-09-08 bundle 不可重驗）——第一項的正解是讓新訓練線一律走 wrapper，後兩項各自需要獨立的 contract。
 
 ## 9. 測試現況
 
-`backend/`：**1 failed / 816 passed**（2026-09-13，405.58 s；新增 62 個 `RUN-MANIFEST-LOCK-BINDING-V1` 測試，未新增任何失敗。前一次記錄為 1 failed / 754 passed）。失敗項仍是同一個 `test_v1_analytical_suite.py::test_stdlib_replay_passes_exact_synthetic_fixture`（`PRIMARY_CASE_RECEIPT_IDENTITY`），與 §4.3 的 reduction-order 差異同源，記錄為量測結果、未放寬。
+`backend/`：**1 failed / 882 passed**（2026-09-14，512.03 s；新增 65 個 `TRACKED-LINEAGE-TRAINING-V1` 測試，未新增任何失敗。數字對得起來：`816`（2026-09-13 記錄）+ `1`（`LOCKBIND-AMENDMENT-01` 的 `LB-12` 新測試）+ `65` = `882`。前兩次記錄為 1 failed / 816 passed 與 1 failed / 754 passed）。失敗項仍是同一個 `test_v1_analytical_suite.py::test_stdlib_replay_passes_exact_synthetic_fixture`（`PRIMARY_CASE_RECEIPT_IDENTITY`），與 §4.3 的 reduction-order 差異同源，記錄為量測結果、未放寬。
 
 [RESULT] 2026-09-13 就地定位：fixture 由 `v1_analytical_suite.py:640` 的 `float(np.mean([...]))` 產生，replay 由 `v1_analytical_replay.py:952` 的 `sum(...) / len(...)` 重算，`mean_vertical_grf_n` 為 `196.2` 對 `196.19999999999854`，差 `1.46e-12`，略高於 `1.0e-12` 門檻。把四個 thread-count 環境變數 pin 回 `1` **不會**改變結果，故不是 thread drift，而是 §4.3 的 reduction-order 差異本身。門檻未放寬。

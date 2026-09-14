@@ -2,6 +2,23 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-14 (u)
+
+### `TRACKED-LINEAGE-AMENDMENT-01` 與 driver／contract 實作：我在當天凍結裡留下的兩個缺陷
+
+- [BLOCKER] **兩個缺陷都是我自己的，都在任何訓練之前發現並更正，且都不是門檻放寬。**性質先說清楚，否則會被正確地質疑：第一項把初凍結**未指定**的欄位縮到唯一值（收窄），第二項把一個**機制產生不出來的數字**換成實際會產生的數字（更正）。門檻、seed、replicate 數、`checkpoint_interval`、`planned_timesteps` 上限、arm 定義與 `TL-CK-04` 選擇規則**一字未改**。規格 §14 要求變更那五類才需新 protocol 版本，兩項皆不屬於，故以 amendment 處理（作法沿用 `SEEDVAR-AMENDMENT-01` 與 `LOCKBIND-AMENDMENT-01`）。
+- [BLOCKER] **缺陷一：§5 自稱「凍結的訓練設計」，卻沒指定 `environment_id`。** 同樣漏掉 `step_length_m`／`duty`／`clearance_m`（profile id 裡的 `0p7` 只釘住速度），而 `TrainingProfile.environment_id` 是必填 `Literal`——換言之**照初凍結的文字根本寫不出一個合法 profile**，缺的欄位得由實作者當場選，正是本專案的紀律要避免的事。補定為 `motion_task_phase_observable_v5` 與 v5 的 `0.7`／`0.35`／`0.62`／`0.07`。理由不是隨便挑：本線要造 v5 那個不可重建 warm start 的 provenance 可重建替身，而 v5 環境正是這個任務**實際達成過** Live 10/11 的那一個；改用任何 `motion_task_v7_*` 會把本線綁進它明示不觸及的 arm 比較，改用 v6 則引入已被證明不足的 saturation reward。
+- [BLOCKER] **缺陷二：§7.1 的 `500_000` 整數倍 checkpoint 不可達**，與 §4.2 的 `0.98` 完全同類——我寫下了一個機制產生不出來的數字。量測：`save_freq = max(checkpoint_interval // n_envs, 1)` = `500_000 // 12` = `41_666`（整數除法丟掉 `0.67`），SB3 2.9.0 判斷 `n_calls % save_freq == 0` 而 `num_timesteps = n_calls × n_envs`，故實際落點是 `499_992`／`999_984`／`1_499_976`／`1_999_968`。`n_envs = 12` 之下 `500_000` 的整數倍**永遠不可達**（`500000/12` 不是整數），而 `n_envs` 與 `checkpoint_interval` 都已凍結，故正解是更正文件不是改設計。個數 `4`／replicate、合計 `20` **不變**。
+- [RESULT] 連帶更正 realized timesteps 為 `2_015_232`（`⌈2_000_000 / 24_576⌉ × 24_576`，rollout = `n_steps × n_envs` = `2048 × 12`）。**交叉驗證**：同一算式對 seedvar 線的 planned `100_000` 給出 `122_880`，與該線實際記錄的 realized 值完全相同，故這是量到的 driver 行為而非推測。
+- [BLOCKER] `2_015_232 > 2_000_000` **不是上調上限**。上限訂在 `planned_timesteps`，超出的 `15_232` 是 rollout 粒度的既有行為（seedvar 線在同一 driver 上已超出 `22_880` 並記錄接受）。`TL_BUDGET_EXHAUSTED` 仍以凍結的 `2_000_000` 判定，且不得因結果上調。
+- [RESULT] **已知但刻意不改的一項**：規格 §6 小節順序為 `6.1 → 6.4 → 6.2 → 6.3`（§6.4 是凍結前補上而我插錯位置）。重編號會動到 §2 與 §11 目前全部正確的交叉引用，為純版面問題churn 一份 digest 釘住的文件代價大於收益；記在 §15.3 以免下一個人以為是遺漏。
+- **Driver 實作**：`backend/rl/train_ppo.py` 新增第三個互斥身分 `tracked_lineage_protocol_id`（scratch、v5 環境、非 v7 arm，既有 pilot／seedvar 分支的檢查順序**逐行未動**，依規格 §6.1；新的 request guard 是**獨立函式**而非既有函式裡的分支，因為不碰它是不改動它順序最可靠的辦法），並讓 `checkpoint_interval` 由 protocol 決定——原本 `:705` 寫死 `2_000_000`，使 2M 步的 run 一個中間 checkpoint 都不留，那正是 ROADMAP §9 第 2 項要補的缺口。
+- [RESULT] Training seed **不可由命令列到達**：replicate index 由 profile id 推導、seed 由 protocol 依該 index 解析，故沒有任何 invocation 能把一個 profile 配上另一個 replicate 的 seed。新增 5 個 profile `stand_start_walk_stop_0p7_tracked_lineage_b1_r0..r4`。
+- **Contract**：新增 `backend/tracked_lineage_contract.py`（stdlib-only、fail-closed）與 `backend/test_tracked_lineage_contract.py` 共 **65 個測試**，涵蓋 `TL-01`..`TL-08` 與 `TL-01b`，每個準則**雙向**測試（只測 happy path 只證明程式跑得動，不證明 guard 會擋）。五個標籤各有正控制，並有一個測試證明 `TL_METHOD_FAILURE` 不會被降級成其他四個之一。
+- [RESULT] 三層 digest 連鎖補齊：規格 `sha256:7c9d6fe0…` ← protocol `sha256:8d82637d…` ← `tracked_lineage_contract.PROTOCOL_SHA256`；protocol 的 `training_driver_source_sha256` 由 `null` 補釘為 `sha256:2a3f50c0…`，與 superseded 的 `sha256:877da3b4…` 並存。`backend/rl/eval_policy.py` 逐位元仍等於 `sha256:0cf27434…`，由 `TL-01` 每次執行前重算比對。
+- [RESULT] 測試：全套 **1 failed / 882 passed**（512.03 s）。唯一失敗是既有的 `test_stdlib_replay_passes_exact_synthetic_fixture` reduction-order 差異，與 2026-09-13 記錄的同一個，**未新增任何失敗**。數字對得起來：`816 + 1 + 65 = 882`。
+- 仍未執行任何訓練、未產生任何證據、未改任何 flag。
+
 ## Unreleased — 2026-09-14 (t)
 
 ### `TRACKED-LINEAGE-TRAINING-V1` 凍結：兩格已定案，在修改任何 driver 之前 push

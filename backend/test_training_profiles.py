@@ -47,9 +47,14 @@ def test_fixed_speed_and_motion_task_profiles_are_versioned_and_not_marked_train
         "stand_start_walk_stop_0p7_action_reward_v7a_seedvar",
         "stand_start_walk_stop_0p7_reduced_joint_envelope_v7b_seedvar",
         "stand_start_walk_stop_0p7_filtered_action_v7c_seedvar",
+        "stand_start_walk_stop_0p7_tracked_lineage_b1_r0",
+        "stand_start_walk_stop_0p7_tracked_lineage_b1_r1",
+        "stand_start_walk_stop_0p7_tracked_lineage_b1_r2",
+        "stand_start_walk_stop_0p7_tracked_lineage_b1_r3",
+        "stand_start_walk_stop_0p7_tracked_lineage_b1_r4",
     ]
     assert [item.speed_mps for item in profiles.profiles] == pytest.approx(
-        [0.4, 0.7, 1.0] + [0.7] * 12
+        [0.4, 0.7, 1.0] + [0.7] * 17
     )
     by_id = {item.profile_id: item for item in profiles.profiles}
     assert by_id["stand_start_walk_stop_0p7_v1"].status == (
@@ -109,24 +114,44 @@ def test_public_training_inventory_is_read_only_and_explicit():
     body = public_training_inventory()
     assert body["schema_version"] == "RL_TRAINING_PROFILES_V4"
     assert body["execution_mode"] == "OFFLINE_EXPLICIT_COMMAND_ONLY"
-    assert len(body["profiles"]) == 15
-    # The three seed-variance replicate profiles sit last, and every one of
-    # them declares the seed-variance protocol rather than the pilot's.
-    assert [item["pilot_arm_id"] for item in body["profiles"][-3:]] == [
-        "V7A_REWARD_ONLY",
-        "V7B_REDUCED_JOINT_ENVELOPE",
-        "V7C_FILTERED_ACTION",
+    assert len(body["profiles"]) == 20
+    # Addressed by profile id rather than by position. The original slices broke
+    # the moment a line was appended, which said nothing about the property they
+    # were checking: that each family declares exactly one governing protocol.
+    by_id = {item["profile_id"]: item for item in body["profiles"]}
+    seedvar_ids = [
+        "stand_start_walk_stop_0p7_action_reward_v7a_seedvar",
+        "stand_start_walk_stop_0p7_reduced_joint_envelope_v7b_seedvar",
+        "stand_start_walk_stop_0p7_filtered_action_v7c_seedvar",
     ]
-    assert [item["seedvar_protocol_id"] for item in body["profiles"][-3:]] == [
+    pilot_ids = [
+        "stand_start_walk_stop_0p7_action_reward_v7a",
+        "stand_start_walk_stop_0p7_reduced_joint_envelope_v7b",
+        "stand_start_walk_stop_0p7_filtered_action_v7c",
+    ]
+    arms = ["V7A_REWARD_ONLY", "V7B_REDUCED_JOINT_ENVELOPE", "V7C_FILTERED_ACTION"]
+    assert [by_id[item]["pilot_arm_id"] for item in seedvar_ids] == arms
+    assert [by_id[item]["seedvar_protocol_id"] for item in seedvar_ids] == [
         "SEEDVAR-V7-TRAINING-REPLICATE-DEV-V1"
     ] * 3
-    assert [item["pilot_protocol_id"] for item in body["profiles"][-3:]] == [None] * 3
-    assert [item["pilot_arm_id"] for item in body["profiles"][-6:-3]] == [
-        "V7A_REWARD_ONLY",
-        "V7B_REDUCED_JOINT_ENVELOPE",
-        "V7C_FILTERED_ACTION",
+    assert [by_id[item]["pilot_protocol_id"] for item in seedvar_ids] == [None] * 3
+    assert [by_id[item]["pilot_arm_id"] for item in pilot_ids] == arms
+    assert [by_id[item]["seedvar_protocol_id"] for item in pilot_ids] == [None] * 3
+    # The tracked-lineage replicates are the third family: scratch, on the v5
+    # environment, declaring neither v7 identity.
+    tracked_ids = [
+        f"stand_start_walk_stop_0p7_tracked_lineage_b1_r{index}" for index in range(5)
     ]
-    assert [item["seedvar_protocol_id"] for item in body["profiles"][-6:-3]] == [None] * 3
+    assert [by_id[item]["tracked_lineage_protocol_id"] for item in tracked_ids] == [
+        "TRACKED-LINEAGE-TRAINING-V1"
+    ] * 5
+    assert [by_id[item]["pilot_protocol_id"] for item in tracked_ids] == [None] * 5
+    assert [by_id[item]["seedvar_protocol_id"] for item in tracked_ids] == [None] * 5
+    assert [by_id[item]["pilot_arm_id"] for item in tracked_ids] == [None] * 5
+    assert [by_id[item]["warm_start_policy_id"] for item in tracked_ids] == [None] * 5
+    assert [by_id[item]["seed_base"] for item in tracked_ids] == [
+        9100, 9112, 9124, 9136, 9148
+    ]
 
 
 def test_training_profile_api_exposes_inventory_without_starting_a_run():

@@ -130,10 +130,12 @@
 | Replicate 數 | `5` | 與 seedvar 相同，使兩條線的 method-level 分母可比 |
 | 起點 | **scratch**（`warm_start_policy_id: null`、`resume: null`） | §3 |
 | Training seed（每 replicate） | `9100`、`9112`、`9124`、`9136`、`9148` | 與既有 11 個 training seed 全部不相交；stride `12` = `parallel_envs`，使 environment seed block 互不重疊 |
+| `environment_id` | `motion_task_phase_observable_v5` | **Amendment 01 補**（§15）。初凍結未指定，而 `TrainingProfile.environment_id` 是必填 `Literal`。選它的理由：本線要造的是 v5 那個 warm start 的 provenance 可重建替身，v5 環境是任務實際達成過（Live 10/11）的那一個；改用任何 `motion_task_v7_*` 環境會把本線綁進它明示不觸及的 arm 比較 |
+| Gait 參數 | `speed_mps 0.7`、`step_length_m 0.35`、`duty 0.62`、`clearance_m 0.07` | **Amendment 01 補**（§15）。與 `stand_start_walk_stop_0p7_phase_observable_v5` profile 逐欄相同；`0p7` 本來就由凍結的 profile id 釘住，其餘三欄初凍結漏列 |
 | `parallel_envs` | `12` | 與 v5／v7 相同 |
 | Environment seed block（每 replicate） | `[seed, seed + 11]` | 同上 |
 | `checkpoint_interval` | `500_000` | §4.1 定案；每 replicate 保留 `4` 個 checkpoint |
-| `planned_timesteps`（每 replicate） | `2_000_000` | 與 v5 的 `planned_timesteps` 相同；為**上限**，在看到任何曲線之前固定，且**永不上調**（沿用三個 budget probe 的紀律） |
+| `planned_timesteps`（每 replicate） | `2_000_000`（**planned**；realized 為 `2_015_232`，見 §15.2） | 與 v5 的 `planned_timesteps` 相同；為**上限**，在看到任何曲線之前固定，且**永不上調**（沿用三個 budget probe 的紀律） |
 | Task | `stand_start_walk_stop_v1`，9.0 s、500 Hz physics、50 Hz control、assist OFF | [MOTION_TASK_SPEC](MOTION_TASK_SPEC.md)；**不得修改** |
 | Profile id | `stand_start_walk_stop_0p7_tracked_lineage_b1_r<0..4>` | 新 profile，不重用任何既有 id |
 | Protocol 欄位 | `tracked_lineage_protocol_id`（第三個互斥身分） | 與 `pilot_protocol_id`／`seedvar_protocol_id` 互斥，沿用 `SEEDVAR-AMENDMENT-01` 的作法 |
@@ -190,8 +192,8 @@
 |---|---|
 | 保留根目錄 | `backend/tracked_lineage_evidence/<執行日期>/checkpoints/` —— **不是** gitignored 的 `backend/rl/artifacts/` |
 | `.gitignore` | 必須確認上述路徑**未被**任何既有規則排除；被排除即 `TL_METHOD_FAILURE` |
-| 檔名 | `r<replicate_index>-<realized_timesteps>.zip`，零填補至 `7` 位（例：`r0-0500000.zip`） |
-| 每 replicate 個數 | `4`（`500_000`／`1_000_000`／`1_500_000`／`2_000_000`） |
+| 檔名 | `r<replicate_index>-<realized_timesteps>.zip`，零填補至 `7` 位（例：`r0-0499992.zip`） |
+| 每 replicate 個數 | `4`（`499_992`／`999_984`／`1_499_976`／`1_999_968`；**Amendment 01 更正**，見 §15.2） |
 | 合計 | `20` 個 ≈ `38 MB` |
 | 索引 | `backend/tracked_lineage_evidence/<日期>/checkpoint_index.json`，逐項記 `TL-CK-01` 的五個欄位 |
 
@@ -336,3 +338,55 @@
 [BLOCKER] contract 模組於 §10 第 4 步才建立，因此本次凍結 push 時只有前兩層的**第一層**已完成互釘；第二層在實作 commit 中補上並由測試比對。這與 `R0-REGIME-HORIZON-PROBE-V1` 的凍結順序相同：先 push 規則，再寫讀規則的程式。
 
 [BLOCKER] 本文件凍結後，任何門檻、seed、budget、arm 定義或選擇規則的變更都需要**新的 protocol 版本**，並在其中揭露該變更是在已知何種結果的情況下做的。
+
+---
+
+## 15. Amendment 01：`TRACKED-LINEAGE-AMENDMENT-01-PROFILE-AND-STEP-ARITHMETIC`
+
+日期：2026-09-14（凍結當日）｜狀態：**narrowing-only、execution-before**｜在**任何訓練執行之前**、於實作 `train_ppo.py` 修改的過程中發現並套用。
+
+[BLOCKER] 兩項都是**我自己在初次凍結時留下的缺陷**，不是門檻放寬。先說清楚性質，否則會被正確地質疑：第一項把初凍結**未指定**的欄位縮到唯一值（收窄），第二項把一個**機制產生不出來的數字**換成實際會產生的數字（更正）。`FULL_EXPOSURE_THRESHOLD`、`checkpoint_interval`、seed、replicate 數、`planned_timesteps` 上限、arm 定義與 `TL-CK-04` 選擇規則**一字未改**。
+
+[RESULT] §14 規定「門檻、seed、budget、arm 定義或選擇規則」的變更需要新的 protocol 版本。本次兩項**都不屬於那五類**，故以 amendment 處理，並重釘 digest 連鎖。作法沿用 [`SEEDVAR-AMENDMENT-01`](TRAINING_SEED_VARIANCE_SPEC.md) 與 [`LOCKBIND-AMENDMENT-01`](RUN_MANIFEST_LOCK_BINDING_SPEC.md)。
+
+### 15.1 缺漏：`environment_id` 與三個 gait 欄位未指定
+
+[BLOCKER] §5 自稱是「凍結的訓練設計」，卻**沒有指定 `environment_id`**，而 `train_ppo.TrainingProfile.environment_id` 是必填的 `Literal`。同樣漏掉的還有 `speed_mps`、`step_length_m`、`clearance_m`（`duty` 亦然）——profile id 裡的 `0p7` 只釘住速度。換言之，照初凍結的文字**根本寫不出一個合法的 profile**，而缺的欄位得由實作者當場選，這正是本專案的紀律要避免的事。
+
+[RESULT] 補定為 `motion_task_phase_observable_v5`，以及與 `stand_start_walk_stop_0p7_phase_observable_v5` profile 逐欄相同的 `0.7`／`0.35`／`0.62`／`0.07`。
+
+[INFERENCE] 理由不是「隨便挑一個」：本線的目的（§1）是造出 v5 那個不可重建 warm start 的 provenance 可重建替身，而 v5 環境正是這個任務**實際達成過** Live 10/11 的那一個。改用任何 `motion_task_v7_*` 環境會把本線綁進 §2 第 2 點明示不觸及的 arm 比較；改用 `motion_task_substep_saturation_v6` 則會引入 v6 已被證明不足的 saturation reward。三者之中只有 v5 環境不使本線的 claim boundary（§11）失效。
+
+### 15.2 更正：`500_000` 的整數倍 checkpoint 不可達
+
+[BLOCKER] §7.1 初稿寫每 replicate 的 4 個 checkpoint 落在 `500_000`／`1_000_000`／`1_500_000`／`2_000_000`。**量測後為假**，且理由與 §4.2 的 `0.98` 完全同類——我寫下了一個機制產生不出來的數字。
+
+[RESULT] 量測到的機制：`train_ppo.py` 以 `CheckpointCallback(save_freq=max(checkpoint_interval // n_envs, 1), ...)` 建立 callback；SB3 2.9.0 的 `CheckpointCallback._on_step` 判斷 `self.n_calls % self.save_freq == 0`，而 `n_calls` 每個 **vectorized** step 加一，`num_timesteps` 每個 vectorized step 加 `n_envs`。故：
+
+| 量 | 值 |
+|---|---|
+| `save_freq` | `500_000 // 12` = `41_666`（整數除法丟掉 `0.67`） |
+| 實際存檔點 | `41_666 × 12 × k` = `499_992`／`999_984`／`1_499_976`／`1_999_968` |
+| 每 replicate 個數 | `4`（**不變**） |
+| 合計 | `20`（**不變**） |
+
+[BLOCKER] `500_000` 的整數倍在 `n_envs = 12` 之下**永遠不可達**，因為 `500_000 / 12` 不是整數。這不是可以調參數解決的：`n_envs` 凍結為 `12`，`checkpoint_interval` 凍結為 `500_000`。故正解是更正文件，不是改設計。
+
+[RESULT] 連帶更正 realized timesteps：SB3 以 `n_steps × n_envs = 2048 × 12 = 24_576` 為一個 rollout，且 `learn()` 跑到 `num_timesteps >= total_timesteps` 才停，故 planned `2_000_000` 的 realized 為 `⌈2_000_000 / 24_576⌉ × 24_576` = `82 × 24_576` = **`2_015_232`**。
+
+[RESULT] 這個算式已由保留證據交叉驗證：同一算式對 seedvar 線的 planned `100_000` 給出 `122_880`，與 `SEEDVAR-V7-TRAINING-REPLICATE-DEV-V1` 實際記錄的 realized 值**完全相同**。故這是量到的 driver 行為，不是推測。
+
+[BLOCKER] `2_015_232 > 2_000_000` **不是**上調上限。上限訂在 `planned_timesteps`，超出的 `15_232` 是 rollout 粒度的既有行為，seedvar 線已在同一 driver 上記錄並接受過（`100_000` → `122_880`，超出 `22,880`）。`TL_BUDGET_EXHAUSTED` 的判定仍以凍結的 `planned_timesteps = 2_000_000` 為準，且該值不得因結果上調。
+
+### 15.3 不在本次更正範圍內的一項已知瑕疵
+
+[BLOCKER] 本文件 §6 的小節順序是 `6.1 → 6.4 → 6.2 → 6.3`，因為 §6.4 是凍結前補上的而我插錯位置。**刻意不改**：重編號會動到 §2 與 §11 既有的交叉引用，而那些引用目前全部正確；為純版面問題改動一份被 digest 釘住的文件，代價大於收益。記在此處以免下一個人以為是遺漏。
+
+### 15.4 重釘的 digest 連鎖
+
+| 層 | 由 | 改為 |
+|---|---|---|
+| 本規格 | `sha256:c584ef4e018abad0f73524efc19686a5734002662c6445abf6c68deddfe5357c` | 見 `backend/rl/tracked_lineage_training_protocol.json` 的 `specification_sha256` |
+| protocol | `sha256:e5566eb6bbcb3abf7f95ad9a7b25566b59133b70caf9692fe5e52489e25273ae` | 見 CHANGELOG 與實作 commit |
+
+[RESULT] 套用時機：**任何保留證據依賴本 protocol 之前**。本線一次訓練都還沒跑，因此本次 amendment 不使任何既有證據失效，也不改變任何已保留的數字。

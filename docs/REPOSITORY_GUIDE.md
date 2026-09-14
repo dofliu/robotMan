@@ -47,7 +47,7 @@ Set-Location frontend
 npm run check
 ~~~
 
-第一個命令目前的預期結果是 **1 failed / 816 passed**；唯一的失敗是在具名 environment lock 下記錄為量測結果的 reduction-order 差異（[PROJECT_STATUS §9](PROJECT_STATUS.md)）。**新增任何失敗才算 regression。**
+第一個命令目前的預期結果是 **1 failed / 882 passed**；唯一的失敗是在具名 environment lock 下記錄為量測結果的 reduction-order 差異（[PROJECT_STATUS §9](PROJECT_STATUS.md)）。**新增任何失敗才算 regression。**
 
 發布前另須確認：
 
