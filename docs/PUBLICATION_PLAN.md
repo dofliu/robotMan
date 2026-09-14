@@ -95,9 +95,9 @@ V2 補一句：Track A 的論點不再是「在公開 benchmark 上重現 v7 的
 | Gate | Exit condition | 狀態 |
 |---|---|---|
 | `PUB-B0` Authorization decision | 專案負責人書面決定：授權 formal evaluation 於現行 `SELECT-V7-CANDIDATE-FORMAL-V1`，或改為 preregister 新規則 | `AUTHORIZED_2026-09-10 / SUB_OPTION_OPEN` — 授權已取得（[receipt](PUB_B0_AUTHORIZATION_RECEIPT_2026-09-10.md)）；用哪條規則、FORMAL seeds 花在哪條訓練線兩問未決；protocol 仍不可執行（`EP-01`／`EP-02` 未解除，`EP-03` 待 narrowing amendment），且 `PUB-B4` 仍在解封之前 |
-| `PUB-B1` Tracked training line | 新線每個 checkpoint 與 warm start 進版控或 immutable storage；每個 run 以 `RUN-MANIFEST-LOCK-BINDING-V1` 綁定 lock record（經 `backend/rl/bind_run_lock.py`，否則 gate 判為 `RUN_LOCK_UNBOUND`） | `NOT_STARTED`；綁定機制已於 2026-09-13 就緒 |
-| `PUB-B2` Reliable-completion baseline | reference policy 在 DEV seeds 上達到**事先凍結**的 full-exposure 比例 | `NOT_STARTED` |
-| `PUB-B3` Pilot variance → N | point-valued between-replicate SD；N 由 power analysis 決定並寫進 preregistration；不得事後上調 | `BLOCKED` by B2 |
+| `PUB-B1` Tracked training line | 新線每個 checkpoint 與 warm start 進版控或 immutable storage；每個 run 以 `RUN-MANIFEST-LOCK-BINDING-V1` 綁定 lock record（經 `backend/rl/bind_run_lock.py`，否則 gate 判為 `RUN_LOCK_UNBOUND`） | `PROTOCOL_FROZEN_NOT_EXECUTED` — [TRACKED-LINEAGE-TRAINING-V1](TRACKED_LINEAGE_TRAINING_SPEC.md) 於 2026-09-14 凍結：scratch（不得 warm start）、5 replicates、`GIT_DIRECT` 儲存每 `500,000` 步共 `20` 個 checkpoint、`TL-CK-01`..`TL-CK-05`。綁定機制已於 2026-09-13 就緒。**尚未執行** |
+| `PUB-B2` Reliable-completion baseline | reference policy 在 DEV seeds 上達到**事先凍結**的 full-exposure 比例 | `THRESHOLD_FROZEN_NOT_EXECUTED` — 門檻由專案負責人於 2026-09-14、**在看到任何訓練曲線之前**定為 `30/30 = 1.000000`，逐 replicate 在 DEV seeds `22000–22029` 上判定（[spec §4.2](TRACKED_LINEAGE_TRAINING_SPEC.md)）。凍結後**不得因結果下調**；未達即 `NOT_ATTAINED`，那是一項結果 |
+| `PUB-B3` Pilot variance → N | point-valued between-replicate SD；N 由 power analysis 決定並寫進 preregistration；不得事後上調 | `BLOCKED` by B2，且**另需一份 protocol**：`TRACKED-LINEAGE-TRAINING-V1` 明示不產生 `control_step_trace`，取得它須修改 `backend/rl/eval_policy.py`，而那會弄紅綁在 owner 已授權 protocol 上的綠測試（[spec §6.4](TRACKED_LINEAGE_TRAINING_SPEC.md)） |
 | `PUB-B4` External preregistration | OSF（或同級）time-stamped、read-only 登錄；**在解封 FORMAL seeds 之前** | `NOT_STARTED` |
 | `PUB-B5` Plant credibility | V1 articulated dynamic／pendulum／energy／solver convergence PASS | `IN_PROGRESS`（見 ROADMAP §4） |
 | `PUB-B6` Study execution | actual matrix；binary paired CI 有 golden-case oracle；所有 FAILED／CENSORED 保留 | `BLOCKED` |
@@ -151,6 +151,8 @@ V2 補一句：Track A 的論點不再是「在公開 benchmark 上重現 v7 的
 [BLOCKER] [V7_CANDIDATE_SELECTION_SPEC §5](V7_CANDIDATE_SELECTION_SPEC.md) 規定 FORMAL 資料只套用一次，事後不得重跑、調門檻、改 `replicate_count` 或改 arm 定義。因此在 v7 線上執行會用掉唯一剩下的未檢視範圍，換得一個機率接近 1 的 `SELECTION_COMPLETE_NO_CANDIDATE`。
 
 [INFERENCE] 本計畫的建議是保留該範圍給 `PUB-B1`／`PUB-B2` 的新訓練線（reference policy 能穩定跑完任務、且有版控 lineage），理由是上述量測。若決定仍在 v7 線上執行，工作順序已寫在 receipt §5，不必重新推導。
+
+[RESULT] 2026-09-14 更新：該新訓練線的 protocol 已凍結為 [`TRACKED-LINEAGE-TRAINING-V1`](TRACKED_LINEAGE_TRAINING_SPEC.md)，但**尚未執行**，因此本子問題仍未決。須一併知道的是，該線是 `DEVELOPMENT`、evaluation seeds 為 `22000–22029`，它**不**解封 `20000–20029`、不觸及 `SELECT-V7-CANDIDATE-FORMAL-V1`，也不會自行回答本子問題——它只讓「保留給新線」這個選項有一個實際存在的對象。
 
 ## 6. 寫作規範
 

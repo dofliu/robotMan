@@ -1,6 +1,6 @@
 # 專案進度狀態報告
 
-最後更新：2026-09-11 ｜ 對應 `STATUS.yaml` ｜ Development：`0.2.0-dev`
+最後更新：2026-09-14 ｜ 對應 `STATUS.yaml` ｜ Development：`0.2.0-dev`
 
 證據範圍：`SIM_ONLY_REDUCED_ORDER` / `NOT_PHYSICALLY_VALIDATED`
 
@@ -18,6 +18,7 @@
 - **`PUB-B0` 已授權（2026-09-10）**：專案負責人授權 formal evaluation（[PUB_B0_AUTHORIZATION_RECEIPT](PUB_B0_AUTHORIZATION_RECEIPT_2026-09-10.md)）。授權**不使 protocol 可執行**：frozen protocol JSON 內 `EP-03` 仍硬寫 `BLOCKING`、`EP-01`／`EP-02` 未解除，且凍結順序要求 `PUB-B4` 外部預註冊在解封 sealed seeds `20000–20029` 之前，而預註冊只有專案負責人能做。當日**未存取** FORMAL seeds。
 - **動作任務範圍已決定（2026-09-11）**：專案負責人採納建議，**現在不新增**跳躍或轉身任務（[MOTION_SCOPE_DECISION](MOTION_SCOPE_DECISION_2026-09-11.md)）。理由是量到的四件事：Motion Task V1 本身尚未通過、V1 plant credibility 四項全缺而跳躍恰好依賴那四項、更難的任務會把比較推入更重的 censoring regime、以及在版控 lineage 建立前新增訓練線會複製已發生過的 provenance 損毀。凍結順序：先做 [ROADMAP §9](ROADMAP.md) 第 1、2 項，轉身需 `PUB-B2` 出口條件，跳躍需 V1 PASS。
 - **`R0` regime probe 已凍結（2026-09-11）**：taxonomy 六格中唯一空的 `R0` 不需要新增動作任務即可探測——retained 的 450 個 evaluation episode 每個 control step 都記有 `saturation_substeps_over_threshold`／`_total`（10 substeps = 500 Hz），任意截斷 horizon 的 duty 可精確重算，且在全 horizon 上對 **450/450 episode** 與凍結值完全相等。規格 [R0_REGIME_PROBE_SPEC](R0_REGIME_PROBE_SPEC.md) 於凍結並 push 後執行，[receipt](R0_REGIME_PROBE_RECEIPT_2026-09-11.md) 記錄結果：**兩個對比皆 `R0_WINDOW_FOUND`**。`C_B` 在 `H ≤ 414`（8.28 s）、`C_C` 在 `H ≤ 152`（3.04 s）。最有意義的一項：同一批 policy 與 seed，只改 evaluation horizon，`C_B` 就從 `R2` 變成 `R0`——而所需的只是放棄最後 `36` 個 control step（`0.72` s，不到 horizon 的 8%），因為 `V7A` 的 7 個與 `V7B` 的 30 個早期終止**全部落在 `FINAL_STAND` 階段**。`python -I -S` replay bit-exact，environment lock 與母證據逐位元相同。仍為 PILOT，不得讀成任何一臂在 9 s 任務上的陳述。
+- **新訓練線的 protocol 已凍結但尚未執行（2026-09-14）**：[`TRACKED-LINEAGE-TRAINING-V1`](TRACKED_LINEAGE_TRAINING_SPEC.md) 把 [ROADMAP §9](ROADMAP.md) 第 2 項收窄為 **scratch**——版控內唯一的 warm start 候選是 v5 artifact，它的檔案可由 digest 重建但訓練過程不可重建，從它 warm start 等於原封不動保留 `CONDITIONAL_ON_FIXED_WARM_START`。專案負責人於同日、**在看到任何訓練曲線之前**定案兩格：`CHECKPOINT_STORAGE = GIT_DIRECT` 配 `checkpoint_interval = 500_000`（唯一同時離線可驗且不需新基礎設施的組合；本容器無 `git lfs`），以及 `FULL_EXPOSURE_THRESHOLD = 30/30`（逐 replicate；`29/30` 會以較輕的形式複製 v7 線 `between_replicate_sd` 為 null 的成因）。兩項代價在定案時即已接受：repo 由 `11 MB` 增為約 `49 MB` 且每條新線再加；scratch 在 5 個 replicate 上全部 30/30 **很可能**得到 `TL_REFERENCE_NOT_ATTAINED`，而門檻凍結後不得因結果下調。**本線範圍只到 `PUB-B1`／`PUB-B2`**：取得逐控制步 trace 須修改 `backend/rl/eval_policy.py`，那會弄紅一個綁在 owner 已授權 protocol 上的綠測試，故本線不產生任何 saturation 或 censoring regime 資料，`PUB-B3` 需要另一份 protocol。
 - **量測到 v7 線上 `SEL-C2` 幾乎確定不成立**：retained seed-variance evidence 上 reference `V7A` 自己只有 143/150 episode `COMPARABLE`，`V7B` 120/150，`V7C` 0/150；FORMAL 用同一批已訓練 policy、只換 evaluation seed。iid 外推的聯合通過機率為 reference + `V7B` `2.2 × 10⁻¹⁸`、reference + `V7C` `0`。因 FORMAL 資料只套用一次，在 v7 線上執行會用掉唯一未檢視的 seed 範圍換一個 `NO_CANDIDATE`。**下一個決策點**因此是兩個子問題（[PUBLICATION_PLAN §5](PUBLICATION_PLAN.md)）：用現行規則或先預註冊替代規則；以及 FORMAL 範圍花在 v7 線或保留給 `PUB-B1`／`PUB-B2` 的新訓練線。
 
 ## 1. V&V gates
@@ -175,6 +176,7 @@
 | 2026-09-10 | 專案負責人授權 formal evaluation；[PUBLICATION_PLAN](PUBLICATION_PLAN.md) 升版 V3 | `PUB-B0` `AUTHORIZED / SUB_OPTION_OPEN`；protocol 仍不可執行；量測 `SEL-C2` 在 v7 線上幾乎確定不成立；FORMAL seeds 未存取 |
 | 2026-09-11 | 動作任務範圍決定；凍結並執行 `R0-REGIME-HORIZON-PROBE-V1` | 不新增跳躍／轉身；`R0` probe 凍結後執行，兩個對比皆 `R0_WINDOW_FOUND`，taxonomy 六格全部有實例；replay bit-exact |
 | 2026-09-13 | 凍結並實作 `RUN-MANIFEST-LOCK-BINDING-V1` | lock record 前向綁進 run manifest；`LB-01`..`LB-12` 通過；三個被釘住的 driver／simulator 檔案逐位元未變；V0 blocker 再收窄一次仍未解除 |
+| 2026-09-14 | 凍結 `TRACKED-LINEAGE-TRAINING-V1`（[spec](TRACKED_LINEAGE_TRAINING_SPEC.md)） | 兩格由負責人在看到任何曲線之前定案：`GIT_DIRECT` + `500_000`、`30/30`。ROADMAP §9 第 2 項收窄為 scratch。凍結 push 時三個 driver／simulator 檔案逐位元未變；範圍收窄為 `PUB-B1`／`PUB-B2`，`PUB-B3` 另需 protocol。**尚未執行、未產生任何證據** |
 | 2026-09-13 | `LOCKBIND-AMENDMENT-01-LB12-SCOPE` | `LB-12` 原本以工作樹比對，等於永久凍結三個檔案；改以 git 讀取本 contract 自己的兩個 commit 比對。非放寬：主張未改、量測更正，且更強。解除了新訓練線必須修改 `train_ppo.py` 的阻礙 |
 
 ## 8. 下一步
@@ -189,7 +191,7 @@
 
 **工程（見 [ROADMAP](ROADMAP.md) §9）**
 
-1. 一條**有版控 artifact** 的新訓練線：每個 checkpoint 與 warm start 進版控或 immutable storage，每個 run 經 `backend/rl/bind_run_lock.py` 執行以取得 `RUN_LOCK_BOUND`。這是 Track B 的硬前置，也是 §6.2 的解法。
+1. 執行 [`TRACKED-LINEAGE-TRAINING-V1`](TRACKED_LINEAGE_TRAINING_SPEC.md)（protocol 已於 2026-09-14 凍結並 push，**尚未執行**）。依規格 §10 的凍結順序，下一步是第 4 步：依 §6.1 修改 `backend/rl/train_ppo.py`（第三個互斥的 `tracked_lineage_protocol_id` 身分、由 protocol 決定的 `checkpoint_interval`），實作 contract 與 `TL-01`..`TL-08`（含 `TL-01b`），並把新的 `training_driver_source_sha256` 與 `PROTOCOL_SHA256` 補釘上去。接著第 5 步**逐 replicate**執行（訓練 → 保留 checkpoint → 評估 → 立即 commit／push，因為容器是 ephemeral）。每個 run 經 `backend/rl/bind_run_lock.py` 執行以取得 `RUN_LOCK_BOUND`。這是 Track B 的硬前置，也是 §6.2 的解法。
 2. Compare / Dynamic trace 的 browser visual verification（Playwright）。
 3. V1 articulated dynamic／pendulum／energy oracles。
 4. Lock 綁定的三項殘餘缺口（sidecar 可被遺漏、`simulator.py` 明示排除、2026-09-08 bundle 不可重驗）——第一項的正解是讓新訓練線一律走 wrapper，後兩項各自需要獨立的 contract。

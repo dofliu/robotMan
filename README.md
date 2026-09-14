@@ -25,6 +25,7 @@ Repository：[github.com/dofliu/robotMan](https://github.com/dofliu/robotMan) �
 | 被推翻的一個結果 | V7C 表面上的 `-36` pp 改善經量測確認為 exposure artifact | [PROJECT_STATUS §4.2](docs/PROJECT_STATUS.md) |
 | 學術產出 | 三條路線；Track A 於 2026-09-09 重構為「censoring regime 的評估效度研究」（`PUBLICATION-PLAN-V3`）：`PUB-A1a` PASS（Walker2d-v5 第二案例）、`PUB-A1b` CLOSED_NOT_ATTAINED（三個 budget probe 後停止）；`PUB-A0` 關鍵兩篇已原文核對、gap 仍成立，A-C5 補充 scan 完成後降為 artifact 級（其餘條目待核）；下一步 `PUB-A2` claim freeze，其輸入之一是 2026-09-11 凍結的 `R0` regime probe | [PUBLICATION_PLAN](docs/PUBLICATION_PLAN.md)、[TRACK_A_REFRAME](docs/TRACK_A_REFRAME_2026-09-09.md) |
 | 證據環境綁定 | `ENVIRONMENT-LOCK-V1` 量測環境身分；`RUN-MANIFEST-LOCK-BINDING-V1`（2026-09-13）以 SHA-256 把 lock record 綁進 run manifest，fail-closed。**前向**，V0 blocker 收窄未清除 | [RUN_MANIFEST_LOCK_BINDING_RECEIPT](docs/RUN_MANIFEST_LOCK_BINDING_RECEIPT_2026-09-13.md) |
+| 新訓練線 | `TRACKED-LINEAGE-TRAINING-V1` 於 2026-09-14 **凍結但尚未執行**：scratch、5 replicates、`GIT_DIRECT` checkpoint lineage（每 `500,000` 步、合計 20 個）、full-exposure 門檻 `30/30`。門檻在看到任何訓練曲線之前固定，且**不得因結果下調** | [TRACKED_LINEAGE_TRAINING_SPEC](docs/TRACKED_LINEAGE_TRAINING_SPEC.md) |
 | 動作任務範圍 | 2026-09-11 決定現在**不**新增跳躍／轉身；順序為先綁 lock record 與建有版控 lineage 的新訓練線，轉身需 `PUB-B2`、跳躍需 V1 PASS | [MOTION_SCOPE_DECISION](docs/MOTION_SCOPE_DECISION_2026-09-11.md) |
 | 下一個決策 | formal evaluation 已於 2026-09-10 授權；剩兩個子問題：用現行 post-hoc 規則或先預註冊替代規則、唯一未檢視的 FORMAL seed 範圍花在 v7 線或新訓練線 | [PUBLICATION_PLAN §5](docs/PUBLICATION_PLAN.md)、[PUB_B0 receipt](docs/PUB_B0_AUTHORIZATION_RECEIPT_2026-09-10.md) |
 | 測試 | `backend/` 1 failed / 816 passed；那一個是在具名 environment lock 下記錄的 reduction-order 差異，未放寬 | [PROJECT_STATUS §9](docs/PROJECT_STATUS.md) |
@@ -117,7 +118,7 @@ python -m pytest backend -q
 | [R0_REGIME_PROBE_SPEC](docs/R0_REGIME_PROBE_SPEC.md) | 凍結的 `R0-REGIME-HORIZON-PROBE-V1`：以截斷 horizon 探測無 censoring 的比較是否可達；兩段式 reference-adequacy 規則 |
 | [R0_REGIME_PROBE_RECEIPT_2026-09-11](docs/R0_REGIME_PROBE_RECEIPT_2026-09-11.md) | probe 執行結果：兩個對比皆 `R0_WINDOW_FOUND`；同一批 policy 與 seed 只改 horizon 就跨 regime |
 | [MOTION_SCOPE_DECISION_2026-09-11](docs/MOTION_SCOPE_DECISION_2026-09-11.md) | 動作任務範圍決定：現在不新增跳躍／轉身，以及新增動作的凍結順序 |
-| [TRACKED_LINEAGE_TRAINING_SPEC](docs/TRACKED_LINEAGE_TRAINING_SPEC.md) | **草稿**（兩格待決）：`PUB-B1`／`PUB-B2` 的新訓練線——scratch、5 replicates、版控 checkpoint lineage |
+| [TRACKED_LINEAGE_TRAINING_SPEC](docs/TRACKED_LINEAGE_TRAINING_SPEC.md) | 凍結的 `TRACKED-LINEAGE-TRAINING-V1`：`PUB-B1`／`PUB-B2` 的新訓練線——scratch、5 replicates、版控 checkpoint lineage、`30/30` full-exposure 門檻；**尚未執行** |
 | [ROADMAP](docs/ROADMAP.md) | V0–V4 gate-first 工程工作順序 |
 | [RESEARCH_EXECUTION_PLAN](docs/RESEARCH_EXECUTION_PLAN.md) | model validity 與 method effectiveness 雙證據鏈、RQ、P-stage gates |
 | [PAPER_DATA_READINESS](docs/PAPER_DATA_READINESS.md) | paper-data-first 架構、run bundle、PDR gates、統計與文獻依據 |

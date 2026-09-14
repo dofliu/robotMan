@@ -2,6 +2,22 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-14 (t)
+
+### `TRACKED-LINEAGE-TRAINING-V1` 凍結：兩格已定案，在修改任何 driver 之前 push
+
+- [RESULT] 專案負責人於 2026-09-14 定案 §4 的兩格，**兩者皆在看到任何訓練曲線之前**——這是本節唯一重要的時序事實，也是這兩個值日後能被引用的唯一理由：
+  - `CHECKPOINT_STORAGE = GIT_DIRECT`，`checkpoint_interval = 500_000`（每 replicate `4` 個、合計 `20` 個 ≈ `38 MB`）。理由是它是唯一同時「離線可驗」且「不需新基礎設施」的組合：本容器沒有 `git lfs`，`RELEASE_ASSETS` 與 `EXTERNAL_IMMUTABLE` 都需要網路才能驗，而 release assets 還可被有寫入權者刪改。
+  - `FULL_EXPOSURE_THRESHOLD = 30/30 = 1.000000`，逐 replicate 判定。理由是 `PUB-B2` 的用途是讓後續比較落在 `R0`／`R1` 而非 `R3`／`R4`；reference 只要還有任何一個 episode 早期終止就仍是 censored，而 v7 線 `between_replicate_sd` 為 null 正是這個原因，`29/30` 會以較輕的形式複製同一個問題。
+- [BLOCKER] **兩項代價在定案時即已知並接受，不得事後當成意外或當成「門檻訂得不合理」的理由**：repo 由 `11 MB` 增為約 `49 MB` 且每條新訓練線再加（第三條線之前應重新評估外部 immutable storage，本 protocol 不預先承諾該轉換）；scratch policy 在 5 個 replicate 上全部做到 30/30 是很高的門檻，**很可能**得到 `TL_REFERENCE_NOT_ATTAINED`。門檻凍結後不得因結果下調——未達門檻是 `PUB-B2` `NOT_ATTAINED`，是一項結果。
+- [RESULT] 新增 [`backend/rl/tracked_lineage_training_protocol.json`](backend/rl/tracked_lineage_training_protocol.json)（`sha256:e5566eb6bbcb3abf7f95ad9a7b25566b59133b70caf9692fe5e52489e25273ae`），其 `specification_sha256` 釘住規格 `sha256:c584ef4e018abad0f73524efc19686a5734002662c6445abf6c68deddfe5357c`。規格狀態由 `DRAFT_TWO_DECISIONS_OPEN` 轉為 `FROZEN_BEFORE_EXECUTION`。
+- [BLOCKER] 三層互釘目前只完成**第一層**：contract 模組的 `PROTOCOL_SHA256` 要到實作 commit 才補上，`source_baseline.training_driver_source_sha256` 在凍結時**刻意為 `null`**——本線的 driver 修改尚未發生，先釘一個還不存在的 digest 等於事後補釘。兩者都由實作 commit 補上並由測試比對。這與 `R0-REGIME-HORIZON-PROBE-V1` 的凍結順序相同：先 push 規則，再寫讀規則的程式。
+- [BLOCKER] **本次凍結 push 時 `train_ppo.py`、`eval_policy.py`、`simulator.py` 三個檔案逐位元未變**（`877da3b4…`／`0cf27434…`／`c27e00a0…`），與 §10 執行順序第 3 步的要求一致。
+- [RESULT] **新增 §6.4，更正我自己在初稿 §6.1 留下的一個假陳述。** 初稿寫「只改 `train_ppo.py`」，但要取得逐控制步 trace 就必須改 `eval_policy.py`——`rl/eval_policy.py:391` 的 `control_step_trace` 只在 `pilot_interface is not None` 時寫出，而那只在 v7 pilot 與 seedvar 路徑成立。改它會弄紅 `test_v7_candidate_selection_contract.py::test_precondition_digests_match_the_pinned_sources`，也就是弄紅一個綁在 owner 已於 2026-09-10 授權的 protocol 上的綠測試。
+- [RESULT] 因此**範圍收窄為 `PUB-B1` 與 `PUB-B2`**：generic evaluation 路徑仍寫出 `duration_s`（`rl/eval_policy.py:325` 為 `round(len(rewards) * 0.02, 3)`，實測 450 步得 `9.0`、449 步得 `8.98`，三位小數可乾淨分離），足以量 full-exposure 比例。`PUB-B3` 需要另一份 protocol，且該 protocol 必須先處理 `eval_policy.py` 這個 owner-gated 問題。§8.3 具名列出本線**量不到**什麼：任何 saturation 重算、任何 `R0`..`R5` regime 分類、任何可與 `V7_EXPOSURE_CENSORING_AUDIT` 比較的 exposure 分析。
+- [BLOCKER] generic 路徑**沒有** v7／seedvar 路徑那兩道 `*_EVALUATION_SEED_SCHEDULE_OVERRIDE_FORBIDDEN` 保護（`rl/eval_policy.py:124`、`:161`），所以 seed schedule 只能在**分析期**強制。新增驗收 `TL-01b`：保留輸出的 `evaluation_seeds` 必須恰為 `22000..22029`，不符即 `TL_METHOD_FAILURE`。
+- 未執行任何訓練、未產生任何證據、未改任何 flag。`paper_data_ready` 等四個 flag 不變。
+
 ## Unreleased — 2026-09-13 (s)
 
 ### `TRACKED-LINEAGE-TRAINING-V1` 草稿：新訓練線的設計，兩格待專案負責人決定
