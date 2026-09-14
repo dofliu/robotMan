@@ -13,7 +13,8 @@
 - [RESULT] 依 seedvar 實測吞吐（約 `1,683` steps/s）估 `2M` steps ≈ 20 分／replicate、5 個 ≈ 1.7 小時。容器為 ephemeral，故執行順序要求**逐 replicate** 保留而非全部跑完才保留。
 - [BLOCKER] 本線會修改 `backend/rl/train_ppo.py`，使已執行 seedvar protocol 的 `training_driver_source_sha256` 對活著的 repo 不再為真。§6.2 要求本 protocol **同時保留兩個 digest** 並具名揭露——這正是 [RUN_MANIFEST_LOCK_BINDING_SPEC §15.4](docs/RUN_MANIFEST_LOCK_BINDING_SPEC.md) 指定的揭露位置。§6.3 另補上 seedvar 沒有的執行期 digest 重算。
 - [BLOCKER] `TL-CK-04`：reference checkpoint 的選擇規則必須在**看到評估結果之前**凍結。v5 的 checkpoint 是看過結果後從一個 regressed run 裡挑出來的，那是它 provenance 說不清楚的原因之一；本線不得重演。
-- 兩格待決（見 §4，皆須在看到任何訓練曲線之前固定）：`CHECKPOINT_STORAGE`（無 git-lfs、`.git` 現 11 MB、估 40 個 checkpoint ≈ 76 MB）與 `FULL_EXPOSURE_THRESHOLD`（`PUB-B2` 出口條件，建議高於 v7 reference 的 `0.953333`）。
+- 兩格待決（見 §4，皆須在看到任何訓練曲線之前固定）：`CHECKPOINT_STORAGE`（無 git-lfs、`.git` 現 11 MB；`500k` 間隔 20 個 ≈ 38 MB，`250k` 間隔 40 個 ≈ 76 MB；建議 `GIT_DIRECT` + `500k`，因為它是唯一同時離線可驗且不需新基礎設施的組合）與 `FULL_EXPOSURE_THRESHOLD`（建議 `30/30`）。
+- [BLOCKER] §4.2 初稿的精度錯誤已就地更正：初稿建議的 `0.98` 在本設計下**不存在**——判定是逐 replicate，而每個 replicate 只有 30 個 episode，`0.98` 會進位成 `30/30`。真正可選的只有 `30/30` 與 `29/30`（`28/30` 比 v7 reference 還鬆，不可取）。
 
 ## Unreleased — 2026-09-13 (r)
 

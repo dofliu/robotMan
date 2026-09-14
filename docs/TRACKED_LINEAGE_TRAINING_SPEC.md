@@ -61,7 +61,23 @@
 | 現行全量 run 的 `checkpoint_interval`（`backend/rl/train_ppo.py:705`） | `2_000_000` —— 2M 以下的 run **不存任何中間 checkpoint** |
 | 本線若每 `250,000` 步存一次、`2,000,000` 步 × 5 replicates | `40` 個 checkpoint ≈ `76 MB` |
 
-選項（未排序，成本與可攜性各異）：`GIT_DIRECT`（直接進 repo）／`GIT_LFS`（需先啟用）／`RELEASE_ASSETS`（GitHub release）／`EXTERNAL_IMMUTABLE`（外部儲存，需 URL 與 digest 清單）。
+選項與其實質差別：
+
+| 選項 | 離線可驗 | 需要新基礎設施 | 代價 |
+|---|---|---|---|
+| `GIT_DIRECT` | **是** | 否 | repo 由 11 MB 變 49–87 MB，且每條新線再加 |
+| `GIT_LFS` | 否（需 lfs client） | **是**（本容器未裝、repo 未啟用） | 每個協作者都須裝 lfs |
+| `RELEASE_ASSETS` | 否（需網路） | 否 | assets **可被有寫入權者刪改**；可信度只來自 protocol 內釘的 digest |
+| `EXTERNAL_IMMUTABLE` | 否（需網路） | 是（帳號、手動步驟） | 真正不可變、可給 DOI；發表時最理想，對 DEVELOPMENT 線偏重 |
+
+[RESULT] 儲存間隔直接決定成本，故與本決定一併固定：
+
+| `checkpoint_interval` | 每 replicate | 5 replicates 合計 | 約略大小 |
+|---|---:|---:|---:|
+| `250,000` | `8` | `40` | `76 MB` |
+| `500,000` | `4` | `20` | `38 MB` |
+
+[INFERENCE] 建議 `GIT_DIRECT` + `500,000`：它是唯一同時滿足「離線可驗」與「不需新基礎設施」的組合，與本專案 `python -I -S` 離線 exact 重算的一貫做法一致，而 `38 MB` 是一條線可接受的一次性成本。發表時再把最終 artifact 上傳外部 immutable storage 取 DOI，那是另一個步驟，不必現在綁進本 protocol。
 
 [BLOCKER] 選定後本規格 §7 必須寫入**具體的保留規則與驗證方式**；`RELEASE_ASSETS` 與 `EXTERNAL_IMMUTABLE` 另需一條「離線也能重驗 digest」的路徑，否則證據會依賴一個可能消失的外部服務。
 
@@ -77,7 +93,19 @@
 | `V7B_REDUCED_JOINT_ENVELOPE` | `120/150 = 0.800000` | 同上 |
 | `V7C_FILTERED_ACTION` | `0/150` | 同上 |
 
-[INFERENCE] `PUB-B2` 的用途是讓後續比較落在 `R0`／`R1` 而非 `R3`／`R4` regime，所以門檻必須**高於** v7 reference 的 `0.953333`——否則新線不比舊線好，`PUB-B3` 仍會被 censoring 擋住。建議值 `1.0`（全部 150 個 episode 皆 full exposure），退一步為 `0.98`。
+[BLOCKER] **本節初稿的一個精度錯誤，在此更正。** 初稿寫「建議 `1.0`，退一步 `0.98`」，但 `0.98` 在本設計下**不存在**：§9 的 `TL_REFERENCE_ATTAINED` 是**逐 replicate** 判定，而 §8 訂每個 replicate 只有 `30` 個 episode，所以可達的比例只有 30 分之幾。`0.98` 會被進位成 `30/30`，與 `1.0` 是同一條規則。
+
+[RESULT] 真正可選的門檻只有三個，且其中一個不可取：
+
+| 門檻 | 每 replicate 允許的早期終止 | 與 v7 reference（`0.953333`）比較 |
+|---|---|---|
+| `30/30 = 1.000000` | `0` | 明顯更嚴 |
+| `29/30 = 0.966667` | `1` | 略嚴 |
+| ~~`28/30 = 0.933333`~~ | `2` | **比 v7 還鬆**，不可取 |
+
+[INFERENCE] `PUB-B2` 的用途是讓後續比較落在 `R0`／`R1` 而非 `R3`／`R4` regime。只要 reference 還有任何一個 episode 早期終止，它就仍然是 censored，而 v7 線的 `between_replicate_sd` 為 null 正是這個原因。`29/30` 會以較輕的形式複製同一個問題，`PUB-B3` 仍會被擋住。**因此建議 `30/30`。**
+
+[BLOCKER] `30/30` 的代價要明說：scratch policy 在 5 個 replicate 上都做到 30/30 是很高的門檻，很可能得到 `TL_REFERENCE_NOT_ATTAINED`。但那是 §9 預先宣告的**結果**，比訂一個過得了、卻解不開 `PUB-B3` 的門檻更有資訊量。
 
 [BLOCKER] 門檻一旦凍結，**不得因為結果而下調**。未達門檻是 `PUB-B2` `NOT_ATTAINED`，是一項結果。
 
