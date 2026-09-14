@@ -30,6 +30,25 @@
     }
   ],
   "contract_id": "TRACKED-LINEAGE-TRAINING-V2",
+  "evaluations": {
+    "0": {
+      "episodes": 30,
+      "evaluated_policy_sha256": "sha256:dcf2cc869abcae66fcb7f5c525f1671b968e9868b1a13ef0064bb11e2c985191",
+      "evaluation_seeds": [
+        22000,
+        22029
+      ],
+      "full_exposure": 0,
+      "full_exposure_proportion": "0/30",
+      "relative_dir": "backend/tracked_lineage_evidence/2026-09-14/evaluations_v2/r0",
+      "retained_sha256": {
+        "environment_lock.json": "sha256:61e08cb20d3d41b0e133746b54360171dc7dc662780c9bc1c9f59f72ec1be596",
+        "evaluation_dev22000_22029.json": "sha256:d5145556a43009c3d4e8045a351d53ce802750d31201db78f4f2dd9a79832925",
+        "run_lock_binding.json": "sha256:8c65abef19974e1d7edfb8bf871566466fa3f6590dfd5a035ce83957df7b8504"
+      },
+      "run_lock_label": "RUN_LOCK_BOUND"
+    }
+  },
   "protocol_sha256": "sha256:a38662d99c6c6a25015e3ab5f8d642b0bc601be8b1d5d157d7f5e00b8d9292d0",
   "replicates": {
     "0": {
