@@ -555,6 +555,53 @@ def evaluate_run(
         return _result(LABEL_METHOD_FAILURE, str(exc))
 
 
+def evaluate_relocated_run(directory: Path, manifest_filename: str) -> dict[str, Any]:
+    """Classify a run whose artefacts have been COPIED out of their run directory.
+
+    ``evaluate_run`` is the authority while a run still sits where it was
+    produced.  It cannot judge a retained copy: it requires the binding's
+    ``bound_manifest_path`` to resolve under the root it is handed, and copying
+    evidence into version control necessarily changes that path.  Retained
+    evidence is exactly what outlives the machine, so without this a lock claim
+    is only checkable on the container that produced it -- which is where the
+    claim is least needed.
+
+    What survives relocation is recomputed here: the manifest still hashes to
+    the digest the binding bound, and the lock behind it was the required class
+    and completeness, verified before the run.  What cannot survive is not
+    guessed at -- the path comparison is dropped, deliberately and visibly,
+    rather than approximated.  Anything unproven returns a non-bound label.
+    """
+    binding_path = Path(directory) / BINDING_FILENAME
+    manifest_path = Path(directory) / manifest_filename
+    try:
+        if not binding_path.is_file():
+            return _result(LABEL_UNBOUND, f"no {BINDING_FILENAME} in {directory}")
+        if not manifest_path.is_file():
+            return _result(LABEL_UNBOUND, f"no {manifest_filename} in {directory}")
+        record = validate_binding_record(load_json_object(binding_path, "binding record"))
+        digest = sha256_file(manifest_path)
+        if digest != record["bound_manifest_sha256"]:
+            return _result(
+                LABEL_MISMATCH,
+                f"retained manifest digest {digest} does not match the binding's "
+                f"{record['bound_manifest_sha256']}",
+                record,
+            )
+        if record["satisfies_full_lock_requirement"] is not True:
+            return _result(
+                LABEL_INSUFFICIENT,
+                f"lock is {record['environment_lock_class']} / "
+                f"{record['environment_lock_completeness']}",
+                record,
+            )
+        if record["verified_before_run"] is not True:
+            return _result(LABEL_INSUFFICIENT, "lock was not verified before the run", record)
+        return _result(LABEL_BOUND, "retained binding verified against the retained manifest", record)
+    except RunLockBindingError as exc:
+        return _result(LABEL_METHOD_FAILURE, str(exc))
+
+
 def require_bound_run(
     run_dir: Path,
     manifest_filename: str,

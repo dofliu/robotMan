@@ -1,0 +1,116 @@
+{
+  "schema_version": "RL_TRAINING_RUN_V2",
+  "run_id": "stand_start_walk_stop_0p7_tracked_lineage_b2_r3-run",
+  "profile": {
+    "profile_id": "stand_start_walk_stop_0p7_tracked_lineage_b2_r3",
+    "speed_mps": 0.7,
+    "step_length_m": 0.35,
+    "duty": 0.62,
+    "clearance_m": 0.07,
+    "planned_timesteps": 2000000,
+    "parallel_envs": 12,
+    "seed_base": 9136,
+    "status": "FROZEN_TRACKED_LINEAGE_V2_CONTINUATION_CONFIGURATION",
+    "environment_id": "motion_task_phase_observable_v5",
+    "task_id": "stand_start_walk_stop_v1",
+    "warm_start_policy_id": null,
+    "pilot_protocol_id": null,
+    "seedvar_protocol_id": null,
+    "tracked_lineage_protocol_id": "TRACKED-LINEAGE-TRAINING-V2",
+    "pilot_arm_id": null
+  },
+  "resolved": {
+    "total_timesteps": 2000000,
+    "parallel_envs": 12,
+    "seed_base": 9136,
+    "device": "cpu",
+    "run_kind": "development_training"
+  },
+  "status": "DEVELOPMENT_TRAINING_UNEVALUATED",
+  "started_at": "2026-09-14T16:30:58.144070+00:00",
+  "completed_at": "2026-09-14T17:03:13.269293+00:00",
+  "elapsed_seconds": 1935.125,
+  "artifact": {
+    "relative_path": "policy.zip",
+    "bytes": 1983093,
+    "sha256": "sha256:c9e916cde04c59d28c8381471b7e7c167c0e0e84911ffbdabea7b4d89f0fcea3"
+  },
+  "actual_total_timesteps": 4015200,
+  "checkpoint_interval_timesteps": 500000,
+  "logs": {
+    "directory": "logs",
+    "format": "stable_baselines3_csv"
+  },
+  "source_files": {
+    "backend/rl/train_ppo.py": "sha256:88ba5437772ba8a7d8b50ed161e48b164570ddf9fcfd545baa2bc35126a2c9f0",
+    "backend/rl/humanoid_env.py": "sha256:2fc224d67b15d1beb5ea4ffac9b921ce6dc8bf9ce0c87286490bbf655250055d",
+    "backend/rl/training_profiles.json": "sha256:3e2ec5f560f5942ef29bb592c15b5b7438a4397ee8b014f909f82c25cb90032b",
+    "backend/rl/action_interface_v7.py": "sha256:8430a83705fb3544a6dd70ea09818243dfb6fc57b0334920c9f03b70626be42e",
+    "backend/rl/v7_action_interface_pilot_protocol.json": "sha256:719b70a2bdf8d23af5f4ec5dff51a6099e88d6de4e2221fa74f6f7464cdfcb96",
+    "backend/rl/eval_policy.py": "sha256:0cf274341a10a56fbf544d86eab4bfbfd6f630056689280af51aff111b0058d4",
+    "backend/controller_rl.py": "sha256:ccbbb2d044c63abc1ae5a40e47a7954c2b8a6158b5c886534f4f16d462b0d074",
+    "backend/motion_tasks.py": "sha256:3dd9a47b6798a2fba713eda3654b428377f3a75e825105b233a1da375d4215af",
+    "backend/model_builder.py": "sha256:09163a81a9dfef363a88424f98e4506e81be7639689aaa3fd66e6505ccb98a5e",
+    "backend/config_schema.py": "sha256:426ce01561284dc84f50018c6f2558951c9dd820a7cf2756ac2ae8ee728ed298"
+  },
+  "environment": {
+    "python": "3.11.15",
+    "platform": "Linux-6.18.44-fc-v24-x86_64-with-glibc2.39",
+    "packages": {
+      "stable-baselines3": "2.9.0",
+      "gymnasium": "1.3.0",
+      "torch": "2.14.0",
+      "mujoco": "3.12.0",
+      "numpy": "2.4.6",
+      "pydantic": "2.13.5"
+    }
+  },
+  "evidence_scope": "SOFTWARE_TRAINING_PIPELINE_ONLY",
+  "source_git_pre": {
+    "available": true,
+    "git_sha": "f91a26d0c42d797ee9f8a543ec9c578f544d6d93",
+    "working_tree_dirty": false,
+    "working_tree_status": []
+  },
+  "source_git_post": {
+    "available": true,
+    "git_sha": "f91a26d0c42d797ee9f8a543ec9c578f544d6d93",
+    "working_tree_dirty": false,
+    "working_tree_status": []
+  },
+  "resume": {
+    "artifact": "backend/tracked_lineage_evidence/2026-09-14/checkpoints/r3-1999968.zip",
+    "bytes": 1983087,
+    "sha256": "sha256:a08e606931410196f1f5e74f171b86aae95bafc52466ca9aa64c3ae19674e7bc",
+    "mode": "PPO_FULL_STATE_RESUME_V1",
+    "source_num_timesteps": 1999968
+  },
+  "policy_contract": {
+    "observation_dim": 51,
+    "action_dim": 12,
+    "algorithm": "PPO_MLP",
+    "n_steps_per_env": 2048,
+    "batch_size": 8192,
+    "n_epochs": 5,
+    "action_interface": {
+      "action_interface_id": "DIRECT_NORMALIZED_ACTION_LEGACY_V1",
+      "action_scale_rad": [
+        0.5,
+        0.8,
+        0.9,
+        0.6,
+        0.5,
+        0.8,
+        0.9,
+        0.6,
+        0.6,
+        0.6,
+        0.6,
+        0.6
+      ],
+      "low_pass_alpha": null,
+      "rate_limit_normalized_per_control_step": null,
+      "previous_action_semantics": "PREVIOUS_APPLIED_NORMALIZED_ACTION"
+    }
+  }
+}

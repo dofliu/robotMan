@@ -26,6 +26,7 @@ REPO_ROOT = BACKEND.parent
 if str(BACKEND) not in sys.path:
     sys.path.insert(0, str(BACKEND))
 
+import run_manifest_lock  # noqa: E402
 import tracked_lineage_v2_contract as tl2  # noqa: E402
 
 EVIDENCE_ROOT = BACKEND / "tracked_lineage_evidence"
@@ -49,19 +50,26 @@ def run(date: str) -> dict:
     run_manifests = []
     binding_labels = {}
     for index in REPLICATES:
-        record = training_run_index["training_runs"][str(index)]
-        manifest = _read(root / "training_runs_v2" / f"r{index}" / "run_manifest.json")
+        directory = root / "training_runs_v2" / f"r{index}"
+        manifest = _read(directory / "run_manifest.json")
         run_manifests.append(manifest)
-        binding_labels[manifest["run_id"]] = record["run_lock_label"]
+        # Re-derived from the retained bytes, not read out of the index: an index
+        # that says RUN_LOCK_BOUND is a claim, and this is the check of it.
+        binding_labels[manifest["run_id"]] = run_manifest_lock.evaluate_relocated_run(
+            directory, "run_manifest.json"
+        )["label"]
 
     evaluations = []
     evaluated_by_replicate = {}
     for index in REPLICATES:
         directory = root / "evaluations_v2" / f"r{index}"
         payload = _read(directory / "evaluation_dev22000_22029.json")
-        binding = _read(directory / "run_lock_binding.json")
         evaluations.append(payload)
-        binding_labels[f"{payload['profile_id']}-eval"] = binding.get("label", "")
+        binding_labels[f"{payload['profile_id']}-eval"] = (
+            run_manifest_lock.evaluate_relocated_run(
+                directory, "evaluation_dev22000_22029.json"
+            )["label"]
+        )
         evaluated_by_replicate[index] = payload["model"]["sha256"]
 
     checks = {}

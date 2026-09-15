@@ -1,0 +1,20 @@
+{
+ "binding_mode": "SIDECAR_ONLY",
+ "bound_at_utc": "2026-09-14T17:03:14Z",
+ "bound_manifest_path": "backend/rl/artifacts/stand_start_walk_stop_0p7_tracked_lineage_b2_r3-run/run_manifest.json",
+ "bound_manifest_schema_version": "RL_TRAINING_RUN_V2",
+ "bound_manifest_sha256": "sha256:13944113ba563d21d981c4958a10f30d20bd0ce7779665cff08b10607ad41c98",
+ "claim_boundary": "RUN-MANIFEST-LOCK-BINDING-V1 establishes only that this run manifest and one ENVIRONMENT-LOCK-V1 record are linked by a recomputable relation, and that the record is MEASURED and FULL_LOCK. It supports no statement about the correctness of any numeric result, any task PASS, any controller superiority, or any change to paper_data_ready, statistics_ready or method_level_power_ready; no physical feasibility, safety, sim-to-real or actuator claim; and no claim that the run reproduces on another machine. The lock detects environment differences; it does not guarantee cross-environment numeric identity. This is infrastructure, not evidence.",
+ "contract_id": "RUN-MANIFEST-LOCK-BINDING-V1",
+ "environment_lock_class": "MEASURED_ENVIRONMENT_LOCK",
+ "environment_lock_completeness": "FULL_LOCK",
+ "environment_lock_threading_determinism": "AMBIENT_THREADING_PINNED",
+ "environment_locked_sha256": "sha256:93d23a2703adc86a1394eacf5dece8d7229fdf742857f1a271656aa1cfeac72d",
+ "lock_record_path": "backend/rl/artifacts/stand_start_walk_stop_0p7_tracked_lineage_b2_r3-run/environment_lock.json",
+ "lock_record_sha256": "sha256:a1f2b9d2cd51af2a57c9c6c534177e3500d84f34ab7b61384fd834009634ed68",
+ "lock_verified_at_utc": "2026-09-14T16:30:54Z",
+ "satisfies_full_lock_requirement": true,
+ "schema_version": "RUN_LOCK_BINDING_V1",
+ "sidecar_reason": "Editing this file would silently falsify source_baseline.training_driver_source_sha256 in the executed SEEDVAR-V7-TRAINING-REPLICATE-DEV-V1 protocol, which nothing re-derives at runtime; that protocol JSON is itself pinned by test_training_seed_variance_contract.py and by r0_regime_probe_protocol.json parent_protocol_sha256.",
+ "verified_before_run": true
+}

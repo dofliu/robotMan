@@ -2,6 +2,21 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-14 (x)
+
+### `TRACKED-LINEAGE-TRAINING-V2` 執行完成：加倍預算，曝露仍是 `0/30`
+
+- [RESULT] **標籤 `TL2_BUDGET_EXHAUSTED`，與 V1 相同。** 由每個 V1 replicate 保留的 `1,999,968` 步 checkpoint 續訓，各再加 `2,000,000` 步（realized `4,015,200`）。獎勵由 `226.9`–`231.6` 升到 `283.1`–`295.3`，平均存活由 `2.440`–`2.811` s 升到 `2.725`–`3.458` s，而**完整曝露仍是 `0/30`，五個 replicate 全部、`150` 個 episode 全部**。最長的單一 episode `4.0` s，門檻 `9.0` s。**多花的 `2,000,000` 步買到 `+51.5`–`+66.5` 獎勵與 `+0.145`–`+0.778` 秒存活。**
+- [RESULT] **標籤是算出來的不是宣告的。** `backend/rl/run_tracked_lineage_v2_contract.py` **只讀版控內的保留證據**，跑完 `TL2-01`..`TL2-09` 後輸出 `tl2_contract_receipt.json`；V1 的驗收由人逐條核對後寫進 receipt，讀者只能選擇相信作者。它刻意不讀 gitignored 的 `backend/rl/artifacts/`——靜悄悄依賴未保留檔案的檢查，會在最需要它的時候剛好失效。
+- [RESULT] **曲線在上限處更陡，不是更平。** 五個全部未收斂，且**五個裡有四個的末四分位斜率比首四分位還大**（比值 `1.119`／`0.636`／`1.143`／`1.039`／`1.091`；末四分位斜率 `+11.8`–`+22.2`／500k，V1 是 `+7.3`–`+11.9`）。跑到 `4,015,200` 步，不是逼近天花板，是找到更多可爬的空間——同時曝露完全沒動。
+- [RESULT] **兩個事先宣告的量測選擇都沒有改變結論。** 在任何 V2 曲線存在之前，程式碼就宣告以 lineage 曲線（V1 曲線截到 resume 點再接 V2）而非只看增量、聚合取 `any` 而非 `all`，兩者都是對「再加預算」更不利的方向。結果兩種讀法在五個 replicate 上結論一致，五個聚合值皆 `False`。**事先宣告仍然是對的，而它這次剛好不用付代價**——把它講得比實際更關鍵會是另一種誇大。
+- [RESULT] **凍結前的算術五個全中**：realized `4,015,200`、checkpoint 落在 `2499960/2999952/3499944/3999936`、10 次執行 gate 皆 `RUN_LOCK_BOUND`（環境鎖 `sha256:93d23a27…`，與 2026-09-08 執行逐位元相同）、`source_git_pre == source_git_post`、`TL2-08` 五個精確成立（被評估的 digest **就是**保留的 reference checkpoint）。
+- [BLOCKER] **七個缺陷，兩種形狀。** 主張為真但證據活不過容器；或程式跑過 fixture、沒跑過真正凍結的東西。(1) V1／V2 guard dispatch 讓 V2 profile 掉進 V1 分支——兩個 guard 各自測過，沒測 `main()` 實際會走的路徑。(2) manifest 用 `relative_to(RL_DIR)` 記錄 resume 路徑——放寬了 guard **接受**什麼，沒動 manifest **記錄**什麼。(3) 保留腳本只支援 V1。(4) **訓練 run manifest 從未被保留**，只保留了評估的——索引裡有 digest 看似完整，但**沒人拿得到的檔案的 digest 不是證據**。(5) **`RUN_LOCK_BOUND` 無法離線重導**：gate 只印到 console，sidecar 沒有 label 欄位，索引寫的是佔位字串——**V1 五筆至今仍是如此**。(6) `verify_checkpoint_lineage` 委派給 V1，而 V1 讀 V2 凍結 protocol 沒有的 `replicate_count`；protocol 不得改，故改由三個凍結事實推導，**三者不一致即 method failure**，且傳給 V1 的是複本——會修改被驗證對象的 verifier 已經不是 verifier。(7) runner 仍讀那個不存在的 label 欄位，**在 10 次執行上全部 fail closed，完全正確**；推導現在只有一份，放在 `run_manifest_lock.evaluate_relocated_run`。
+- [RESULT] **一個先立後撤的觀察，保留在記錄裡。** r2 跑完時三個 replicate 呈現乾淨的反向關係（獎勵漲最多的存活漲最少），我在 r3／r4 之前就記進 commit 並註明可能被抹掉；r3 抹掉了。不刪除——**先立後撤比悄悄丟掉誠實**。站得住的是更弱也更硬的敘述：獎勵增益對存活增益不帶任何方向上可用的資訊。
+- [BLOCKER] **不授權 V3。** 規格 `escalation_rule` 事先寫定：再次得到 `TL2_BUDGET_EXHAUSTED` 是**結果**，不授權單純再加預算。V3 需要自己的 protocol 版本並揭露它是在已知 V1 **和** V2 結果之後設計的。**要改的不是預算**——`2,000,000` 步買到不到 `0.8` s，而門檻還差 `5` s 以上。
+- [RESULT] 儲存實測：`backend/tracked_lineage_evidence/` `77 MB`、`.git` `83 MB`，落在規格 §5.3 事先預估的約 `85 MB` **之內**。V1 §4.1「第三條線之前重新評估外部不可變儲存」的要求依然有效，只是尚未到期。
+- [RESULT] 全套 **1 failed / 941 passed**（`507.79` s），失敗項仍是同一個 `PRIMARY_CASE_RECEIPT_IDENTITY`，未新增失敗。數字這次**逐 commit 實測**：`892`（`5b707cb`）→ `924`（＋32 V2 contract，即先前的 923 passed）→ `936`（＋2＋2＋8，PR #20 後的 main）→ **`942`**（＋6）。
+
 ## Unreleased — 2026-09-14 (w)
 
 ### `TRACKED-LINEAGE-AMENDMENT-03`：更正我自己給錯的結果標籤

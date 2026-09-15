@@ -185,11 +185,48 @@ def verify_evaluation_seeds(
     v1.verify_evaluation_seeds(protocol, evaluation_outputs)
 
 
+def replicate_count(protocol: dict[str, Any]) -> int:
+    """How many replicates the frozen V2 protocol describes.
+
+    V1's protocol states this outright as training_design.replicate_count; V2's
+    does not, and V2's protocol is frozen so the key cannot be added to it. The
+    count is instead derivable from three frozen facts that must agree:
+    total_count over per_replicate_count, the number of training seeds, and the
+    number of pinned resume sources. Disagreement is a method failure rather
+    than a casting vote -- if the protocol contradicts itself about how many
+    replicates it has, nothing downstream of that is trustworthy.
+    """
+    lineage = protocol["checkpoint_lineage"]
+    per_replicate = int(lineage["per_replicate_count"])
+    if per_replicate <= 0:
+        _fail("TL2_PER_REPLICATE_COUNT_INVALID", str(per_replicate))
+    total = int(lineage["total_count"])
+    if total % per_replicate:
+        _fail("TL2_CHECKPOINT_TOTAL_NOT_DIVISIBLE", f"{total} / {per_replicate}")
+    derived = {
+        "checkpoint_counts": total // per_replicate,
+        "training_seeds": len(protocol["training_design"]["training_seeds"]),
+        "resume_sources": len(protocol["tracked_warm_start"]["sources"]),
+    }
+    if len(set(derived.values())) != 1:
+        _fail("TL2_REPLICATE_COUNT_AMBIGUOUS", str(derived))
+    return derived["checkpoint_counts"]
+
+
 def verify_checkpoint_lineage(
     protocol: dict[str, Any], index: dict[str, Any], *, root: Path = REPO_ROOT
 ) -> None:
-    """TL2-06, delegated to V1. Only the expected step values differ."""
-    v1.verify_checkpoint_lineage(protocol, index, root=root)
+    """TL2-06, delegated to V1. Only the expected step values differ.
+
+    The delegation needs one key V2's frozen protocol does not carry, so the
+    count is derived and handed over in a shallow copy. The copy exists so this
+    never mutates the caller's protocol: a verifier that edits the thing it is
+    verifying is how a contract stops being one.
+    """
+    view = dict(protocol)
+    view["training_design"] = dict(protocol["training_design"])
+    view["training_design"]["replicate_count"] = replicate_count(protocol)
+    v1.verify_checkpoint_lineage(view, index, root=root)
 
 
 def verify_run_lock_bindings(binding_labels: dict[str, str]) -> None:
