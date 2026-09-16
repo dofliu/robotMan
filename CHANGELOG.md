@@ -2,6 +2,15 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-16 (ab)
+
+### 撤回我自己在 (aa) 寫下的 blocker：那個值域**本來就被強制**，缺的是測試
+
+- [BLOCKER] **(aa) 的第二條是錯的，在此撤回。** 我在那條寫「`live_sim.py` 的 `record_start` 直接採用 client 傳來的值、未驗證範圍」，並據此把 `max_duration_s` 的 `1–60` 標為未強制。**實際上它一直是強制的**：`config_schema.py` 的 `LiveRecordStartCommand` 宣告 `Field(default=30.0, ge=1.0, le=60.0)`，而 live 與 compare 兩條路徑都先過 `validate_live_command()` 才進 dispatch。我讀到 `record_start` 裡的 `float(payload["max_duration_s"])` 就下結論，**沒有把 payload 追回它被驗證的來源**。(aa) 那條留在原地不刪——先立後撤比悄悄改掉誠實。
+- [RESULT] **實測**：`0.0`／`0.5`／`60.5`／`600.0`／`-1.0`／`inf`／`nan` 全部被拒，live 回 `INVALID_COMMAND`、compare 回 `INVALID_COMPARE_COMMAND`（兩條路徑用各自的具名 code），且都不留下 recorder；`1.0` 與 `60.0` 兩個邊界值可接受；省略時預設 `30.0`。
+- [RESULT] **真正缺的東西是回歸測試，已補上**：規格宣告了值域、程式強制了值域，但沒有任何測試釘住它——欄位被放寬或改走未驗證路徑都不會有人發現。`backend/test_run_trace.py` 新增 2 個測試（越界／非有限值在兩條路徑 fail closed 且不留 recorder、兩個邊界值可接受、省略時預設 30 秒）。規格驗收表新增 `TRACE-R02b`，與原本描述 recorder 自動 finalize 的 `TRACE-R02` 分開列，因為那是兩個不同的性質。
+- [RESULT] `docs/USAGE.md` §9 的 blocker 改為照實描述強制行為與兩個具名錯誤碼。**沒有新增任何驗證程式**：本次只加測試與更正文字，WebSocket 命令契約的行為與 (aa) 之前完全相同。
+
 ## Unreleased — 2026-09-16 (aa)
 
 ### 文件對齊介面改版：手冊補上介面總覽，並修掉三個過期陳述
