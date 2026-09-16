@@ -2,6 +2,17 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-16 (ad)
+
+### RQ2 文獻檢查：三個候選槓桿全部已有先前技術，不建議為發表開 V3
+
+- [RESULT] 專案負責人選定[評估文件](docs/PROJECT_ASSESSMENT_2026-09-16.md) §5 的**選項一**，但方向定在論文與研究，並回到源頭問題「什麼方法／學習方法／控制策略能讓機器人更好地行走」——那正是 [RESEARCH_EXECUTION_PLAN §2](docs/RESEARCH_EXECUTION_PLAN.md) 的 `RQ2`，從未結案。依專案「先確認 gap 再執行」的紀律，**先做 scoped 文獻檢查**，寫成 [LITERATURE_MAP_2026-09-16_TRAINING_STRATEGY](docs/LITERATURE_MAP_2026-09-16_TRAINING_STRATEGY.md)（9 次查詢）。
+- [RESULT] **判定：RQ2 的 robotics-method 貢獻沒有 gap。** §5 選項二設想的三個槓桿全部已有先前技術且多已 ablate：Arm B「從行走狀態暖啟動」在結構上就是 DeepMimic (2018) 的 **Reference State Initialization**；Arm C「分階段／相位條件形塑」有 *Gait-Conditioned RL with Multi-Phase Curriculum*（IEEE Humanoids 2025）做到 **Unitree G1 真機**，其 Phase 2 正是站立與 walk-to-stand 轉換；連權重 annealing schedule 的比較都有專文。「懲罰量值不是槓桿」「加預算沒用」「獎勵拆解當診斷」亦各有既有工作。
+- [BLOCKER] **一個該記下來的事實**：關掉第一項判定的 *Learning to Locomote*（`arXiv 2010.04304`，明確以 survival bonus `0`/`1`/`5` ablate 出「站著不動」局部最優）**早已在本專案自己的 [2026-09-08 文獻地圖 §1.1](docs/LITERATURE_MAP_2026-09-08_EVALUATION_VALIDITY.md) 裡**。當時只取其「termination rule 是設計變數」的面向，沒注意到它的 survival-bonus ablation 正是本專案後來獨立撞上、並在 [PROJECT_ASSESSMENT §1.4](docs/PROJECT_ASSESSMENT_2026-09-16.md) 手算重現的東西。答案一直在自己的參考書目裡。
+- [RESULT] **這次檢查擋下的成本**：9 次查詢，換掉 §5 選項二估計的「3 小時 × 每個 arm × 5 replicate」以及一次大概率的退稿。**Track A 不受影響**——它主張的是量測效度，不是控制方法；§1.4 的五點量測反而可當 Track A 的一個 worked example（訓練策略比較正是 early termination 最兇的場景）。
+- [RESULT] **意外收穫**：文獻沒給論文，但給了做法。若目標是讓教學示範的機器人會走，RSI 與 multi-phase curriculum 是已驗證、有真機結果的配方——那是**工程**，不需要任何 gate，也不產生新的研究主張。
+- [BLOCKER] 本次 scan 的 egress 條件與 2026-09-08／09-10 的 `PUB-A0` 相同：`WebSearch` 可用，出版方 host 全部封鎖（實測 `arxiv.org`、`discovery.ucl.ac.uk`、`www.alphaxiv.org`、`pmc.ncbi.nlm.nih.gov` 皆 `EGRESS_BLOCKED`）。**沒有任何一篇原文被讀過**，全部條目標 `U`，§3 的判定為 `[INFERENCE]`。升級所需的三篇關鍵文獻列在該文件 §6。`RESEARCH_EXECUTION_PLAN` 的 `RQ2` 狀態改動**待專案負責人確認**，本次未改。
+
 ## Unreleased — 2026-09-16 (ac)
 
 ### 介面改版後的第一次完整驗證：950 passed，唯一失敗仍是同一個既有項
