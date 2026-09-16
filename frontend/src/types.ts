@@ -352,6 +352,8 @@ export interface DynamicTraceManifest {
   stop_reason: string;
   joint_names: string[];
   group_names: string[];
+  // 後端 STATE_LABELS：{"0": "STAND", "1": "WALK", "2": "FALLEN", "3": "STOPPING"}
+  state_codes?: Record<string, string>;
   gait: GaitParams;
   assist_enabled_at_start: boolean;
   policy_evidence_status: string | null;
