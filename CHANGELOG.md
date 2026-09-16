@@ -14,6 +14,7 @@
 - [RESULT] **Dynamic Trace**：五張圖同時顯示改為一張分頁圖；正式任務的 11 項 criterion 表格與階段 chip 收進「判定細節」。**RL 訓練**：profiles 卡片放最前面，三步流程與現況說明收合；過長的 profile id 改為可換行。
 - 最小字級由 9 px 提到 11 px。`docs/USAGE.md` §3 的 badge 說明改為證據狀態抽屜。
 - [RESULT] 同日後續：**RL 訓練頁的 25 個 profile 分成六個家族**（Motion task 開發版本 v1–v6／v7 pilot 三臂／v7 seed-variance replicates／Tracked lineage V1／V2 續訓／固定速度行走 legacy），分組只用 API 已回傳的 `pilot_protocol_id`、`seedvar_protocol_id`、`tracked_lineage_protocol_id`、`environment_id` 判斷，不靠 profile id 字串猜。預設只展開開發版本那一組；四個凍結的 replicate 家族成員只差 seed 或 arm，改用一列一行的表格而非近乎相同的卡片。卡片新增 warm start 來源。後端與 inventory schema 未動。
+- [RESULT] 同日後續：**分析頁警告改為分類顯示**。後端在 `meta.warnings` 旁新增 `meta.warning_items`——與原文一對一、同序（`detail` 就是同一條字串），每條帶 `code`／`severity`（blocking／warning／caution／info，與文字開頭的 ⛔⚠️🔶ℹ️ 一致）／`scope`（stats／actuator／gait／scene／stability）／`group`／短 `title`／`value`／`limit`／`unit`；**原文字串一個字都沒改**，既有測試不受影響，兩者都在 content hash 範圍內（hash 由輸出重算，沒有 golden 值）。前端把 6 個關節群組的 12 條致動器 screen 併成一張表（馬達扭矩／轉速／減速機三欄，只顯示數字，原文在 tooltip），其餘警告一行一條短標題，完整原文收在「完整訊息」按鈕後；警告按鈕顯示不可行項數。舊後端沒有 `warning_items` 時退回原文清單。新增 `backend/test_warning_items.py`（5 個測試，含一對一鏡射、嚴重度與符號一致、數值與 `summary.groups` 一致）。
 
 ## Unreleased — 2026-09-16 (y)
 

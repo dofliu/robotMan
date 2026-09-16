@@ -1,6 +1,119 @@
 import { useState } from "react";
-import type { SimResult } from "../types";
+import type { SimResult, WarningItem, WarningSeverity } from "../types";
 import { GROUP_LABELS } from "../types";
+import { Pill, type PillTone } from "../ui";
+
+const SEVERITY: Record<WarningSeverity, { label: string; tone: PillTone; text: string; order: number }> = {
+  blocking: { label: "不可行", tone: "red", text: "text-red-300", order: 0 },
+  warning: { label: "警告", tone: "amber", text: "text-amber-300", order: 1 },
+  caution: { label: "注意", tone: "orange", text: "text-orange-300", order: 2 },
+  info: { label: "資訊", tone: "sky", text: "text-sky-300", order: 3 },
+};
+const TORQUE_CODES = ["ACTUATOR_PEAK_OVER_MOTOR_PEAK", "ACTUATOR_RMS_OVER_RATED", "ACTUATOR_PEAK_OVER_RATED"];
+
+// 致動器 screen 的格子：只顯示數字，完整原文放在 title。
+function actuatorCell(item: WarningItem | undefined) {
+  if (!item) return <span className="text-slate-600">✓</span>;
+  const text = item.code === "ACTUATOR_SPEED_OVER_RATED"
+    ? `${item.value} / ${item.limit} ${item.unit}`
+    : item.code === "ACTUATOR_RMS_OVER_RATED"
+      ? `RMS ${item.value}${item.unit}`
+      : item.code === "ACTUATOR_PEAK_OVER_RATED"
+        ? `峰值 ${item.value}${item.unit}`
+        : `${item.value}${item.unit}`;
+  return (
+    <span title={item.detail} className={`font-semibold tabular-nums ${SEVERITY[item.severity].text}`}>
+      {text}
+    </span>
+  );
+}
+
+// 分類後的警告面板：致動器 screen 併成一張表，其餘一行一條短標題；原文收在按鈕後面。
+function WarningPanel({
+  items,
+  warnings,
+  groupOrder,
+}: {
+  items: WarningItem[];
+  warnings: string[];
+  groupOrder: string[];
+}) {
+  const [showRaw, setShowRaw] = useState(false);
+  const actuator = items.filter((item) => item.scope === "actuator");
+  const others = items
+    .filter((item) => item.scope !== "actuator")
+    .sort((a, b) => SEVERITY[a.severity].order - SEVERITY[b.severity].order);
+  const counts = (Object.keys(SEVERITY) as WarningSeverity[])
+    .map((severity) => ({ severity, n: items.filter((item) => item.severity === severity).length }))
+    .filter((entry) => entry.n > 0);
+  const byGroup = new Map<string, WarningItem[]>();
+  for (const item of actuator) {
+    if (item.group) byGroup.set(item.group, [...(byGroup.get(item.group) ?? []), item]);
+  }
+  const rows = groupOrder.filter((group) => byGroup.has(group));
+  const pick = (group: string, codes: string[]) =>
+    byGroup.get(group)?.find((item) => codes.includes(item.code));
+
+  return (
+    <div className="mt-2 rounded bg-slate-950/50 p-2">
+      <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+        {counts.map(({ severity, n }) => (
+          <Pill key={severity} tone={SEVERITY[severity].tone}>{SEVERITY[severity].label} {n}</Pill>
+        ))}
+        <span className="text-slate-500">rule-based screen，不是硬體 pass/fail</span>
+        <button
+          type="button"
+          className="ml-auto text-slate-400 hover:text-slate-200"
+          onClick={() => setShowRaw((open) => !open)}
+        >
+          {showRaw ? "隱藏完整訊息 ▾" : "完整訊息 ▸"}
+        </button>
+      </div>
+
+      {rows.length > 0 && (
+        <table className="mt-2 w-full text-[11px]">
+          <thead className="text-slate-500">
+            <tr>
+              <th className="py-1 pr-3 text-left font-normal">致動器 screen（{rows.length} 個關節群組）</th>
+              <th className="py-1 pr-3 text-left font-normal">馬達扭矩</th>
+              <th className="py-1 pr-3 text-left font-normal">轉速</th>
+              <th className="py-1 text-left font-normal">減速機</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((group) => (
+              <tr key={group} className="border-t border-slate-800/80">
+                <td className="py-1 pr-3 text-slate-300">{GROUP_LABELS[group] ?? group}</td>
+                <td className="py-1 pr-3">{actuatorCell(pick(group, TORQUE_CODES))}</td>
+                <td className="py-1 pr-3">{actuatorCell(pick(group, ["ACTUATOR_SPEED_OVER_RATED"]))}</td>
+                <td className="py-1">{actuatorCell(pick(group, ["GEARBOX_PEAK_OVER_RATED"]))}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      {others.length > 0 && (
+        <ul className={`space-y-1 ${rows.length > 0 ? "mt-2 border-t border-slate-800/80 pt-2" : "mt-2"}`}>
+          {others.map((item, index) => (
+            <li key={`${item.code}-${index}`} className="flex items-start gap-2 text-[11px]" title={item.detail}>
+              <Pill tone={SEVERITY[item.severity].tone} className="shrink-0">{SEVERITY[item.severity].label}</Pill>
+              <span className="text-slate-200">{item.title}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {showRaw && (
+        <ul className="mt-2 max-h-40 space-y-0.5 overflow-y-auto border-t border-slate-800/80 pt-2">
+          {warnings.map((w, i) => (
+            <li key={i} className="text-[11px] leading-4 text-amber-200/90">{w}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
 
 function Card({ label, value, unit, tone }: { label: string; value: string; unit?: string; tone?: string }) {
   return (
@@ -21,6 +134,8 @@ export default function SummaryBar({ result }: { result: SimResult | null }) {
   if (!result) return null;
   const s = result.meta.summary;
   const warnings = result.meta.warnings;
+  const items = result.meta.warning_items;
+  const blockingCount = items?.filter((item) => item.severity === "blocking").length ?? 0;
   const zmpAvailable = s.zmp_stable_pct != null && s.zmp_valid_sample_count !== 0;
   const zmpTone = !zmpAvailable ? "text-slate-300"
     : s.zmp_stable_pct! >= 97 ? "text-emerald-300"
@@ -54,7 +169,7 @@ export default function SummaryBar({ result }: { result: SimResult | null }) {
               className="rounded-lg bg-red-500/15 px-3 py-1.5 text-xs font-semibold text-red-300 hover:bg-red-500/25"
               onClick={() => setShowWarnings(!showWarnings)}
             >
-              ⚠ {warnings.length} 項警告 {showWarnings ? "▾" : "▸"}
+              ⚠ {warnings.length} 項警告{blockingCount > 0 ? `（${blockingCount} 項不可行）` : ""} {showWarnings ? "▾" : "▸"}
             </button>
           ) : (
             <div className="rounded-lg bg-emerald-500/15 px-3 py-1.5 text-xs font-semibold text-emerald-300">
@@ -75,13 +190,17 @@ export default function SummaryBar({ result }: { result: SimResult | null }) {
         </div>
       )}
       {showWarnings && warnings.length > 0 && (
-        <ul className="mt-2 max-h-32 space-y-0.5 overflow-y-auto rounded bg-slate-950/50 p-2">
-          {warnings.map((w, i) => (
-            <li key={i} className="text-[11px] leading-4 text-amber-200/90">
-              {w}
-            </li>
-          ))}
-        </ul>
+        items && items.length === warnings.length ? (
+          <WarningPanel items={items} warnings={warnings} groupOrder={Object.keys(s.groups)} />
+        ) : (
+          <ul className="mt-2 max-h-32 space-y-0.5 overflow-y-auto rounded bg-slate-950/50 p-2">
+            {warnings.map((w, i) => (
+              <li key={i} className="text-[11px] leading-4 text-amber-200/90">
+                {w}
+              </li>
+            ))}
+          </ul>
+        )
       )}
     </div>
   );

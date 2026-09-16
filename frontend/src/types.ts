@@ -206,6 +206,21 @@ export interface TrainingInventory {
   profiles: TrainingProfile[];
 }
 
+export type WarningSeverity = "blocking" | "warning" | "caution" | "info";
+
+// 與 meta.warnings 一對一、同序的結構化版本；detail 就是同一條原文。
+export interface WarningItem {
+  code: string;
+  severity: WarningSeverity;
+  scope: "stats" | "actuator" | "gait" | "scene" | "stability";
+  group: string | null;
+  title: string;
+  detail: string;
+  value: number | null;
+  limit: number | null;
+  unit: string | null;
+}
+
 export interface SimResult {
   meta: {
     dt: number;
@@ -214,6 +229,8 @@ export interface SimResult {
     joint_names: string[];
     body_names: string[];
     warnings: string[];
+    // 舊後端沒有這個欄位；缺少時前端退回顯示原文清單。
+    warning_items?: WarningItem[];
     summary: SimSummary;
     provenance?: SimulationProvenance;
   };
