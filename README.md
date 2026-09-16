@@ -30,7 +30,7 @@ Repository：[github.com/dofliu/robotMan](https://github.com/dofliu/robotMan) �
 | **專案評估（2026-09-16）** | 給負責人的**決策文件**：核心 robotics + 應用 `6,871` 行、前端 `3,561` 行，證據契約 `29,294` 行（**1 : 4.3**），其中約 `15,800` 行服務的研究線已結案；**沒有不可達程式**。機器人：v5 會走（10/11）但 checkpoint 是看結果後挑的，所有可重建的線全在 `STEADY_WALK` 起點跌倒，量化診斷指向獎勵形塑而非預算。**價值**：robotics 研究弱；評估效度研究**真的有一篇**（Track A，證據已齊、**不需 `PUB-B2`**）；教學工具有實質價值且與研究契約**完全解耦**。**關鍵觀察：`PUB-B2` 的理由在 09-09 Track A 重構時就消失了。** 三個去向選項見 §5——**負責人尚未決定** | [PROJECT_ASSESSMENT](docs/PROJECT_ASSESSMENT_2026-09-16.md) |
 | 動作任務範圍 | 2026-09-11 決定現在**不**新增跳躍／轉身；順序為先綁 lock record 與建有版控 lineage 的新訓練線，轉身需 `PUB-B2`、跳躍需 V1 PASS | [MOTION_SCOPE_DECISION](docs/MOTION_SCOPE_DECISION_2026-09-11.md) |
 | 下一個決策 | formal evaluation 已於 2026-09-10 授權；剩兩個子問題：用現行 post-hoc 規則或先預註冊替代規則、唯一未檢視的 FORMAL seed 範圍花在 v7 線或新訓練線 | [PUBLICATION_PLAN §5](docs/PUBLICATION_PLAN.md)、[PUB_B0 receipt](docs/PUB_B0_AUTHORIZATION_RECEIPT_2026-09-10.md) |
-| 測試 | `backend/` 1 failed / 923 passed；那一個是在具名 environment lock 下記錄的 reduction-order 差異，未放寬 | [PROJECT_STATUS §9](docs/PROJECT_STATUS.md) |
+| 測試 | `backend/` **1 failed / 950 passed**（2026-09-16，`319.18` s，工作樹在 `979e73b`）。那一個失敗是在具名 environment lock 下**記錄為量測結果、未放寬**的 reduction-order 差異——看到它不必修 | [PROJECT_STATUS §9](docs/PROJECT_STATUS.md)、`STATUS.yaml` 的 `test_suite_status` |
 
 ## 兩種模式
 

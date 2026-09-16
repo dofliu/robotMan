@@ -12,6 +12,7 @@
 - [RESULT] **修掉兩個過期數字**：(ab) 加了 2 個測試卻沒同步計數，USAGE §12 與 PROJECT_STATUS §9 都還停在 `948`，已改為 `950` 並補上量測條件（commit、秒數、指令）。CHANGELOG 舊條目維持原樣，因為它們記錄的是當時的量測。
 - [RESULT] **`STATUS.yaml` 新增 `test_suite_status`**：這個檔案原本**沒有任何欄位記錄現行套件狀態**——裡面三個數字（`816`／`882`／`941`）各自綁在一份 receipt 上，記的是**那份 receipt 在它自己的 commit 上量到什麼**，`project_assessment` 的 `942` 也標明量自 `095247c`。把其中任何一個改成 `950` 是**竄改 receipt，不是更新狀態**，因此一個都沒動；改為新增一個專門追蹤現況的欄位，並在該欄位裡寫明其餘四個數字為何刻意不動。
 - [RESULT] 順手修掉 `ui_simplification` 的 `Merged as PR 23`——那條線後來還有 PR #24（文件對齊）、#25（`record_start` 回歸測試與撤回）、#26（本次量測），已補齊。
+- [RESULT] **README 現況一覽的測試列改為 `1 failed / 950 passed`**：原本停在 `923`，落後三次量測（`941`／`948`／`950`），並補上量測條件與 `STATUS.yaml` 的 `test_suite_status` 指路。該表其餘各列**逐列核對後未動**——V&V gate（V0/V1 PARTIAL、V2–V4 NOT_STARTED）、`PDR-0..8 無一 PASS`（九列狀態皆為 PARTIAL／IN PROGRESS／software-only，detail 欄裡的 PASS 是子項不是 gate 狀態）、最強結果、被推翻的結果、兩條 tracked lineage 與專案評估，全部仍與 `docs/` 一致。
 
 ## Unreleased — 2026-09-16 (ab)
 
