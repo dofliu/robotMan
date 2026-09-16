@@ -27,6 +27,7 @@ Repository：[github.com/dofliu/robotMan](https://github.com/dofliu/robotMan) �
 | 證據環境綁定 | `ENVIRONMENT-LOCK-V1` 量測環境身分；`RUN-MANIFEST-LOCK-BINDING-V1`（2026-09-13）以 SHA-256 把 lock record 綁進 run manifest，fail-closed。**前向**，V0 blocker 收窄未清除 | [RUN_MANIFEST_LOCK_BINDING_RECEIPT](docs/RUN_MANIFEST_LOCK_BINDING_RECEIPT_2026-09-13.md) |
 | 新訓練線 | `TRACKED-LINEAGE-TRAINING-V1` 於 2026-09-14 **執行完成**：scratch、5 replicates、20 個 checkpoint 進版控（`38.0 MiB`）、10 次執行皆 `RUN_LOCK_BOUND`。**`PUB-B1` 達成**（provenance 可重建的訓練線存在）；**`PUB-B2` 未達成**——5 個 replicate 的 full exposure 皆 `0/30`，標籤 **`TL_BUDGET_EXHAUSTED`**（曲線在上限處仍未收斂，見 amendment 03 的更正）。**門檻不得下調，上限亦不得因「再多跑一點」而上調** | [receipt](docs/TRACKED_LINEAGE_TRAINING_RECEIPT_2026-09-14.md) |
 | 加倍預算的續訓線 | `TRACKED-LINEAGE-TRAINING-V2` 於 2026-09-14 **執行完成**：由 V1 各 replicate 保留的 `1,999,968` 步 checkpoint 續訓，各再加 `2,000,000` 步（realized `4,015,200`）。獎勵升到 `283.1`–`295.3`（`+51.5`–`+66.5`）、平均存活升到 `2.725`–`3.458` s，而**完整曝露仍是 `0/30`，五個全部**。五個皆未收斂，且**四個的末四分位斜率比首四分位還大**——曲線更陡了，曝露沒動。標籤 **`TL2_BUDGET_EXHAUSTED`**，由 contract runner 在保留證據上算出。**`PUB-B2` 仍未達成；規格禁止以此為由再加預算** | [V2 receipt](docs/TRACKED_LINEAGE_TRAINING_V2_RECEIPT_2026-09-14.md) |
+| **專案評估（2026-09-16）** | 給負責人的**決策文件**：核心 robotics + 應用 `6,871` 行、前端 `3,561` 行，證據契約 `29,294` 行（**1 : 4.3**），其中約 `15,800` 行服務的研究線已結案；**沒有不可達程式**。機器人：v5 會走（10/11）但 checkpoint 是看結果後挑的，所有可重建的線全在 `STEADY_WALK` 起點跌倒，量化診斷指向獎勵形塑而非預算。**價值**：robotics 研究弱；評估效度研究**真的有一篇**（Track A，證據已齊、**不需 `PUB-B2`**）；教學工具有實質價值且與研究契約**完全解耦**。**關鍵觀察：`PUB-B2` 的理由在 09-09 Track A 重構時就消失了。** 三個去向選項見 §5——**負責人尚未決定** | [PROJECT_ASSESSMENT](docs/PROJECT_ASSESSMENT_2026-09-16.md) |
 | 動作任務範圍 | 2026-09-11 決定現在**不**新增跳躍／轉身；順序為先綁 lock record 與建有版控 lineage 的新訓練線，轉身需 `PUB-B2`、跳躍需 V1 PASS | [MOTION_SCOPE_DECISION](docs/MOTION_SCOPE_DECISION_2026-09-11.md) |
 | 下一個決策 | formal evaluation 已於 2026-09-10 授權；剩兩個子問題：用現行 post-hoc 規則或先預註冊替代規則、唯一未檢視的 FORMAL seed 範圍花在 v7 線或新訓練線 | [PUBLICATION_PLAN §5](docs/PUBLICATION_PLAN.md)、[PUB_B0 receipt](docs/PUB_B0_AUTHORIZATION_RECEIPT_2026-09-10.md) |
 | 測試 | `backend/` 1 failed / 923 passed；那一個是在具名 environment lock 下記錄的 reduction-order 差異，未放寬 | [PROJECT_STATUS §9](docs/PROJECT_STATUS.md) |
@@ -123,6 +124,7 @@ python -m pytest backend -q
 | [TRACKED_LINEAGE_TRAINING_RECEIPT_2026-09-14](docs/TRACKED_LINEAGE_TRAINING_RECEIPT_2026-09-14.md) | 執行結果：`PUB-B1` 達成、`PUB-B2` `NOT_ATTAINED`（`0/5` replicate 達標）、失敗型態量測、claim boundary，以及 §12 的標籤更正記錄 |
 | [TRACKED_LINEAGE_TRAINING_V2_SPEC](docs/TRACKED_LINEAGE_TRAINING_V2_SPEC.md) | 凍結的 `TRACKED-LINEAGE-TRAINING-V2`：在已知 V1 結果之後設計並據實揭露的加倍預算續訓線 |
 | [TRACKED_LINEAGE_TRAINING_V2_RECEIPT_2026-09-14](docs/TRACKED_LINEAGE_TRAINING_V2_RECEIPT_2026-09-14.md) | 執行結果：`TL2_BUDGET_EXHAUSTED`、`0/5` replicate 達標、曲線在上限處更陡、七個缺陷的記錄，以及一個先立後撤的觀察 |
+| [PROJECT_ASSESSMENT_2026-09-16](docs/PROJECT_ASSESSMENT_2026-09-16.md) | 專案評估（決策文件）：實測盤點、四面向價值判斷、獎勵結構診斷、可拆／可封存的架構、三個去向選項與代價 |
 | [ROADMAP](docs/ROADMAP.md) | V0–V4 gate-first 工程工作順序 |
 | [RESEARCH_EXECUTION_PLAN](docs/RESEARCH_EXECUTION_PLAN.md) | model validity 與 method effectiveness 雙證據鏈、RQ、P-stage gates |
 | [PAPER_DATA_READINESS](docs/PAPER_DATA_READINESS.md) | paper-data-first 架構、run bundle、PDR gates、統計與文獻依據 |

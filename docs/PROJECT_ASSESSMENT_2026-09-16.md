@@ -1,0 +1,247 @@
+# 專案評估：現況、價值與去向
+
+最後更新：2026-09-16 ｜ 性質：**給專案負責人的決策文件**，不是 receipt，不是 spec
+｜ 依據：`main` 於 `095247c`（PR #21 合併後）的實測盤點
+
+本文件回答三個問題：這個專案現在是什麼、它值不值得推廣、下一步該做什麼。每個數字都是從 repo
+量出來的，來源寫在旁邊；每個判斷都標明是量測、推論還是建議。**它不替負責人做決定**——§5 列出的
+是選項與代價，不是指令。
+
+---
+
+## 0. 一句話
+
+**一個能跑、能教的 humanoid 模擬教具，加上一個真正可發表的評估效度發現，兩者合起來不到
+一萬行，卻穿著一件三萬行、六十三份文件的研究基礎設施外衣。** 外衣本身品質很高——但它正在驗證一個
+不會走路的機器人。
+
+---
+
+## 1. 實測盤點
+
+### 1.1 程式碼：核心與外衣的比例
+
+| 類別 | 行數 | 檔案 | 說明 |
+|---|---:|---:|---|
+| 核心 robotics + 應用 | **6,871** | 14 | `simulator`、`live_sim`、`gait`、三個 controller、`model_builder`、`humanoid_env`、`train_ppo`、`eval_policy`、`main`、`run_trace` |
+| 前端 | **3,561** | 18 | React + Three.js，`tsc` 零錯誤，`vite build` 2.1 s 通過 |
+| 證據契約／replay／bundle | **29,294** | 42 | 見 §1.2 |
+| 測試 | 14,768 | 28 | 692 個測試函式，pytest 收集 942 個 case |
+
+核心與外衣的比例是 **1 : 4.3**。這不是「有死碼」——我一開始這樣假設，查了之後**是錯的**：
+21 個沒有任何非測試模組 import 的檔案，全部帶有 `__main__`，都是設計為命令列執行的合法入口，
+整個後端**沒有一行不可達的程式**。真正的狀況比死碼更難處理：**一萬三千行活著、有測試、程式品質良好，
+但它服務的研究線已經結案的工具碼。**
+
+### 1.2 契約程式碼依研究線與該線的下場
+
+| 研究線 | 契約行數 | 測試函式 | 該線在 `STATUS.yaml` 的下場 |
+|---|---:|---:|---|
+| v7 pilot / exposure audit / candidate selection | **8,638** | 145 | pilot 來源 `BROKEN_BY_DESIGN`；selection `NOT_EXECUTABLE`；pretraining variance `UNMEASURABLE` |
+| V1 analytical / oracle / paper bundle | 6,005 | 61 | `PARTIAL_IMPLEMENTED_NOT_PASS`，gate 仍活著 |
+| seed variance | 3,034 | 81 | 由證據結案（`UNMEASURABLE`） |
+| paired statistics / experiment matrix | 2,939 | 46 | 軟體通過、科學未通過，gate 仍活著 |
+| second case（Walker2d / Hopper） | 2,072 | 68 | 2026-09-09 由決定結案 |
+| environment lock / run-manifest binding | 1,985 | 89 | **活的基礎設施** |
+| tracked lineage V1 + V2 | 1,661 | 108 | 兩線皆 `NOT_ATTAINED`，線已完成 |
+| exposure identification / paper-data contract | 1,402 | — | 活的（Track A 的核心量測工具） |
+| R0 regime probe | 411 | 18 | 已執行，完成 |
+
+**已結案或不可執行的線**（v7、second case、seed variance、tracked lineage、R0）合計約
+**15,800 行契約碼、420 個測試函式**——佔契約碼的 54%、測試的 61%。它們沒有壞，只是任務結束了。
+
+反過來看：**692 個測試函式裡，只有 76 個（11%）在測那個教學應用本身。**
+
+### 1.3 機器人：能不能走
+
+| 訓練線 | 結果 | 出處 |
+|---|---|---|
+| v5（2026-08-30） | **10/11 準則通過、無跌倒**、穩態 0.586 m/s、只有 saturation duty 38.4% > 30% 未過 | `motion_task_status` |
+| v6、v7A/B/C | 全部退步；v7C 30/30 早跌 | `motion_task_training_status` |
+| tracked lineage V1（5 × 2.0M 步，從零） | **0/30 × 5**，平均存活 2.44–2.81 s | [V1 receipt](TRACKED_LINEAGE_TRAINING_RECEIPT_2026-09-14.md) |
+| tracked lineage V2（各再 +2.0M 步） | **0/30 × 5**，平均存活 2.73–3.46 s；獎勵 +51–+66 | [V2 receipt](TRACKED_LINEAGE_TRAINING_V2_RECEIPT_2026-09-14.md) |
+
+**機器人會走**——v5 的 policy artifact（1.9 MB）在版控裡、registry 選定、Live 模式可載入，10/11
+準則通過。**機器人從零學不會走**——十個 replicate、兩種預算、300 個 episode，沒有一個撐過 9 秒，
+全部在 2.5–3.5 秒、也就是 `STEADY_WALK` 起點附近跌倒。
+
+v5 為什麼能而後面都不能？v5 的 checkpoint（122,880 步）是**在看過結果之後**從一個已退步的 run
+裡挑出來的——這正是整個 tracked-lineage 線存在要移除的 provenance 缺陷。所以現況是：**唯一會走的
+policy 是用不可重建的方式得到的；所有可重建的方式都不會走。**
+
+### 1.4 為什麼加預算沒用：獎勵結構的量化診斷
+
+`backend/rl/humanoid_env.py` 的獎勵（tracked-lineage 用的 `phase_observable_v5` 環境）：
+
+```
+每步：r_imitate(≤0.7) + r_vel(≤1.2) + r_alive(0.3) + r_upright(≤0.2) + r_stop(0.35，靜止時)
+      − p_energy − p_rate − p_side − p_reverse
+跌倒：−5（基底）−45（v4 起加重）= −50，且終止
+控制步 0.02 s，9 秒任務 = 450 步
+```
+
+站著不動、姿態貼合參考時，每步約 **2.5**。站滿 `INITIAL_STAND` + `START` 的 2.5 秒 ≈ 125 步
+≈ **310**，再吃 −50 的跌倒 ≈ **260**——**這就是 V1 實測 227–232、V2 實測 283–295 的來源**：
+V2 多出來的獎勵，是站得更久（2.7–3.5 s）、站得更好，不是走了。
+
+[INFERENCE] 「站好、在轉換點跌倒」是一個穩定的局部最優。要離開它，policy 得在 `START→STEADY_WALK`
+時忍受 `pose_err`、`vel_err` 同時飆高（`r_imitate`、`r_vel` 一起掉）而且當下跌倒機率很高。**十個
+replicate 全部寧願吃 −50 也不嘗試**，代表嘗試起步的期望代價 > 50。v4 把懲罰從 −5 加到 −45 後仍
+留下 stop 失敗，說明**懲罰數值不是綁住結果的那一項**——綁住的是 imitation／velocity 形塑讓「站」
+比「不完美地走」每步賺得多太多。
+
+[INFERENCE] 因此 V2 receipt 的結論「要改的不是預算」是對的，而且現在能說出**為什麼**：可行的槓桿是
+curriculum（從 v5 的行走狀態當作階段起點）、分階段的形塑（`START` 期間降低 imitation 權重、提高進度
+權重）、或參考軌跡本身。任何一個都需要**新的 protocol 版本**並揭露它是在已知 V1、V2 結果之後設計的。
+
+### 1.5 證據的版控狀況
+
+| 證據 | 大小 | 在版控？ | 後果 |
+|---|---:|---|---|
+| tracked lineage V1+V2（40 個 checkpoint、manifest、lock、曲線、receipt） | 77 MB | **是** | 兩線的標籤可從 repo 重算（容器重啟時已實際驗證） |
+| seed variance `raw_replicates.json` 等 | 360 KB | 是 | `[−13.5, −12.4]` pp 的 method-level bound 可重導 |
+| second case、R0 probe、environment locks | 1.7 MB | 是 | 可重導 |
+| **v7 pilot 原始 bundle**（seed 8700、14 個 artifact） | 109.5 MB | **否**（`run_traces/`，gitignored） | §4.1「Pilot」欄的每個數字**不能**從 repo 重導 |
+| **v7 exposure audit 凍結 bundle** | 113 MB | **否**（同上） | §4.2 的 audit 發現**不能**從 repo 重導 |
+
+這是 [REPOSITORY_GUIDE §3](REPOSITORY_GUIDE.md) **明文的政策**——`run_traces/` 「不是公開 immutable
+evidence bundle」，正式 bundle 應放外部儲存——不是疏忽。但後果要說清楚：**專案自稱「最強結果」的那條
+v7 線，是所有線裡從 repo 最不可重導的一條。** 較弱的線反而都進了版控。
+
+### 1.6 文件
+
+63 份 `docs/*.md`（約 700 KB，**不含本文件**；量測基準 `main@095247c`），加 `CHANGELOG.md` 110 KB、`STATUS.yaml` 78 KB。`STATUS.yaml`
+裡單一欄位的字串長達數千字元。107 個 commit 中 67 個（63%）集中在兩天（09-08 有 34 個、09-14 有 33
+個）——這是 AI 工作階段驅動的節奏，每個階段產出一份 spec、一份 protocol、一個 contract、一份
+receipt、再更新六份規劃文件。**新人無法從這裡上手**；REPOSITORY_GUIDE 在本次盤點前還寫著
+tracked_lineage_evidence「尚未建立」、測試數 923——兩處都已過期。
+
+---
+
+## 2. 它值不值得推廣——分四個面向
+
+| 面向 | 判斷 | 依據 |
+|---|---|---|
+| **作為 robotics 研究** | **弱** | 沒有新的控制方法；reduced-order 12 關節 + prescribed gait + PPO 是標準做法；沒有實體驗證；專案自己的 `progress: 0`；可重建的訓練線全部不會走 |
+| **作為評估效度（evaluation-validity）研究** | **真的有一篇** | V7C 表面 −36 pp 的「改善」被量測證明是 exposure artifact；`OBSERVED ⇏ full exposure` 這個盲點；在 Walker2d-v5 第二個 plant 上重現（`PUB-A1a` PASS）；censoring regime 分類；R0 probe。這是 Track A，2026-09-09 已重構成這個題目，**證據已經在手上** |
+| **作為教學工具** | **有實質價值，但被埋住** | 教學應用**完全不依賴**任何研究契約模組（`main.py` 零 import）；前端建置乾淨；USAGE §5 的四條教學流程（致動器敏感度、穩定性概念、控制器行為、手臂示範）在教學上成立；v5 policy 提供可示範的行走 |
+| **作為「可重現 RL 實驗」的工程範例** | **比多數已發表的 RL 工作嚴謹** | freeze-before-execute、digest 連鎖、fail-closed、narrowing-only amendment、事先宣告量測選擇、負結果據實報告、撤回的觀察留在記錄裡。這本身可以是研究方法課的教材——**但它目前在驗證一個不會走的機器人** |
+
+[INFERENCE] 誠實的總結：**這裡有兩個好東西和一個大問題。** 好東西是教具與 Track A 那篇論文；問題是它們
+被一個為了「把不會走的機器人量得非常嚴謹」而長出來的基礎設施包住，而那個基礎設施的大部分現在服務的
+是已經結案的線。
+
+---
+
+## 3. 一個 gate 的理由消失了
+
+`PUB-B2`（reference policy 在 DEV seeds 達到 30/30）是為了 `PUB-B3`（between-replicate variance
+需要一個不被 exposure censoring 截斷的 reference）而設的。這在 Track A 還是「比較控制方法」時成立。
+
+**2026-09-09 Track A 重構為「censoring regime 的評估效度研究」之後，論文不再需要一個會走的
+reference policy**——它需要的是被 censoring 截斷的例子，而那正是 v7、Walker2d、tracked lineage
+全部已經提供的。`PUB-B2` 的**理由**在重構那天就消失了，但 gate 留了下來，之後又花了兩條線
+（V1、V2，各五個 replicate）去追它。
+
+[INFERENCE] 這不是誰的錯——每一步在當時都是合理的下一步。但它是本文件最重要的一個觀察：**繼續追
+30/30，除了工程上的完整感之外，已經沒有一個研究目標在等它。**
+
+---
+
+## 4. 架構上可以改的、可以拆的
+
+### 4.1 可以拆成兩個產品，今天就可以
+
+教學應用與研究基礎設施**在程式碼層面已經完全解耦**：`main.py` 不 import 任何契約模組；前端只打
+7 個 endpoint，全部與契約無關。拆開不需要重構，只需要搬。
+
+| 產品 | 內容 | 規模 | 對象 |
+|---|---|---:|---|
+| **A. 教學模擬器** | 核心 14 檔 + 前端 + v5/v2/legacy policy + `USAGE` 教學流程 + `MODEL_CARD` | ~10.4k 行 | 修課學生、教師 |
+| **B. 可重現實驗工具組** | `environment_lock`、`run_manifest_lock`、`bind_run_lock`、`exposure_identification`、`paired_statistics_contract`、`experiment_matrix_contract`、`paper_data_contract` | ~6.4k 行 | 做 RL 評估的研究者 |
+| **C. 研究線封存** | 已結案各線的 spec／protocol／contract／replay／bundle／receipt／evidence | ~15.8k 行 + 證據 | 論文附錄、審稿人 |
+
+### 4.2 建議封存（不是刪除）的東西
+
+證據規則不變：**任何已保留的證據不得刪除**。以下建議的是把**程式與文件**搬進 `archive/`（或獨立
+repo），證據目錄原地不動、digest 不變。
+
+| 搬什麼 | 行數 | 理由 |
+|---|---:|---|
+| v7 pilot／audit／selection 全套 | 8,638 | 來源不可重建、selection 永不可執行、pretraining variance 不可量測；三個下場都是終局 |
+| second case runner／budget probe | 2,072 | 2026-09-09 由決定結案，兩個 protocol id 已撤回 |
+| seed variance contract／replay／bundle builder | 3,034 | 由證據結案；結論（`UNMEASURABLE`）已寫進 receipt |
+| tracked lineage V1／V2 contract／retention／runner | 1,661 | 兩線完成，標籤已由 runner 算出並保留為 JSON |
+| R0 probe | 411 | 已執行 |
+| 對應的 receipt／spec（約 25 份 md） | — | 移至 `docs/archive/`，README 只留一個索引連結 |
+
+搬走後全套測試會從 942 降到約 **520**（移除 ~420 個測試函式對應的 case）。這不是損失——那些測試
+測的是已經不會再改的程式。
+
+### 4.3 建議修的東西
+
+| 項目 | 現況 | 建議 |
+|---|---|---|
+| `STATUS.yaml` | 78 KB，單欄位數千字元的敘事字串 | 拆成結構化欄位；敘事移到 receipt |
+| `CHANGELOG.md` | 110 KB，每個工作階段一條長條目 | 保留，但改為每個 PR 一段摘要；細節在 receipt |
+| 文件數 | 63 份 | 活的規劃文件約 12 份留在 `docs/`，其餘進 `docs/archive/` 與 `docs/receipts/` |
+| v7 證據 | 222 MB 只在本容器 | **二選一**：依 REPOSITORY_GUIDE §3 放外部 immutable storage 並在 §4.1 註記；或在 PROJECT_STATUS 明寫「Pilot 欄不可從 repo 重導」（本次已加註後者） |
+| V1 evaluations 的 `run_lock_label` | 五筆仍是佔位字串 `"see gate output"` | 用 `evaluate_relocated_run` 重導並回填，或維持並在 receipt 註明（現為後者） |
+
+### 4.4 不建議動的東西
+
+- **任何 protocol JSON、spec 的凍結內容、已保留的證據。** 這是專案最值錢的紀律，拆封存不是重寫。
+- **`environment_lock` + `run_manifest_lock`。** 這是活的、可重用的、而且是本專案對其他人最有用的一件東西。
+- **v5 policy artifact。** 它是唯一會走的 policy，教學示範靠它。
+- **30/30 的門檻與 2,000,000 步的上限。** 凍結後不得因結果調整，這條規則本身就是成果的一部分。
+
+---
+
+## 5. 下一步：三個選項，代價寫清楚
+
+這三個選項**不互斥**，但順序有意義。
+
+### 選項 一：收斂——把兩個好東西各自做完
+
+1. 拆出教學模擬器（§4.1 A），清一份 30 分鐘能上手的 README。
+2. 拆出實驗工具組（§4.1 B），補一份「如何在你自己的 RL 專案用 environment lock + run manifest binding」。
+3. 寫 Track A 那篇論文：`PUB-A2` claim freeze 的輸入全部在手（v7 audit、Walker2d、R0 probe、tracked lineage 兩線都是 censoring 的實例）。**不需要 `PUB-B2`。**
+4. 其餘封存（§4.2）。
+
+代價：放下「機器人從零學會走」這個目標。收穫：三個月內有一個可用教具、一個可重用工具、一篇投得出去的論文。
+
+### 選項 二：修機器人——但換槓桿，不加預算
+
+依 §1.4 的診斷開新 protocol（V3），揭露它知道 V1、V2 的結果，且**改變的是獎勵結構或 curriculum，
+不是預算**。最直接的候選：以 v5 的行走 checkpoint 為 curriculum 階段起點（tracked warm start，V1 §3
+當初排除它是因為 v5 的訓練過程不可重建——但 v5 的**檔案**可由 digest 重建，作為「起點」而非「證據」
+是可以據實揭露的）。
+
+代價：再一輪 5 replicate × 訓練 + 評估（約 3 小時），且結果可能仍是 `NOT_ATTAINED`。收穫：若成功，
+`PUB-B2` 達成、V1 §3 的 `CONDITIONAL_ON_FIXED_WARM_START` 有了可重建的替代。**但請先問 §3 的問題：
+有哪個研究目標在等這個結果？**
+
+### 選項 三：維持現狀
+
+繼續每條線一套 spec／protocol／contract／receipt。這是唯一**不建議**的選項：外衣會繼續以核心 4 倍的
+速度長大，而每次新的工作階段要先讀 700 KB 文件才能開始。
+
+---
+
+## 6. 本次盤點順手修正的事實
+
+- REPOSITORY_GUIDE：`tracked_lineage_evidence` 由「尚未建立」改為實測 40 個 checkpoint、77 MB；測試數 923 → 941。
+- PROJECT_STATUS §4：加註 v7 pilot 欄與 audit 發現的資料**不在版控**（依 REPOSITORY_GUIDE §3 政策），seedvar 欄可重導。
+- 本文件的兩個工作假設在查核後被推翻並照實記錄：「有死碼」（沒有）、「跌倒懲罰只有 −5」（是 −50）。
+
+---
+
+## 7. 相關文件
+
+| 文件 | 關係 |
+|---|---|
+| [PROJECT_STATUS](PROJECT_STATUS.md) | 逐 gate 的現況；本文件是它的**判斷層** |
+| [PUBLICATION_PLAN](PUBLICATION_PLAN.md)、[TRACK_A_REFRAME](TRACK_A_REFRAME_2026-09-09.md) | §3 的論證依據 |
+| [TRACKED_LINEAGE_TRAINING_V2_RECEIPT](TRACKED_LINEAGE_TRAINING_V2_RECEIPT_2026-09-14.md) | §1.3、§1.4 的量測來源 |
+| [REPOSITORY_GUIDE](REPOSITORY_GUIDE.md) | §1.5 引用的證據儲存政策 |
+| [USAGE §5](USAGE.md) | 教學流程，§2 教學價值的依據 |
