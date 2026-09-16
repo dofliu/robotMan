@@ -13,6 +13,7 @@
 - [RESULT] **三機同步比較**：三條工具列合併為一條主工具列（站立／行走／重置／暫停／單步／速度）＋「更多操作」（assist、推撞、Trace、正式任務）；`DEVELOPMENT_COMPARISON_ONLY` 等 token 移到頁腳小字；每張機器人卡片只在 assist／推撞／任務**實際發生時**才顯示標籤，不再常駐三個 `OFF`。
 - [RESULT] **Dynamic Trace**：五張圖同時顯示改為一張分頁圖；正式任務的 11 項 criterion 表格與階段 chip 收進「判定細節」。**RL 訓練**：profiles 卡片放最前面，三步流程與現況說明收合；過長的 profile id 改為可換行。
 - 最小字級由 9 px 提到 11 px。`docs/USAGE.md` §3 的 badge 說明改為證據狀態抽屜。
+- [RESULT] 同日後續：**RL 訓練頁的 25 個 profile 分成六個家族**（Motion task 開發版本 v1–v6／v7 pilot 三臂／v7 seed-variance replicates／Tracked lineage V1／V2 續訓／固定速度行走 legacy），分組只用 API 已回傳的 `pilot_protocol_id`、`seedvar_protocol_id`、`tracked_lineage_protocol_id`、`environment_id` 判斷，不靠 profile id 字串猜。預設只展開開發版本那一組；四個凍結的 replicate 家族成員只差 seed 或 arm，改用一列一行的表格而非近乎相同的卡片。卡片新增 warm start 來源。後端與 inventory schema 未動。
 
 ## Unreleased — 2026-09-16 (y)
 

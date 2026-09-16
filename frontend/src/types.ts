@@ -188,8 +188,15 @@ export interface TrainingProfile {
   parallel_envs: number;
   seed_base: number;
   status: string;
-  environment_id: "fixed_walk_v1" | "motion_task_command_v1";
+  // 後端 inventory 的環境 id 逐版新增（fixed_walk_v1、motion_task_*），前端只讀不列舉。
+  environment_id: string;
   task_id?: string | null;
+  // 家族識別：每個 profile 最多宣告一個 governing protocol；沒有的就是開發版本或 legacy。
+  warm_start_policy_id?: string | null;
+  pilot_protocol_id?: string | null;
+  pilot_arm_id?: string | null;
+  seedvar_protocol_id?: string | null;
+  tracked_lineage_protocol_id?: string | null;
 }
 
 export interface TrainingInventory {
