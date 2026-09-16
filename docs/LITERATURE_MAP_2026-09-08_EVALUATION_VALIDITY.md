@@ -22,10 +22,10 @@
 
 | 核實 | 年份 | 研究 | 搜尋摘要所述內容 | 與 Track A 的關係 |
 |---|---:|---|---|---|
-| U | 2018 | Pardo, Tavakoli, Kormushev, *Time Limits in Reinforcement Learning*, ICML（PMLR v80）；[arXiv 1712.00378](https://arxiv.org/abs/1712.00378) | 區分 environment termination 與 time-limit truncation；time limit 屬環境時應把剩餘時間放進 observation 以維持 Markov property；不屬環境時應在 truncation 處 bootstrap（partial-episode bootstrapping）。 | 是 termination／truncation 區分的標準出處，但關切的是 **learning correctness**（Bellman update），不是 **evaluation／reporting validity**。Track A 引為語義基礎，不與之競爭。 |
+| **S** | 2018 | Pardo, Tavakoli, **Levdik**, Kormushev, *Time Limits in Reinforcement Learning*, ICML（PMLR v80）；[arXiv 1712.00378](https://arxiv.org/abs/1712.00378)（**2026-09-16 原文核對**，[§7](#7-原文核對紀錄)） | 區分 environment termination 與 time-limit truncation；time limit 屬環境時應把剩餘時間放進 observation 以維持 Markov property；不屬環境時應在 truncation 處 bootstrap（partial-episode bootstrapping）。 | 是 termination／truncation 區分的標準出處，但關切的是 **learning correctness**（Bellman update），不是 **evaluation／reporting validity**。Track A 引為語義基礎，不與之競爭。 |
 | U | — | Gymnasium `Env.step` 的 `terminated`／`truncated` 官方定義；[docs](https://gymnasium.farama.org/api/env/) | API 層把兩者分開回傳。 | 本專案的 exposure audit 由 trace 長度重建終止，不依賴 driver 的 flag；原文待核。 |
 | U | 2020 | *DERAIL: Diagnostic Environments for Reward And Imitation Learning*；[arXiv 2012.01365](https://arxiv.org/abs/2012.01365) | 實作若把 terminal state 的價值錯設為零，會依 reward 符號偏向提早或延長 episode，使某些任務的表現被高估。 | 同樣是 **learning 端**的 termination bias；機制與 Track A 的量測端 censoring 不同，可作對照。 |
-| U | 2020 | *Learning to Locomote: Understanding How Environment Design Matters for Deep RL*；[arXiv 2010.04304](https://arxiv.org/abs/2010.04304) | 環境設計選擇（含 termination conditions）改變 locomotion 學習結果。 | 支持「termination rule 是設計變數」；未涉及量測端的 identification。 |
+| **S** | 2020 | Reda, Tao, van de Panne, *Learning to Locomote: Understanding How Environment Design Matters for Deep RL*；[arXiv 2010.04304](https://arxiv.org/abs/2010.04304)（**2026-09-16 原文核對**，[§7](#7-原文核對紀錄)） | 環境設計選擇（含 termination conditions）改變 locomotion 學習結果。**核對後補正**：其 §6 EPISODE TERMINATION 全篇處理的是 infinite bootstrap（引 Pardo 2018），屬 learning 端；§9 另有 survival bonus `0`／`1`/`5` 的 ablation，指出過大會使角色「balances but never steps forward」。 | 支持「termination rule 是設計變數」；**核對確認未涉及量測端的 identification**。其 §9 的 survival-bonus 結果與本地圖無關，但支撐 [2026-09-16 訓練策略地圖](LITERATURE_MAP_2026-09-16_TRAINING_STRATEGY.md) 的 §3 第 1 點。 |
 
 ### 1.2 Episode length 作為 metric confound
 
@@ -124,7 +124,7 @@
 
 ## 5. 對 PUBLICATION_PLAN 的直接後果
 
-- `PUB-A0` 狀態：`KEY_TWO_VERIFIED_AND_A_C5_SCANNED / REMAINING_U`（2026-09-10；2026-09-09 為 `KEY_TWO_VERIFIED_GAP_STANDS / REMAINING_U`；scan 當日為 `SCAN_COMPLETE / PRIMARY_SOURCES_UNVERIFIED`）。**仍未通過。** 已完成：§4 點名的兩篇原文核對（§7）、A-C5 的補充 scan（§1.7）。其餘通過條件：§1.1、§1.3–§1.5、§1.7 與 §2 的 `U` 條目逐條改為 `S` 或刪除；把 §4 重寫為非條件式。
+- `PUB-A0` 狀態：`FOUR_VERIFIED_REMAINING_U`（2026-09-16；先前為 `KEY_TWO_VERIFIED_AND_A_C5_SCANNED / REMAINING_U`）。**仍未通過。** 已完成：§4 點名的兩篇原文核對（2026-09-09）、A-C5 補充 scan（2026-09-10）、**§1.1 的 Pardo 與 Learning to Locomote 原文核對（2026-09-16，§7）**。其餘通過條件不變：§1.1 剩餘條目、§1.3–§1.5、§1.7 與 §2 的 `U` 逐條改為 `S` 或刪除；把 §4 重寫為非條件式。
 - Track A 的主貢獻收斂為 §4 的第 1、第 2 點（加 [TRACK_A_REFRAME](TRACK_A_REFRAME_2026-09-09.md) 的 A-C3）；第 3 點為 artifact；第 4 點降為動機；**第 5 點（A-C5）於 2026-09-10 降為 artifact 級並併入 A-C4**。
 - `PUB-A1`（第二案例）的候選：Gymnasium MuJoCo `Humanoid`／`Walker2d` 系列在 `terminate_when_unhealthy` 預設下用 SB3 PPO 做 rate 型指標（例如 control-cost rate、action saturation rate）的有／無 exposure 處理對照。理由：公開、便宜、early termination 是預設行為，且與本專案的 stack 相同。**後續**：已凍結並執行為 Walker2d-v5 V1（`PUB-A1a` PASS）；V2／Hopper 線於 2026-09-09 依決定關閉，見 [PUBLICATION_PLAN](PUBLICATION_PLAN.md) V2 與 [TRACK_A_REFRAME](TRACK_A_REFRAME_2026-09-09.md)。
 
@@ -162,6 +162,9 @@
 |---|---|---|---|---:|---|---|
 | 2026-09-09 | arXiv 1911.05728v1（Leete et al.） | 專案負責人上傳的 PDF `1911.05728v1.pdf` | `6266d181da26b06a65bedc6837d00bd1366b622f1ab9b5e604d01998fd538f85` | 29（含 4 頁 supplement） | 全文文字抽出（pypdf）並逐頁讀完；引用的假設與定理對照 §2.1、§2.3–2.4、§3 | 條件「無 censoring 假設下給 bounds」**不成立**：conditionally independent censoring + imputation → 點估計；bounds 為 regret／rate |
 | 2026-09-09 | arXiv 2606.10229v1（Bedi） | 專案負責人上傳的 PDF `2606.10229v1.pdf` | `b94078567a89bb5042a71c25828bf41ef036edc3e0b8316f56f16ea9fd6510be` | 5 | 全文文字抽出（pypdf）並逐頁讀完；Table I／II 數字對照 §III-D、§V | 條件「truncation 討論涵蓋 policy evaluation」**不成立**：對象為 curation metric 的 detection 效度；下游 policy evaluation 未處理 exposure |
+
+| 2026-09-16 | arXiv 1712.00378v4（Pardo et al.） | 專案負責人上傳的 PDF `28a512a9-1712.00378v4.pdf` | `5bb677ee1a3d6916aedf7d6df74463238cfe792fc348976502f46c14998067c6` | 10 | 全文文字抽出（pypdf）並逐頁讀完 | 定性**不變**：全篇處理 time limit 的 Markov 性與 bootstrapping（learning correctness）；無 censoring、無 comparative evaluation 的 identification |
+| 2026-09-16 | arXiv 2010.04304v1（Reda, Tao, van de Panne） | 專案負責人上傳的 PDF `0c5bfb04-2010.04304v1.pdf` | `d928ecfb902a96e6cfad66c53814004c2d56b5128853a4ac7098b8279c07ac2e` | 9 | 同上 | 定性**不變**：§6 的 termination 討論屬 learning 端（infinite bootstrap，引 Pardo）；**補記** §9 的 survival bonus ablation，支撐另一份地圖的判定 |
 
 [RESULT] 兩篇的內容摘要（§1.2、§1.3）已依原文改寫；scan 當日的搜尋摘要對兩篇的描述在方向上正確，但都遺漏了決定性的細節（1911.05728 的 independent-censoring 假設與補值操作；2606.10229 的 curation 而非 evaluation 定位）。
 [BLOCKER] 其餘 `U` 條目仍未核對；執行環境對出版方 host 的封鎖不變。`PUB-A0` 未通過。

@@ -108,11 +108,14 @@ lock `sha256:93d23a27…`（與 seed-variance 執行逐位元相同）。
 代表嘗試的期望代價 > 50；而 v4 曾把該懲罰由 `−5` 提到 `−45` 並未改變結果，
 故**綁住的是形塑結構，不是懲罰量值，也不是預算**。
 
-[INFERENCE] **這一點對 A-C3 的作用，比多一個實例更大。** R4 原本讀起來像本專案 plant 的特例。
-但 [LITERATURE_MAP_2026-09-16_TRAINING_STRATEGY §1.1](LITERATURE_MAP_2026-09-16_TRAINING_STRATEGY.md)
-的 scan 指出，「shaping 讓靜止成為穩定局部最優」是 locomotion RL **已被具名並 ablate 過**的失敗模式
-（`arXiv 2010.04304` 以 survival bonus `0`／`1`／`5` 對照）。若該文獻判定成立，
-則落進 R4 **不是意外，而是 shaped locomotion 任務上可預期的結果**——
+[RESULT] **這一點對 A-C3 的作用，比多一個實例更大，且其文獻依據已於 2026-09-16 原文核對。**
+R4 原本讀起來像本專案 plant 的特例。但 `arXiv 2010.04304`（Reda, Tao, van de Panne）§9 的原文
+以 TD3 對 survival bonus `0`／`1`／`5` 做 ablation，明言過大時「the algorithm exploits the survival bonus reward
+while neglecting other reward terms. This results in a character that balances but never steps forward」，
+Summary 並把過小與過大分別歸為前撲與站立不動兩個局部最優，且上溯至 Henderson 2018 與 Mania 2018——
+**「shaping 讓靜止成為穩定局部最優」是 locomotion RL 已具名、已 ablate 的失敗模式，此判定現為 `S` 級**
+（[訓練策略地圖 §1.1、§7](LITERATURE_MAP_2026-09-16_TRAINING_STRATEGY.md)）。
+因此落進 R4 **不是意外，而是 shaped locomotion 任務上可預期的結果**——
 於是「reference 是否可達 adequacy」就不只是算力問題，而是**由 reward 設計決定、且標準評估流程既不控制也不報告**的變數。
 這正是 A-C3 要說的事，而且是它目前最強的一個支點。
 
@@ -187,7 +190,7 @@ lock `sha256:93d23a27…`（與 seed-variance 執行逐位元相同）。
 
 | Gate | 出口條件 | 狀態 | 依據 |
 |---|---|---|---|
-| `PUB-A0` Novelty | 文獻地圖所有 `U` 經原文核對；§4 gap 判定重寫並仍成立 | `IN_PROGRESS` — `KEY_TWO_VERIFIED_AND_A_C5_SCANNED / REMAINING_U` | 關鍵兩篇已核對（2026-09-09）：1911.05728 為 independent-censoring + imputation 的點估計，2606.10229 為 curation metric 的設計期 truncation。A-C5 補充 scan 已完成（2026-09-10）並使該項降級。其餘 `U` 條目需可存取出版方的環境（2026-09-10 重新量測 `arxiv.org` 仍封鎖） |
+| `PUB-A0` Novelty | 文獻地圖所有 `U` 經原文核對；§4 gap 判定重寫並仍成立 | `IN_PROGRESS` — `FOUR_VERIFIED_REMAINING_U`（2026-09-16） | 關鍵兩篇已核對（2026-09-09）：1911.05728 為 independent-censoring + imputation 的點估計，2606.10229 為 curation metric 的設計期 truncation。A-C5 補充 scan 已完成（2026-09-10）並使該項降級。其餘 `U` 條目需可存取出版方的環境（2026-09-10 重新量測 `arxiv.org` 仍封鎖）。**2026-09-16 再核兩篇**：`1712.00378`（Pardo）與 `2010.04304`（Learning to Locomote）皆確認為 learning 端、不涉量測端 identification，§1.1 兩列升為 `S`，A-C1／A-C2 的 gap 判定不變 |
 | `PUB-A1a` 第二 plant 的機制證據 | 至少一條主貢獻在非專案 plant 上有凍結 protocol + receipt + stdlib replay | **`PASS`** | Walker2d V1 receipt：A-C1（R3）、A-C2（284/284） |
 | `PUB-A1b` 公開 benchmark 上的不對稱 regime | 在公開 benchmark 上以凍結 protocol 量到 R1 | **`CLOSED_NOT_ATTAINED`**（2026-09-09） | 三次 probe；寫入限制第 1 條；不是 PASS、不是放寬 |
 | `PUB-A2` Claim freeze | §5 每列可只由 hash-bound receipt 推出；§6、§7 凍結；限制段落先寫 | `IN_PROGRESS` — 本文件為草稿 | 凍結須在 A0 之後 |
