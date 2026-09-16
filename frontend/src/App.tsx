@@ -4,7 +4,7 @@ import type { Defaults, GaitParams, Obstacle, RobotConfig, SimResult } from "./t
 import { JOINT_LABELS } from "./types";
 import { Playback } from "./playback";
 import Viewport from "./Viewport";
-import LineChart, { type Series } from "./LineChart";
+import LineChart, { type ChartBand, type ChartMarker, type Series } from "./LineChart";
 import PlaybackBar from "./PlaybackBar";
 import GaitPanel from "./panels/GaitPanel";
 import HardwarePanel from "./panels/HardwarePanel";
@@ -17,10 +17,31 @@ import TraceAnalysisView from "./TraceAnalysisView";
 import TrainingView from "./TrainingView";
 import { Chip, Pill, Tabs, type PillTone } from "./ui";
 
-const JOINT_COLORS = [
-  "#38bdf8", "#f472b6", "#4ade80", "#fbbf24", "#a78bfa", "#fb923c",
-  "#22d3ee", "#f87171", "#a3e635", "#e879f9", "#fde047", "#94a3b8",
-];
+// 關節序列色跟著「關節群組」走（6 個實體），左右腳以線型區分（左實線、右虛線），
+// 不再為 12 個關節各配一色。六色在深色面板通過相鄰對 CVD 驗證；預設同時畫的
+// 腿部三組（髖 pitch／膝／踝 = 藍／橘／青綠）兩兩皆強分離。六組全開時
+// 洋紅↔青綠（deutan）與紫↔藍（一般視覺）較接近，靠讀數列的線頭＋文字標籤補足。
+const GROUP_COLORS: Record<string, string> = {
+  hip_pitch: "#3987e5",
+  knee: "#d95926",
+  ankle: "#199e70",
+  hip_roll: "#c98500",
+  shoulder: "#d55181",
+  elbow: "#9085e9",
+};
+const RIGHT_DASH = [6, 4];
+function jointStyle(joint: string): { color: string; dash?: number[] } {
+  const group = joint.replace(/_(l|r)$/, "");
+  return { color: GROUP_COLORS[group] ?? "#94a3b8", dash: joint.endsWith("_r") ? RIGHT_DASH : undefined };
+}
+// 支撐相色帶：雙腳＝中性灰，左／右腳沿用 GRF 圖的左藍右橘，騰空＝黃
+const SUPPORT_STYLE = {
+  double: { label: "雙腳支撐", color: "#64748b" },
+  left: { label: "左腳支撐", color: "#3987e5" },
+  right: { label: "右腳支撐", color: "#d95926" },
+  flight: { label: "騰空", color: "#c98500" },
+} as const;
+type SupportPhase = keyof typeof SUPPORT_STYLE;
 
 function serializeConfig(robot: RobotConfig, gait: GaitParams, obstacles: Obstacle[]): string {
   // freshness 必須比較完整序列化內容；短 hash 僅作 UI 識別，不能作正確性判斷。
@@ -242,9 +263,11 @@ export default function App() {
         .filter((j) => jointNames.includes(j))
         .map((j) => {
           const ji = jointNames.indexOf(j);
+          const style = jointStyle(j);
           return {
             label: JOINT_LABELS[j] ?? j,
-            color: JOINT_COLORS[ji % JOINT_COLORS.length],
+            color: style.color,
+            dash: style.dash,
             data: source.map((row) => row[ji] * scale),
           };
         }),
@@ -266,19 +289,19 @@ export default function App() {
       case "power":
         return [{
           label: "簡化電功率估計",
-          color: "#fbbf24",
+          color: "#3987e5",
           data: result.telemetry.power.map((row) => row.reduce((a, b) => a + b, 0)),
         }];
       case "stab":
         return [
           {
             label: "ZMP 裕度",
-            color: "#4ade80",
+            color: "#3987e5",
             data: result.stability.zmp_margin.map((v) => (v === null ? null : v * 100)),
           },
           {
             label: "CoM 靜態裕度",
-            color: "#fbbf24",
+            color: "#d95926",
             data: result.stability.com_margin.map((v) => (v === null ? null : v * 100)),
           },
         ];
@@ -308,6 +331,40 @@ export default function App() {
       ? [{ value: 0, color: "#f8717188", label: "支撐面邊界" }]
       : [];
   const showJointChips = chartTab === "torque" || chartTab === "angle";
+
+  // 圖頂色帶：由接觸權重判定每個時刻的支撐相，連續相同的合成一段
+  const supportBands: ChartBand[] = useMemo(() => {
+    if (!result) return [];
+    const { contact_l, contact_r } = result.gait;
+    const t = result.frames.time;
+    const phaseAt = (i: number): SupportPhase => {
+      const l = contact_l[i] > 0.05, r = contact_r[i] > 0.05;
+      return l && r ? "double" : l ? "left" : r ? "right" : "flight";
+    };
+    const out: ChartBand[] = [];
+    let start = 0;
+    for (let i = 1; i <= t.length; i++) {
+      if (i === t.length || phaseAt(i) !== phaseAt(start)) {
+        const style = SUPPORT_STYLE[phaseAt(start)];
+        out.push({ t0: t[start], t1: t[Math.min(i, t.length - 1)], color: style.color, label: style.label });
+        start = i;
+      }
+    }
+    return out;
+  }, [result]);
+  const supportPhasesPresent = useMemo(
+    () => (Object.keys(SUPPORT_STYLE) as SupportPhase[]).filter((k) => supportBands.some((b) => b.label === SUPPORT_STYLE[k].label)),
+    [supportBands],
+  );
+  // 致動器統計窗的起迄：利用率表與警告用的就是這一段
+  const chartMarkers: ChartMarker[] = useMemo(() => {
+    const window = result?.meta.summary.actuator_stats_window;
+    if (!window || window.mode !== "steady_window") return [];
+    return [
+      { t: window.start_s, label: "統計窗起", color: "#9085e9" },
+      { t: window.end_s, label: "統計窗迄", color: "#9085e9" },
+    ];
+  }, [result]);
 
   const resultIsRequestFresh = Boolean(
     result && resultFresh && !busy && resultConfigExact && resultConfigExact === currentConfigExact
@@ -479,9 +536,21 @@ export default function App() {
                         )}
                       </>
                     )}
+                    {chartsOpen && chartTab !== "util" && supportPhasesPresent.length > 0 && (
+                      <span className="ml-auto flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
+                        <span>圖頂色帶：支撐相</span>
+                        {supportPhasesPresent.map((k) => (
+                          <span key={k} className="flex items-center gap-1">
+                            <span className="inline-block h-2 w-3 rounded-sm" style={{ background: SUPPORT_STYLE[k].color }} />
+                            {SUPPORT_STYLE[k].label}
+                          </span>
+                        ))}
+                        <span className="text-slate-600">｜滑過看數值，點一下定位播放</span>
+                      </span>
+                    )}
                     <button
                       type="button"
-                      className="ml-auto text-[11px] text-slate-400 hover:text-slate-200"
+                      className={`${chartsOpen && chartTab !== "util" && supportPhasesPresent.length > 0 ? "" : "ml-auto "}text-[11px] text-slate-400 hover:text-slate-200`}
                       onClick={() => setChartsOpen((open) => !open)}
                     >
                       {chartsOpen ? "收合圖表 ▾" : "展開圖表 ▸"}
@@ -491,11 +560,11 @@ export default function App() {
                     <div className="flex min-h-0 flex-1 flex-col px-2 pb-2">
                       {showJointChips && (
                         <div className="mb-1 flex flex-wrap gap-1">
-                          {jointNames.map((j, i) => (
+                          {jointNames.map((j) => (
                             <Chip
                               key={j}
                               active={selJoints.includes(j)}
-                              color={JOINT_COLORS[i % JOINT_COLORS.length]}
+                              color={jointStyle(j).color}
                               onClick={() =>
                                 setSelJoints((prev) =>
                                   prev.includes(j) ? prev.filter((x) => x !== j) : [...prev, j]
@@ -505,6 +574,7 @@ export default function App() {
                               {JOINT_LABELS[j] ?? j}
                             </Chip>
                           ))}
+                          <span className="ml-1 self-center text-[11px] text-slate-500">左實線、右虛線</span>
                         </div>
                       )}
                       <div className="min-h-0 flex-1 overflow-hidden">
@@ -518,6 +588,8 @@ export default function App() {
                             height={showJointChips ? 180 : 210}
                             unit={CHART_UNIT[chartTab]}
                             refLines={chartRefLines}
+                            bands={supportBands}
+                            markers={chartMarkers}
                           />
                         )}
                       </div>

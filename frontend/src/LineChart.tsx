@@ -5,6 +5,7 @@ export interface Series {
   label: string;
   color: string;
   data: (number | null)[];   // null = 該時刻無定義（如騰空期），畫線時斷開
+  dash?: number[];           // 次要編碼（例如右側關節用虛線），色彩不夠分時仍能區別
 }
 // 垂直時間標記（跌倒、任務階段起點）
 export interface ChartMarker {
@@ -24,6 +25,7 @@ const INK = "#e2e6ea";
 const INK_MUTED = "#94a3b8";
 const GRID = "#242b35";
 const GRID_TIME = "#1d232c";
+const LABEL_BACKING = "#0f1216bb";
 
 // 輕量 canvas 折線圖：單一 y 軸、細線、hover 十字線與同時刻讀數、播放游標、
 // 參考線（門檻，虛線）、垂直標記與狀態色帶。文字一律用墨色，顏色只給資料線與線頭。
@@ -150,8 +152,12 @@ export default function LineChart({
         ctx.stroke();
         ctx.setLineDash([]);
         if (r.label) {
+          const tw = ctx.measureText(r.label).width;
+          const lx = w - padR - 6 - tw;
+          ctx.fillStyle = LABEL_BACKING;
+          ctx.fillRect(lx - 3, y - 13, tw + 6, 13);
           ctx.fillStyle = INK_MUTED;
-          ctx.fillText(r.label, w - padR - 6 - ctx.measureText(r.label).width, y - 3);
+          ctx.fillText(r.label, lx, y - 3);
         }
       }
 
@@ -166,6 +172,9 @@ export default function LineChart({
         ctx.stroke();
         ctx.fillStyle = m.color;
         ctx.fillRect(x - 2, padT, 4, 4);
+        const mw = ctx.measureText(m.label).width;
+        ctx.fillStyle = LABEL_BACKING;
+        ctx.fillRect(x + 2, padT, mw + 5, 12);
         ctx.fillStyle = INK_MUTED;
         ctx.fillText(m.label, x + 4, padT + 9);
       }
@@ -176,6 +185,7 @@ export default function LineChart({
       ctx.lineCap = "round";
       for (const s of series) {
         ctx.strokeStyle = s.color;
+        ctx.setLineDash(s.dash ?? []);
         ctx.beginPath();
         let pen = false;
         for (let i = 0; i < time.length; i++) {
@@ -190,6 +200,7 @@ export default function LineChart({
         }
         ctx.stroke();
       }
+      ctx.setLineDash([]);
       ctx.lineWidth = 1;
 
       // 游標：hover 時跟隨指標，否則跟播放時間
@@ -207,6 +218,15 @@ export default function LineChart({
         time.length - 1,
       );
       let ly = padT + 12;
+      ctx.font = "bold 11px sans-serif";
+      let readoutWidth = 60;
+      for (const s of series) {
+        const v = s.data[fi];
+        const valueText = v === null || v === undefined || !isFinite(v) ? "—" : `${v.toFixed(decimals)}${unit}`;
+        readoutWidth = Math.max(readoutWidth, 24 + ctx.measureText(valueText).width + 6 + ctx.measureText(s.label).width);
+      }
+      ctx.fillStyle = LABEL_BACKING;
+      ctx.fillRect(padL + 2, padT + 2, readoutWidth + 8, 14 + series.length * 14);
       ctx.font = "10px sans-serif";
       ctx.fillStyle = INK_MUTED;
       ctx.fillText(`t = ${time[fi].toFixed(2)} s`, padL + 6, ly);
@@ -217,10 +237,12 @@ export default function LineChart({
         const valueText = v === null || v === undefined || !isFinite(v) ? "—" : `${v.toFixed(decimals)}${unit}`;
         ctx.strokeStyle = s.color;
         ctx.lineWidth = 2;
+        ctx.setLineDash(s.dash ? [3, 2] : []);
         ctx.beginPath();
         ctx.moveTo(padL + 6, ly - 4);
-        ctx.lineTo(padL + 18, ly - 4);
+        ctx.lineTo(padL + 20, ly - 4);
         ctx.stroke();
+        ctx.setLineDash([]);
         ctx.lineWidth = 1;
         ctx.fillStyle = INK;
         ctx.font = "bold 11px sans-serif";
