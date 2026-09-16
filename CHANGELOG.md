@@ -2,6 +2,18 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-16 (af)
+
+### 四篇原文核對：兩篇確認、一篇更正我自己的過強判定、一篇是 Track A 的直接升級
+
+- [RESULT] 專案負責人提供四篇 PDF 全文，逐篇讀完並記於[訓練策略地圖 §7](docs/LITERATURE_MAP_2026-09-16_TRAINING_STRATEGY.md)（digest、頁數、判定各一列）。抽取用 `pypdf`（本容器 `cryptography` 的 rust binding 損毀，以 stub 繞過；PDF 未加密，不影響抽取）。
+- [BLOCKER] **更正我在 (ad) 寫下的一條過強判定。** 我寫 `arXiv 2505.20619`「是 Arm C 的完整版，而且做到真機……Phase 2 正是站立與 walk-to-stand 轉換」。後半句沒錯，**前半句錯了**：該文五個 mode 為 `Stand`／`Walk`／`Run`／`W2S`／`R2W`，**兩個轉換都是減速方向，沒有 stand-to-walk**；其 Phase 1 直接把 gait ID 固定為 `Walk` 訓練走路，**從未面對「從站立起步」**——而那正是本專案 `START → STEADY_WALK` 卡住的地方。我看到摘要寫 Phase 2 涵蓋 walk-to-stand，就推論它「處理同一問題」，**沒注意到反方向不存在**。原判定留在原地並標記更正，不刪除。
+- [RESULT] **總判定仍然成立，但支撐點換了。** 「RQ2 的 robotics-method 貢獻沒有 gap」現在由兩點承擔，而且兩點都升為 `S`：`2010.04304` §9 以 TD3 對 survival bonus `0`／`1`／`5` ablation，原文即「balances but never steps forward」，並上溯 Henderson 2018、Mania 2018；`1804.02717` §10.4 的 RSI／ET ablation 為「two of the most important components」，而其 §6.1 用 backflip 說明 RSI 的理由——**把 backflip 換成 steady walk，那段話就是本專案 §1.4 的診斷**。
+- [RESULT] **Track A 直接受益。** [TRACK_A_REFRAME §3.7](docs/TRACK_A_REFRAME_2026-09-09.md) 的 A-C3 補強論據（「落進 R4 是可預期的」）原本條件於未核對的 `U` 條目，**現在條件於已核對的 `2010.04304`，等級由 `U` 升為 `S`**，該段已由 `[INFERENCE]` 改寫為 `[RESULT]`。
+- [RESULT] `1712.00378`（Pardo）與 `2010.04304` 同屬 [2026-09-08 文獻地圖 §1.1](docs/LITERATURE_MAP_2026-09-08_EVALUATION_VALIDITY.md) 的 `U` 條目，本次一併核對：兩篇**全篇都在 learning 端**（time limit 的 Markov 性、infinite bootstrap），**確認不涉及量測端的 identification**——該地圖對兩者的定性不變，兩列升為 `S`，`PUB-A0` 狀態由 `KEY_TWO_VERIFIED_AND_A_C5_SCANNED` 改為 `FOUR_VERIFIED_REMAINING_U`。**gate 仍未通過。**
+- [BLOCKER] 一個應記下的觀察：`1804.02717` §10.4 自承 ablation 統計「the majority of performance statistics are collected from **one run**」，即多數為 `n = 1`。這不影響「RSI 是既有技術」的判定，但它本身就是 Track A 關於 statistical unit 的論點的一個實例，稿件若引用可如實註明。
+- [RESULT] 與 2026-09-09 核對 `1911.05728`／`2606.10229` 時**同一個型態**：搜尋摘要方向正確，但在一篇上遺漏決定性細節。兩次都是在原文核對時才抓到——這條紀律連續第二次生效。
+
 ## Unreleased — 2026-09-16 (ae)
 
 ### 把 §1.4 的診斷併進 Track A：R4 從「只有 pilot」升為有凍結實例、有機制
