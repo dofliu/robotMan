@@ -2,6 +2,15 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-16 (ag)
+
+### `RQ2` 結案為「文獻已答，非本專案所答」；順手抓到 `P-NEW` 一列過期一整條線
+
+- [RESULT] [RESEARCH_EXECUTION_PLAN §2](docs/RESEARCH_EXECUTION_PLAN.md) 的 `RQ2 — Training strategy` 標為 **`ANSWERED_BY_LITERATURE_NOT_BY_THIS_PROJECT`**，不再作為本專案的研究問題推進。依據是 [訓練策略地圖 §3](docs/LITERATURE_MAP_2026-09-16_TRAINING_STRATEGY.md)，且其兩個承重點已原文核對為 `S` 級（`2010.04304` §9 的 survival bonus ablation、`1804.02717` §10.4 的 RSI／ET ablation 與 §6.1 的 backflip 論證）。
+- [BLOCKER] **這個標籤的語意寫死在條目裡，避免日後被讀錯**：它的意思是「**不值得為發表而做**」，**不是**「本專案已知道自己 plant 上的答案」。文獻給的做法（RSI、分階段 curriculum）**從未在本專案的 plant 上驗證**。本專案實際量到的只有 scratch 一臂（V1／V2，兩個預算皆 `0/30 × 5`）；warm-start／curriculum／path-conditioned 三臂**從未執行且不再規劃**。
+- [BLOCKER] **順手抓到另一件事：`P-NEW` 一列寫著 `NOT STARTED`，但那條線早在 2026-09-14 就執行完畢。** 已更正為 **`EXECUTED / 前半達成、後半未達成`**：checkpoint 與 lineage 進版控（`PUB-B1` 達成），但 full-exposure 出口條件未達成（兩個預算皆 `0/30 × 5`，`PUB-B2` `NOT_ATTAINED`）。門檻與上限凍結後未調整。
+- [RESULT] `PUB-B` 一列補註：P-NEW 改為 `EXECUTED` **不解除**該依賴——P-NEW 達成的是版控 lineage 那一半，出口條件那一半仍未達成，故 `PUB-B` 維持 `BLOCKED`。文件日期由 `2026-09-09` 更新為 `2026-09-16`。
+
 ## Unreleased — 2026-09-16 (af)
 
 ### 四篇原文核對：兩篇確認、一篇更正我自己的過強判定、一篇是 Track A 的直接升級

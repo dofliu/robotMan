@@ -1,6 +1,6 @@
 # 人形機器人控制與訓練方法研究執行計畫
 
-最後更新：2026-09-09
+最後更新：2026-09-16
 
 本次 V1 evidence 範圍：`SIM_ONLY_MUJOCO` / `NOT_PHYSICALLY_VALIDATED`
 
@@ -21,6 +21,9 @@ Policy 在同一 simulator 與 reward 中表現良好，不等於 model validati
 
 - `RQ1 — Observation / observability`：加入 heading 與 lateral path error 後，能否降低 lateral drift，而不犧牲 no-fall、前進與停止能力？
 - `RQ2 — Training strategy`：scratch PPO、warm-start PPO、curriculum PPO 與 path-conditioned PPO 的 task success、sample efficiency 與 failure mode 有何差異？
+  **狀態（2026-09-16）：`ANSWERED_BY_LITERATURE_NOT_BY_THIS_PROJECT`——不再作為本專案的研究問題推進。** 依 [LITERATURE_MAP_2026-09-16_TRAINING_STRATEGY §3](LITERATURE_MAP_2026-09-16_TRAINING_STRATEGY.md)，本專案能提出的三個槓桿都已有先前技術，其中兩篇已原文核對（`S` 級，該文件 §7）：`arXiv 2010.04304` §9 以 TD3 對 survival bonus `0`／`1`／`5` ablation，把「站著不動」列為已具名的局部最優；`arXiv 1804.02717` §10.4 對 **Reference State Initialization** 與 Early Termination 做 ablation，其 §6.1 以 backflip 說明 RSI 的理由，結構上與本專案 `START → STEADY_WALK` 的困境同形。
+  **本專案實際量到的只有 scratch 這一臂**：`TRACKED-LINEAGE-TRAINING-V1`／`V2` 五個 replicate 在 `2,000,000` 與 realized `4,015,200` 兩個預算下 full exposure 皆 `0/30`（標籤 `TL2_BUDGET_EXHAUSTED`）。warm-start／curriculum／path-conditioned 三臂**從未執行，且不再規劃**。
+  [BLOCKER] **這個狀態的意思是「不值得為發表而做」，不是「本專案已知道自己 plant 上的答案」。** 文獻給的做法（RSI、分階段 curriculum）**沒有在本專案的 plant 上驗證過**；若日後要讓教學示範的機器人會走，那是**工程**工作，不需要任何 gate，也不產生新的研究主張。反之，任何想把它當成研究貢獻的 V3，都必須先推翻上述兩篇的核對結論。
 - `RQ3 — Control architecture`：verified WBC、pure PPO 與 WBC + Residual PPO 在 constraint compliance、robustness 與 energy 上有何差異？
 - `RQ4 — Generalization`：friction、payload、latency、sensor noise、push phase 與 terrain 改變時，各方法的 performance degradation 是否不同？
 
@@ -40,9 +43,9 @@ Policy 在同一 simulator 與 reward 中表現良好，不等於 model validati
 | P4 | Study A formal benchmark | protocol frozen、paired statistics、CI、failures/censoring retained | BLOCKED BY P1–P3 / paired-statistics software precursor implemented；actual Study A與 suitable binary CI absent；formal authorization 已於 2026-09-10 取得但 protocol 仍不可執行 |
 | P5 | Motion primitives / imitation | raise hand、single-leg raise、squat、turn 等各有獨立 task contract | AFTER STUDY A |
 | P6 | SIL/HIL/bench/robot validation | 只在實際完成的外部 evidence 層級建立 bounded claim | FUTURE |
-| P-NEW | 有版控 lineage 的新訓練線 | 每個 checkpoint 與 warm start 都在版控或 immutable storage；reference policy 在 DEV seeds 上達到凍結的 full-exposure 比例 | NOT STARTED / Track B 與 variance 解封的硬前置；v7 line 因 provenance 不可重建，不得作為起點 |
+| P-NEW | 有版控 lineage 的新訓練線 | 每個 checkpoint 與 warm start 都在版控或 immutable storage；reference policy 在 DEV seeds 上達到凍結的 full-exposure 比例 | **EXECUTED / 前半達成、後半未達成**（2026-09-16 更正；此列先前仍寫 `NOT STARTED`，而兩條線早在 2026-09-14 就執行完畢）。`TRACKED-LINEAGE-TRAINING-V1`（[receipt](TRACKED_LINEAGE_TRAINING_RECEIPT_2026-09-14.md)）與 `V2`（[receipt](TRACKED_LINEAGE_TRAINING_V2_RECEIPT_2026-09-14.md)）各 5 replicate 全部完成，checkpoint 與 lineage **進版控**（`PUB-B1` 達成）；但 full-exposure 條件**未達成**——兩個預算下皆 `0/30 × 5`，標籤 `TL_BUDGET_EXHAUSTED`／`TL2_BUDGET_EXHAUSTED`，`PUB-B2` `NOT_ATTAINED`。門檻與上限凍結後未調整。v7 line 因 provenance 不可重建，仍不得作為起點 |
 | PUB-A | 評估效度／可重現性方法論論文（V2：censoring regime，見 [TRACK_A_REFRAME](TRACK_A_REFRAME_2026-09-09.md)） | 見 [PUBLICATION_PLAN](PUBLICATION_PLAN.md) PUB-A0、A1a／A1b、A2..A5 | IN PROGRESS / A0 原文核對待可存取出版方的環境；A1a PASS（Walker2d V1）；A1b CLOSED_NOT_ATTAINED（2026-09-09，三個 budget probe 後停止）；A2 草稿已有 |
-| PUB-B | Study A 方法比較論文 | 見 PUBLICATION_PLAN PUB-B0..B7 | BLOCKED / B0 已授權（2026-09-10）；等 PUB-B4 預註冊、EP-01/EP-02/EP-03 amendment、P-NEW、P1 |
+| PUB-B | Study A 方法比較論文 | 見 PUBLICATION_PLAN PUB-B0..B7 | BLOCKED / B0 已授權（2026-09-10）；等 PUB-B4 預註冊、EP-01/EP-02/EP-03 amendment、P-NEW、P1。**2026-09-16 註**：P-NEW 已由 `NOT STARTED` 更正為 `EXECUTED`，但**此列仍為 BLOCKED**——P-NEW 達成的是版控 lineage（`PUB-B1`），其 full-exposure 出口條件 （`PUB-B2`）仍 `NOT_ATTAINED`，故依賴未解除 |
 
 ### P1 bounded result：raw Jacobian replay V4
 
