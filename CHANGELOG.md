@@ -10,6 +10,8 @@
 - [RESULT] 唯一失敗仍是 `test_v1_analytical_suite.py::test_stdlib_replay_passes_exact_synthetic_fixture`（`PRIMARY_CASE_RECEIPT_IDENTITY`），自 2026-09-08 起**記錄為量測結果而非放寬**：fixture 用 `np.mean`、replay 用 stdlib `sum(...)/len(...)`，`196.2` 對 `196.19999999999854`，差 `1.46e-12`，剛好越過 `1e-12` 的 exactness 門檻。本次**未改門檻、未改 fixture**。
 - [RESULT] 前端 `npm run check`（`tsc --noEmit` ＋ `vite build`）乾淨；五個頁面以 Playwright 重新截圖，無 `pageerror`。
 - [RESULT] **修掉兩個過期數字**：(ab) 加了 2 個測試卻沒同步計數，USAGE §12 與 PROJECT_STATUS §9 都還停在 `948`，已改為 `950` 並補上量測條件（commit、秒數、指令）。CHANGELOG 舊條目維持原樣，因為它們記錄的是當時的量測。
+- [RESULT] **`STATUS.yaml` 新增 `test_suite_status`**：這個檔案原本**沒有任何欄位記錄現行套件狀態**——裡面三個數字（`816`／`882`／`941`）各自綁在一份 receipt 上，記的是**那份 receipt 在它自己的 commit 上量到什麼**，`project_assessment` 的 `942` 也標明量自 `095247c`。把其中任何一個改成 `950` 是**竄改 receipt，不是更新狀態**，因此一個都沒動；改為新增一個專門追蹤現況的欄位，並在該欄位裡寫明其餘四個數字為何刻意不動。
+- [RESULT] 順手修掉 `ui_simplification` 的 `Merged as PR 23`——那條線後來還有 PR #24（文件對齊）、#25（`record_start` 回歸測試與撤回）、#26（本次量測），已補齊。
 
 ## Unreleased — 2026-09-16 (ab)
 
