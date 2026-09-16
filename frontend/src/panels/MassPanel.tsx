@@ -1,5 +1,5 @@
 import type { RobotConfig } from "../types";
-import { Num, Section } from "../ui";
+import { Disclosure, Num } from "../ui";
 
 export default function MassPanel({
   robot,
@@ -24,14 +24,12 @@ export default function MassPanel({
   );
 
   return (
-    <Section title="重量與尺寸" defaultOpen={false}>
+    <div>
       <div className="mb-2 rounded bg-slate-800/60 px-2 py-1.5 text-[11px] text-slate-300">
-        結構重 {structMass.toFixed(1)} kg ＋ 致動器 {actMass.toFixed(1)} kg ＝{" "}
-        <span className="font-semibold text-amber-300">
-          總重 {(structMass + actMass).toFixed(1)} kg
-        </span>
+        結構 {structMass.toFixed(1)} kg ＋ 致動器 {actMass.toFixed(1)} kg ＝{" "}
+        <span className="font-semibold text-amber-300">總重 {(structMass + actMass).toFixed(1)} kg</span>
       </div>
-      <div className="text-[11px] font-semibold text-slate-400">各部件重量（單側）</div>
+      <div className="mb-1 text-[11px] font-semibold text-slate-400">各部件重量（單側）</div>
       <Num label="軀幹" value={m.trunk} onChange={(v) => setM("trunk", v)} min={4} max={40} step={0.5} unit="kg" />
       <Num label="頭部" value={m.head} onChange={(v) => setM("head", v)} min={0.5} max={8} step={0.1} unit="kg" />
       <Num label="大腿" value={m.thigh} onChange={(v) => setM("thigh", v)} min={0.5} max={10} step={0.1} unit="kg" />
@@ -40,12 +38,13 @@ export default function MassPanel({
       <Num label="上臂" value={m.upper_arm} onChange={(v) => setM("upper_arm", v)} min={0.2} max={5} step={0.1} unit="kg" />
       <Num label="前臂" value={m.forearm} onChange={(v) => setM("forearm", v)} min={0.2} max={5} step={0.1} unit="kg" />
       <Num label="酬載（背負）" value={m.payload} onChange={(v) => setM("payload", v)} min={0} max={30} step={0.5} unit="kg" />
-      <div className="mt-2 text-[11px] font-semibold text-slate-400">連桿尺寸</div>
-      <Num label="大腿長" value={d.thigh_len} onChange={(v) => setD("thigh_len", v)} min={0.2} max={0.6} step={0.01} unit="m" />
-      <Num label="小腿長" value={d.shin_len} onChange={(v) => setD("shin_len", v)} min={0.2} max={0.6} step={0.01} unit="m" />
-      <Num label="髖寬" value={d.hip_width} onChange={(v) => setD("hip_width", v)} min={0.12} max={0.4} step={0.01} unit="m" />
-      <Num label="軀幹長" value={d.torso_len} onChange={(v) => setD("torso_len", v)} min={0.25} max={0.7} step={0.01} unit="m" />
-      <Num label="腳掌長" value={d.foot_len} onChange={(v) => setD("foot_len", v)} min={0.12} max={0.4} step={0.01} unit="m" />
-    </Section>
+      <Disclosure title="連桿尺寸" summary="大腿、小腿、髖寬、軀幹、腳掌" className="mt-2">
+        <Num label="大腿長" value={d.thigh_len} onChange={(v) => setD("thigh_len", v)} min={0.2} max={0.6} step={0.01} unit="m" />
+        <Num label="小腿長" value={d.shin_len} onChange={(v) => setD("shin_len", v)} min={0.2} max={0.6} step={0.01} unit="m" />
+        <Num label="髖寬" value={d.hip_width} onChange={(v) => setD("hip_width", v)} min={0.12} max={0.4} step={0.01} unit="m" />
+        <Num label="軀幹長" value={d.torso_len} onChange={(v) => setD("torso_len", v)} min={0.25} max={0.7} step={0.01} unit="m" />
+        <Num label="腳掌長" value={d.foot_len} onChange={(v) => setD("foot_len", v)} min={0.12} max={0.4} step={0.01} unit="m" />
+      </Disclosure>
+    </div>
   );
 }

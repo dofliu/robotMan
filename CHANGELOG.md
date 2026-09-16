@@ -2,6 +2,18 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-16 (z)
+
+### 介面重整：每一頁一次只看一件事
+
+- [RESULT] 依專案負責人要求整理 frontend：目標是**簡潔、每頁不要同時放太多資訊**。所有功能保留，只是改成分頁、抽屜與收合；沒有動任何 API、WebSocket 訊息、`data-testid` 或 evidence 語義。`tsc --noEmit` 與 `vite build` 皆乾淨，五個頁面改前改後各以 Playwright 截圖對照。
+- [RESULT] **共用殼**：標題縮為「人形機器人模擬器」，四個分頁改成短字（分析模式／即時互動／三機同步比較／RL 訓練）。原本每頁常駐的 9 px 證據 badge 列（`SOFTWARE_ONLY`、模擬類型、`CALIBRATION_NOT_ESTABLISHED`、`UI_INPUT`、`UI_RESULT_CONFIG`、`SERVER_REPORTED_CONFIG_SHA256`、結果狀態、`RUN`）改成右上角**一個**中文結果狀態標籤，完整 token 全部收進「證據狀態」抽屜，預設收起——**一個 token 都沒有拿掉**，只是不再每頁都攤開。
+- [RESULT] **分析頁**：左欄從四個疊在一起的可收合區塊改為分段切換，一次只顯示步態／硬體／質量／場景之一；步態只常駐 5 個主要滑桿，5 個姿態細節收合；硬體一次只編輯一個關節群組。摘要列從 7 張卡片＋預設展開的警告清單（改前實測 14 條同時可見）改為 4 張卡片，其餘指標與警告各在一個按鈕後面。底部從三欄並排（扭矩圖＋14 個 chip、分頁圖、利用率表＋免責文字）改為**一張圖一次**（扭矩／角度／GRF／功率／ZMP／致動器利用率），整區可收合。
+- [RESULT] **即時互動**：控制器從 5 列 radio 改為下拉選單＋一行說明；站立／行走／時間控制常駐，外力推撞、臨時障礙物、正式動作任務、Trace 記錄收合但標題列仍顯示狀態（推力、高度、任務階段、記錄秒數）。右欄只常駐 4 個數字與三個介入標籤，平衡策略作用量與馬達出力放到「更多細節」。
+- [RESULT] **三機同步比較**：三條工具列合併為一條主工具列（站立／行走／重置／暫停／單步／速度）＋「更多操作」（assist、推撞、Trace、正式任務）；`DEVELOPMENT_COMPARISON_ONLY` 等 token 移到頁腳小字；每張機器人卡片只在 assist／推撞／任務**實際發生時**才顯示標籤，不再常駐三個 `OFF`。
+- [RESULT] **Dynamic Trace**：五張圖同時顯示改為一張分頁圖；正式任務的 11 項 criterion 表格與階段 chip 收進「判定細節」。**RL 訓練**：profiles 卡片放最前面，三步流程與現況說明收合；過長的 profile id 改為可換行。
+- 最小字級由 9 px 提到 11 px。`docs/USAGE.md` §3 的 badge 說明改為證據狀態抽屜。
+
 ## Unreleased — 2026-09-16 (y)
 
 ### 專案評估：現況、價值與去向（決策文件，負責人尚未決定）

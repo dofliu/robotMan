@@ -3,6 +3,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import type { GaitParams, GeomDef, MotionTaskResult, Obstacle, RobotConfig } from "./types";
 import { GROUP_LABELS } from "./types";
+import { Disclosure, Pill } from "./ui";
 
 // ---------- 型別 ----------
 export interface LiveScene {
@@ -288,6 +289,14 @@ export class LiveScene3D {
 }
 
 // ---------- UI ----------
+const CONTROLLER_OPTIONS: { id: WalkController; label: string; hint: string }[] = [
+  { id: "track", label: "軌跡追蹤（開環，對照組）", hint: "開環時序，沒有觸地回饋；作為對照組。" },
+  { id: "raibert", label: "Raibert 閉環", hint: "觸地重置＋落腳法則的閉環控制。" },
+  { id: "rl", label: "RL legacy policy", hint: "原始 PPO 行走 policy，對照組。" },
+  { id: "rl_task_v2", label: "RL curriculum-v2", hint: "stand / start / walk / stop 課程式訓練。" },
+  { id: "rl_task_v5", label: "RL phase-observable-v5", hint: "path / heading / phase 可觀測的版本。" },
+];
+
 const STATE_LABEL: Record<string, [string, string]> = {
   STAND: ["🧍 站立平衡", "bg-emerald-500/20 text-emerald-300"],
   WALK: ["🚶 行走中", "bg-sky-500/20 text-sky-300"],
@@ -463,55 +472,58 @@ export default function LiveView({
         ? ["⏳ 已連線，等待 frame", "bg-sky-500/20 text-sky-300"]
         : STATE_LABEL[st.state] ?? [`⚠ 未知狀態 ${st.state}`, "bg-amber-500/20 text-amber-300"];
 
+  const [advanced, setAdvanced] = useState(false);
+  const controllerOption = CONTROLLER_OPTIONS.find((option) => option.id === walkCtrl);
+  const taskActive = Boolean(frame?.motion_task?.active);
+  const recordingActive = Boolean(frame?.recording?.active);
+  const interventions = frame?.interventions;
+  const lastTaskStatus = frame?.last_task?.evaluation.status;
+
   return (
     <div className="flex min-h-0 flex-1">
-      {/* 左：控制面板 */}
-      <aside className="flex w-[290px] shrink-0 flex-col gap-2 overflow-y-auto border-r border-slate-800 bg-slate-900/40 p-2">
+      {/* 左：操作面板。常用操作常駐，其餘收合 */}
+      <aside className="flex w-[280px] shrink-0 flex-col gap-2 overflow-y-auto border-r border-slate-800 bg-slate-900/40 p-2">
         <div className={`rounded-lg px-3 py-2 text-sm font-bold ${stateCls}`}>
           {stateLabel}
-          <span className="ml-2 text-[10px] font-normal opacity-70">
+          <span className="ml-2 text-[11px] font-normal opacity-70">
             t = {frame?.t?.toFixed(2) ?? "0.00"} s
           </span>
         </div>
 
         <div className="rounded-lg bg-slate-800/50 p-2">
-          <div className="mb-1 text-xs font-semibold text-slate-300">運動模式</div>
+          <div className="mb-1.5 text-xs font-semibold text-slate-300">運動模式</div>
           <div className="flex gap-1">
             <button
+              type="button"
               className="flex-1 rounded bg-emerald-600/70 py-1.5 text-xs font-semibold hover:bg-emerald-500/70"
               onClick={() => send({ type: "mode", mode: "stand" })}
             >
-              🧍 站立平衡
+              站立平衡
             </button>
             <button
+              type="button"
               className="flex-1 rounded bg-sky-600/70 py-1.5 text-xs font-semibold hover:bg-sky-500/70"
               onClick={() => send({ type: "mode", mode: "walk", controller: walkCtrl })}
             >
-              🚶 行走
+              行走
             </button>
           </div>
-          <div className="mt-1.5 text-[10px] font-semibold text-slate-400">行走控制器</div>
-          {([
-            ["track", "軌跡追蹤（開環時序 — 對照組）"],
-            ["raibert", "Raibert 閉環（觸地重置＋落腳法則）"],
-            ["rl", "RL legacy policy（原始 PPO 對照組）"],
-            ["rl_task_v2", "RL curriculum-v2（stand/start/walk/stop）"],
-            ["rl_task_v5", "RL phase-observable-v5（path/heading/phase）"],
-          ] as [WalkController, string][]).map(([id, label]) => (
-            <label key={id} className="flex items-center gap-1.5 text-[11px] text-slate-300">
-              <input
-                type="radio"
-                name="walkctrl"
-                checked={walkCtrl === id}
-                onChange={() => {
-                  setWalkCtrl(id);
-                  send({ type: "mode", mode: "walk", controller: id });
-                }}
-              />
-              {label}
-            </label>
-          ))}
-          <label className="mt-1.5 flex items-center gap-1.5 text-[11px] text-slate-300">
+          <div className="mt-2 text-[11px] font-semibold text-slate-400">行走控制器</div>
+          <select
+            className="mt-0.5 w-full rounded bg-slate-900 px-2 py-1 text-xs text-slate-100 outline-none"
+            value={walkCtrl}
+            onChange={(e) => {
+              const id = e.target.value as WalkController;
+              setWalkCtrl(id);
+              send({ type: "mode", mode: "walk", controller: id });
+            }}
+          >
+            {CONTROLLER_OPTIONS.map((option) => (
+              <option key={option.id} value={option.id}>{option.label}</option>
+            ))}
+          </select>
+          {controllerOption && <div className="mt-1 text-[11px] leading-4 text-slate-500">{controllerOption.hint}</div>}
+          <label className="mt-2 flex items-center gap-1.5 text-[11px] text-slate-300">
             <input
               type="checkbox"
               checked={assist}
@@ -520,46 +532,14 @@ export default function LiveView({
                 send({ type: "assist", on: e.target.checked });
               }}
             />
-            🛡️ 外加平衡 assist（所有 controller）＋ track 起步 assist；皆為模擬護具
+            外加平衡 assist（模擬護具，含 track 起步 assist）
           </label>
-        </div>
-
-        <div className="rounded-lg border border-violet-500/30 bg-violet-500/10 p-2">
-          <div className="flex items-center justify-between text-xs font-semibold text-violet-200">
-            <span>正式動作任務 V1</span>
-            <span>{frame?.motion_task?.active ? frame.motion_task.phase : frame?.last_task?.evaluation.status ?? "READY"}</span>
-          </div>
-          <div className="mt-1 text-[10px] leading-4 text-slate-400">
-            stand → start → steady walk → stop<br />
-            9.0 s｜0.7 m/s｜500 Hz｜assist OFF｜啟動時清除障礙物並重設
-          </div>
-          {frame?.motion_task?.active && (
-            <div className="mt-1 h-1.5 overflow-hidden rounded bg-slate-800">
-              <div
-                className="h-full bg-violet-400"
-                style={{ width: `${Math.min(100, 100 * (frame.motion_task.elapsed_s ?? 0) / (frame.motion_task.duration_s ?? 9))}%` }}
-              />
-            </div>
-          )}
-          <button
-            className={`mt-2 w-full rounded py-1.5 text-xs font-bold ${frame?.motion_task?.active ? "bg-red-500/40 text-red-200" : "bg-violet-500/40 text-violet-100"}`}
-            onClick={() => send(frame?.motion_task?.active
-              ? { type: "task_cancel" }
-              : { type: "task_start", task_id: "stand_start_walk_stop_v1" })}
-          >
-            {frame?.motion_task?.active ? "■ 取消正式任務" : "▶ 執行正式任務"}
-          </button>
-          {frame?.last_task && (
-            <div className={`mt-1 rounded px-2 py-1 text-[10px] font-bold ${frame.last_task.evaluation.status === "PASS" ? "bg-emerald-500/20 text-emerald-300" : frame.last_task.evaluation.status === "FAIL" ? "bg-red-500/20 text-red-300" : "bg-amber-500/20 text-amber-300"}`}>
-              RESULT {frame.last_task.evaluation.status}｜{frame.last_task.evaluation.criteria.filter((item) => item.passed).length}/{frame.last_task.evaluation.criteria.length} criteria
-            </div>
-          )}
         </div>
 
         <div className="rounded-lg bg-slate-800/50 p-2">
           <div className="mb-1 flex items-center justify-between text-xs font-semibold text-slate-300">
             時間控制
-            <span className="text-[10px] font-normal text-slate-500">{speed.toFixed(2)}×</span>
+            <span className="text-[11px] font-normal text-slate-500">{speed.toFixed(2)}×</span>
           </div>
           <input
             type="range" min={0.05} max={1} step={0.05} value={speed} className="w-full"
@@ -571,6 +551,7 @@ export default function LiveView({
           />
           <div className="mt-1 flex gap-1">
             <button
+              type="button"
               className="flex-1 rounded bg-slate-700 py-1 text-xs hover:bg-slate-600"
               onClick={() => {
                 const p = !paused;
@@ -581,79 +562,110 @@ export default function LiveView({
               {paused ? "▶ 繼續" : "⏸ 暫停"}
             </button>
             <button
+              type="button"
               className="flex-1 rounded bg-slate-700 py-1 text-xs hover:bg-slate-600"
               onClick={() => send({ type: "step", dt: 0.05 })}
               title="前進 0.05 秒"
             >
-              ⏭ 單步 50ms
+              ⏭ 單步 50 ms
             </button>
             <button
+              type="button"
               className="rounded bg-red-500/30 px-2 py-1 text-xs text-red-200 hover:bg-red-500/50"
               onClick={() => send({ type: "reset" })}
+              title="重設模擬"
             >
-              🔄
+              重設
             </button>
-          </div>
-          <div className="mt-2 border-t border-slate-700 pt-2">
-            <div className="mb-1 flex items-center justify-between text-[10px] font-semibold text-slate-400">
-              <span>Dynamic Run Trace（500 Hz）</span>
-              <span>{frame?.recording?.active ? `${frame.recording.elapsed_s?.toFixed(1) ?? "0.0"} s` : "READY"}</span>
-            </div>
-            <button
-              className={`w-full rounded py-1 text-xs font-semibold ${frame?.recording?.active ? "bg-red-500/40 text-red-200" : "bg-cyan-500/30 text-cyan-200"}`}
-              onClick={() => send(frame?.recording?.active
-                ? { type: "record_stop" }
-                : { type: "record_start", label: `live-${walkCtrl}`, max_duration_s: 30.0 })}
-            >
-              {frame?.recording?.active ? "■ 停止並保存 Trace" : "● 開始記錄 Trace"}
-            </button>
-            {(traceNotice || frame?.last_trace) && (
-              <div className="mt-1 break-all text-[9px] leading-4 text-cyan-300">
-                {traceNotice ?? `已完成：${frame?.last_trace?.run_id}`}<br />
-                回到「分析模式 → 動態紀錄」查看完整輸出。
-              </div>
-            )}
           </div>
         </div>
 
-        <div className="rounded-lg bg-slate-800/50 p-2">
-          <div className="mb-1 flex items-center justify-between text-xs font-semibold text-slate-300">
-            👊 外力推撞
-            <span className="text-[10px] font-normal text-slate-500">{pushForce} N × 0.2s</span>
-          </div>
+        <Disclosure title="外力推撞" summary={`${pushForce} N × 0.2 s`}>
           <input
             type="range" min={50} max={600} step={25} value={pushForce} className="w-full"
             onChange={(e) => setPushForce(parseInt(e.target.value))}
           />
           <div className="mx-auto mt-1 grid w-32 grid-cols-3 gap-1 text-sm">
-            <button className="rounded bg-slate-700 py-1 hover:bg-red-500/50" onClick={() => push(1, 1)}>↘</button>
-            <button className="rounded bg-slate-700 py-1 hover:bg-red-500/50" onClick={() => push(1, 0)} title="從後方推（機器人向前）">⬇︎推</button>
-            <button className="rounded bg-slate-700 py-1 hover:bg-red-500/50" onClick={() => push(1, -1)}>↙</button>
-            <button className="rounded bg-slate-700 py-1 hover:bg-red-500/50" onClick={() => push(0, 1)}>⬅ 左</button>
+            <button type="button" className="rounded bg-slate-700 py-1 hover:bg-red-500/50" onClick={() => push(1, 1)}>↘</button>
+            <button type="button" className="rounded bg-slate-700 py-1 hover:bg-red-500/50" onClick={() => push(1, 0)} title="從後方推（機器人向前）">⬇︎推</button>
+            <button type="button" className="rounded bg-slate-700 py-1 hover:bg-red-500/50" onClick={() => push(1, -1)}>↙</button>
+            <button type="button" className="rounded bg-slate-700 py-1 hover:bg-red-500/50" onClick={() => push(0, 1)}>⬅ 左</button>
             <div />
-            <button className="rounded bg-slate-700 py-1 hover:bg-red-500/50" onClick={() => push(0, -1)}>右 ➡</button>
-            <button className="rounded bg-slate-700 py-1 hover:bg-red-500/50" onClick={() => push(-1, 1)}>↗</button>
-            <button className="rounded bg-slate-700 py-1 hover:bg-red-500/50" onClick={() => push(-1, 0)} title="從前方推（機器人向後）">⬆︎推</button>
-            <button className="rounded bg-slate-700 py-1 hover:bg-red-500/50" onClick={() => push(-1, -1)}>↖</button>
+            <button type="button" className="rounded bg-slate-700 py-1 hover:bg-red-500/50" onClick={() => push(0, -1)}>右 ➡</button>
+            <button type="button" className="rounded bg-slate-700 py-1 hover:bg-red-500/50" onClick={() => push(-1, 1)}>↗</button>
+            <button type="button" className="rounded bg-slate-700 py-1 hover:bg-red-500/50" onClick={() => push(-1, 0)} title="從前方推（機器人向後）">⬆︎推</button>
+            <button type="button" className="rounded bg-slate-700 py-1 hover:bg-red-500/50" onClick={() => push(-1, -1)}>↖</button>
           </div>
-        </div>
+        </Disclosure>
 
-        <div className="rounded-lg bg-slate-800/50 p-2">
-          <div className="mb-1 flex items-center justify-between text-xs font-semibold text-slate-300">
-            🧱 臨時障礙物
-            <span className="text-[10px] font-normal text-slate-500">高 {obsHeight.toFixed(2)} m</span>
-          </div>
+        <Disclosure title="臨時障礙物" summary={`高 ${obsHeight.toFixed(2)} m`}>
           <input
             type="range" min={0.05} max={0.4} step={0.05} value={obsHeight} className="w-full"
             onChange={(e) => setObsHeight(parseFloat(e.target.value))}
           />
           <button
+            type="button"
             className="mt-1 w-full rounded bg-orange-500/40 py-1 text-xs text-orange-200 hover:bg-orange-500/60"
             onClick={() => send({ type: "obstacle", dist: 1.5, height: obsHeight, depth: 0.3 })}
           >
-            在前方 1.5m 放置障礙物
+            在前方 1.5 m 放置障礙物
           </button>
-        </div>
+        </Disclosure>
+
+        <Disclosure
+          title="正式動作任務 V1"
+          tone="accent"
+          defaultOpen={taskActive}
+          summary={taskActive ? frame?.motion_task?.phase : lastTaskStatus ? `上次 ${lastTaskStatus}` : "READY"}
+        >
+          <div className="text-[11px] leading-4 text-slate-400">
+            stand → start → steady walk → stop<br />
+            9.0 s｜0.7 m/s｜500 Hz｜assist OFF｜啟動時清除障礙物並重設
+          </div>
+          {taskActive && (
+            <div className="mt-1 h-1.5 overflow-hidden rounded bg-slate-800">
+              <div
+                className="h-full bg-violet-400"
+                style={{ width: `${Math.min(100, 100 * (frame?.motion_task?.elapsed_s ?? 0) / (frame?.motion_task?.duration_s ?? 9))}%` }}
+              />
+            </div>
+          )}
+          <button
+            type="button"
+            className={`mt-2 w-full rounded py-1.5 text-xs font-bold ${taskActive ? "bg-red-500/40 text-red-200" : "bg-violet-500/40 text-violet-100"}`}
+            onClick={() => send(taskActive
+              ? { type: "task_cancel" }
+              : { type: "task_start", task_id: "stand_start_walk_stop_v1" })}
+          >
+            {taskActive ? "■ 取消正式任務" : "▶ 執行正式任務"}
+          </button>
+          {frame?.last_task && (
+            <div className={`mt-1 rounded px-2 py-1 text-[11px] font-bold ${frame.last_task.evaluation.status === "PASS" ? "bg-emerald-500/20 text-emerald-300" : frame.last_task.evaluation.status === "FAIL" ? "bg-red-500/20 text-red-300" : "bg-amber-500/20 text-amber-300"}`}>
+              RESULT {frame.last_task.evaluation.status}｜{frame.last_task.evaluation.criteria.filter((item) => item.passed).length}/{frame.last_task.evaluation.criteria.length} criteria
+            </div>
+          )}
+        </Disclosure>
+
+        <Disclosure
+          title="Trace 記錄（500 Hz）"
+          summary={recordingActive ? `${frame?.recording?.elapsed_s?.toFixed(1) ?? "0.0"} s` : "READY"}
+        >
+          <button
+            type="button"
+            className={`w-full rounded py-1 text-xs font-semibold ${recordingActive ? "bg-red-500/40 text-red-200" : "bg-cyan-500/30 text-cyan-200"}`}
+            onClick={() => send(recordingActive
+              ? { type: "record_stop" }
+              : { type: "record_start", label: `live-${walkCtrl}`, max_duration_s: 30.0 })}
+          >
+            {recordingActive ? "■ 停止並保存 Trace" : "● 開始記錄 Trace"}
+          </button>
+          {(traceNotice || frame?.last_trace) && (
+            <div className="mt-1 break-all text-[11px] leading-4 text-cyan-300">
+              {traceNotice ?? `已完成：${frame?.last_trace?.run_id}`}<br />
+              到「分析模式 → Dynamic Trace」查看完整輸出。
+            </div>
+          )}
+        </Disclosure>
       </aside>
 
       {/* 中：3D 視圖 */}
@@ -665,6 +677,7 @@ export default function LiveView({
               <div className="font-bold">ERROR {liveError.code}</div>
               <div className="mt-1 text-xs">{liveError.message}</div>
               <button
+                type="button"
                 className="mt-2 rounded bg-red-500/25 px-2 py-1 text-xs hover:bg-red-500/40"
                 onClick={() => setLiveError(null)}
               >
@@ -679,63 +692,65 @@ export default function LiveView({
             </div>
           </div>
         )}
-        <div className="absolute bottom-2 left-2 rounded bg-slate-900/70 px-2 py-1 text-[10px] leading-4 text-slate-400">
+        <div className="absolute bottom-2 left-2 rounded bg-slate-900/70 px-2 py-1 text-[11px] leading-4 text-slate-400">
           🟡 質心 ｜ 🟣 capture point ｜ 🟢 模擬接觸 CoP ｜ 🔵 接觸點 ｜ 紅箭頭：外力
         </div>
       </div>
 
       {/* 右：控制器狀態 + 決策日誌 */}
-      <aside className="flex w-[300px] shrink-0 flex-col border-l border-slate-800 bg-slate-900/40">
+      <aside className="flex w-[280px] shrink-0 flex-col border-l border-slate-800 bg-slate-900/40">
         <div className="border-b border-slate-800 p-2">
-          <div className="mb-1 text-xs font-semibold text-slate-300">控制器狀態</div>
-          <div
-            data-testid="intervention-status"
-            className="mb-2 grid grid-cols-1 gap-1 rounded border border-amber-500/20 bg-amber-500/5 p-1.5 text-[9px] font-semibold tracking-wide"
-          >
-            <span className="text-amber-200">
-              BALANCE ASSIST {frame?.interventions
-                ? frame.interventions.balance_assist_enabled ? "ENABLED" : "DISABLED"
-                : "LEGACY_UNKNOWN"}
-            </span>
-            <span className={frame?.interventions?.startup_assist_active ? "text-red-300" : "text-slate-400"}>
-              STARTUP ASSIST {frame?.interventions
-                ? frame.interventions.startup_assist_active ? "ACTIVE" : "INACTIVE"
-                : "LEGACY_UNKNOWN"}
-            </span>
-            <span className={frame?.interventions?.external_push_active ? "text-red-300" : "text-slate-400"}>
-              EXTERNAL PUSH {frame?.interventions
-                ? frame.interventions.external_push_active ? "ACTIVE" : "INACTIVE"
-                : "LEGACY_UNKNOWN"}
-            </span>
+          <div className="mb-1.5 flex items-center justify-between text-xs font-semibold text-slate-300">
+            控制器狀態
+            <button
+              type="button"
+              className="text-[11px] font-normal text-slate-400 hover:text-slate-200"
+              onClick={() => setAdvanced(!advanced)}
+            >
+              {advanced ? "隱藏細節 ▾" : "更多細節 ▸"}
+            </button>
+          </div>
+          <div data-testid="intervention-status" className="mb-2 flex flex-wrap gap-1">
+            <Pill tone={interventions?.balance_assist_enabled ? "amber" : "slate"}>
+              平衡 assist {interventions ? (interventions.balance_assist_enabled ? "開" : "關") : "未回報"}
+            </Pill>
+            <Pill tone={interventions?.startup_assist_active ? "red" : "slate"}>
+              起步 assist {interventions ? (interventions.startup_assist_active ? "作用中" : "—") : "未回報"}
+            </Pill>
+            <Pill tone={interventions?.external_push_active ? "red" : "slate"}>
+              外力 {interventions ? (interventions.external_push_active ? "作用中" : "—") : "未回報"}
+            </Pill>
           </div>
           {st && (
-            <>
-              <div className="mb-1 grid grid-cols-2 gap-1 text-[11px] text-slate-300">
-                <div className="rounded bg-slate-800/60 px-1.5 py-1">
-                  軀幹 pitch <span className={Math.abs(st.pitch_deg) > 20 ? "font-bold text-red-300" : "text-slate-100"}>{st.pitch_deg}°</span>
-                </div>
-                <div className="rounded bg-slate-800/60 px-1.5 py-1">
-                  roll <span className={Math.abs(st.roll_deg) > 20 ? "font-bold text-red-300" : "text-slate-100"}>{st.roll_deg}°</span>
-                </div>
-                <div className="rounded bg-slate-800/60 px-1.5 py-1">
-                  質心速度 <span className="text-slate-100">{st.com_vel[0].toFixed(2)}</span> m/s
-                </div>
-                <div className="rounded bg-slate-800/60 px-1.5 py-1">
-                  GRF {st.grf.l.toFixed(0)}/{st.grf.r.toFixed(0)} N
-                </div>
+            <div className="grid grid-cols-2 gap-1 text-xs text-slate-300">
+              <div className="rounded bg-slate-800/60 px-1.5 py-1">
+                軀幹 pitch <span className={Math.abs(st.pitch_deg) > 20 ? "font-bold text-red-300" : "text-slate-100"}>{st.pitch_deg}°</span>
               </div>
-              <div className="mb-1 text-[10px] font-semibold text-slate-400">平衡策略作用量</div>
+              <div className="rounded bg-slate-800/60 px-1.5 py-1">
+                roll <span className={Math.abs(st.roll_deg) > 20 ? "font-bold text-red-300" : "text-slate-100"}>{st.roll_deg}°</span>
+              </div>
+              <div className="rounded bg-slate-800/60 px-1.5 py-1">
+                質心速度 <span className="text-slate-100">{st.com_vel[0].toFixed(2)}</span> m/s
+              </div>
+              <div className="rounded bg-slate-800/60 px-1.5 py-1">
+                GRF {st.grf.l.toFixed(0)}/{st.grf.r.toFixed(0)} N
+              </div>
+            </div>
+          )}
+          {st && advanced && (
+            <div className="mt-2 border-t border-slate-800 pt-2">
+              <div className="mb-1 text-[11px] font-semibold text-slate-400">平衡策略作用量</div>
               <CorrBar label="踝策略" value={st.ankle_corr} max={45} />
               <CorrBar label="髖策略" value={st.hip_corr} max={80} />
               <CorrBar label="側向髖" value={st.roll_corr} max={60} />
-              <div className="mb-1 flex items-center gap-1 text-[10px]">
+              <div className="mb-1 flex items-center gap-1 text-[11px]">
                 <span className="w-16 shrink-0 text-slate-400">踏步調整</span>
                 <span className="tabular-nums text-slate-300">
                   ({(st.step_offset[0] * 100).toFixed(0)}, {(st.step_offset[1] * 100).toFixed(0)}) cm
                 </span>
               </div>
-              <div className="mt-1 text-[10px] font-semibold text-slate-400">馬達出力（相對峰值）</div>
-              <div className="grid grid-cols-3 gap-x-2 text-[10px]">
+              <div className="mt-1 text-[11px] font-semibold text-slate-400">馬達出力（相對峰值）</div>
+              <div className="grid grid-cols-3 gap-x-2 text-[11px]">
                 {Object.entries(st.saturation).map(([g, pct]) => (
                   <div key={g} className="flex justify-between">
                     <span className="text-slate-500">{(GROUP_LABELS[g] ?? g).slice(0, 3)}</span>
@@ -743,16 +758,16 @@ export default function LiveView({
                   </div>
                 ))}
               </div>
-            </>
+            </div>
           )}
         </div>
         <div className="flex min-h-0 flex-1 flex-col p-2">
-          <div className="mb-1 text-xs font-semibold text-slate-300">🧠 控制器決策日誌</div>
+          <div className="mb-1 text-xs font-semibold text-slate-300">控制器決策日誌</div>
           <div ref={logRef} className="min-h-0 flex-1 overflow-y-auto rounded bg-slate-950/60 p-1.5">
             {(frame?.decisions ?? []).map((d, i) => (
               <div
                 key={i}
-                className={`mb-0.5 text-[10px] leading-4 ${
+                className={`mb-0.5 text-[11px] leading-4 ${
                   d.level === "fall" ? "text-red-300 font-semibold"
                   : d.level === "impact" ? "text-amber-300"
                   : d.level === "strategy" ? "text-sky-300"
