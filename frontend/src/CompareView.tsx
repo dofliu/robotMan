@@ -14,10 +14,28 @@ import { Pill } from "./ui";
 
 const CONTROLLERS: CompareController[] = ["track", "raibert", "rl"];
 const LABELS: Record<CompareController, string> = {
-  track: "Trajectory Tracking",
-  raibert: "Raibert Closed-loop",
-  rl: "RL Policy (PPO)",
+  track: "軌跡追蹤（開環）",
+  raibert: "Raibert 閉環",
+  rl: "RL policy（PPO）",
 };
+const SUBTITLES: Record<CompareController, string> = {
+  track: "開環時序，對照組",
+  raibert: "觸地重置＋落腳法則",
+  rl: "legacy walk policy",
+};
+const STATE_LABEL: Record<string, string> = {
+  STAND: "站立", WALK: "行走", STOPPING: "停止中", FALLEN: "跌倒",
+};
+
+// 三張卡片共用的數值格：超過門檻才上色，讀者一眼找到出問題的那台
+function Stat({ label, value, alert }: { label: string; value: string; alert?: boolean }) {
+  return (
+    <div className="bg-slate-900 px-2 py-1">
+      <div className="text-[10px] text-slate-500">{label}</div>
+      <div className={`text-xs font-semibold tabular-nums ${alert ? "text-red-300" : "text-slate-100"}`}>{value}</div>
+    </div>
+  );
+}
 
 interface CompareScene {
   type: "compare_scene";
@@ -109,13 +127,16 @@ function RobotCard({
   const maxSaturation = ctrl
     ? Math.max(0, ...Object.values(ctrl.saturation).filter(Number.isFinite))
     : 0;
-  const stateClass = ctrl?.state === "FALLEN"
+  const fallen = ctrl?.state === "FALLEN";
+  const stateClass = fallen
     ? "border-red-500/60 text-red-300"
     : ctrl?.state === "STOPPING"
       ? "border-amber-500/50 text-amber-300"
     : ctrl?.state === "WALK"
       ? "border-sky-500/50 text-sky-300"
       : "border-emerald-500/40 text-emerald-300";
+  const pitch = ctrl?.pitch_deg ?? 0;
+  const roll = ctrl?.roll_deg ?? 0;
   const interventions = frame?.interventions;
   const lastTask = !frame?.motion_task?.active ? frame?.last_task : undefined;
   const flags: { key: string; text: string; tone: "amber" | "red" | "violet" | "emerald" }[] = [];
@@ -126,21 +147,26 @@ function RobotCard({
   if (lastTask) flags.push({ key: "last", text: `任務 ${lastTask.evaluation.status}`, tone: lastTask.evaluation.status === "PASS" ? "emerald" : "red" });
 
   return (
-    <section className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-lg border border-slate-700 bg-slate-900/60">
+    <section className={`flex min-w-0 flex-1 flex-col overflow-hidden rounded-lg border bg-slate-900/60 ${fallen ? "border-red-500/50" : "border-slate-700"}`}>
       <div className="flex items-center justify-between border-b border-slate-700 px-2 py-1.5">
-        <div className="text-xs font-bold text-slate-100">{LABELS[controller]}</div>
+        <div>
+          <div className="text-xs font-bold text-slate-100">{LABELS[controller]}</div>
+          <div className="text-[10px] text-slate-500">{SUBTITLES[controller]}</div>
+        </div>
         <span className={`rounded border px-1.5 py-0.5 text-[11px] font-bold ${stateClass}`}>
-          {ctrl?.state ?? "WAITING"}
+          {ctrl ? STATE_LABEL[ctrl.state] ?? ctrl.state : "等待中"}
         </span>
       </div>
       <div ref={mountRef} className="min-h-0 flex-1" data-testid={`compare-canvas-${controller}`} />
-      <div className="grid grid-cols-3 gap-px border-t border-slate-700 bg-slate-700 text-[11px]">
-        <div className="bg-slate-900 px-2 py-1">t <b>{frame?.t.toFixed(2) ?? "—"} s</b></div>
-        <div className="bg-slate-900 px-2 py-1">x <b>{frame?.xpos?.[0]?.[0]?.toFixed(2) ?? "—"} m</b></div>
-        <div className="bg-slate-900 px-2 py-1">vx <b>{ctrl?.com_vel[0].toFixed(2) ?? "—"} m/s</b></div>
-        <div className="bg-slate-900 px-2 py-1">pitch <b>{ctrl?.pitch_deg.toFixed(1) ?? "—"}°</b></div>
-        <div className="bg-slate-900 px-2 py-1">roll <b>{ctrl?.roll_deg.toFixed(1) ?? "—"}°</b></div>
-        <div className="bg-slate-900 px-2 py-1">sat max <b>{maxSaturation.toFixed(0)}%</b></div>
+      <div className="grid grid-cols-4 gap-px border-t border-slate-700 bg-slate-700">
+        <Stat label="前進距離" value={`${frame?.xpos?.[0]?.[0]?.toFixed(2) ?? "—"} m`} />
+        <Stat label="前進速度" value={`${ctrl?.com_vel[0].toFixed(2) ?? "—"} m/s`} />
+        <Stat
+          label="姿態 pitch / roll"
+          value={ctrl ? `${pitch.toFixed(0)}° / ${roll.toFixed(0)}°` : "—"}
+          alert={Math.abs(pitch) > 20 || Math.abs(roll) > 20}
+        />
+        <Stat label="馬達出力峰值" value={`${maxSaturation.toFixed(0)}%`} alert={maxSaturation > 95} />
       </div>
       {flags.length > 0 && (
         <div className="flex flex-wrap gap-1 border-t border-slate-800 px-2 py-1">
@@ -280,9 +306,12 @@ export default function CompareView({
             send({ type: "speed", value });
           }} />
         </label>
+        <span className="ml-auto text-[11px] tabular-nums text-slate-400">
+          t = {frame?.t.toFixed(2) ?? "—"} s（三機同步）
+        </span>
         <button
           type="button"
-          className={`ml-auto rounded border px-2 py-1 text-[11px] ${more ? "border-slate-500 text-slate-200" : "border-slate-700 text-slate-400 hover:text-slate-200"}`}
+          className={`rounded border px-2 py-1 text-[11px] ${more ? "border-slate-500 text-slate-200" : "border-slate-700 text-slate-400 hover:text-slate-200"}`}
           onClick={() => setMore(!more)}
         >
           更多操作 {more ? "▾" : "▸"}
