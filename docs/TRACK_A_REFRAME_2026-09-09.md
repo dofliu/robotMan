@@ -42,7 +42,7 @@
 | **R1** 不對稱 | reference 近乎 full；candidate 重度 censored；reference metric 非退化 | v7 `V7C − V7A`：pilot 30/30 vs 0/30（seed 8700）；seed-variance 143/150 vs 0/150 | 單側變寬；paired bound 含 0；pilot 0/30、seed-variance 0/5 sign-identified | 主張 `−36.2185185` pp（pilot）／θ `[−37.195407, +27.315704]` 含 0（seed-variance） | **artifact**：naive 偽造方向 | DEVELOPMENT，凍結 protocol，replay exact（×2） |
 | **R2** 輕度 censoring、bound 有資訊 | 兩臂大多 full；candidate 少量 censored | v7 `V7B − V7A`：120/150 vs 143/150 | θ `[−13.503408, −12.435259]` pp 排除 0、寬 1.068149、5/5 sign-identified；**但** `between_replicate_sd` 無定義 | 一致 | bound **不是**永遠無資訊；**方向可識別 ≠ 變異可估計**，power／sample-size 被封鎖 | DEVELOPMENT，凍結 protocol，replay exact |
 | **R3** 對稱重度 censoring | 兩臂皆重度 censored | Walker2d-v5 V1：300 個 episode 16 個 full；reference 4/5 replicates 30/30 早跌 | 兩側皆寬；θ `[−79.118, +55.913333]` pp 寬 135.031333、**構造上必含 0**、0/5 | 主張 `−28.795138` pp、95% t-interval `[−46.698919, −10.891357]` 排除 0 | **artifact**，但 bound 的無資訊是關於 reference 的事實、與 candidate 無關 | DEVELOPMENT，凍結 protocol，replay exact |
-| **R4** 無可達的 adequate reference | 在凍結上限內 reference 從未達 adequacy | Probe V1（1/360 full 至 2.95M 步）、Probe V2（5/240 至 1.97M 步）——**pilot** | 任何在此 budget 下的比較都落在 R3 | 仍會產出數字 | 比較無法被設計成有資訊 | **pilot**；只允許陳述 procedure outcome（§6 第 2 條） |
+| **R4** 無可達的 adequate reference | 在凍結上限內 reference 從未達 adequacy | Probe V1（1/360 full 至 2.95M 步）、Probe V2（5/240 至 1.97M 步）——**pilot**；**`TRACKED-LINEAGE-TRAINING-V1`／`V2`（新增 2026-09-16）：0/30 × 5 replicate，於 `2,000,000` 與 realized `4,015,200` 兩個預算皆然——非 pilot，見 §3.7** | 任何在此 budget 下的比較都落在 R3 | 仍會產出數字 | 比較無法被設計成有資訊 | Probe 為 **pilot**（§6 第 2 條）；tracked lineage 為 **DEVELOPMENT，凍結 protocol，標籤由 contract runner 算出** |
 | **R5** 退化 reference | reference full exposure，但 metric ≈ 0 | Probe V3 ck1／ck3（30/30、0.000–0.013%）、ck6（30/30、2.712%）——**pilot** | reference = 0 時 naive 與 bound 的 contrast 必同號（§3.6）；2.7% 時 artifact 需 candidate 的 naive 穩定低於 2.7 pp 才可能 | — | exposure-only 的 adequacy 規則會選出 artifact 不可能出現的 reference | **pilot** + 數學陳述 |
 
 ### 3.1 R1 的數字與出處
@@ -78,13 +78,57 @@
 
 設 reference 在每個 episode 皆 full exposure 且 positive count 為 0（rate = 0，點識別）。對任一 candidate episode：若其觀察到的 positive count > 0，則其 bound 下界 > 0，bound 與 naive 皆為 POSITIVE；若為 0，則 naive = 0（不主張方向）而 bound `[0, (H − h)／H]` 含 0。兩種情況下都不存在「naive 主張某方向而 bound 含 0」的組合。**因此 exposure-only 的 adequacy 規則可以選出一個 artifact 在數學上不可能出現的 reference**，而規則本身不會察覺。任何 reference-adequacy 前置條件必須同時要求 exposure 與 primary measurement 非退化（門檻須事先凍結）。
 
+### 3.7 R4 的第二個實例：tracked lineage V1／V2（非 pilot，2026-09-16 併入）
+
+原本 R4 只有兩個 probe 支撐，兩者都是 **pilot**——這是整張表裡證據最弱的一格。
+`TRACKED-LINEAGE-TRAINING-V1`／`V2` 這條線是為了另一個目的（`PUB-B2`）執行的，但它量到的東西
+**正好是 R4**，而且證據等級高得多：凍結 protocol、版控證據、標籤由 contract runner 在保留證據上算出。
+
+[RESULT] **量測**（全部可由 repo 重算）：五個 scratch replicate（seeds `9100`／`9112`／`9124`／`9136`／`9148`），
+在 `2,000,000` 步（V1）與續訓至 realized `4,015,200` 步（V2）兩個預算下，
+**full exposure 一律 `0/30`，150 個 episode 一個都沒達到 `30/30` 門檻**。
+V2 的 contract runner 輸出 `label = TL2_BUDGET_EXHAUSTED`、`replicates_attaining_threshold = 0`、
+`threshold = 30/30`、`pub_b2_pass = false`、`curve_converged = false`。
+→ [`tl2_contract_receipt.json`](../backend/tracked_lineage_evidence/2026-09-14/tl2_contract_receipt.json)
+`sha256:0cd90e12a9ca4090c798c73c4699a18d7aebba3f1b6e686275b60a2ae3db9e15`（本次計算）；
+protocol `sha256:a38662d99c6c6a25015e3ab5f8d642b0bc601be8b1d5d157d7f5e00b8d9292d0`；
+spec `sha256:ea1a56f0809f5a588c420fb8c52104fbc2b0eb10567be1baae8c152a35662289`；
+lock `sha256:93d23a27…`（與 seed-variance 執行逐位元相同）。
+[V1 receipt](TRACKED_LINEAGE_TRAINING_RECEIPT_2026-09-14.md)、[V2 receipt](TRACKED_LINEAGE_TRAINING_V2_RECEIPT_2026-09-14.md)。
+
+[RESULT] **預算加倍不改變 regime**：獎勵由 `226.9`–`231.6` 升到 `283.1`–`295.3`（`+51.5`–`+66.5`）、
+平均存活由 `2.440`–`2.811` s 升到 `2.725`–`3.458` s，**而 full exposure 在五個 replicate 上仍然全是 `0/30`**。
+上限在看到任何曲線之前就凍結，且**沒有事後提高**；V2 是一個揭露「設計時已知 V1 結果」的新 protocol 版本。
+
+[RESULT] **為什麼 reference 到不了 adequacy，這次有機制而不只有標籤。**
+[PROJECT_ASSESSMENT §1.4](PROJECT_ASSESSMENT_2026-09-16.md) 以獎勵拆解對上實測：
+在該 reward 下站好每步約 `2.5`，站滿 `INITIAL_STAND` + `START` 的 2.5 s（125 步）約 `310`，
+再吃 `−50` 的終止懲罰約 `260`——**與 V1 實測 `227`–`232`、V2 實測 `283`–`295` 吻合**。
+十個 replicate 全部寧願吃 `−50` 也不嘗試 `START → STEADY_WALK` 的轉換，
+代表嘗試的期望代價 > 50；而 v4 曾把該懲罰由 `−5` 提到 `−45` 並未改變結果，
+故**綁住的是形塑結構，不是懲罰量值，也不是預算**。
+
+[INFERENCE] **這一點對 A-C3 的作用，比多一個實例更大。** R4 原本讀起來像本專案 plant 的特例。
+但 [LITERATURE_MAP_2026-09-16_TRAINING_STRATEGY §1.1](LITERATURE_MAP_2026-09-16_TRAINING_STRATEGY.md)
+的 scan 指出，「shaping 讓靜止成為穩定局部最優」是 locomotion RL **已被具名並 ablate 過**的失敗模式
+（`arXiv 2010.04304` 以 survival bonus `0`／`1`／`5` 對照）。若該文獻判定成立，
+則落進 R4 **不是意外，而是 shaped locomotion 任務上可預期的結果**——
+於是「reference 是否可達 adequacy」就不只是算力問題，而是**由 reward 設計決定、且標準評估流程既不控制也不報告**的變數。
+這正是 A-C3 要說的事，而且是它目前最強的一個支點。
+
+[BLOCKER] **這條線不提供對比，只提供 reference adequacy 的判定。** tracked lineage 是單臂 budget 線，
+不是 reference／candidate 比較，因此**不產生任何 paired bound**；它在本文中的角色只有一個：
+證明「在凍結上限內 reference 從未達 adequacy」這件事可以在 pilot 以外的證據等級上被量到。
+`not_independent_of_v1 = true`——V2 續訓自 V1，兩者**不是兩個獨立觀測**。
+分析單位為 training replicate，method-level 分母恆為 `5`；`30`／`150`／`450` 為 enforced forbidden denominators。
+
 ## 4. 貢獻清單 V2（相對 V1 的變化）
 
 | ID | 陳述 | V1 → V2 | 證據 regime |
 |---|---|---|---|
 | **A-C1（主）** | Early termination 使 rate 型 outcome 成為 exposure censoring；comparative evaluation 應報 assumption-free identification bound，拒絕 complete-case deletion 與 interval 補值，並把 method failure 與 exposure censoring 分開保留 | 不變；證據從一個 plant 擴為兩個 plant、兩個 policy 家族（fine-tuned humanoid PPO with project wrapper；from-scratch Walker2d PPO with generic wrapper）、三種 regime | R1、R2、R3 |
 | **A-C2（主）** | `outcome_state == OBSERVED ⇏ full exposure`：所有 required outcome 有值、算術正常，exposure 仍可不足；可移植的檢查是由 trace 長度獨立重建 exposure | 不變；**第二個 plant 的證據已存在**（Walker2d 284/284） | R2（v7 三個 episode）、R3 |
-| **A-C3（主，新增）** | Censoring regime 是 comparative evaluation 未被控制、未被報告的設計變數；bound 是否有資訊、artifact 是否可能出現由它決定；reference-adequacy 前置條件必須同時檢查 exposure 與 metric 非退化；方向可識別 ≠ 變異可估計 | **新增**：把原 `PUB-A1` 的「未達成」轉為方法論發現 | R1–R5 全部；§3.6 |
+| **A-C3（主，新增）** | Censoring regime 是 comparative evaluation 未被控制、未被報告的設計變數；bound 是否有資訊、artifact 是否可能出現由它決定；reference-adequacy 前置條件必須同時檢查 exposure 與 metric 非退化；方向可識別 ≠ 變異可估計 | **新增**：把原 `PUB-A1` 的「未達成」轉為方法論發現。**2026-09-16 補強**：R4 由 pilot-only 升為含一個凍結 protocol 實例（§3.7），且該實例的成因（shaping 造成的靜止局部最優）在文獻上是已具名、已 ablate 的失敗模式——**落進 R4 是可預期的，不是本專案 plant 的特例** | R1–R5 全部；§3.6、§3.7 |
 | **A-C4（artifact）** | Statistical unit 的程式層強制（forbidden denominators）、`NOT_REACHED ≠ PASS`、`python -I -S` stdlib-only exact replay、freeze-before-execute、probe 作為 pilot 的紀律（上限不事後提高、seeds 對下游為禁區、pilot 不得為 evidence） | 擴充：加入 probe 紀律 | 全部 |
 | ~~**A-C5（次）**~~ → **併入 A-C4（artifact 級，2026-09-10）** | 公開宣告非預註冊、且在啟發資料上必須失敗的 selection rule 自檢 | **降級**：補充 scan 完成（[LITERATURE_MAP §1.7](LITERATURE_MAP_2026-09-08_EVALUATION_VALIDITY.md)）後判定縮小——透明宣告 post hoc 是 Hollenbeck & Wright (2017) 的 Tharking，決策資料隔離是 Cawley & Talbot (2010)／Dwork et al. (2015) 已建立；剩餘窄點的解讀受「選不出東西可能只因 exposure 不足」混淆 | `SELECT-V7-CANDIDATE-FORMAL-V1` |
 | **A-M（動機）** | 同環境兩種 IEEE-conformant reduction order 給不同結果；版本 pin 不足以重驗數值 | 不變；SC'24、RepDL 已建立，只作動機 | environment lock receipt |
@@ -109,6 +153,8 @@
 | 10 | 凍結的 exposure-only budget-selection 程序：Walker2d 兩次於上限內回傳 NEGATIVE；Hopper 回傳 FOUND 但選出的 reference 在選定 checkpoint 的 saturation 為 2.712%、兩個更早 checkpoint 為 ≈ 0% | 三個 `probe_result.json`（`76612f47…`、`55a6220d…`、`dcc70c24…`） | **pilot** | 直接讀值 |
 | 11 | 同環境 1000 個 reciprocal：stdlib 順序 `7.485470860550343`，`numpy.ndarray.sum` `7.485470860550345` | lock record `889efeb0…` | 量測 | — |
 | 12 | Method-level 分母在每條路徑恆為 5（training replicate）；30／60／150／300（second case）與 150／450（seed variance）為 enforced forbidden denominators | contract 測試 | 軟體 | 測試固定 |
+| 13 | 在 `TRACKED-LINEAGE-TRAINING-V1`／`V2` 的凍結 protocol 下，五個 replicate 於 `2,000,000` 與 realized `4,015,200` 兩個預算的 full exposure 皆為 `0/30`（`replicates_attaining_threshold = 0`、`threshold = 30/30`）——R4 的一個非 pilot 實例 | `tl2_contract_receipt.json` `0cd90e12…`；protocol `a38662d9…` | DEVELOPMENT，凍結 protocol，標籤由 contract runner 算出 | 由版控證據重算 |
+| 14 | 該線的獎勵由 `226.9`–`231.6` 升至 `283.1`–`295.3`、平均存活由 `2.440`–`2.811` s 升至 `2.725`–`3.458` s，**而 regime 未改變**（仍 `0/30` × 5）：預算不是決定 reference 是否可達 adequacy 的那一項 | 同上；[V1](TRACKED_LINEAGE_TRAINING_RECEIPT_2026-09-14.md)／[V2 receipt](TRACKED_LINEAGE_TRAINING_V2_RECEIPT_2026-09-14.md) | 同上 | 同上 |
 
 ## 6. 不可宣稱與限制（凍結候選清單）
 
@@ -122,6 +168,7 @@
 8. **不對 plant、controller、action interface、low-pass filter、sim-to-real、physical actuator 做任何主張**；`direction_claim_permitted = false` 於每一份 summary。
 9. **n = 5 training replicates**／line；無 power；`paper_data_ready` 等四個 flag 皆 false 且本重構不改變它們。
 10. **NPZ trace 與 policy checkpoint 不在版控**（digest 保留於 raw bundle）；每一條 claim 只依賴 raw JSON 中的 counts。
+11. **§3.7 的 tracked lineage 實例是單臂 budget 線，不是比較。** 它**不產生任何 paired bound**，在本文中只支持「reference 在凍結上限內未達 adequacy」這一件事。`not_independent_of_v1 = true`——V2 續訓自 V1，**不得視為兩個獨立觀測**。它與 v7、Walker2d 的數值**不得相減或並排成趨勢**（`cross_protocol_comparability` 限制照舊適用）。**不支持**「再多跑一些步數就會到 `30/30`」——曲線仍在上升正是 `TL2_BUDGET_EXHAUSTED` 的定義，不是它會成功的證據。§3.7 的獎勵拆解是對**該 reward 函數**的算術說明，**不是**對 plant、controller 或任何 locomotion 方法的主張（§6 第 8 條照舊）。
 
 ## 7. Figure／table 計畫（草稿；`PUB-A2` 時凍結）
 
@@ -133,6 +180,7 @@
 | F1 | Realized exposure 分布（per arm、per case）：v7 V7C `159.7 ± 2.77` steps；Walker2d 各 cell median | 同上 | 同上 |
 | F2 | Forest plot：逐 replicate 的 naive 點 vs bound 區間（v7 V7B ×5、V7C ×5、Walker2d ×5） | seed-variance summary、second_case_summary | 同上 |
 | F3（pilot，方法／限制節） | 三條 probe 曲線：FULL/30 與 naive duty vs 累計 steps | 三個 `probe_result.json` | 直接讀值；標示 pilot |
+| T5 | R4 的非 pilot 實例：兩個預算 × 5 replicate 的 full exposure（全 `0/30`）與同期的 reward／duration 變化 | `tl2_contract_receipt.json`、兩份 tracked lineage receipt | 由版控證據重算 |
 | T4（附錄） | 所有 receipt 與 artifact 的 SHA-256 清單 | 本文 §3、§5 | — |
 
 ## 8. `PUB-A` gates V2
