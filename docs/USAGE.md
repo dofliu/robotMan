@@ -53,7 +53,7 @@
 - ZMP margin 是 scheduled trajectory consistency indicator，並非獨立穩定性證明；
 - warning 是 rule-based screen，不是硬體 pass/fail certificate；
 - run mode 含 flight phase 時，ZMP 不作為 validation criterion。
-- frontend 的 stale-result/evidence badges 用來提醒 config/result identity 與 evidence scope；badge 顯示正常不等於 V0/V1 gate PASS。
+- frontend 右上角只常駐一個結果狀態標籤（結果對應目前設定／設定已變更，結果過期／計算中）；config/result identity 與 evidence scope 的完整 token 收在「證據狀態」抽屜裡，預設收起。標籤或抽屜顯示正常不等於 V0/V1 gate PASS。
 
 不要用 analysis mode 單獨決定採購、連續工作熱容量、跌倒安全或實體 payload。
 

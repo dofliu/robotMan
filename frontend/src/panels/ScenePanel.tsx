@@ -1,5 +1,5 @@
 import type { Obstacle } from "../types";
-import { Num, Section } from "../ui";
+import { Num } from "../ui";
 
 export default function ScenePanel({
   obstacles,
@@ -14,16 +14,20 @@ export default function ScenePanel({
     onChange(next);
   };
   return (
-    <Section title="場景障礙物" defaultOpen={false}>
-      <p className="mb-2 text-[10px] leading-4 text-slate-500">
-        機器人以射線感測器（頭部 LiDAR 示意）偵測障礙物：跨越路徑上的障礙會自動提高抬腳高度、落點自動避開。被偵測到的障礙物會亮紅。
+    <div>
+      <p className="mb-2 text-[11px] leading-4 text-slate-500">
+        頭部射線感測（LiDAR 示意）偵測到路徑上的障礙時，會自動提高抬腳並避開落點；被偵測到的障礙物亮紅。
       </p>
+      {obstacles.length === 0 && (
+        <div className="mb-2 rounded bg-slate-800/40 px-2 py-2 text-[11px] text-slate-500">目前沒有障礙物。</div>
+      )}
       {obstacles.map((ob, i) => (
         <div key={i} className="mb-2 rounded-lg bg-slate-800/50 p-2">
           <div className="mb-1 flex items-center justify-between text-xs font-semibold text-slate-200">
             障礙物 {i + 1}
             <button
-              className="rounded bg-red-500/20 px-2 py-0.5 text-[10px] text-red-300 hover:bg-red-500/40"
+              type="button"
+              className="rounded bg-red-500/20 px-2 py-0.5 text-[11px] text-red-300 hover:bg-red-500/40"
               onClick={() => onChange(obstacles.filter((_, j) => j !== i))}
             >
               移除
@@ -35,6 +39,7 @@ export default function ScenePanel({
         </div>
       ))}
       <button
+        type="button"
         className="w-full rounded bg-slate-700 py-1 text-xs text-slate-200 hover:bg-slate-600"
         onClick={() =>
           onChange([
@@ -45,6 +50,6 @@ export default function ScenePanel({
       >
         ＋ 新增障礙物
       </button>
-    </Section>
+    </div>
   );
 }

@@ -2,6 +2,33 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-16 (z)
+
+### 介面重整：每一頁一次只看一件事
+
+- [RESULT] 依專案負責人要求整理 frontend：目標是**簡潔、每頁不要同時放太多資訊**。所有功能保留，只是改成分頁、抽屜與收合；沒有動任何 API、WebSocket 訊息、`data-testid` 或 evidence 語義。`tsc --noEmit` 與 `vite build` 皆乾淨，五個頁面改前改後各以 Playwright 截圖對照。
+- [RESULT] **共用殼**：標題縮為「人形機器人模擬器」，四個分頁改成短字（分析模式／即時互動／三機同步比較／RL 訓練）。原本每頁常駐的 9 px 證據 badge 列（`SOFTWARE_ONLY`、模擬類型、`CALIBRATION_NOT_ESTABLISHED`、`UI_INPUT`、`UI_RESULT_CONFIG`、`SERVER_REPORTED_CONFIG_SHA256`、結果狀態、`RUN`）改成右上角**一個**中文結果狀態標籤，完整 token 全部收進「證據狀態」抽屜，預設收起——**一個 token 都沒有拿掉**，只是不再每頁都攤開。
+- [RESULT] **分析頁**：左欄從四個疊在一起的可收合區塊改為分段切換，一次只顯示步態／硬體／質量／場景之一；步態只常駐 5 個主要滑桿，5 個姿態細節收合；硬體一次只編輯一個關節群組。摘要列從 7 張卡片＋預設展開的警告清單（改前實測 14 條同時可見）改為 4 張卡片，其餘指標與警告各在一個按鈕後面。底部從三欄並排（扭矩圖＋14 個 chip、分頁圖、利用率表＋免責文字）改為**一張圖一次**（扭矩／角度／GRF／功率／ZMP／致動器利用率），整區可收合。
+- [RESULT] **即時互動**：控制器從 5 列 radio 改為下拉選單＋一行說明；站立／行走／時間控制常駐，外力推撞、臨時障礙物、正式動作任務、Trace 記錄收合但標題列仍顯示狀態（推力、高度、任務階段、記錄秒數）。右欄只常駐 4 個數字與三個介入標籤，平衡策略作用量與馬達出力放到「更多細節」。
+- [RESULT] **三機同步比較**：三條工具列合併為一條主工具列（站立／行走／重置／暫停／單步／速度）＋「更多操作」（assist、推撞、Trace、正式任務）；`DEVELOPMENT_COMPARISON_ONLY` 等 token 移到頁腳小字；每張機器人卡片只在 assist／推撞／任務**實際發生時**才顯示標籤，不再常駐三個 `OFF`。
+- [RESULT] **Dynamic Trace**：五張圖同時顯示改為一張分頁圖；正式任務的 11 項 criterion 表格與階段 chip 收進「判定細節」。**RL 訓練**：profiles 卡片放最前面，三步流程與現況說明收合；過長的 profile id 改為可換行。
+- 最小字級由 9 px 提到 11 px。`docs/USAGE.md` §3 的 badge 說明改為證據狀態抽屜。
+
+## Unreleased — 2026-09-16 (y)
+
+### 專案評估：現況、價值與去向（決策文件，負責人尚未決定）
+
+- [RESULT] 新增 [PROJECT_ASSESSMENT_2026-09-16](docs/PROJECT_ASSESSMENT_2026-09-16.md)，回答三個問題：專案現在是什麼、值不值得推廣、下一步。**每個數字從 repo 量出**，每個判斷標明量測／推論／建議。它不替負責人做決定。
+- [RESULT] **比例**：核心 robotics + 應用 `6,871` 行、前端 `3,561` 行；證據契約／replay／bundle `29,294` 行；測試 `14,768` 行（692 函式 → 942 case）。核心：外衣 = **1 : 4.3**。已結案研究線（v7、second case、seed variance、tracked lineage、R0）合計約 `15,800` 行契約碼、420 個測試函式，佔契約碼 54%、測試 61%。**692 個測試函式只有 76 個測教學應用。**
+- [RESULT] **盤點初始假設被推翻並照實記錄**：(1) 「有死碼」——21 個零 importer 模組全部帶 `__main__`，都是合法 CLI 入口，後端**沒有任何不可達程式**；問題是活著但任務已結束的工具碼。(2) 「跌倒懲罰只有 −5」——tracked-lineage 用的 `phase_observable_v5` 繼承 v4 `PathStopEnv`，終止另加 −45，實為 **−50**。
+- [RESULT] **機器人為什麼加預算沒用——量化診斷**：控制步 0.02 s；站好時每步 ≈ 2.5；站滿 2.5 s ≈ 125 步 ≈ 310，跌倒 −50 ≈ 260，**正對上 V1 的 227–232 與 V2 的 283–295**。十個 replicate 寧吃 −50 也不起步 ⇒ 嘗試起步的期望代價 > 50；v4 加重懲罰後仍失敗 ⇒ 懲罰不是綁住結果的項。槓桿在 curriculum／分階段形塑／參考軌跡，**不在預算**——這給了 V2 receipt「要改的不是預算」一個機制解釋。
+- [RESULT] **證據版控範圍**：seedvar `raw_replicates.json`（276 KB）進版控，`[-13.5, -12.4]` pp 可重導；但 **v7 pilot 原始 bundle（109.5 MB）與 audit 凍結 bundle（113 MB）在 gitignored `run_traces/`，不在版控**——依 REPOSITORY_GUIDE §3 明文政策，非疏忽，但專案自稱「最強結果」的 v7 線是所有線裡從 repo 最不可重導的一條。已在 PROJECT_STATUS §4 加註。
+- [INFERENCE] **價值判斷**：作為 robotics 研究弱（無新方法、無實體驗證、可重建的線全不會走）；作為評估效度研究**真的有一篇**（V7C 假改善、`OBSERVED ⇏ full exposure`、Walker2d 重現、regime 分類——Track A 證據已齊）；作為教學工具有實質價值且**與研究契約完全解耦**（`main.py` 零 import、前端 `tsc`/`vite build` 乾淨、v5 policy 可示範行走）；作為可重現實驗工程範例比多數已發表 RL 工作嚴謹——但它在驗證一個不會走的機器人。
+- [INFERENCE] **關鍵觀察：`PUB-B2` 的理由消失了。** 它是為 `PUB-B3` 的 reference 而設；2026-09-09 Track A 重構為 censoring regime 研究後，論文不再需要會走的 reference，需要的是被截斷的例子——那正是各線已提供的。gate 留下來後又花了兩條線追它。
+- [RESULT] **架構建議**（未執行，待決定）：教學應用與研究基礎設施今天就可拆成兩個產品（A 教學模擬器 ~10.4k 行；B 可重用實驗工具組 ~6.4k 行）；已結案線的程式與文件建議**封存**至 `archive/`（證據原地不動、digest 不變），全套測試會由 942 降至約 520；`STATUS.yaml` 拆結構化、文件 63 → 活的約 12 份。**不動**：任何凍結 protocol／spec、已保留證據、`environment_lock`+`run_manifest_lock`、v5 artifact、30/30 門檻與 2M 上限。
+- [RESULT] 三個去向選項寫在 §5：一、收斂（拆教具、拆工具組、寫 Track A、封存其餘——**不需 PUB-B2**）；二、修機器人但換槓桿不加預算（V3 以 v5 行走 checkpoint 為 curriculum 起點，據實揭露）；三、維持現狀（**唯一不建議**）。
+- 順手修正：REPOSITORY_GUIDE `tracked_lineage_evidence` 「尚未建立」→ 實測 40 個 checkpoint、77 MB；測試數 923 → 941。
+
 ## Unreleased — 2026-09-14 (x)
 
 ### `TRACKED-LINEAGE-TRAINING-V2` 執行完成：加倍預算，曝露仍是 `0/30`

@@ -10,6 +10,7 @@ import {
   type TraceReceipt,
   type CompareController,
 } from "./LiveView";
+import { Pill } from "./ui";
 
 const CONTROLLERS: CompareController[] = ["track", "raibert", "rl"];
 const LABELS: Record<CompareController, string> = {
@@ -115,20 +116,25 @@ function RobotCard({
     : ctrl?.state === "WALK"
       ? "border-sky-500/50 text-sky-300"
       : "border-emerald-500/40 text-emerald-300";
+  const interventions = frame?.interventions;
+  const lastTask = !frame?.motion_task?.active ? frame?.last_task : undefined;
+  const flags: { key: string; text: string; tone: "amber" | "red" | "violet" | "emerald" }[] = [];
+  if (interventions?.balance_assist_enabled) flags.push({ key: "assist", text: "assist 開", tone: "amber" });
+  if (interventions?.startup_assist_active) flags.push({ key: "startup", text: "起步 assist", tone: "red" });
+  if (interventions?.external_push_active) flags.push({ key: "push", text: "外力", tone: "red" });
+  if (frame?.motion_task?.active) flags.push({ key: "task", text: `任務 ${frame.motion_task.phase ?? ""}`, tone: "violet" });
+  if (lastTask) flags.push({ key: "last", text: `任務 ${lastTask.evaluation.status}`, tone: lastTask.evaluation.status === "PASS" ? "emerald" : "red" });
 
   return (
     <section className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-lg border border-slate-700 bg-slate-900/60">
       <div className="flex items-center justify-between border-b border-slate-700 px-2 py-1.5">
-        <div>
-          <div className="text-xs font-bold text-slate-100">{LABELS[controller]}</div>
-          <div className="text-[9px] uppercase tracking-wide text-slate-500">fixed controller identity</div>
-        </div>
-        <span className={`rounded border px-1.5 py-0.5 text-[10px] font-bold ${stateClass}`}>
+        <div className="text-xs font-bold text-slate-100">{LABELS[controller]}</div>
+        <span className={`rounded border px-1.5 py-0.5 text-[11px] font-bold ${stateClass}`}>
           {ctrl?.state ?? "WAITING"}
         </span>
       </div>
       <div ref={mountRef} className="min-h-0 flex-1" data-testid={`compare-canvas-${controller}`} />
-      <div className="grid grid-cols-3 gap-px border-t border-slate-700 bg-slate-700 text-[10px]">
+      <div className="grid grid-cols-3 gap-px border-t border-slate-700 bg-slate-700 text-[11px]">
         <div className="bg-slate-900 px-2 py-1">t <b>{frame?.t.toFixed(2) ?? "—"} s</b></div>
         <div className="bg-slate-900 px-2 py-1">x <b>{frame?.xpos?.[0]?.[0]?.toFixed(2) ?? "—"} m</b></div>
         <div className="bg-slate-900 px-2 py-1">vx <b>{ctrl?.com_vel[0].toFixed(2) ?? "—"} m/s</b></div>
@@ -136,23 +142,11 @@ function RobotCard({
         <div className="bg-slate-900 px-2 py-1">roll <b>{ctrl?.roll_deg.toFixed(1) ?? "—"}°</b></div>
         <div className="bg-slate-900 px-2 py-1">sat max <b>{maxSaturation.toFixed(0)}%</b></div>
       </div>
-      <div className="flex gap-2 border-t border-slate-800 px-2 py-1 text-[9px] font-semibold tracking-wide">
-        <span className={frame?.interventions?.balance_assist_enabled ? "text-red-300" : "text-slate-500"}>
-          ASSIST {frame?.interventions?.balance_assist_enabled ? "ON" : "OFF"}
-        </span>
-        <span className={frame?.interventions?.startup_assist_active ? "text-red-300" : "text-slate-500"}>
-          STARTUP {frame?.interventions?.startup_assist_active ? "ACTIVE" : "OFF"}
-        </span>
-        <span className={frame?.interventions?.external_push_active ? "text-amber-300" : "text-slate-500"}>
-          PUSH {frame?.interventions?.external_push_active ? "ACTIVE" : "OFF"}
-        </span>
-        {frame?.motion_task?.active && <span className="ml-auto text-violet-300">{frame.motion_task.phase}</span>}
-        {!frame?.motion_task?.active && frame?.last_task && (
-          <span className={`ml-auto ${frame.last_task.evaluation.status === "PASS" ? "text-emerald-300" : frame.last_task.evaluation.status === "FAIL" ? "text-red-300" : "text-amber-300"}`}>
-            TASK {frame.last_task.evaluation.status}
-          </span>
-        )}
-      </div>
+      {flags.length > 0 && (
+        <div className="flex flex-wrap gap-1 border-t border-slate-800 px-2 py-1">
+          {flags.map((flag) => <Pill key={flag.key} tone={flag.tone}>{flag.text}</Pill>)}
+        </div>
+      )}
     </section>
   );
 }
@@ -176,6 +170,7 @@ export default function CompareView({
   const [assist, setAssist] = useState(false);
   const [pushForce, setPushForce] = useState(150);
   const [traceNotice, setTraceNotice] = useState<string | null>(null);
+  const [more, setMore] = useState(false);
 
   const send = useCallback((message: object) => {
     if (socketRef.current?.readyState === WebSocket.OPEN) {
@@ -258,26 +253,26 @@ export default function CompareView({
   const push = (dx: number, dy: number) =>
     send({ type: "push", dir: [dx, dy, 0], force: pushForce, duration: 0.2 });
 
+  const track = frame?.frames.track;
+  const recordingActive = Boolean(track?.recording?.active);
+  const taskActive = Boolean(track?.motion_task?.active);
+  const skew = frame?.sync.max_time_skew_s;
+
   return (
     <div className="relative flex min-h-0 flex-1 flex-col bg-slate-950">
-      <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-slate-800 px-3 py-1.5 text-[10px] font-semibold tracking-wide">
-        <span className="rounded border border-amber-500/50 bg-amber-500/10 px-2 py-0.5 text-amber-300">
-          DEVELOPMENT_COMPARISON_ONLY
-        </span>
-        <span className="rounded border border-sky-500/40 bg-sky-500/10 px-2 py-0.5 text-sky-300">
-          SAME_INPUT / INDEPENDENT_PLANTS
-        </span>
-        <span className={frame?.sync.max_time_skew_s === 0 ? "text-emerald-300" : "text-red-300"}>
-          TIME SKEW {frame?.sync.max_time_skew_s.toFixed(6) ?? "—"} s
-        </span>
-        <span className="text-slate-500">PLANT {scene?.plant_signature.slice(0, 20) ?? "—"}</span>
-      </div>
-
+      {/* 主工具列：常用操作 */}
       <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-slate-800 bg-slate-900/60 px-3 py-2">
-        <button className="rounded bg-emerald-600/70 px-3 py-1 text-xs font-semibold" onClick={() => send({ type: "mode", mode: "stand" })}>站立</button>
-        <button className="rounded bg-sky-600/70 px-3 py-1 text-xs font-semibold" onClick={() => send({ type: "mode", mode: "walk" })}>三機開始行走</button>
-        <button className="rounded bg-red-500/30 px-3 py-1 text-xs text-red-200" onClick={() => send({ type: "reset" })}>重置三機</button>
-        <label className="ml-2 flex items-center gap-1 text-[11px] text-slate-300">
+        <button type="button" className="rounded bg-emerald-600/70 px-3 py-1 text-xs font-semibold" onClick={() => send({ type: "mode", mode: "stand" })}>站立</button>
+        <button type="button" className="rounded bg-sky-600/70 px-3 py-1 text-xs font-semibold" onClick={() => send({ type: "mode", mode: "walk" })}>三機開始行走</button>
+        <button type="button" className="rounded bg-red-500/30 px-3 py-1 text-xs text-red-200" onClick={() => send({ type: "reset" })}>重置三機</button>
+        <span className="mx-1 h-4 w-px bg-slate-700" />
+        <button type="button" className="rounded bg-slate-700 px-2 py-1 text-xs" onClick={() => {
+          const next = !paused;
+          setPaused(next);
+          send({ type: "pause", on: next });
+        }}>{paused ? "▶ 繼續" : "⏸ 暫停"}</button>
+        <button type="button" className="rounded bg-slate-700 px-2 py-1 text-xs" onClick={() => send({ type: "step", dt: 0.05 })}>⏭ 單步 50 ms</button>
+        <label className="flex items-center gap-1 text-[11px] text-slate-300">
           速度 {speed.toFixed(2)}×
           <input type="range" min={0.05} max={1} step={0.05} value={speed} onChange={(event) => {
             const value = Number(event.target.value);
@@ -285,58 +280,67 @@ export default function CompareView({
             send({ type: "speed", value });
           }} />
         </label>
-        <button className="rounded bg-slate-700 px-2 py-1 text-xs" onClick={() => {
-          const next = !paused;
-          setPaused(next);
-          send({ type: "pause", on: next });
-        }}>{paused ? "繼續" : "暫停"}</button>
-        <button className="rounded bg-slate-700 px-2 py-1 text-xs" onClick={() => send({ type: "step", dt: 0.05 })}>單步 50ms</button>
-        <label className="flex items-center gap-1 text-[11px] text-slate-300">
-          <input type="checkbox" checked={assist} onChange={(event) => {
-            const on = event.target.checked;
-            setAssist(on);
-            send({ type: "assist", on });
-          }} />
-          外加 assist（預設 OFF）
-        </label>
-        <label className="ml-auto flex items-center gap-1 text-[11px] text-slate-300">
-          Push {pushForce} N
-          <input type="range" min={50} max={600} step={25} value={pushForce} onChange={(event) => setPushForce(Number(event.target.value))} />
-        </label>
-        <button className="rounded bg-orange-500/30 px-2 py-1 text-xs" onClick={() => push(1, 0)}>向前推</button>
-        <button className="rounded bg-orange-500/30 px-2 py-1 text-xs" onClick={() => push(-1, 0)}>向後推</button>
-        <button className="rounded bg-orange-500/30 px-2 py-1 text-xs" onClick={() => push(0, 1)}>側向推</button>
         <button
-          className={`rounded px-3 py-1 text-xs font-semibold ${frame?.frames.track.recording?.active ? "bg-red-500/40 text-red-200" : "bg-cyan-500/30 text-cyan-200"}`}
-          onClick={() => send(frame?.frames.track.recording?.active
-            ? { type: "record_stop" }
-            : { type: "record_start", label: "three-controller-compare", max_duration_s: 30.0 })}
+          type="button"
+          className={`ml-auto rounded border px-2 py-1 text-[11px] ${more ? "border-slate-500 text-slate-200" : "border-slate-700 text-slate-400 hover:text-slate-200"}`}
+          onClick={() => setMore(!more)}
         >
-          {frame?.frames.track.recording?.active ? "■ 停止三機 Trace" : "● 記錄三機 Trace"}
-        </button>
-        <button
-          className={`rounded px-3 py-1 text-xs font-bold ${frame?.frames.track.motion_task?.active ? "bg-red-500/40 text-red-200" : "bg-violet-500/40 text-violet-100"}`}
-          onClick={() => send(frame?.frames.track.motion_task?.active
-            ? { type: "task_cancel" }
-            : { type: "task_start", task_id: "stand_start_walk_stop_v1" })}
-        >
-          {frame?.frames.track.motion_task?.active ? "■ 取消三機正式任務" : "▶ 三機執行正式任務"}
+          更多操作 {more ? "▾" : "▸"}
         </button>
       </div>
 
-      <div className="flex shrink-0 items-center gap-3 border-b border-violet-500/20 bg-violet-500/5 px-3 py-1 text-[10px] text-slate-400">
-        <span className="font-semibold text-violet-300">stand → start → steady walk → stop</span>
-        <span>9.0 s｜0.7 m/s｜500 Hz｜assist OFF｜reset + clear obstacles</span>
-        {frame?.frames.track.motion_task?.active && (
-          <span className="ml-auto font-semibold text-violet-200">
-            {frame.frames.track.motion_task.phase}｜{frame.frames.track.motion_task.elapsed_s?.toFixed(1)} / 9.0 s
-          </span>
-        )}
-      </div>
+      {/* 次工具列：推撞、assist、Trace、正式任務 */}
+      {more && (
+        <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-slate-800 bg-slate-900/40 px-3 py-2">
+          <label className="flex items-center gap-1 text-[11px] text-slate-300">
+            <input type="checkbox" checked={assist} onChange={(event) => {
+              const on = event.target.checked;
+              setAssist(on);
+              send({ type: "assist", on });
+            }} />
+            外加 assist（預設 OFF）
+          </label>
+          <span className="mx-1 h-4 w-px bg-slate-700" />
+          <label className="flex items-center gap-1 text-[11px] text-slate-300">
+            推力 {pushForce} N
+            <input type="range" min={50} max={600} step={25} value={pushForce} onChange={(event) => setPushForce(Number(event.target.value))} />
+          </label>
+          <button type="button" className="rounded bg-orange-500/30 px-2 py-1 text-xs" onClick={() => push(1, 0)}>向前推</button>
+          <button type="button" className="rounded bg-orange-500/30 px-2 py-1 text-xs" onClick={() => push(-1, 0)}>向後推</button>
+          <button type="button" className="rounded bg-orange-500/30 px-2 py-1 text-xs" onClick={() => push(0, 1)}>側向推</button>
+          <span className="mx-1 h-4 w-px bg-slate-700" />
+          <button
+            type="button"
+            className={`rounded px-3 py-1 text-xs font-semibold ${recordingActive ? "bg-red-500/40 text-red-200" : "bg-cyan-500/30 text-cyan-200"}`}
+            onClick={() => send(recordingActive
+              ? { type: "record_stop" }
+              : { type: "record_start", label: "three-controller-compare", max_duration_s: 30.0 })}
+          >
+            {recordingActive ? "■ 停止三機 Trace" : "● 記錄三機 Trace"}
+          </button>
+          <button
+            type="button"
+            className={`rounded px-3 py-1 text-xs font-bold ${taskActive ? "bg-red-500/40 text-red-200" : "bg-violet-500/40 text-violet-100"}`}
+            title="stand → start → steady walk → stop｜9.0 s｜0.7 m/s｜500 Hz｜assist OFF｜reset + clear obstacles"
+            onClick={() => send(taskActive
+              ? { type: "task_cancel" }
+              : { type: "task_start", task_id: "stand_start_walk_stop_v1" })}
+          >
+            {taskActive ? "■ 取消三機正式任務" : "▶ 三機執行正式任務"}
+          </button>
+        </div>
+      )}
 
-      {traceNotice && (
-        <div className="shrink-0 border-b border-cyan-500/20 bg-cyan-500/5 px-3 py-1 text-[10px] text-cyan-300">
-          {traceNotice}｜完成後至「分析模式 → 動態紀錄」查看三組 realized outputs。
+      {(taskActive || traceNotice) && (
+        <div className="flex shrink-0 flex-wrap items-center gap-3 border-b border-slate-800 bg-slate-900/30 px-3 py-1 text-[11px]">
+          {taskActive && track?.motion_task && (
+            <span className="font-semibold text-violet-200">
+              正式任務 {track.motion_task.phase}｜{track.motion_task.elapsed_s?.toFixed(1)} / 9.0 s
+            </span>
+          )}
+          {traceNotice && (
+            <span className="text-cyan-300">{traceNotice}｜完成後到「分析模式 → Dynamic Trace」查看三組 realized outputs。</span>
+          )}
         </div>
       )}
 
@@ -349,6 +353,15 @@ export default function CompareView({
             frame={frame?.frames[controller]}
           />
         ))}
+      </div>
+
+      <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-t border-slate-800 px-3 py-1 text-[11px] text-slate-500">
+        <span>僅供開發比較，不是驗證證據（DEVELOPMENT_COMPARISON_ONLY）</span>
+        <span>相同輸入、三個獨立 plant</span>
+        <span className={skew === 0 ? "text-emerald-400/80" : skew === undefined ? "" : "text-red-300"}>
+          time skew {skew?.toFixed(6) ?? "—"} s
+        </span>
+        <span>plant {scene?.plant_signature.slice(0, 20) ?? "—"}</span>
       </div>
 
       {(!connected || error) && (

@@ -14,7 +14,7 @@ import LiveView from "./LiveView";
 import CompareView from "./CompareView";
 import TraceAnalysisView from "./TraceAnalysisView";
 import TrainingView from "./TrainingView";
-import { Chip } from "./ui";
+import { Chip, Pill, Tabs, type PillTone } from "./ui";
 
 const JOINT_COLORS = [
   "#38bdf8", "#f472b6", "#4ade80", "#fbbf24", "#a78bfa", "#fb923c",
@@ -54,6 +54,60 @@ function cloneRunConfig(robot: RobotConfig, gait: GaitParams, obstacles: Obstacl
   return JSON.parse(JSON.stringify({ robot, gait, obstacles })) as RunConfigSnapshot;
 }
 
+type View = "analysis" | "live" | "compare" | "training";
+type AnalysisSource = "reference" | "trace";
+type ParamTab = "gait" | "hardware" | "mass" | "scene";
+type ChartTab = "torque" | "angle" | "grf" | "power" | "stab" | "util";
+
+const VIEW_TABS: { id: View; label: string }[] = [
+  { id: "analysis", label: "分析模式" },
+  { id: "live", label: "即時互動" },
+  { id: "compare", label: "三機同步比較" },
+  { id: "training", label: "RL 訓練" },
+];
+const SOURCE_TABS: { id: AnalysisSource; label: string }[] = [
+  { id: "reference", label: "Reference 估算" },
+  { id: "trace", label: "Dynamic Trace" },
+];
+const PARAM_TABS: { id: ParamTab; label: string }[] = [
+  { id: "gait", label: "步態" },
+  { id: "hardware", label: "硬體" },
+  { id: "mass", label: "質量" },
+  { id: "scene", label: "場景" },
+];
+const CHART_TABS: { id: ChartTab; label: string }[] = [
+  { id: "torque", label: "關節扭矩" },
+  { id: "angle", label: "關節角度" },
+  { id: "grf", label: "解析 GRF" },
+  { id: "power", label: "功率估計" },
+  { id: "stab", label: "ZMP 指標" },
+  { id: "util", label: "致動器利用率" },
+];
+const CHART_UNIT: Record<ChartTab, string> = {
+  torque: " Nm", angle: "°", grf: " N", power: " W", stab: " cm", util: "",
+};
+
+// 每個畫面對應的模擬類型 token（完整字串留在證據狀態抽屜）
+const SCOPE_TOKEN: Record<Exclude<View, "analysis">, string> = {
+  live: "MUJOCO_CONTACT_SIM",
+  compare: "MUJOCO_SAME_INPUT_INDEPENDENT_PLANTS",
+  training: "OFFLINE_TRAINING_CONFIGURATION_ONLY",
+};
+
+type ResultState =
+  | "NO_RESULT"
+  | "RUNNING_NO_RESULT"
+  | "RUNNING_LAST_SUCCESS_FROZEN"
+  | "REQUEST_FRESH_HASH_UNVERIFIED"
+  | "STALE_LAST_SUCCESS";
+const RESULT_STATE_TEXT: Record<ResultState, { text: string; tone: PillTone }> = {
+  NO_RESULT: { text: "尚無結果", tone: "slate" },
+  RUNNING_NO_RESULT: { text: "計算中", tone: "sky" },
+  RUNNING_LAST_SUCCESS_FROZEN: { text: "計算中（顯示上次結果）", tone: "sky" },
+  REQUEST_FRESH_HASH_UNVERIFIED: { text: "結果對應目前設定", tone: "sky" },
+  STALE_LAST_SUCCESS: { text: "設定已變更，結果過期", tone: "amber" },
+};
+
 function PlaybackBar({ playback }: { playback: Playback }) {
   const [, force] = useState(0);
   const [t, setT] = useState(0);
@@ -69,6 +123,7 @@ function PlaybackBar({ playback }: { playback: Playback }) {
   return (
     <div className="flex items-center gap-3 border-t border-slate-800 bg-slate-900/70 px-3 py-1.5">
       <button
+        type="button"
         className="w-8 rounded bg-slate-700 py-0.5 text-sm hover:bg-slate-600"
         onClick={() => {
           playback.playing = !playback.playing;
@@ -108,6 +163,15 @@ function PlaybackBar({ playback }: { playback: Playback }) {
   );
 }
 
+function EvidenceRow({ label, value, tone = "slate" }: { label: string; value: string; tone?: PillTone }) {
+  return (
+    <div className="flex items-center gap-2 text-[11px]">
+      <span className="w-40 shrink-0 text-slate-500">{label}</span>
+      <Pill tone={tone} className="font-mono font-normal">{value}</Pill>
+    </div>
+  );
+}
+
 export default function App() {
   const [defaults, setDefaults] = useState<Defaults | null>(null);
   const [robot, setRobot] = useState<RobotConfig | null>(null);
@@ -125,9 +189,12 @@ export default function App() {
   const [autoRun, setAutoRun] = useState(true);
   const [selJoints, setSelJoints] = useState<string[]>(["hip_pitch_l", "knee_l", "ankle_l"]);
   const [motorSide, setMotorSide] = useState(false);
-  const [rightTab, setRightTab] = useState<"grf" | "power" | "angle" | "stab">("grf");
-  const [view, setView] = useState<"analysis" | "live" | "compare" | "training">("analysis");
-  const [analysisSource, setAnalysisSource] = useState<"reference" | "trace">("reference");
+  const [view, setView] = useState<View>("analysis");
+  const [analysisSource, setAnalysisSource] = useState<AnalysisSource>("reference");
+  const [paramTab, setParamTab] = useState<ParamTab>("gait");
+  const [chartTab, setChartTab] = useState<ChartTab>("torque");
+  const [chartsOpen, setChartsOpen] = useState(true);
+  const [showEvidence, setShowEvidence] = useState(false);
 
   const currentConfigExact = useMemo(
     () => (robot && gait ? serializeConfig(robot, gait, obstacles) : null),
@@ -220,68 +287,61 @@ export default function App() {
     return () => clearTimeout(id);
   }, [robot, gait, obstacles, autoRun, runSim]);
 
-  // 圖表資料
+  // 圖表資料：一次只畫一個分頁
   const time = result?.frames.time ?? [];
   const jointNames = result?.meta.joint_names ?? [];
-  const torqueSeries: Series[] = useMemo(() => {
-    if (!result) return [];
-    const src = motorSide ? result.telemetry.tau_motor : result.telemetry.tau;
-    return selJoints
-      .filter((j) => jointNames.includes(j))
-      .map((j) => {
-        const ji = jointNames.indexOf(j);
-        return {
-          label: JOINT_LABELS[j] ?? j,
-          color: JOINT_COLORS[ji % JOINT_COLORS.length],
-          data: src.map((row) => row[ji]),
-        };
-      });
-  }, [result, selJoints, motorSide, jointNames]);
+  const jointSeries = useCallback(
+    (source: number[][], scale = 1): Series[] =>
+      selJoints
+        .filter((j) => jointNames.includes(j))
+        .map((j) => {
+          const ji = jointNames.indexOf(j);
+          return {
+            label: JOINT_LABELS[j] ?? j,
+            color: JOINT_COLORS[ji % JOINT_COLORS.length],
+            data: source.map((row) => row[ji] * scale),
+          };
+        }),
+    [selJoints, jointNames]
+  );
 
-  const rightSeries: Series[] = useMemo(() => {
+  const chartSeries: Series[] = useMemo(() => {
     if (!result) return [];
-    if (rightTab === "grf") {
-      return [
-        { label: "左腳 Fz", color: "#f87171", data: result.gait.grf_l.map((f) => f[2]) },
-        { label: "右腳 Fz", color: "#60a5fa", data: result.gait.grf_r.map((f) => f[2]) },
-      ];
-    }
-    if (rightTab === "power") {
-      return [
-        {
+    switch (chartTab) {
+      case "torque":
+        return jointSeries(motorSide ? result.telemetry.tau_motor : result.telemetry.tau);
+      case "angle":
+        return jointSeries(result.telemetry.q, 180 / Math.PI);
+      case "grf":
+        return [
+          { label: "左腳 Fz", color: "#f87171", data: result.gait.grf_l.map((f) => f[2]) },
+          { label: "右腳 Fz", color: "#60a5fa", data: result.gait.grf_r.map((f) => f[2]) },
+        ];
+      case "power":
+        return [{
           label: "簡化電功率估計",
           color: "#fbbf24",
           data: result.telemetry.power.map((row) => row.reduce((a, b) => a + b, 0)),
-        },
-      ];
+        }];
+      case "stab":
+        return [
+          {
+            label: "ZMP 裕度",
+            color: "#4ade80",
+            data: result.stability.zmp_margin.map((v) => (v === null ? null : v * 100)),
+          },
+          {
+            label: "CoM 靜態裕度",
+            color: "#fbbf24",
+            data: result.stability.com_margin.map((v) => (v === null ? null : v * 100)),
+          },
+        ];
+      default:
+        return [];
     }
-    if (rightTab === "stab") {
-      return [
-        {
-          label: "ZMP 裕度",
-          color: "#4ade80",
-          data: result.stability.zmp_margin.map((v) => (v === null ? null : v * 100)),
-        },
-        {
-          label: "CoM 靜態裕度",
-          color: "#fbbf24",
-          data: result.stability.com_margin.map((v) => (v === null ? null : v * 100)),
-        },
-      ];
-    }
-    return selJoints
-      .filter((j) => jointNames.includes(j))
-      .map((j) => {
-        const ji = jointNames.indexOf(j);
-        return {
-          label: JOINT_LABELS[j] ?? j,
-          color: JOINT_COLORS[ji % JOINT_COLORS.length],
-          data: result.telemetry.q.map((row) => (row[ji] * 180) / Math.PI),
-        };
-      });
-  }, [result, rightTab, selJoints, jointNames]);
+  }, [result, chartTab, motorSide, jointSeries]);
 
-  // 單選關節時顯示額定/峰值參考線
+  // 單選關節時顯示額定/峰值參考線（只在扭矩分頁）
   const refLines = useMemo(() => {
     if (!result || !resultConfigSnapshot || selJoints.length !== 1) return [];
     const j = selJoints[0];
@@ -296,117 +356,73 @@ export default function App() {
       { value: -act.motor.peak_torque * k, color: "#f8717188", label: "" },
     ];
   }, [result, resultConfigSnapshot, selJoints, motorSide]);
+  const chartRefLines = chartTab === "torque"
+    ? refLines
+    : chartTab === "stab"
+      ? [{ value: 0, color: "#f8717188", label: "支撐面邊界" }]
+      : [];
+  const showJointChips = chartTab === "torque" || chartTab === "angle";
 
   const resultIsRequestFresh = Boolean(
     result && resultFresh && !busy && resultConfigExact && resultConfigExact === currentConfigExact
   );
-  const resultState = !result
+  const resultState: ResultState = !result
     ? busy ? "RUNNING_NO_RESULT" : "NO_RESULT"
     : busy ? "RUNNING_LAST_SUCCESS_FROZEN"
     : resultIsRequestFresh ? "REQUEST_FRESH_HASH_UNVERIFIED"
     : "STALE_LAST_SUCCESS";
-  const resultStateClass = resultState === "REQUEST_FRESH_HASH_UNVERIFIED"
-    ? "border-sky-500/40 bg-sky-500/10 text-sky-300"
-    : resultState.startsWith("RUNNING")
-      ? "border-sky-500/40 bg-sky-500/10 text-sky-300"
-      : resultState.startsWith("STALE")
-        ? "border-amber-500/40 bg-amber-500/10 text-amber-300"
-        : "border-slate-600 bg-slate-800/60 text-slate-400";
+  const resultStateInfo = RESULT_STATE_TEXT[resultState];
+  const scopeToken = view === "analysis"
+    ? analysisSource === "trace" ? "MUJOCO_REALIZED_SIMULATION_TRACE" : "KINEMATIC_INVERSE_DYNAMICS_ESTIMATE"
+    : SCOPE_TOKEN[view];
+  const showReferenceIdentity = view === "analysis" && analysisSource === "reference";
 
   return (
     <div className="flex h-full flex-col">
-      {/* 頂部：標題 + 模式切換 */}
-      <header className="flex shrink-0 items-center gap-4 border-b border-slate-800 bg-slate-900/70 px-3 py-1.5">
-        <div>
-          <span className="text-sm font-bold text-slate-100">🤖 人形機器人設計篩選模擬原型</span>
-          <span className="ml-2 text-[10px] text-slate-500">SIM-only reduced-order ｜ software screening</span>
-        </div>
-        <div className="flex gap-1">
-          <button
-            className={`rounded-t px-3 py-1 text-xs font-semibold ${
-              view === "analysis" ? "bg-sky-500 text-slate-900" : "bg-slate-800 text-slate-300 hover:bg-slate-700"
-            }`}
-            onClick={() => setView("analysis")}
-          >
-            📊 分析模式
-          </button>
-          <button
-            className={`rounded-t px-3 py-1 text-xs font-semibold ${
-              view === "live" ? "bg-purple-400 text-slate-900" : "bg-slate-800 text-slate-300 hover:bg-slate-700"
-            }`}
-            onClick={() => setView("live")}
-          >
-            🎮 即時互動（動力學 + 平衡控制）
-          </button>
-          <button
-            className={`rounded-t px-3 py-1 text-xs font-semibold ${
-              view === "compare" ? "bg-amber-400 text-slate-900" : "bg-slate-800 text-slate-300 hover:bg-slate-700"
-            }`}
-            onClick={() => setView("compare")}
-          >
-            ⚖ 三機同步比較
-          </button>
-          <button
-            className={`rounded-t px-3 py-1 text-xs font-semibold ${
-              view === "training" ? "bg-fuchsia-400 text-slate-900" : "bg-slate-800 text-slate-300 hover:bg-slate-700"
-            }`}
-            onClick={() => setView("training")}
-          >
-            🧠 RL 訓練
-          </button>
-          {view === "analysis" && (
-            <div className="ml-2 flex gap-1 border-l border-slate-700 pl-2">
-              <button
-                className={`rounded px-2 py-1 text-[10px] font-semibold ${analysisSource === "reference" ? "bg-sky-500/30 text-sky-200" : "bg-slate-800 text-slate-400"}`}
-                onClick={() => setAnalysisSource("reference")}
-              >
-                Reference 估算
-              </button>
-              <button
-                className={`rounded px-2 py-1 text-[10px] font-semibold ${analysisSource === "trace" ? "bg-cyan-500/30 text-cyan-200" : "bg-slate-800 text-slate-400"}`}
-                onClick={() => setAnalysisSource("trace")}
-              >
-                Dynamic Trace
-              </button>
-            </div>
+      {/* 頂部：標題 + 模式切換 + 證據狀態 */}
+      <header className="flex shrink-0 items-center gap-3 border-b border-slate-800 bg-slate-900/70 px-3 py-2">
+        <span className="text-sm font-bold text-slate-100">人形機器人模擬器</span>
+        <Tabs value={view} onChange={setView} items={VIEW_TABS} size="md" />
+        <div className="ml-auto flex items-center gap-2">
+          {showReferenceIdentity && (
+            <Pill tone={resultStateInfo.tone} title={resultState}>{resultStateInfo.text}</Pill>
           )}
+          <button
+            type="button"
+            className={`rounded border px-2 py-1 text-[11px] ${showEvidence ? "border-slate-500 text-slate-200" : "border-slate-700 text-slate-400 hover:text-slate-200"}`}
+            onClick={() => setShowEvidence((open) => !open)}
+            title="模擬類型、設定 ID 與結果狀態的完整 token"
+          >
+            證據狀態 {showEvidence ? "▾" : "▸"}
+          </button>
         </div>
       </header>
 
-      <div className="flex shrink-0 flex-wrap items-center gap-1.5 border-b border-slate-800 bg-slate-950/80 px-3 py-1 text-[9px] font-semibold tracking-wide">
-        <span className="rounded border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-amber-300">
-          SOFTWARE_ONLY
-        </span>
-        <span className="rounded border border-sky-500/40 bg-sky-500/10 px-1.5 py-0.5 text-sky-300">
-          {view === "analysis"
-            ? analysisSource === "trace"
-              ? "MUJOCO_REALIZED_SIMULATION_TRACE"
-              : "KINEMATIC_INVERSE_DYNAMICS_ESTIMATE"
-            : view === "compare"
-              ? "MUJOCO_SAME_INPUT_INDEPENDENT_PLANTS"
-              : view === "training"
-                ? "OFFLINE_TRAINING_CONFIGURATION_ONLY"
-                : "MUJOCO_CONTACT_SIM"}
-        </span>
-        <span className="rounded border border-fuchsia-500/40 bg-fuchsia-500/10 px-1.5 py-0.5 text-fuchsia-300">
-          CALIBRATION_NOT_ESTABLISHED
-        </span>
-        <span className="ml-1 text-slate-500">UI_INPUT {currentConfigId ?? "—"}</span>
-        {view === "analysis" && analysisSource === "reference" && (
-          <>
-            <span className="text-slate-500">UI_RESULT_CONFIG {resultConfigId ?? "—"}</span>
-            {result?.meta.provenance?.config_hash && (
-              <span className="text-cyan-400">
-                SERVER_REPORTED_CONFIG_SHA256 {shortSha256(result.meta.provenance.config_hash)}
-              </span>
+      {showEvidence && (
+        <div className="shrink-0 border-b border-slate-800 bg-slate-950/80 px-3 py-2">
+          <div className="grid gap-1 md:grid-cols-2">
+            <EvidenceRow label="證據範圍" value="SOFTWARE_ONLY" tone="amber" />
+            <EvidenceRow label="模擬類型" value={scopeToken} tone="sky" />
+            <EvidenceRow label="校正狀態" value="CALIBRATION_NOT_ESTABLISHED" tone="fuchsia" />
+            <EvidenceRow label="UI 目前設定 ID" value={currentConfigId ?? "—"} />
+            {showReferenceIdentity && (
+              <>
+                <EvidenceRow label="結果對應的設定 ID" value={resultConfigId ?? "—"} />
+                <EvidenceRow
+                  label="伺服器回報 config sha256"
+                  value={result?.meta.provenance?.config_hash ? shortSha256(result.meta.provenance.config_hash) : "—"}
+                  tone="cyan"
+                />
+                <EvidenceRow label="結果狀態" value={resultState} tone={resultStateInfo.tone} />
+                <EvidenceRow label="Run ID" value={result?.meta.provenance?.run_id ?? "LEGACY_NO_RUN_ID"} />
+              </>
             )}
-            <span className={`rounded border px-1.5 py-0.5 ${resultStateClass}`}>{resultState}</span>
-            <span className="text-slate-600">
-              RUN {result?.meta.provenance?.run_id ?? "LEGACY_NO_RUN_ID"}
-            </span>
-          </>
-        )}
-      </div>
+          </div>
+          <div className="mt-1.5 text-[11px] text-slate-500">
+            所有數值皆為軟體模擬且未經實體校正；這裡顯示正常不代表任何 V0/V1 gate PASS。
+          </div>
+        </div>
+      )}
 
       {view === "training" ? (
         <TrainingView />
@@ -414,144 +430,158 @@ export default function App() {
         <CompareView robot={robot} gait={gait} obstacles={obstacles} />
       ) : view === "live" && robot && gait ? (
         <LiveView robot={robot} gait={gait} obstacles={obstacles} />
-      ) : analysisSource === "trace" ? (
-        <TraceAnalysisView />
       ) : (
-      <div className="flex min-h-0 flex-1">
-      {/* 左側設定欄 */}
-      <aside className="flex w-[330px] shrink-0 flex-col border-r border-slate-800 bg-slate-900/40">
-        <div className="flex items-center gap-2 border-b border-slate-800 px-3 py-2">
-          <button
-            className="flex-1 rounded bg-sky-500 py-1.5 text-xs font-bold text-slate-900 hover:bg-sky-400 disabled:opacity-50"
-            disabled={busy || !robot || !gait}
-            onClick={() => robot && gait && runSim(robot, gait, obstacles)}
-          >
-            {busy ? "計算中…" : "▶ 執行模擬"}
-          </button>
-          <label className="flex items-center gap-1 text-[10px] text-slate-400">
-            <input
-              type="checkbox"
-              checked={autoRun}
-              onChange={(e) => setAutoRun(e.target.checked)}
-            />
-            自動
-          </label>
-        </div>
-        <div className="flex-1 overflow-y-auto">
-          {gait && <GaitPanel gait={gait} onChange={setGait} />}
-          {robot && defaults && (
-            <HardwarePanel robot={robot} defaults={defaults} onChange={setRobot} />
-          )}
-          {robot && <MassPanel robot={robot} onChange={setRobot} />}
-          <ScenePanel obstacles={obstacles} onChange={setObstacles} />
-        </div>
-      </aside>
+        <div className="flex min-h-0 flex-1 flex-col">
+          <div className="flex shrink-0 flex-wrap items-center gap-3 border-b border-slate-800 bg-slate-900/40 px-3 py-1.5">
+            <Tabs value={analysisSource} onChange={setAnalysisSource} items={SOURCE_TABS} />
+            <span className="text-[11px] text-slate-500">
+              {analysisSource === "reference"
+                ? "prescribed 步態 → 逆動力學估算；適合看相對趨勢與敏感度"
+                : "讀取即時互動／三機比較保存的 500 Hz realized 模擬紀錄"}
+            </span>
+          </div>
 
-      {/* 主區域 */}
-      <main className="flex min-w-0 flex-1 flex-col">
-        <SummaryBar result={result} />
-        <div className="relative min-h-0 flex-1">
-          <Viewport result={result} playback={playback} />
-          {busy && (
-            <div className="absolute inset-0 flex items-center justify-center bg-slate-950/40">
-              <div className="rounded-lg bg-slate-800 px-4 py-2 text-sm text-sky-300">
-                逆動力學計算中…
-              </div>
-            </div>
-          )}
-          {result && !resultIsRequestFresh && (
-            <div
-              data-testid="stale-result-overlay"
-              className="absolute left-3 top-3 rounded-lg border border-amber-500/60 bg-amber-950/90 px-3 py-2 text-xs font-semibold text-amber-200 shadow-lg"
-            >
-              {busy ? "FROZEN LAST SUCCESS" : "STALE LAST SUCCESS"}
-              <span className="ml-2 font-normal text-amber-300/80">
-                result config {resultConfigId ?? "LEGACY_UNKNOWN"}
-              </span>
-            </div>
-          )}
-          {error && (
-            <div className="absolute left-1/2 top-3 -translate-x-1/2 rounded-lg bg-red-500/90 px-4 py-2 text-xs text-white">
-              {error}
-            </div>
-          )}
-          <div className="absolute bottom-2 left-2 rounded bg-slate-900/70 px-2 py-1 text-[10px] leading-4 text-slate-400">
-            🟡 質心 CoM ｜ 🟢 ZMP ｜ 紅/藍箭頭：左右腳地面反力 ｜ 青色線：LiDAR 射線
-          </div>
-        </div>
-        <PlaybackBar playback={playback} />
+          {analysisSource === "trace" ? (
+            <TraceAnalysisView />
+          ) : (
+            <div className="flex min-h-0 flex-1">
+              {/* 左側設定欄：一次只顯示一組參數 */}
+              <aside className="flex w-[300px] shrink-0 flex-col border-r border-slate-800 bg-slate-900/40">
+                <div className="flex items-center gap-2 border-b border-slate-800 px-3 py-2">
+                  <button
+                    type="button"
+                    className="flex-1 rounded bg-sky-500 py-1.5 text-xs font-bold text-slate-900 hover:bg-sky-400 disabled:opacity-50"
+                    disabled={busy || !robot || !gait}
+                    onClick={() => robot && gait && runSim(robot, gait, obstacles)}
+                  >
+                    {busy ? "計算中…" : "▶ 執行模擬"}
+                  </button>
+                  <label className="flex items-center gap-1 text-[11px] text-slate-400" title="參數變更後 0.8 秒自動重新模擬">
+                    <input
+                      type="checkbox"
+                      checked={autoRun}
+                      onChange={(e) => setAutoRun(e.target.checked)}
+                    />
+                    自動
+                  </label>
+                </div>
+                <div className="border-b border-slate-800 px-3 py-2">
+                  <Tabs value={paramTab} onChange={setParamTab} items={PARAM_TABS} fill />
+                </div>
+                <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
+                  {paramTab === "gait" && gait && <GaitPanel gait={gait} onChange={setGait} />}
+                  {paramTab === "hardware" && robot && defaults && (
+                    <HardwarePanel robot={robot} defaults={defaults} onChange={setRobot} />
+                  )}
+                  {paramTab === "mass" && robot && <MassPanel robot={robot} onChange={setRobot} />}
+                  {paramTab === "scene" && <ScenePanel obstacles={obstacles} onChange={setObstacles} />}
+                </div>
+              </aside>
 
-        {/* 底部圖表區 */}
-        <section className="flex h-[290px] shrink-0 border-t border-slate-800 bg-slate-900/50">
-          <div className="flex min-w-0 flex-[1.3] flex-col border-r border-slate-800 p-2">
-            <div className="mb-1 flex flex-wrap items-center gap-1">
-              <span className="mr-1 text-xs font-semibold text-slate-300">
-                {motorSide ? "馬達端扭矩 (Nm)" : "關節扭矩 (Nm)"}
-              </span>
-              <Chip active={!motorSide} onClick={() => setMotorSide(false)}>關節端</Chip>
-              <Chip active={motorSide} onClick={() => setMotorSide(true)}>馬達端</Chip>
-              {refLines.length >= 3 && (
-                <span
-                  data-testid="torque-ref-source"
-                  data-result-config={resultConfigId ?? ""}
-                  data-rated-torque={Math.abs(refLines[0].value)}
-                  data-peak-torque={Math.abs(refLines[2].value)}
-                  className="text-[9px] text-slate-500"
-                >
-                  frozen {resultConfigId ?? "—"}：額定 {Math.abs(refLines[0].value).toFixed(1)} / 峰值 {Math.abs(refLines[2].value).toFixed(1)} Nm
-                </span>
-              )}
-              <span className="mx-1 text-slate-700">|</span>
-              {jointNames.map((j, i) => (
-                <Chip
-                  key={j}
-                  active={selJoints.includes(j)}
-                  color={JOINT_COLORS[i % JOINT_COLORS.length]}
-                  onClick={() =>
-                    setSelJoints((prev) =>
-                      prev.includes(j) ? prev.filter((x) => x !== j) : [...prev, j]
-                    )
-                  }
-                >
-                  {JOINT_LABELS[j] ?? j}
-                </Chip>
-              ))}
+              {/* 主區域 */}
+              <main className="flex min-w-0 flex-1 flex-col">
+                <SummaryBar result={result} />
+                <div className="relative min-h-0 flex-1">
+                  <Viewport result={result} playback={playback} />
+                  {busy && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-slate-950/40">
+                      <div className="rounded-lg bg-slate-800 px-4 py-2 text-sm text-sky-300">
+                        逆動力學計算中…
+                      </div>
+                    </div>
+                  )}
+                  {result && !resultIsRequestFresh && (
+                    <div
+                      data-testid="stale-result-overlay"
+                      className="absolute left-3 top-3 rounded-lg border border-amber-500/60 bg-amber-950/90 px-3 py-2 text-xs font-semibold text-amber-200 shadow-lg"
+                    >
+                      {busy ? "計算中，畫面為上次結果" : "設定已變更，畫面為過期結果"}
+                      <span className="ml-2 font-normal text-amber-300/80">
+                        結果設定 {resultConfigId ?? "LEGACY_UNKNOWN"}
+                      </span>
+                    </div>
+                  )}
+                  {error && (
+                    <div className="absolute left-1/2 top-3 -translate-x-1/2 rounded-lg bg-red-500/90 px-4 py-2 text-xs text-white">
+                      {error}
+                    </div>
+                  )}
+                  <div className="absolute bottom-2 left-2 rounded bg-slate-900/70 px-2 py-1 text-[11px] leading-4 text-slate-400">
+                    🟡 質心 CoM ｜ 🟢 ZMP ｜ 紅/藍箭頭：左右腳地面反力 ｜ 青色線：LiDAR 射線
+                  </div>
+                </div>
+                <PlaybackBar playback={playback} />
+
+                {/* 底部圖表區：一次一張圖，可整區收合 */}
+                <section className={`flex shrink-0 flex-col border-t border-slate-800 bg-slate-900/50 ${chartsOpen ? "h-[270px]" : ""}`}>
+                  <div className="flex shrink-0 flex-wrap items-center gap-2 px-2 py-1.5">
+                    <Tabs value={chartTab} onChange={setChartTab} items={CHART_TABS} />
+                    {chartsOpen && chartTab === "torque" && (
+                      <>
+                        <Chip active={!motorSide} onClick={() => setMotorSide(false)}>關節端</Chip>
+                        <Chip active={motorSide} onClick={() => setMotorSide(true)}>馬達端</Chip>
+                        {refLines.length >= 3 && (
+                          <span
+                            data-testid="torque-ref-source"
+                            data-result-config={resultConfigId ?? ""}
+                            data-rated-torque={Math.abs(refLines[0].value)}
+                            data-peak-torque={Math.abs(refLines[2].value)}
+                            className="text-[11px] text-slate-500"
+                          >
+                            額定 {Math.abs(refLines[0].value).toFixed(1)} / 峰值 {Math.abs(refLines[2].value).toFixed(1)} Nm（依結果設定 {resultConfigId ?? "—"}）
+                          </span>
+                        )}
+                      </>
+                    )}
+                    <button
+                      type="button"
+                      className="ml-auto text-[11px] text-slate-400 hover:text-slate-200"
+                      onClick={() => setChartsOpen((open) => !open)}
+                    >
+                      {chartsOpen ? "收合圖表 ▾" : "展開圖表 ▸"}
+                    </button>
+                  </div>
+                  {chartsOpen && (
+                    <div className="flex min-h-0 flex-1 flex-col px-2 pb-2">
+                      {showJointChips && (
+                        <div className="mb-1 flex flex-wrap gap-1">
+                          {jointNames.map((j, i) => (
+                            <Chip
+                              key={j}
+                              active={selJoints.includes(j)}
+                              color={JOINT_COLORS[i % JOINT_COLORS.length]}
+                              onClick={() =>
+                                setSelJoints((prev) =>
+                                  prev.includes(j) ? prev.filter((x) => x !== j) : [...prev, j]
+                                )
+                              }
+                            >
+                              {JOINT_LABELS[j] ?? j}
+                            </Chip>
+                          ))}
+                        </div>
+                      )}
+                      <div className="min-h-0 flex-1 overflow-hidden">
+                        {chartTab === "util" ? (
+                          <UtilTable result={result} />
+                        ) : (
+                          <LineChart
+                            time={time}
+                            series={chartSeries}
+                            playback={playback}
+                            height={showJointChips ? 180 : 210}
+                            unit={CHART_UNIT[chartTab]}
+                            refLines={chartRefLines}
+                          />
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </section>
+              </main>
             </div>
-            <div className="min-h-0 flex-1">
-              <LineChart
-                time={time}
-                series={torqueSeries}
-                playback={playback}
-                height={210}
-                unit=" Nm"
-                refLines={refLines}
-              />
-            </div>
-          </div>
-          <div className="flex min-w-0 flex-1 flex-col border-r border-slate-800 p-2">
-            <div className="mb-1 flex items-center gap-1">
-              <Chip active={rightTab === "grf"} onClick={() => setRightTab("grf")}>解析 GRF</Chip>
-              <Chip active={rightTab === "power"} onClick={() => setRightTab("power")}>功率估計</Chip>
-              <Chip active={rightTab === "angle"} onClick={() => setRightTab("angle")}>關節角度</Chip>
-              <Chip active={rightTab === "stab"} onClick={() => setRightTab("stab")}>ZMP 指標</Chip>
-            </div>
-            <div className="min-h-0 flex-1">
-              <LineChart
-                time={time}
-                series={rightSeries}
-                playback={playback}
-                height={210}
-                unit={rightTab === "grf" ? " N" : rightTab === "power" ? " W" : rightTab === "stab" ? " cm" : "°"}
-                refLines={rightTab === "stab" ? [{ value: 0, color: "#f8717188", label: "支撐面邊界" }] : []}
-              />
-            </div>
-          </div>
-          <div className="w-[290px] shrink-0">
-            <UtilTable result={result} />
-          </div>
-        </section>
-      </main>
-      </div>
+          )}
+        </div>
       )}
     </div>
   );
