@@ -207,7 +207,7 @@
 
 ## 9. 測試現況
 
-`backend/`：**1 failed / 948 passed**（2026-09-16，334.91 s，工作樹在 `9f871ac`）。較 2026-09-14 的 `941` 多 7 個，全部來自介面改版新增的兩支測試檔：`test_warning_items.py`（5，warning_items 與 warnings 一對一鏡射）與 `test_decision_kind.py`（2，decision `kind` 與前端分類涵蓋）。失敗項仍是同一個、未放寬的 reduction-order 差異，無新增失敗。
+`backend/`：**1 failed / 950 passed**（2026-09-16，`319.18` s，工作樹在 `979e73b`，`pytest -v --durations=0`）。數字逐步對得起來：2026-09-14 的 `941` ＋7（介面改版的兩支測試檔：`test_warning_items.py` 5 個、`test_decision_kind.py` 2 個）＝ `948`（`9f871ac`）；＋2（PR #25 補上的 `record_start` 時長邊界與預設值回歸測試，均在 `test_run_trace.py`）＝ **`950`**。失敗項仍是同一個、未放寬的 reduction-order 差異，無新增失敗。
 
 2026-09-14 那一輪的逐 commit 實測記錄保留於此：`5b707cb`（V2 contract 之前的 main）收集 `892`；＋`32`（`TRACKED-LINEAGE-TRAINING-V2` contract）＝ `924`，即先前記錄的 1 failed / 923 passed；＋`2`（guard dispatch）＋`2`（resume 路徑）＋`8`（保留線）＝ `936`，即 PR #20 合併後的 main；＋`6`（V2 執行線：replicate 數推導、relocated lock、標籤）＝ **`942`** ＝ 1 failed / 941 passed。更早的記錄為 1 failed / 882 passed、1 failed / 816 passed 與 1 failed / 754 passed。
 
