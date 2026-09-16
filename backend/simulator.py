@@ -406,6 +406,24 @@ def run_simulation(req: SimRequest) -> dict:
     # 尾端排除一個週期：FFT 鏡射填補與有限差分的邊界效應集中在結尾
     st = (times >= t_steady) & (times <= gait.duration - engine.T)
     warnings: list[str] = []
+    # 結構化警告：與 warnings 一對一、同序，detail 就是同一條文字。前端用它分類與縮短，
+    # 舊客戶端仍讀 warnings；兩者都在 content hash 範圍內。
+    warning_items: list[dict] = []
+
+    def _warn(code, severity, scope, title, text, *, group=None, value=None, limit=None, unit=None):
+        warnings.append(text)
+        warning_items.append({
+            "code": code,
+            "severity": severity,
+            "scope": scope,
+            "group": group,
+            "title": title,
+            "detail": text,
+            "value": value,
+            "limit": limit,
+            "unit": unit,
+        })
+
     if st.any():
         stats_window_mode = "steady_window"
     else:
@@ -413,17 +431,19 @@ def run_simulation(req: SimRequest) -> dict:
         # 完整 sampled window fallback，並在 warning/provenance 中明示。
         st = np.ones(n_frames, dtype=bool)
         stats_window_mode = "full_window_fallback"
-        warnings.append(
+        _warn(
+            "STATS_WINDOW_FULL_FALLBACK", "warning", "stats", "穩態統計窗不可用，已改用完整窗",
             "⚠️ 致動器穩態統計窗不可用：模擬時長不足以排除起迄週期；"
-            "已改用完整 sampled window，結果包含暫態且不得解讀為穩態額定需求"
+            "已改用完整 sampled window，結果包含暫態且不得解讀為穩態額定需求",
         )
     motion = _actual_motion_metrics(times, qpos, power_elec, M_total)
     E_total = motion["energy_J"]
     cot = motion["cot"]
 
     if cot is None:
-        warnings.append(
-            "⚠️ CoT 無法計算：實際淨前進距離為 0 m；已回傳 null，未使用命令速度替代"
+        _warn(
+            "COT_UNAVAILABLE", "warning", "stats", "CoT 無法計算：淨前進距離 0 m",
+            "⚠️ CoT 無法計算：實際淨前進距離為 0 m；已回傳 null，未使用命令速度替代",
         )
     group_stats = {}
     for grp in cfg.actuators:
@@ -461,45 +481,58 @@ def run_simulation(req: SimRequest) -> dict:
         }
         gname = f"{grp}（{a.motor.name} + {a.gear.name}）"
         if peak_tm > a.motor.peak_torque:
-            warnings.append(
+            _warn(
+                "ACTUATOR_PEAK_OVER_MOTOR_PEAK", "blocking", "actuator", "峰值扭矩超過馬達峰值",
                 f"⛔ {gname}：目前估算扭矩為所填馬達峰值的 "
-                f"{round(100*peak_tm/a.motor.peak_torque)}% — CURRENT_MODEL_ACTUATOR_SCREEN=INFEASIBLE"
+                f"{round(100*peak_tm/a.motor.peak_torque)}% — CURRENT_MODEL_ACTUATOR_SCREEN=INFEASIBLE",
+                group=grp, value=round(100 * peak_tm / a.motor.peak_torque), limit=100, unit="%",
             )
         elif rms_tm > a.motor.rated_torque:
-            warnings.append(
+            _warn(
+                "ACTUATOR_RMS_OVER_RATED", "warning", "actuator", "RMS 扭矩超過持續額定（熱未建模）",
                 f"⚠️ {gname}：目前估算 RMS 扭矩為所填額定值的 "
                 f"{round(100*rms_tm/a.motor.rated_torque)}%；thermal state/允許持續時間未建模，"
-                "THERMAL_CAPABILITY=UNRESOLVED"
+                "THERMAL_CAPABILITY=UNRESOLVED",
+                group=grp, value=round(100 * rms_tm / a.motor.rated_torque), limit=100, unit="%",
             )
         elif peak_tm > a.motor.rated_torque:
-            warnings.append(
+            _warn(
+                "ACTUATOR_PEAK_OVER_RATED", "caution", "actuator", "峰值扭矩超過持續額定（持續時間不可判定）",
                 f"🔶 {gname}：目前估算峰值扭矩為所填持續額定值的 "
                 f"{round(100*peak_tm/a.motor.rated_torque)}%；未提供 peak-duration/thermal curve，"
-                "允許持續時間不可判定"
+                "允許持續時間不可判定",
+                group=grp, value=round(100 * peak_tm / a.motor.rated_torque), limit=100, unit="%",
             )
         if peak_sp > a.motor.rated_speed_rpm:
-            warnings.append(
+            _warn(
+                "ACTUATOR_SPEED_OVER_RATED", "blocking", "actuator", "轉速超過額定",
                 f"⛔ {gname}：目前估算轉速 {round(peak_sp)} rpm 超過所填額定 "
-                f"{round(a.motor.rated_speed_rpm)} rpm — CURRENT_MODEL_SPEED_SCREEN=INFEASIBLE"
+                f"{round(a.motor.rated_speed_rpm)} rpm — CURRENT_MODEL_SPEED_SCREEN=INFEASIBLE",
+                group=grp, value=round(peak_sp), limit=round(a.motor.rated_speed_rpm), unit="rpm",
             )
         if peak_tj > a.gear.rated_torque_out:
-            warnings.append(
+            _warn(
+                "GEARBOX_PEAK_OVER_RATED", "blocking", "actuator", "關節扭矩超過減速機額定輸出",
                 f"⛔ {gname}：目前估算關節扭矩為所填減速機額定輸出的 "
-                f"{round(100*peak_tj/a.gear.rated_torque_out)}% — CURRENT_MODEL_GEARBOX_SCREEN=INFEASIBLE"
+                f"{round(100*peak_tj/a.gear.rated_torque_out)}% — CURRENT_MODEL_GEARBOX_SCREEN=INFEASIBLE",
+                group=grp, value=round(100 * peak_tj / a.gear.rated_torque_out), limit=100, unit="%",
             )
 
     if engine.ik_clamped:
-        warnings.append(
+        _warn(
+            "IK_REACH_CLAMPED", "warning", "gait", "IK 可及性未通過，軌跡已截斷",
             "⚠️ 目前解析 IK/幾何可及性 screen 未通過，軌跡已截斷；"
-            "可縮短步長、降低下蹲量或調整連桿尺寸"
+            "可縮短步長、降低下蹲量或調整連桿尺寸",
         )
 
     if engine.blocking_obstacle is not None:
         ob = engine.blocking_obstacle
-        warnings.append(
+        _warn(
+            "OBSTACLE_NOT_PASSABLE", "blocking", "scene",
+            f"障礙物超出規劃器範圍（x={ob.x} m），已在其前停止",
             f"⛔ 障礙物（x={ob.x} m，高 {ob.height} m／深 {ob.depth} m）未通過目前 heuristic planner screen"
             f"（screening bounds：高 ≤ {engine.h_max:.2f} m、深 ≤ {max(engine.depth_max, 0):.2f} m）"
-            "；規劃器已在障礙物前停止前進。此結果不是實體跨越能力上限"
+            "；規劃器已在障礙物前停止前進。此結果不是實體跨越能力上限",
         )
 
     # 穩定性統計（穩態窗）。支撐面拓撲切換（單腳↔雙腳）前 4 samples
@@ -536,30 +569,38 @@ def run_simulation(req: SimRequest) -> dict:
     p01_zmp = float(np.percentile(zm_valid, 1)) if zmp_valid_sample_count > 0 else None
     min_com = float(cm_valid.min()) if cm_valid.size else np.nan
     if zmp_unstable_pct is None:
-        warnings.append(
+        _warn(
+            "ZMP_UNAVAILABLE", "warning", "stability", "ZMP 無有效樣本，穩定比例為 null",
             "⚠️ ZMP_STABILITY=UNAVAILABLE：目前統計窗經支撐拓撲切換排除與 finite-value "
             "screen 後沒有有效 ZMP margin samples；zmp_stable_pct 已回傳 null，"
-            "不得解讀為 100% stable"
+            "不得解讀為 100% stable",
         )
     elif gait.mode == "walk":
         if zmp_unstable_pct > 15:
-            warnings.append(
+            _warn(
+                "ZMP_SCREEN_NOT_PASSED", "warning", "stability",
+                f"ZMP screen 未通過：{zmp_unstable_pct:.0f}% 的時間超出支撐面（P1 裕度 {p01_zmp*100:.1f} cm）",
                 f"⚠️ 目前 cart-table ZMP screen 未通過：{zmp_unstable_pct:.0f}% 的時間明顯超出排程支撐多邊形"
                 f"（P1 裕度 {p01_zmp*100:.1f} cm；sampled minimum {min_zmp*100:.1f} cm）"
                 "— CURRENT_MODEL_ZMP_SCREEN=NOT_PASSED；"
                 f"這不是實體跌倒判定。"
-                f"可嘗試：降低速度、縮短步長、加寬/加長腳掌、調整骨盆側擺"
+                f"可嘗試：降低速度、縮短步長、加寬/加長腳掌、調整骨盆側擺",
+                value=round(zmp_unstable_pct), limit=15, unit="%",
             )
         elif zmp_unstable_pct > 3:
-            warnings.append(
+            _warn(
+                "ZMP_MARGIN_LOW", "caution", "stability",
+                f"ZMP 裕度偏低：{zmp_unstable_pct:.0f}% 的時間超出支撐面（P1 裕度 {p01_zmp*100:.1f} cm）",
                 f"🔶 目前 cart-table ZMP screen 裕度偏低：{zmp_unstable_pct:.0f}% 的時間超出排程支撐面"
                 f"（P1 裕度 {p01_zmp*100:.1f} cm；sampled minimum {min_zmp*100:.1f} cm）；"
-                "尚不能據此判定實體抗擾動能力"
+                "尚不能據此判定實體抗擾動能力",
+                value=round(zmp_unstable_pct), limit=3, unit="%",
             )
     if gait.mode != "walk":
-        warnings.append(
+        _warn(
+            "RUN_MODE_ZMP_INDICATIVE_ONLY", "info", "stability", "跑步含騰空期，ZMP 僅供 screening",
             "ℹ️ 跑步含騰空期，cart-table ZMP indicator 僅供 current-model screening；"
-            "可再以 MuJoCo forward contact simulation 測試，但仍不等同實體穩定性驗證"
+            "可再以 MuJoCo forward contact simulation 測試，但仍不等同實體穩定性驗證",
         )
 
     # 每個致動器群組左右各一顆
@@ -608,6 +649,7 @@ def run_simulation(req: SimRequest) -> dict:
             "joint_names": JOINT_ORDER,
             "body_names": [mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_BODY, b) for b in range(1, model.nbody)],
             "warnings": warnings,
+            "warning_items": warning_items,
             "summary": summary,
         },
         "geoms": geom_render_list(model),

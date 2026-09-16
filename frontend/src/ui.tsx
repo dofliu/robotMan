@@ -74,6 +74,7 @@ const PILL_TONES = {
   slate: "border-slate-600 bg-slate-800/60 text-slate-300",
   sky: "border-sky-500/40 bg-sky-500/10 text-sky-300",
   amber: "border-amber-500/40 bg-amber-500/10 text-amber-300",
+  orange: "border-orange-500/40 bg-orange-500/10 text-orange-300",
   emerald: "border-emerald-500/40 bg-emerald-500/10 text-emerald-300",
   red: "border-red-500/40 bg-red-500/10 text-red-300",
   violet: "border-violet-500/40 bg-violet-500/10 text-violet-200",

@@ -1,26 +1,40 @@
 import { useEffect, useMemo, useState } from "react";
 import { fetchTrace, fetchTraceList } from "./api";
-import LineChart, { type Series } from "./LineChart";
+import LineChart, { type ChartBand, type ChartMarker, type Series } from "./LineChart";
+import PlaybackBar from "./PlaybackBar";
 import { Playback } from "./playback";
 import type { DynamicTraceDetail, DynamicTraceListItem } from "./types";
 import { JOINT_LABELS } from "./types";
 import { Disclosure, Tabs } from "./ui";
 
-type TraceChart = "pose" | "grf" | "joint" | "torque" | "power";
-const TRACE_CHARTS: { id: TraceChart; label: string }[] = [
+// 每個分頁是一到兩張各有自己 y 軸的小圖；不同單位絕不共用同一軸。
+type TraceTab = "pose" | "contact" | "joint" | "tracking" | "power";
+const TRACE_TABS: { id: TraceTab; label: string }[] = [
   { id: "pose", label: "姿態與速度" },
-  { id: "grf", label: "模擬接觸 GRF" },
-  { id: "joint", label: "關節 realized vs reference" },
-  { id: "torque", label: "扭矩／追蹤誤差／飽和" },
+  { id: "contact", label: "接觸 GRF" },
+  { id: "joint", label: "關節角度與扭矩" },
+  { id: "tracking", label: "追蹤誤差與飽和" },
   { id: "power", label: "功率 proxy" },
 ];
-const TRACE_UNIT: Record<TraceChart, string> = {
-  pose: "deg / m/s",
-  grf: "N",
-  joint: "rad",
-  torque: "mixed",
-  power: "W",
+
+// 類別色：深色面板上驗證過的兩到三個 slot（藍／橘／青綠）；顏色跟著實體走，不跟排序走。
+const SERIES_BLUE = "#3987e5";
+const SERIES_ORANGE = "#d95926";
+// 狀態色：專門給控制器狀態，不拿來當資料序列色。
+const STATE_STYLE: Record<string, { label: string; color: string }> = {
+  STAND: { label: "站立", color: "#34d399" },
+  WALK: { label: "行走", color: "#38bdf8" },
+  STOPPING: { label: "停止中", color: "#fbbf24" },
+  FALLEN: { label: "跌倒", color: "#f87171" },
 };
+const DEFAULT_STATE_CODES: Record<string, string> = { "0": "STAND", "1": "WALK", "2": "FALLEN", "3": "STOPPING" };
+
+interface ChartSpec {
+  title: string;
+  unit: string;
+  series: Series[];
+  refLines?: { value: number; color: string; label: string }[];
+}
 
 function Metric({ label, value, alert = false }: { label: string; value: string; alert?: boolean }) {
   return (
@@ -42,7 +56,7 @@ export default function TraceAnalysisView() {
   const [selected, setSelected] = useState("");
   const [detail, setDetail] = useState<DynamicTraceDetail | null>(null);
   const [joint, setJoint] = useState(0);
-  const [chart, setChart] = useState<TraceChart>("pose");
+  const [tab, setTab] = useState<TraceTab>("pose");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const playback = useMemo(() => new Playback(), []);
@@ -93,46 +107,92 @@ export default function TraceAnalysisView() {
   const manifest = detail?.manifest;
   const summary = manifest?.summary;
   const jointNames = manifest?.joint_names ?? [];
+  const t0 = detail?.series.time[0] ?? 0;
 
-  const time = useMemo(() => {
-    const raw = detail?.series.time ?? [];
-    const t0 = raw[0] ?? 0;
-    return raw.map((value) => value - t0);
-  }, [detail]);
+  // 時間軸從 0 起算
+  const time = useMemo(() => (detail?.series.time ?? []).map((value) => value - t0), [detail, t0]);
 
-  const series: Series[] = useMemo(() => {
+  // 控制器狀態色帶：state_code 連續相同的區段合成一段
+  const bands: ChartBand[] = useMemo(() => {
+    if (!detail) return [];
+    const codes = detail.series.state_code;
+    const names = detail.manifest.state_codes ?? DEFAULT_STATE_CODES;
+    const out: ChartBand[] = [];
+    let start = 0;
+    for (let i = 1; i <= codes.length; i++) {
+      if (i === codes.length || codes[i] !== codes[start]) {
+        const name = names[String(codes[start])] ?? "UNKNOWN";
+        const style = STATE_STYLE[name] ?? { label: name, color: "#64748b" };
+        out.push({ t0: time[start], t1: time[Math.min(i, codes.length - 1)], color: style.color, label: style.label });
+        start = i;
+      }
+    }
+    return out;
+  }, [detail, time]);
+  const statesPresent = useMemo(() => [...new Set(bands.map((b) => b.label))], [bands]);
+
+  // 垂直標記：第一次跌倒、正式任務各階段起點
+  const markers: ChartMarker[] = useMemo(() => {
+    if (!summary) return [];
+    const out: ChartMarker[] = [];
+    if (summary.fell && summary.first_fall_time_s != null) {
+      out.push({ t: summary.first_fall_time_s - t0, label: "跌倒", color: "#f87171" });
+    }
+    for (const phase of manifest?.task?.contract.phases ?? []) {
+      if (phase.start_s > 0) out.push({ t: phase.start_s, label: phase.id, color: "#9085e9" });
+    }
+    return out;
+  }, [summary, manifest, t0]);
+
+  const charts: ChartSpec[] = useMemo(() => {
     if (!detail) return [];
     const s = detail.series;
-    switch (chart) {
+    switch (tab) {
       case "pose":
         return [
-          { label: "pitch", color: "#f97316", data: s.pitch_deg },
-          { label: "roll", color: "#e879f9", data: s.roll_deg },
-          { label: "vx", color: "#38bdf8", data: s.com_vel.map((row) => row[0]) },
+          { title: "軀幹姿態", unit: "°", series: [
+            { label: "pitch", color: SERIES_BLUE, data: s.pitch_deg },
+            { label: "roll", color: SERIES_ORANGE, data: s.roll_deg },
+          ] },
+          { title: "前進速度 vx", unit: " m/s", series: [
+            { label: "vx", color: SERIES_BLUE, data: s.com_vel.map((row) => row[0]) },
+          ] },
         ];
-      case "grf":
+      case "contact":
         return [
-          { label: "Left GRF", color: "#ef4444", data: s.grf_lr.map((row) => row[0]) },
-          { label: "Right GRF", color: "#3b82f6", data: s.grf_lr.map((row) => row[1]) },
+          { title: "模擬接觸地面反力", unit: " N", series: [
+            { label: "左腳", color: SERIES_BLUE, data: s.grf_lr.map((row) => row[0]) },
+            { label: "右腳", color: SERIES_ORANGE, data: s.grf_lr.map((row) => row[1]) },
+          ] },
         ];
       case "joint":
         return [
-          { label: "Realized q", color: "#38bdf8", data: s.joint_q.map((row) => row[joint] ?? 0) },
-          { label: "Reference q", color: "#fbbf24", data: s.joint_q_ref.map((row) => row[joint] ?? 0) },
+          { title: `關節角度：${JOINT_LABELS[jointNames[joint]] ?? jointNames[joint] ?? "—"}`, unit: " rad", series: [
+            { label: "實際", color: SERIES_BLUE, data: s.joint_q.map((row) => row[joint] ?? 0) },
+            { label: "參考", color: SERIES_ORANGE, data: s.joint_q_ref.map((row) => row[joint] ?? 0) },
+          ] },
+          { title: "關節扭矩", unit: " Nm", series: [
+            { label: "扭矩", color: SERIES_BLUE, data: s.joint_tau.map((row) => row[joint] ?? 0) },
+          ] },
         ];
-      case "torque":
+      case "tracking":
         return [
-          { label: "Torque (Nm)", color: "#4ade80", data: s.joint_tau.map((row) => row[joint] ?? 0) },
-          { label: "Tracking RMSE (rad)", color: "#fbbf24", data: s.tracking_rmse_rad },
-          { label: "Max saturation (%)", color: "#f87171", data: s.max_saturation_pct },
+          { title: "追蹤 RMSE（全關節）", unit: " rad", series: [
+            { label: "RMSE", color: SERIES_BLUE, data: s.tracking_rmse_rad },
+          ] },
+          { title: "最大馬達飽和", unit: "%", series: [
+            { label: "飽和", color: SERIES_BLUE, data: s.max_saturation_pct },
+          ], refLines: [{ value: 100, color: "#f8717188", label: "峰值 100%" }] },
         ];
       case "power":
         return [
-          { label: "Positive power", color: "#22d3ee", data: s.positive_power_w },
-          { label: "Absolute power", color: "#a78bfa", data: s.absolute_power_w },
+          { title: "機械功率 proxy", unit: " W", series: [
+            { label: "正功率", color: SERIES_BLUE, data: s.positive_power_w },
+            { label: "絕對功率", color: SERIES_ORANGE, data: s.absolute_power_w },
+          ] },
         ];
     }
-  }, [detail, chart, joint]);
+  }, [detail, tab, joint, jointNames]);
 
   if (!traces.length && !busy && !error) {
     return (
@@ -161,7 +221,7 @@ export default function TraceAnalysisView() {
     : task?.evaluation.status === "FAIL"
       ? "bg-red-500/20 text-red-300"
       : "bg-amber-500/20 text-amber-300";
-  const showJointPicker = chart === "joint" || chart === "torque";
+  const chartHeight = charts.length > 1 ? 190 : 300;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-slate-950">
@@ -192,7 +252,7 @@ export default function TraceAnalysisView() {
         <div className="min-h-0 flex-1 overflow-y-auto p-3">
           <div className="grid grid-cols-4 gap-2 xl:grid-cols-8">
             <Metric label="Controller" value={manifest.controller} />
-            <Metric label="最終狀態" value={summary.final_state} alert={summary.fell} />
+            <Metric label="最終狀態" value={STATE_STYLE[summary.final_state]?.label ?? summary.final_state} alert={summary.fell} />
             <Metric label="時長" value={`${summary.duration_s.toFixed(2)} s`} />
             <Metric label="距離" value={`${summary.distance_m.toFixed(3)} m`} />
             <Metric label="平均 vx" value={`${summary.average_forward_speed_mps.toFixed(3)} m/s`} />
@@ -246,20 +306,53 @@ export default function TraceAnalysisView() {
             </section>
           )}
 
-          <section className="mt-3 rounded border border-slate-800 bg-slate-900/50 p-2">
-            <div className="mb-2 flex flex-wrap items-center gap-2">
-              <Tabs value={chart} onChange={setChart} items={TRACE_CHARTS} />
-              {showJointPicker && (
+          <section className="mt-3 overflow-hidden rounded border border-slate-800 bg-slate-900/50">
+            <div className="flex flex-wrap items-center gap-2 px-2 pt-2">
+              <Tabs value={tab} onChange={setTab} items={TRACE_TABS} />
+              {tab === "joint" && (
                 <select
-                  className="ml-auto rounded bg-slate-800 px-2 py-1 text-xs"
+                  className="rounded bg-slate-800 px-2 py-1 text-xs"
                   value={joint}
                   onChange={(event) => setJoint(Number(event.target.value))}
                 >
                   {jointNames.map((name, index) => <option key={name} value={index}>{JOINT_LABELS[name] ?? name}</option>)}
                 </select>
               )}
+              <span className="ml-auto flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
+                <span>圖頂色帶：控制器狀態</span>
+                {statesPresent.map((label) => {
+                  const style = Object.values(STATE_STYLE).find((item) => item.label === label);
+                  return (
+                    <span key={label} className="flex items-center gap-1">
+                      <span className="inline-block h-2 w-3 rounded-sm" style={{ background: style?.color ?? "#64748b" }} />
+                      {label}
+                    </span>
+                  );
+                })}
+                <span className="text-slate-600">｜滑過看數值，點一下定位播放</span>
+              </span>
             </div>
-            <LineChart time={time} playback={playback} height={340} unit={TRACE_UNIT[chart]} series={series} />
+            <div className="grid gap-2 px-2 pb-2 pt-1">
+              {charts.map((chart) => (
+                <div key={chart.title}>
+                  <div className="mb-0.5 text-xs font-semibold text-slate-300">
+                    {chart.title}
+                    <span className="ml-1 text-[11px] font-normal text-slate-500">{chart.unit.trim()}</span>
+                  </div>
+                  <LineChart
+                    time={time}
+                    playback={playback}
+                    height={chartHeight}
+                    unit={chart.unit}
+                    series={chart.series}
+                    refLines={chart.refLines ?? []}
+                    markers={markers}
+                    bands={bands}
+                  />
+                </div>
+              ))}
+            </div>
+            <PlaybackBar playback={playback} />
           </section>
         </div>
       )}

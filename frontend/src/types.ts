@@ -188,8 +188,15 @@ export interface TrainingProfile {
   parallel_envs: number;
   seed_base: number;
   status: string;
-  environment_id: "fixed_walk_v1" | "motion_task_command_v1";
+  // 後端 inventory 的環境 id 逐版新增（fixed_walk_v1、motion_task_*），前端只讀不列舉。
+  environment_id: string;
   task_id?: string | null;
+  // 家族識別：每個 profile 最多宣告一個 governing protocol；沒有的就是開發版本或 legacy。
+  warm_start_policy_id?: string | null;
+  pilot_protocol_id?: string | null;
+  pilot_arm_id?: string | null;
+  seedvar_protocol_id?: string | null;
+  tracked_lineage_protocol_id?: string | null;
 }
 
 export interface TrainingInventory {
@@ -197,6 +204,21 @@ export interface TrainingInventory {
   evidence_scope: string;
   execution_mode: "OFFLINE_EXPLICIT_COMMAND_ONLY";
   profiles: TrainingProfile[];
+}
+
+export type WarningSeverity = "blocking" | "warning" | "caution" | "info";
+
+// 與 meta.warnings 一對一、同序的結構化版本；detail 就是同一條原文。
+export interface WarningItem {
+  code: string;
+  severity: WarningSeverity;
+  scope: "stats" | "actuator" | "gait" | "scene" | "stability";
+  group: string | null;
+  title: string;
+  detail: string;
+  value: number | null;
+  limit: number | null;
+  unit: string | null;
 }
 
 export interface SimResult {
@@ -207,6 +229,8 @@ export interface SimResult {
     joint_names: string[];
     body_names: string[];
     warnings: string[];
+    // 舊後端沒有這個欄位；缺少時前端退回顯示原文清單。
+    warning_items?: WarningItem[];
     summary: SimSummary;
     provenance?: SimulationProvenance;
   };
@@ -328,6 +352,8 @@ export interface DynamicTraceManifest {
   stop_reason: string;
   joint_names: string[];
   group_names: string[];
+  // 後端 STATE_LABELS：{"0": "STAND", "1": "WALK", "2": "FALLEN", "3": "STOPPING"}
+  state_codes?: Record<string, string>;
   gait: GaitParams;
   assist_enabled_at_start: boolean;
   policy_evidence_status: string | null;
