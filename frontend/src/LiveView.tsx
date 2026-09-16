@@ -3,7 +3,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import type { GaitParams, GeomDef, MotionTaskResult, Obstacle, RobotConfig } from "./types";
 import { GROUP_LABELS } from "./types";
-import { Disclosure, Pill } from "./ui";
+import { Chip, Disclosure, Pill, type PillTone } from "./ui";
 
 // ---------- 型別 ----------
 export interface LiveScene {
@@ -15,6 +15,8 @@ export interface Decision {
   t: number;
   text: string;
   level: string;
+  // 後端節流 key；同一種事件的穩定識別。舊後端沒有時退回用 level 粗分。
+  kind?: string;
 }
 export type CompareController = "track" | "raibert" | "rl";
 export type WalkController = CompareController | "rl_task_v2" | "rl_task_v5";
@@ -297,6 +299,72 @@ const CONTROLLER_OPTIONS: { id: WalkController; label: string; hint: string }[] 
   { id: "rl_task_v5", label: "RL phase-observable-v5", hint: "path / heading / phase 可觀測的版本。" },
 ];
 
+// 決策日誌分類：kind 來自後端的節流 key；一個 key 只屬於一類
+type LogCategory = "balance" | "gait" | "mode" | "disturbance" | "fall" | "event";
+const LOG_CATEGORIES: { id: LogCategory; label: string; tone: PillTone; color: string; text: string }[] = [
+  { id: "balance", label: "平衡", tone: "sky", color: "#38bdf8", text: "text-sky-300" },
+  { id: "gait", label: "步態", tone: "cyan", color: "#22d3ee", text: "text-cyan-300" },
+  { id: "mode", label: "模式", tone: "emerald", color: "#34d399", text: "text-emerald-300" },
+  { id: "disturbance", label: "擾動", tone: "amber", color: "#fbbf24", text: "text-amber-300" },
+  { id: "fall", label: "跌倒", tone: "red", color: "#f87171", text: "font-semibold text-red-300" },
+  { id: "event", label: "事件", tone: "slate", color: "#94a3b8", text: "text-slate-400" },
+];
+const KIND_CATEGORY: Record<string, LogCategory> = {
+  ankle: "balance",
+  roll: "balance",
+  hip: "balance",
+  step: "balance",
+  hurry: "gait",
+  first: "gait",
+  td: "gait",
+  raibert: "gait",
+  mode: "mode",
+  stop_complete: "mode",
+  ctrl_switch: "mode",
+  impact: "disturbance",
+  push_cmd: "disturbance",
+  fall: "fall",
+  gait: "event",
+  obs: "event",
+  assist_toggle: "event",
+  assist: "event",
+  drift: "event",
+  motion_task: "event",
+  reset: "event",
+};
+const LEVEL_FALLBACK: Record<string, LogCategory> = {
+  fall: "fall", impact: "disturbance", strategy: "balance", mode: "mode",
+};
+function categoryOf(d: Decision): LogCategory {
+  if (d.kind && KIND_CATEGORY[d.kind]) return KIND_CATEGORY[d.kind];
+  return LEVEL_FALLBACK[d.level] ?? "event";
+}
+
+interface LogRow {
+  key: number;
+  first: Decision;
+  last: Decision;
+  count: number;
+  category: LogCategory;
+}
+
+// 連續同 kind 的 entry 併成一列（顯示最新一條與次數），洗版的策略介入就縮成一行
+function buildLogRows(decisions: Decision[], merge: boolean, filter: LogCategory | "all"): LogRow[] {
+  const rows: LogRow[] = [];
+  decisions.forEach((d, index) => {
+    const category = categoryOf(d);
+    if (filter !== "all" && category !== filter) return;
+    const previous = rows[rows.length - 1];
+    if (merge && previous && d.kind && previous.last.kind === d.kind) {
+      previous.last = d;
+      previous.count += 1;
+      return;
+    }
+    rows.push({ key: index, first: d, last: d, count: 1, category });
+  });
+  return rows;
+}
+
 const STATE_LABEL: Record<string, [string, string]> = {
   STAND: ["🧍 站立平衡", "bg-emerald-500/20 text-emerald-300"],
   WALK: ["🚶 行走中", "bg-sky-500/20 text-sky-300"],
@@ -473,11 +541,19 @@ export default function LiveView({
         : STATE_LABEL[st.state] ?? [`⚠ 未知狀態 ${st.state}`, "bg-amber-500/20 text-amber-300"];
 
   const [advanced, setAdvanced] = useState(false);
+  const [logFilter, setLogFilter] = useState<LogCategory | "all">("all");
+  const [mergeRepeats, setMergeRepeats] = useState(true);
   const controllerOption = CONTROLLER_OPTIONS.find((option) => option.id === walkCtrl);
   const taskActive = Boolean(frame?.motion_task?.active);
   const recordingActive = Boolean(frame?.recording?.active);
   const interventions = frame?.interventions;
   const lastTaskStatus = frame?.last_task?.evaluation.status;
+  const decisions = frame?.decisions ?? [];
+  const categoryCounts: Record<LogCategory, number> = {
+    balance: 0, gait: 0, mode: 0, disturbance: 0, fall: 0, event: 0,
+  };
+  for (const d of decisions) categoryCounts[categoryOf(d)] += 1;
+  const logRows = buildLogRows(decisions, mergeRepeats, logFilter);
 
   return (
     <div className="flex min-h-0 flex-1">
@@ -762,21 +838,47 @@ export default function LiveView({
           )}
         </div>
         <div className="flex min-h-0 flex-1 flex-col p-2">
-          <div className="mb-1 text-xs font-semibold text-slate-300">控制器決策日誌</div>
-          <div ref={logRef} className="min-h-0 flex-1 overflow-y-auto rounded bg-slate-950/60 p-1.5">
-            {(frame?.decisions ?? []).map((d, i) => (
-              <div
-                key={i}
-                className={`mb-0.5 text-[11px] leading-4 ${
-                  d.level === "fall" ? "text-red-300 font-semibold"
-                  : d.level === "impact" ? "text-amber-300"
-                  : d.level === "strategy" ? "text-sky-300"
-                  : "text-slate-400"
-                }`}
+          <div className="mb-1 flex items-center justify-between text-xs font-semibold text-slate-300">
+            控制器決策日誌
+            <label className="flex items-center gap-1 text-[11px] font-normal text-slate-400" title="連續出現的同一種事件併成一列，顯示最新一條與次數">
+              <input type="checkbox" checked={mergeRepeats} onChange={(e) => setMergeRepeats(e.target.checked)} />
+              合併連續同類
+            </label>
+          </div>
+          <div className="mb-1 flex flex-wrap gap-1">
+            <Chip active={logFilter === "all"} onClick={() => setLogFilter("all")}>全部 {decisions.length}</Chip>
+            {LOG_CATEGORIES.map((c) => (
+              <Chip
+                key={c.id}
+                active={logFilter === c.id}
+                color={c.color}
+                onClick={() => setLogFilter(logFilter === c.id ? "all" : c.id)}
               >
-                <span className="text-slate-600">[{d.t.toFixed(1)}s]</span> {d.text}
-              </div>
+                {c.label} {categoryCounts[c.id]}
+              </Chip>
             ))}
+          </div>
+          <div ref={logRef} className="min-h-0 flex-1 overflow-y-auto rounded bg-slate-950/60 p-1.5">
+            {logRows.length === 0 && (
+              <div className="text-[11px] text-slate-600">{decisions.length === 0 ? "尚無紀錄" : "此分類目前沒有紀錄"}</div>
+            )}
+            {logRows.map((row) => {
+              const category = LOG_CATEGORIES.find((c) => c.id === row.category)!;
+              return (
+                <div key={row.key} className={`mb-0.5 flex items-start gap-1 text-[11px] leading-4 ${category.text}`}>
+                  <span className="shrink-0 text-slate-600">[{row.last.t.toFixed(1)}s]</span>
+                  <span className="min-w-0 flex-1">{row.last.text}</span>
+                  {row.count > 1 && (
+                    <span
+                      className="shrink-0 rounded bg-slate-800 px-1 text-[10px] text-slate-400"
+                      title={`${row.first.t.toFixed(1)}–${row.last.t.toFixed(1)} s 之間連續 ${row.count} 次`}
+                    >
+                      ×{row.count}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       </aside>

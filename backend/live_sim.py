@@ -290,7 +290,7 @@ class LiveSession:
             self.push = None
             self.push_info = None
             self._build(reset_state=True)
-            self.controller.decisions.append({"t": 0.0, "text": "🔄 重置", "level": "event"})
+            self.controller.decisions.append({"t": 0.0, "text": "🔄 重置", "level": "event", "kind": "reset"})
             return "scene"
         return live_error("INVALID_COMMAND", "unsupported command")
 

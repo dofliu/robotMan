@@ -94,7 +94,8 @@ class BalanceController:
         last = self._decide_last.get(key, -1e9)
         if self.t - last >= min_interval:
             self._decide_last[key] = self.t
-            self.decisions.append({"t": round(self.t, 2), "text": text, "level": level})
+            # kind = 節流 key：同一種事件的穩定識別，前端據此分類與合併連續重複；text/level 不變。
+            self.decisions.append({"t": round(self.t, 2), "text": text, "level": level, "kind": key})
             if len(self.decisions) > 200:
                 self.decisions = self.decisions[-200:]
 
