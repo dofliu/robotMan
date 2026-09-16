@@ -2,6 +2,17 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-16 (ae)
+
+### 把 §1.4 的診斷併進 Track A：R4 從「只有 pilot」升為有凍結實例、有機制
+
+- [RESULT] [TRACK_A_REFRAME](docs/TRACK_A_REFRAME_2026-09-09.md) 新增 **§3.7**，把 `TRACKED-LINEAGE-TRAINING-V1`／`V2` 這條線併為 **regime R4 的 worked example**。**沒有執行任何新實驗**：那條線本來是為 `PUB-B2` 跑的，但它量到的東西正好是 R4「在凍結上限內 reference 從未達 adequacy」。
+- [RESULT] **R4 的證據等級改變了。** 原本 R4 只有 Probe V1／V2 兩個 **pilot** 撐著，是整張 regime 表最弱的一格；現在多一個 **DEVELOPMENT、凍結 protocol、標籤由 contract runner 在版控證據上算出**的實例：五個 replicate 在 `2,000,000` 與 realized `4,015,200` 兩個預算下 full exposure 皆 `0/30`，`replicates_attaining_threshold = 0`、`label = TL2_BUDGET_EXHAUSTED`（[`tl2_contract_receipt.json`](backend/tracked_lineage_evidence/2026-09-14/tl2_contract_receipt.json) `sha256:0cd90e12…`、protocol `sha256:a38662d9…`）。
+- [RESULT] **而且這次 R4 有機制，不只有標籤。** [PROJECT_ASSESSMENT §1.4](docs/PROJECT_ASSESSMENT_2026-09-16.md) 的獎勵拆解對得上實測（站好約 `2.5`／步 → 125 步約 `310` → 減 `−50` 約 `260`，對上 V1 `227`–`232`、V2 `283`–`295`）；預算加倍讓獎勵 `+51.5`–`+66.5`、存活 `+0.145`–`+0.778` s，**曝露仍是五個 `0/30`**。
+- [INFERENCE] **對 A-C3 的作用比「多一個實例」大得多。** R4 原本讀起來像本專案 plant 的特例；[新的文獻地圖 §1.1](docs/LITERATURE_MAP_2026-09-16_TRAINING_STRATEGY.md) 指出「shaping 讓靜止成為穩定局部最優」是 locomotion RL **已具名、已 ablate** 的失敗模式。若該判定成立，**落進 R4 就是 shaped locomotion 任務上可預期的結果**——於是 reference 是否可達 adequacy 成為由 reward 設計決定、而標準評估流程既不控制也不報告的變數。這正是 A-C3 的論點，也是它目前最強的支點。上週剛關掉 RQ2 的那份文獻地圖，這週反過來替 Track A 加強了一條主貢獻。
+- [BLOCKER] **邊界寫死在 §6 第 11 條**：該線是單臂 budget 線，**不產生任何 paired bound**；`not_independent_of_v1 = true`，V1 與 V2 不是兩個獨立觀測；其數值**不得與 v7 或 Walker2d 相減或並排成趨勢**；**不支持**「再多跑一些就會到 `30/30`」；§3.7 的獎勵拆解是對**該 reward 函數**的算術，不是對 plant、controller 或任何 locomotion 方法的主張。
+- [RESULT] 連帶更新：§3 regime 表的 R4 列、§4 的 A-C3 證據欄、§5 claim 表加第 13／14 列（12 → 14）、§6 限制加第 11 條（10 → 11）、§7 加 `T5`；`STATUS.yaml` 的 `track_a_reframe` 同步（含上述邊界）。**`PUB-A` gate 狀態一個都沒動**，`paper_data_ready` 等四個 flag 仍為 false。
+
 ## Unreleased — 2026-09-16 (ad)
 
 ### RQ2 文獻檢查：三個候選槓桿全部已有先前技術，不建議為發表開 V3
