@@ -105,6 +105,47 @@ def test_empty_or_duplicate_recording_commands_fail_closed(trace_store):
     assert session.trace_recorder.active is True
 
 
+def test_record_start_duration_outside_the_declared_range_is_rejected(trace_store, lightweight_rl):
+    """`max_duration_s` 的 `1–60` 值域由命令 schema 強制，live 與 compare 同一條路徑。
+
+    規格 DYNAMIC_RUN_TRACE_SPEC §3 宣告這個值域。它實際由
+    `LiveRecordStartCommand` 的 `Field(ge=1.0, le=60.0)` 在
+    `validate_live_command()` 強制，因此越界值在抵達 `start_recording()`
+    之前就被擋掉——本測試把那件事釘住，避免日後有人把欄位放寬或改走
+    未驗證的路徑而沒有人發現。
+    """
+    session = LiveSession(default_robot(), GaitParams(), [])
+    comparison = CompareSession(default_robot(), GaitParams(), [])
+
+    # 越界、非有限值都必須 fail closed，且不得留下 recorder。
+    # 兩條路徑用各自的具名 code：live 是 INVALID_COMMAND、compare 是 INVALID_COMPARE_COMMAND。
+    for value in (0.0, 0.5, 60.5, 600.0, -1.0, float("inf"), float("nan")):
+        for target, expected_code in ((session, "INVALID_COMMAND"), (comparison, "INVALID_COMPARE_COMMAND")):
+            rejected = target.command({"type": "record_start", "max_duration_s": value})
+            assert rejected["type"] == "error", (value, expected_code)
+            assert rejected["code"] == expected_code, (value, rejected["code"])
+    assert session.trace_recorder is None
+    assert all(item.trace_recorder is None for item in comparison.sessions.values())
+    assert trace_store.list_traces() == []
+
+    # 兩個邊界值本身必須是可接受的，否則就不是「1–60」而是更窄的範圍。
+    for value in (1.0, 60.0):
+        started = session.command({"type": "record_start", "max_duration_s": value})
+        assert started["type"] == "trace_recording_started"
+        assert session.trace_recorder.max_duration_s == value
+        session.command({"type": "record_stop"})
+        session.trace_recorder = None
+
+
+def test_record_start_duration_defaults_to_thirty_when_omitted(trace_store):
+    """省略時採規格的預設 30 秒；預設值不得靜默漂移。"""
+    session = LiveSession(default_robot(), GaitParams(), [])
+    started = session.command({"type": "record_start"})
+
+    assert started["type"] == "trace_recording_started"
+    assert session.trace_recorder.max_duration_s == 30.0
+
+
 def test_trace_hash_tamper_is_rejected(trace_store):
     _, receipt = capture_short_trace(trace_store)
     _, artifact = trace_store._paths(receipt["run_id"])

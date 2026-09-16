@@ -86,6 +86,7 @@ Manifest 保存 robot/gait/obstacles、controller、policy ID/evidence status、
 |---|---|---|
 | TRACE-R01 | 每個 sample 來自 physics step，不由 30 FPS UI frame 回填 | PASS — 500 Hz recorder test |
 | TRACE-R02 | max duration 有界；超限自動 finalize | PASS — 1 s / 500 samples boundary test |
+| TRACE-R02b | `max_duration_s` 的 `1–60` 值域在命令邊界強制，越界與非有限值 fail closed | PASS — live 與 compare 兩路徑的 range/邊界/預設值測試 |
 | TRACE-R03 | manifest count/shape/dtype 與 NPZ 一致 | PASS — artifact validator test |
 | TRACE-R04 | NPZ bytes 與 SHA-256 mismatch fail closed | PASS — tamper negative test |
 | TRACE-R05 | recording 中 scenario/controller identity 不可漂移 | PASS — command contract test |

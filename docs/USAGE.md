@@ -233,8 +233,8 @@ Evaluation 走 generic path（本線**不**修改 `eval_policy.py`），evaluati
 ## 9. Dynamic Run Trace：從第二模式回到第一模式分析
 
 1. 進入「即時互動」或「三機同步比較」。
-2. 選定 controller、assist 與動作條件後，按「開始記錄 Trace」；UI 送出的 `max_duration_s` 是 30 秒。
-   - [BLOCKER] [DYNAMIC_RUN_TRACE_SPEC §3](DYNAMIC_RUN_TRACE_SPEC.md) 宣告該值域為 `1–60` 秒，但 `live_sim.py` 的 `record_start` **直接採用 client 傳來的值、未驗證範圍**。目前只有 UI 自律送 30 秒；規格的上界尚未由程式強制。
+2. 選定 controller、assist 與動作條件後，按「開始記錄 Trace」；UI 送出的 `max_duration_s` 是 30 秒，省略時後端預設也是 30 秒。
+   - [RESULT] [DYNAMIC_RUN_TRACE_SPEC §3](DYNAMIC_RUN_TRACE_SPEC.md) 宣告的 `1–60` 秒值域**由命令 schema 強制**：`LiveRecordStartCommand` 的 `Field(ge=1.0, le=60.0)` 在 `validate_live_command()` 擋下越界值與 `inf`／`nan`，越界命令在抵達 `start_recording()` 之前就被拒絕。Live 路徑回 `INVALID_COMMAND`、compare 路徑回 `INVALID_COMPARE_COMMAND`，兩者都不會留下 recorder。
 3. 執行 stand/walk、push 等測試，再按「停止並保存 Trace」。
 4. 回到「分析模式」，選擇「Dynamic Trace」。
 5. 選擇 run。上方八格摘要給 controller、最終狀態、時長、距離、平均 vx、最大 pitch/roll 與絕對機械功；下方五個分頁各自是一到兩張**各有自己 y 軸**的小圖：姿態與速度／接觸 GRF／關節角度與扭矩／追蹤誤差與飽和／功率 proxy。
