@@ -1,6 +1,6 @@
 # Paper Data Readiness Architecture
 
-最後更新：2026-09-08
+最後更新：2026-09-13（2026-09-16 盤點更正：此欄原寫 `2026-09-08`，但本文件的內容在 `2026-09-13` 仍有變更；本次盤點未改動其 PDR 各列，逐列核對後皆與 receipt 一致）
 
 狀態：`ARCHITECTURE FROZEN V1 / SOFTWARE PIPELINE PARTIAL`
 
