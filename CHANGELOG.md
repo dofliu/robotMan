@@ -2,6 +2,15 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-16 (ac)
+
+### 介面改版後的第一次完整驗證：950 passed，唯一失敗仍是同一個既有項
+
+- [RESULT] **在乾淨工作樹（`979e73b`，`git status` 為空）跑完整套件**：`pytest -v --durations=0`，**1 failed / 950 passed，319.18 s**。逐項統計與 pytest 自己的 summary 對得起來（`950 + 1 = 951`），逐 commit 也對得起來：2026-09-14 的 `941` ＋7（`test_warning_items.py` 5、`test_decision_kind.py` 2）＝ `948`（`9f871ac`）＋2（(ab) 補的 `record_start` 邊界測試）＝ **`950`**。**介面改版六個 commit 加上兩批後續工作，沒有新增任何失敗。**
+- [RESULT] 唯一失敗仍是 `test_v1_analytical_suite.py::test_stdlib_replay_passes_exact_synthetic_fixture`（`PRIMARY_CASE_RECEIPT_IDENTITY`），自 2026-09-08 起**記錄為量測結果而非放寬**：fixture 用 `np.mean`、replay 用 stdlib `sum(...)/len(...)`，`196.2` 對 `196.19999999999854`，差 `1.46e-12`，剛好越過 `1e-12` 的 exactness 門檻。本次**未改門檻、未改 fixture**。
+- [RESULT] 前端 `npm run check`（`tsc --noEmit` ＋ `vite build`）乾淨；五個頁面以 Playwright 重新截圖，無 `pageerror`。
+- [RESULT] **修掉兩個過期數字**：(ab) 加了 2 個測試卻沒同步計數，USAGE §12 與 PROJECT_STATUS §9 都還停在 `948`，已改為 `950` 並補上量測條件（commit、秒數、指令）。CHANGELOG 舊條目維持原樣，因為它們記錄的是當時的量測。
+
 ## Unreleased — 2026-09-16 (ab)
 
 ### 撤回我自己在 (aa) 寫下的 blocker：那個值域**本來就被強制**，缺的是測試

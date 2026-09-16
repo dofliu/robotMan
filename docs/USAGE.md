@@ -284,7 +284,7 @@ python -X utf8 -B backend/test_pipeline.py
 
 第一個只跑 REST/WebSocket schema、actual metric 與 provenance；第二個保留可直接閱讀的 legacy diagnostics。兩者都不代表 V1 已通過。執行後須保留 command、environment、stdout/stderr、exit code 與 code hash。新增 physics 功能時，優先加入 residual、conservation、constraint 與 convergence oracle。
 
-[RESULT] 完整套件目前為 **1 failed / 948 passed**，那一個失敗是在具名 environment lock 下**記錄為量測結果、未放寬**的 reduction-order 差異。看到它不必修；理由見 [PROJECT_STATUS §9](PROJECT_STATUS.md)。
+[RESULT] 完整套件目前為 **1 failed / 950 passed**（2026-09-16，`319.18` s，工作樹在 `979e73b`），那一個失敗是在具名 environment lock 下**記錄為量測結果、未放寬**的 reduction-order 差異。看到它不必修；理由見 [PROJECT_STATUS §9](PROJECT_STATUS.md)。
 
 ## 13. 結果記錄最低要求
 
