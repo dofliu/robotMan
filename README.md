@@ -43,6 +43,8 @@ Repository：[github.com/dofliu/robotMan](https://github.com/dofliu/robotMan) �
 
 第一模式提供兩個 analysis sources：`Reference 估算` 是原有 prescribed trajectory；`Dynamic Trace` 則讀取第二模式以 500 Hz physics-step 保存的 MuJoCo realized simulation。後者仍是 simulated output，不是實體量測。見 [DYNAMIC_RUN_TRACE_SPEC](docs/DYNAMIC_RUN_TRACE_SPEC.md)。
 
+介面於 2026-09-16 重新整理：四個分頁、每頁一次只看一件事，警告與決策日誌分類顯示，圖表一個量一條 y 軸並加上相位色帶與事件標記。**功能沒有移除，證據 token 也沒有減少**——完整 token 收在右上角「證據狀態」抽屜。逐頁說明見 [USAGE §3](docs/USAGE.md)。
+
 ## Verification 與 Validation
 
 - **Verification**：程式是否正確實作已定義的 equations、units、constraints 與數值方法。
@@ -61,7 +63,7 @@ Repository：[github.com/dofliu/robotMan](https://github.com/dofliu/robotMan) �
 - 三機同步比較模式：三個獨立 MuJoCo plants 接收相同命令，assist 預設關閉、跌倒不自動修復
 - 正式動作任務 V1：`stand → start → steady walk → stop` 的固定 phase、500 Hz trace 與逐項 PASS/FAIL
 - `WALK → STOPPING → STAND` controlled transition 與可擴充 Motion Primitive dispatcher
-- RL Training Lab：顯示 fixed-speed／command-conditioned profiles、seed、training budget 與 evidence status
+- RL 訓練頁：依家族分組顯示 fixed-speed／command-conditioned profiles、seed、training budget 與 evidence status
 - Registry-gated Motion Task policies：48-D curriculum-v2 與 51-D phase-observable-v5
 - V1 static contact oracle 與 analytical fixture：raw Jacobian／wrench 保存與 stdlib-only replay
 - 證據契約層：experiment matrix、paired statistics/export、exposure-censoring audit、environment lock、training-seed variance、candidate selection，每一層皆可由 `python -I -S` 獨立 exact 重建

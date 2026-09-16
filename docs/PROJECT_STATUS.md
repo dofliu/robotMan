@@ -1,6 +1,6 @@
 # 專案進度狀態報告
 
-最後更新：2026-09-14 ｜ 對應 `STATUS.yaml` ｜ Development：`0.2.0-dev`
+最後更新：2026-09-16 ｜ 對應 `STATUS.yaml` ｜ Development：`0.2.0-dev`
 
 證據範圍：`SIM_ONLY_REDUCED_ORDER` / `NOT_PHYSICALLY_VALIDATED`
 
@@ -21,6 +21,7 @@
 - **新訓練線已執行完成（2026-09-14）：`PUB-B1` 達成、`PUB-B2` `NOT_ATTAINED`**（[receipt](TRACKED_LINEAGE_TRAINING_RECEIPT_2026-09-14.md)）。五個 scratch replicate 全部訓練完成、20 個 checkpoint 進版控（`38.0 MiB`）、10 次執行 gate 皆 `RUN_LOCK_BOUND`，所以**一條 provenance 可重建的訓練線現在存在**。但**沒有任何一個 replicate 的 reference policy 達到 `30/30`**：五個皆 `0/30`，`150` 個 episode 全部早期跌倒（平均 `2.585733` s／`9.0` s、`fall_rate` 皆 `1.0`、`saturation_duty_pct` 為 `0.0`），跌倒集中在 `STEADY_WALK` 起點（`2.5` s）附近——學到站立，沒學到起步行走。標籤 **`TL_BUDGET_EXHAUSTED`**（amendment 03 更正——初次分析漏量了「曲線是否收斂」這個區分條件；實測五個 replicate 在上限處全部**未**收斂，末四分位斜率仍有 `+7.3`–`+11.9`／500k 步）。**是事先宣告的結果不是失敗**，門檻不得下調，且上限**不得**因「再多跑一點就到了」而上調。**沒有任何 contract 違反**，所以這是一次乾淨量測的否定結果而非 `TL_METHOD_FAILURE`。設計面：[`TRACKED-LINEAGE-TRAINING-V1`](TRACKED_LINEAGE_TRAINING_SPEC.md) 把 [ROADMAP §9](ROADMAP.md) 第 2 項收窄為 **scratch**——版控內唯一的 warm start 候選是 v5 artifact，它的檔案可由 digest 重建但訓練過程不可重建，從它 warm start 等於原封不動保留 `CONDITIONAL_ON_FIXED_WARM_START`。專案負責人於同日、**在看到任何訓練曲線之前**定案兩格：`CHECKPOINT_STORAGE = GIT_DIRECT` 配 `checkpoint_interval = 500_000`（唯一同時離線可驗且不需新基礎設施的組合；本容器無 `git lfs`），以及 `FULL_EXPOSURE_THRESHOLD = 30/30`（逐 replicate；`29/30` 會以較輕的形式複製 v7 線 `between_replicate_sd` 為 null 的成因）。兩項代價在定案時即已接受：repo 由 `11 MB` 增為約 `49 MB` 且每條新線再加；scratch 在 5 個 replicate 上全部 30/30 **很可能**得到 `TL_REFERENCE_NOT_ATTAINED`，而門檻凍結後不得因結果下調。**本線範圍只到 `PUB-B1`／`PUB-B2`**：取得逐控制步 trace 須修改 `backend/rl/eval_policy.py`，那會弄紅一個綁在 owner 已授權 protocol 上的綠測試，故本線不產生任何 saturation 或 censoring regime 資料，`PUB-B3` 需要另一份 protocol。
 - **加倍預算的續訓線也已執行完成（2026-09-14）：`PUB-B2` 仍 `NOT_ATTAINED`，標籤 `TL2_BUDGET_EXHAUSTED`**（[V2 receipt](TRACKED_LINEAGE_TRAINING_V2_RECEIPT_2026-09-14.md)）。V1 的曲線在上限處全部未收斂，所以「預算是不是那個綁住結果的限制」是一個可以量的問題；[`TRACKED-LINEAGE-TRAINING-V2`](TRACKED_LINEAGE_TRAINING_V2_SPEC.md) 從每個 V1 replicate 保留的 `1,999,968` 步 checkpoint 續訓，各再加 `2,000,000` 步。**量到的答案是否定的**：獎勵由 `226.9`–`231.6` 升到 `283.1`–`295.3`（`+51.5`–`+66.5`），平均存活由 `2.440`–`2.811` s 升到 `2.725`–`3.458` s（`+0.145`–`+0.778` s），而**完整曝露仍是 `0/30`，五個 replicate 全部、`150` 個 episode 全部**，最長的單一 episode 只有 `4.0` s，門檻是 `9.0` s。**五個全部未收斂，而且五個裡有四個的末四分位斜率比首四分位還大**（V1 是 `+7.3`–`+11.9`／500k，V2 是 `+11.8`–`+22.2`）——跑到 `4,015,200` 步，曲線不是逼近天花板而是更陡，同時曝露完全沒動。**標籤是 contract runner 算出來的不是人寫的**：`backend/rl/run_tracked_lineage_v2_contract.py` 只讀版控內的保留證據，跑完 `TL2-01`..`TL2-09` 後輸出 [`tl2_contract_receipt.json`](../backend/tracked_lineage_evidence/2026-09-14/tl2_contract_receipt.json)，任何人可重跑並 diff。凍結前的算術五個全中：realized `4,015,200`、checkpoint 落在 `2499960/2999952/3499944/3999936`、10 次執行 gate 皆 `RUN_LOCK_BOUND`、`TL2-08` 五個精確成立。兩個會左右標籤的量測選擇在任何 V2 曲線存在之前就寫進程式碼（以 lineage 曲線而非只看增量、聚合取 `any` 而非 `all`），兩個都選了對「再加預算」更不利的方向，而**兩個都沒有改變結論**——這點照實記錄，不誇大成關鍵。依規格 `escalation_rule`，再次得到 `TL2_BUDGET_EXHAUSTED` 是**結果**，**不授權**單純再加預算；V3 需要自己的 protocol 版本並揭露它是在已知 V1 **和** V2 結果之後設計的。**要改的不是預算**：`2,000,000` 步買到不到 `0.8` s，而門檻還差 `5` s 以上。儲存實測 `.git` `83 MB`，落在規格 §5.3 事先預估的約 `85 MB` **之內**。本線補掉七個缺陷，全部同兩種形狀——主張為真但證據活不過容器，或程式跑過 fixture 沒跑過真正凍結的東西——其中一個是 **V1 的 `RUN_LOCK_BOUND` 從來無法離線重導**（gate 只印到 console，索引裡寫的是佔位字串），V1 五筆至今仍是如此。
 - **專案評估已完成（2026-09-16）**（[PROJECT_ASSESSMENT](PROJECT_ASSESSMENT_2026-09-16.md)）：給專案負責人的**決策文件**，不是 receipt。實測：核心 robotics + 應用 `6,871` 行、前端 `3,561` 行，證據契約／replay／bundle `29,294` 行（**1 : 4.3**），其中約 `15,800` 行服務的研究線已結案；692 個測試函式只有 76 個測教學應用本身；**沒有任何不可達的程式**（21 個零 importer 模組全是合法 CLI 入口——這推翻了盤點初始的假設）。機器人：v5 會走（10/11）但 checkpoint 是看結果後挑的；所有可重建的線（10 replicate × 2 預算）全部在 `STEADY_WALK` 起點跌倒，獎勵結構的量化診斷指出「站好再跌」是穩定局部最優、跌倒懲罰已是 −50 而非綁住結果的項，槓桿在 curriculum／形塑不在預算。**價值判斷**：作為 robotics 研究弱；作為評估效度研究**真的有一篇**（Track A，證據已齊、**不需要 `PUB-B2`**）；作為教學工具有實質價值且**與研究契約完全解耦**（`main.py` 零 import、前端建置乾淨）。**關鍵觀察**：`PUB-B2` 的理由在 2026-09-09 Track A 重構那天就消失了，gate 卻留下來並又花了兩條線追它。三個去向選項與代價見該文件 §5；本次順手修正 REPOSITORY_GUIDE 兩處過期事實並加註 §4 的證據版控範圍。**負責人尚未決定**。
+- **介面已改版（2026-09-16）**：依專案負責人要求整理前端，目標是簡潔、每頁不要同時放太多資訊。**功能一項都沒有移除**，改的是版面：常駐的 9 px 證據 badge 列改為一個結果狀態標籤加「證據狀態」抽屜（token 一個沒少）；分析頁一次只顯示一組參數與一張圖，14 條警告長文改為嚴重度計數＋致動器表格＋短標題，原文收在按鈕後；即時互動的決策日誌依後端節流 key 分六類、可過濾並合併連續同類；三機比較卡片改中文標題與四格門檻數值；兩個圖表頁改為**一個量一條 y 軸**（原本 deg 與 m/s、Nm 與 rad 與 % 共軸，把小單位序列壓成平線），並加上相位色帶（分析頁為支撐相、Dynamic Trace 為控制器狀態）、事件標記與 hover 讀數；關節配色改跟關節群組走、左右以線型區分。**證據語義、API 形狀與既有字串都沒有改**：後端只新增兩個唯讀欄位（`meta.warning_items` 與 decision 的 `kind`），皆與原資料一對一。操作說明見 [USAGE §3](USAGE.md)。
 
 - **量測到 v7 線上 `SEL-C2` 幾乎確定不成立**：retained seed-variance evidence 上 reference `V7A` 自己只有 143/150 episode `COMPARABLE`，`V7B` 120/150，`V7C` 0/150；FORMAL 用同一批已訓練 policy、只換 evaluation seed。iid 外推的聯合通過機率為 reference + `V7B` `2.2 × 10⁻¹⁸`、reference + `V7C` `0`。因 FORMAL 資料只套用一次，在 v7 線上執行會用掉唯一未檢視的 seed 範圍換一個 `NO_CANDIDATE`。**下一個決策點**因此是兩個子問題（[PUBLICATION_PLAN §5](PUBLICATION_PLAN.md)）：用現行規則或先預註冊替代規則；以及 FORMAL 範圍花在 v7 線或保留給 `PUB-B1`／`PUB-B2` 的新訓練線。
 
@@ -152,7 +153,7 @@
 
 ### 6.6 工程
 
-- UI：`development_compare_mode` 與 `dynamic_run_trace` 皆 `BROWSER_VISUAL_PENDING`；frontend 不獨立驗證 server config hash。
+- UI：`development_compare_mode` 與 `dynamic_run_trace` 皆 `BROWSER_VISUAL_PENDING`；frontend 不獨立驗證 server config hash。2026-09-16 的介面改版**沒有改變這兩點**——它只動版面與呈現，證據語義、API 與 token 集合都沒動。
 - Live：immutable live run identity 與 raw bundle 未實作。
 - `requirements.txt` 仍只宣告 `>=` floors。
 - Lock 綁定：`RUN-MANIFEST-LOCK-BINDING-V1` 是前向的——sidecar 可被遺漏、`backend/simulator.py` 明示排除、2026-09-08 bundle 未重建。
@@ -206,7 +207,9 @@
 
 ## 9. 測試現況
 
-`backend/`：**1 failed / 941 passed**（2026-09-14，507.79 s）。數字對得起來，而且這次是**逐 commit 實測**而非推算：`5b707cb`（V2 contract 之前的 main）收集 `892`；＋`32`（`TRACKED-LINEAGE-TRAINING-V2` contract）＝ `924`，即先前記錄的 1 failed / 923 passed；＋`2`（guard dispatch）＋`2`（resume 路徑）＋`8`（保留線）＝ `936`，即 PR #20 合併後的 main；＋`6`（V2 執行線：replicate 數推導、relocated lock、標籤）＝ **`942`** ＝ 1 failed / 941 passed。更早的記錄為 1 failed / 882 passed、1 failed / 816 passed 與 1 failed / 754 passed。
+`backend/`：**1 failed / 948 passed**（2026-09-16，334.91 s，工作樹在 `9f871ac`）。較 2026-09-14 的 `941` 多 7 個，全部來自介面改版新增的兩支測試檔：`test_warning_items.py`（5，warning_items 與 warnings 一對一鏡射）與 `test_decision_kind.py`（2，decision `kind` 與前端分類涵蓋）。失敗項仍是同一個、未放寬的 reduction-order 差異，無新增失敗。
+
+2026-09-14 那一輪的逐 commit 實測記錄保留於此：`5b707cb`（V2 contract 之前的 main）收集 `892`；＋`32`（`TRACKED-LINEAGE-TRAINING-V2` contract）＝ `924`，即先前記錄的 1 failed / 923 passed；＋`2`（guard dispatch）＋`2`（resume 路徑）＋`8`（保留線）＝ `936`，即 PR #20 合併後的 main；＋`6`（V2 執行線：replicate 數推導、relocated lock、標籤）＝ **`942`** ＝ 1 failed / 941 passed。更早的記錄為 1 failed / 882 passed、1 failed / 816 passed 與 1 failed / 754 passed。
 
 [BLOCKER] **一次自造的假 regression，記於此以免重演。** 該次全套曾出現第二個失敗 `test_paper_data_contract.py::test_v1_oracle_builds_integrity_validated_regression_bundle`（`manifest["status"] == 'FAILED'`）。原因不是程式：`build_v1_paper_bundle` 以 `source_before == source_after` 比對建置前後的 git 身分，而我在那次 runner 執行期間執行了 `git commit`，HEAD 於 bundle 建置中途改變。在完全不碰 repo 的情況下重跑即回到 1 failed。**那道 clean-git guard 沒有壞，它正確地抓到了我**——「runner 執行期間不得改動 tracked 檔案」這條規則適用於全套測試，不只訓練。失敗項仍是同一個 `test_v1_analytical_suite.py::test_stdlib_replay_passes_exact_synthetic_fixture`（`PRIMARY_CASE_RECEIPT_IDENTITY`），與 §4.3 的 reduction-order 差異同源，記錄為量測結果、未放寬。
 

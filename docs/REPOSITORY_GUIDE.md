@@ -55,7 +55,7 @@ npm run check
 2. 沒有 credential、token、private key 或個人 absolute path。
 3. 所有 policy registry artifacts 的 bytes/SHA-256 與 observation/runtime adapter contract 相同。
 4. GitHub remote branch/commit 在 push 後讀回一致。
-5. 新產生的 evidence run 目錄帶有 `run_lock_binding.json` 且 gate 判為 `RUN_LOCK_BOUND`（見 [RUN_MANIFEST_LOCK_BINDING_SPEC](RUN_MANIFEST_LOCK_BINDING_SPEC.md) 與 [USAGE §7.1](USAGE.md)）。
+5. 新產生的 evidence run 目錄帶有 `run_lock_binding.json` 且 gate 判為 `RUN_LOCK_BOUND`（見 [RUN_MANIFEST_LOCK_BINDING_SPEC](RUN_MANIFEST_LOCK_BINDING_SPEC.md) 與 [USAGE §8.1](USAGE.md)）。
 
 ## 6. Evidence boundary
 

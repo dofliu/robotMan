@@ -8,7 +8,7 @@
 
 關於**環境身分**，只有一點必須在動手前知道：`requirements-rl.txt` 只給 dependency ranges，`requirements.txt` 只宣告 `>=` floors，兩者都**不是** frozen training environment。版本號相同不保證數值相同——本專案實測過同一環境下 stdlib 逐項求和與 `numpy` 求和會在末位不同。
 
-自 2026-09-08 起，環境身分由 [`ENVIRONMENT-LOCK-V1`](ENVIRONMENT_LOCK_SPEC.md) 實測並可重驗；自 2026-09-13 起，[`RUN-MANIFEST-LOCK-BINDING-V1`](RUN_MANIFEST_LOCK_BINDING_SPEC.md) 以 SHA-256 把 lock record 綁進 run manifest。要產生**可引用**的 run，用 §7 的 wrapper；直接呼叫 driver 產生的 run 會被 gate 判為 `RUN_LOCK_UNBOUND`，那是一個具名結果，不是通過。
+自 2026-09-08 起，環境身分由 [`ENVIRONMENT-LOCK-V1`](ENVIRONMENT_LOCK_SPEC.md) 實測並可重驗；自 2026-09-13 起，[`RUN-MANIFEST-LOCK-BINDING-V1`](RUN_MANIFEST_LOCK_BINDING_SPEC.md) 以 SHA-256 把 lock record 綁進 run manifest。要產生**可引用**的 run，用 §8 的 wrapper；直接呼叫 driver 產生的 run 會被 gate 判為 `RUN_LOCK_UNBOUND`，那是一個具名結果，不是通過。
 
 ## 2. 先選擇 evidence intent
 
@@ -37,7 +37,53 @@
 
 任一項缺失即保持 BLOCKED。
 
-## 3. Analysis mode
+## 3. 介面總覽（2026-09-16 改版）
+
+介面在 2026-09-16 重新整理過一次。**功能一項都沒有移除**，改的是版面：把同時攤開的東西改成分頁、抽屜與可收合區塊，讓每一頁一次只看一件事。以下描述改版後的樣子；舊截圖與舊敘述以本節為準。
+
+### 3.1 共用殼
+
+- 頂端只有標題與四個分頁：**分析模式／即時互動／三機同步比較／RL 訓練**。
+- 右上角的「**證據狀態**」抽屜每頁都在，預設收起。展開後列出 `SOFTWARE_ONLY`、本頁的模擬類型（如 `KINEMATIC_INVERSE_DYNAMICS_ESTIMATE`）、`CALIBRATION_NOT_ESTABLISHED` 與 UI 目前設定 ID。
+- 在**分析模式的 Reference 估算**下另有結果身分：抽屜多列出結果對應的設定 ID、伺服器回報的 config sha256、結果狀態與 run ID，抽屜旁也常駐一個中文結果狀態標籤（`結果對應目前設定`／`設定已變更，結果過期`／`計算中`）。其他頁面沒有「結果」這個概念，所以不顯示這一組。
+- [BLOCKER] **一個 token 都沒有拿掉**，只是不再每頁攤開。標籤或抽屜顯示正常**不等於** V0/V1 gate PASS，它們只提醒 config/result identity 與 evidence scope。
+
+### 3.2 分析模式
+
+- 左欄一次只顯示一組參數：**步態／硬體／質量／場景**。步態常駐 5 個主要滑桿，姿態細節收合；硬體一次編輯一個關節群組。
+- 摘要列 4 張卡片（總質量、平均功率、CoT、ZMP 落在支撐區內），其餘指標在「更多指標」後面。
+- **警告分類顯示**：按鈕寫出總數與其中幾項不可行；展開後先是嚴重度計數，接著把致動器 screen 併成一張表（每個關節群組一列，欄位為馬達扭矩／轉速／減速機，只顯示數字，完整原文在 tooltip），其餘警告一行一條短標題。原始完整訊息收在「**完整訊息**」按鈕後，一個字都沒有改寫。
+- 底部**一次一張圖**（關節扭矩／關節角度／解析 GRF／功率估計／ZMP 指標／致動器利用率），整區可收合。
+
+### 3.3 即時互動
+
+- 控制器用下拉選單選擇，下方一行說明該控制器是什麼。
+- 站立／行走與時間控制常駐；外力推撞、臨時障礙物、正式動作任務、Trace 記錄收合，但標題列仍顯示狀態（推力、高度、任務階段、已記錄秒數）。
+- 右欄常駐四個數字與三個介入標籤（平衡 assist、起步 assist、外力）；平衡策略作用量與馬達出力在「更多細節」後面。
+- **決策日誌分類**：上方一排帶計數的 chip（平衡／步態／模式／擾動／跌倒／事件），點選即過濾。「合併連續同類」預設開啟，連續出現的同一種事件併成一列並標 `×次數`。
+
+### 3.4 三機同步比較
+
+- 一條主工具列（站立／行走／重置／暫停／單步／速度）加「更多操作」（assist、推撞、Trace、正式任務）。
+- 三機共用的時間只在工具列顯示一次。
+- 每張卡片四格數值（前進距離、前進速度、姿態 pitch/roll、馬達出力峰值）；姿態超過 20° 或出力超過 95% 才上紅色，跌倒的卡片整張紅框。
+- `DEVELOPMENT_COMPARISON_ONLY`、`SAME_INPUT / INDEPENDENT_PLANTS`、time skew 與 plant signature 移到頁腳小字，仍然常駐可見。
+
+### 3.5 圖表閱讀規則（分析模式與 Dynamic Trace 共用）
+
+- **一個量一條 y 軸**。不同單位不共用同一軸；需要並看時改為上下兩張小圖。
+- **圖頂色帶**是相位：分析模式為支撐相（雙腳／左腳／右腳／騰空），Dynamic Trace 為控制器狀態（站立／行走／停止中／跌倒）。
+- **垂直標記**是事件：分析模式標致動器統計窗的起迄，Dynamic Trace 標第一次跌倒與正式任務各階段起點。
+- **虛線是門檻**（例如額定／峰值扭矩、飽和 100%、支撐面邊界），實線才是資料。
+- 關節序列**依關節群組上色**，左右腳以線型區分（左實線、右虛線）。
+- 滑鼠移過圖表出現十字線與同時刻讀數；點一下把播放定位到該時刻。
+- [BLOCKER] 色帶、標記與門檻都是 **current-model screening 訊號**，不是實體事件判定。
+
+### 3.6 RL 訓練
+
+25 個 profile 依家族分組（Motion task 開發版本 v1–v6／v7 pilot 三臂／v7 seed-variance replicates／Tracked lineage V1／V2 續訓／固定速度行走 legacy）。分組只依 API 已回傳的 `pilot_protocol_id`、`seedvar_protocol_id`、`tracked_lineage_protocol_id` 與 `environment_id` 判定，不靠 profile id 字串猜；凍結的 replicate 家族以一列一行的表格顯示。詳見 §11。
+
+## 4. Analysis mode
 
 適合：
 
@@ -53,11 +99,11 @@
 - ZMP margin 是 scheduled trajectory consistency indicator，並非獨立穩定性證明；
 - warning 是 rule-based screen，不是硬體 pass/fail certificate；
 - run mode 含 flight phase 時，ZMP 不作為 validation criterion。
-- frontend 右上角只常駐一個結果狀態標籤（結果對應目前設定／設定已變更，結果過期／計算中）；config/result identity 與 evidence scope 的完整 token 收在「證據狀態」抽屜裡，預設收起。標籤或抽屜顯示正常不等於 V0/V1 gate PASS。
+- 介面上的結果狀態標籤與「證據狀態」抽屜只提醒 config/result identity 與 evidence scope（見 §3.1），顯示正常不等於 V0/V1 gate PASS。
 
 不要用 analysis mode 單獨決定採購、連續工作熱容量、跌倒安全或實體 payload。
 
-## 4. Live mode
+## 5. Live mode
 
 Live mode 使用 MuJoCo forward dynamics 與 simulated contact，可用來觀察：
 
@@ -76,7 +122,7 @@ Live mode 使用 MuJoCo forward dynamics 與 simulated contact，可用來觀察
 
 介面顯示的 contact force/CoP 是 simulator output，不是 force plate measurement。
 
-## 5. 常用教學流程
+## 6. 常用教學流程
 
 ### A. Actuator parameter sensitivity
 
@@ -107,7 +153,7 @@ Live mode 使用 MuJoCo forward dynamics 與 simulated contact，可用來觀察
 
 M7A 完成後可用於 end-effector IK、workspace 與 payload parameter visualization。M7B/V1/V2 未通過前，不解讀為 dynamic feasibility。
 
-## 6. Nominal comparison script
+## 7. Nominal comparison script
 
 ~~~powershell
 python backend/compare.py
@@ -124,7 +170,7 @@ python backend/compare.py
 - code/config/model/checkpoint/environment hashes；
 - preregistered statistics。
 
-## 7. RL training/evaluation
+## 8. RL training/evaluation
 
 ~~~powershell
 python backend/rl/train_ppo.py --profile walk_0p7_fixed_v1 --run-id walk-0p7-seed1700-run01
@@ -143,7 +189,7 @@ python backend/rl/eval_policy.py backend/rl/ppo_walk_final.zip --profile walk_0p
 
 失敗後修改 reward、network、plant 或 metric，必須建立新的 protocol version；不得混入原 formal result。
 
-### 7.1 產生可引用的 run：綁定 environment lock
+### 8.1 產生可引用的 run：綁定 environment lock
 
 上面兩個命令是 **development pipeline**，它們不寫綁定記錄，所以產出的 run 在分析期會被判為 `RUN_LOCK_UNBOUND`。要產生可引用的 run，改用 wrapper——它先量測環境、再原封不動地以 subprocess 執行 driver、最後把 lock record 與綁定記錄寫進 run 目錄：
 
@@ -163,7 +209,7 @@ python backend/rl/bind_run_lock.py `
 
 成功時會印出 `RUN_LOCK_BOUND` 與三個 digest（lock 檔案位元組、`locked` 子樹、被綁 manifest）。這三者是**三個不同的量**，不可互相替換。
 
-### 7.2 Tracked-lineage 訓練線（`TRACKED-LINEAGE-TRAINING-V1`）
+### 8.2 Tracked-lineage 訓練線（`TRACKED-LINEAGE-TRAINING-V1`）
 
 本線的 5 個 replicate 各自有自己的 profile，**training seed 不可由命令列指定**：replicate index 由 profile id 推導，seed 由 [frozen protocol](../backend/rl/tracked_lineage_training_protocol.json) 依該 index 解析。因此沒有任何 invocation 能把一個 profile 配上另一個 replicate 的 seed。
 
@@ -184,17 +230,19 @@ python backend/rl/bind_run_lock.py `
 
 Evaluation 走 generic path（本線**不**修改 `eval_policy.py`），evaluation seeds 固定 `22000–22029`。該路徑沒有 driver 端的 seed schedule 保護，所以 seed 是在**分析期**由 `TL-01b` 強制：保留輸出的 `evaluation_seeds` 必須恰為 `22000..22029`，不符即 `TL_METHOD_FAILURE`。
 
-## 8. Dynamic Run Trace：從第二模式回到第一模式分析
+## 9. Dynamic Run Trace：從第二模式回到第一模式分析
 
 1. 進入「即時互動」或「三機同步比較」。
-2. 選定 controller、assist 與動作條件後，按「開始記錄 Trace」；單次最長 60 秒，UI 預設 30 秒。
+2. 選定 controller、assist 與動作條件後，按「開始記錄 Trace」；UI 送出的 `max_duration_s` 是 30 秒。
+   - [BLOCKER] [DYNAMIC_RUN_TRACE_SPEC §3](DYNAMIC_RUN_TRACE_SPEC.md) 宣告該值域為 `1–60` 秒，但 `live_sim.py` 的 `record_start` **直接採用 client 傳來的值、未驗證範圍**。目前只有 UI 自律送 30 秒；規格的上界尚未由程式強制。
 3. 執行 stand/walk、push 等測試，再按「停止並保存 Trace」。
 4. 回到「分析模式」，選擇「Dynamic Trace」。
-5. 選擇 run，查看 realized distance、fall、attitude、GRF、joint reference/error、torque、saturation、power/work。
+5. 選擇 run。上方八格摘要給 controller、最終狀態、時長、距離、平均 vx、最大 pitch/roll 與絕對機械功；下方五個分頁各自是一到兩張**各有自己 y 軸**的小圖：姿態與速度／接觸 GRF／關節角度與扭矩／追蹤誤差與飽和／功率 proxy。
+6. 圖頂色帶是控制器狀態、垂直標記是第一次跌倒與正式任務各階段起點、虛線是門檻（詳見 §3.5）。底部播放列可拖曳，滑過圖表看同時刻讀數，點一下定位。
 
 Recording active 時不得更換 controller、runtime gait、obstacles 或 reset，避免同一 artifact 的 identity 漂移。三機比較會產生共用 `group_id` 的三筆獨立 traces。
 
-## 9. 正式動作任務：stand → start → steady walk → stop
+## 10. 正式動作任務：stand → start → steady walk → stop
 
 1. 在「即時互動」選定 controller，按「執行正式任務」；或在「三機同步比較」按「三機執行正式任務」。
 2. 系統會重設機器人、清除障礙物與外力、套用 0.7 m/s 固定 gait，並將 assist 關閉。
@@ -210,14 +258,14 @@ python backend/run_motion_task.py
 python backend/run_motion_task.py --controller rl
 ```
 
-## 10. RL Training Lab
+## 11. RL Training Lab
 
-1. 切換至「RL 訓練」查看 versioned profiles、seed、planned timesteps 與目前 status。
+1. 切換至「RL 訓練」查看 versioned profiles、seed、planned timesteps 與目前 status。25 個 profile 依家族分組顯示（見 §3.6），預設只展開「Motion task 開發版本 v1–v6」。
 2. 頁面只顯示 inventory，不會在瀏覽器內即時更新 weights；Live/Compare 仍執行 registry 中的 frozen policy。
 3. `stand_start_walk_stop_0p7_v1` 保留為 failed-speed run；v2 與 v5 已有各自的 registry identity 與 Live adapter。
 4. v2 在 Live 失敗於 lateral drift/saturation；v5 通過其他 10 項、失敗於 saturation duty `38.422222%` > `30%`。v6 reward-only fine-tune 未降低 saturation；v7 三臂 pilot 與其後的 5-replicate seed-variance 執行皆**未選出 candidate**。
 5. training evaluator 現以 500 Hz substeps 計算 saturation；舊 50 Hz saturation PASS 已撤銷。
-6. [BLOCKER] v7 line 的 warm start provenance 不可重建，所有由它衍生的結果永久帶 `CONDITIONAL_ON_FIXED_WARM_START`。新訓練線必須把 checkpoint lineage 進版控，並用 §7.1 的 wrapper 執行。
+6. [BLOCKER] v7 line 的 warm start provenance 不可重建，所有由它衍生的結果永久帶 `CONDITIONAL_ON_FIXED_WARM_START`。新訓練線必須把 checkpoint lineage 進版控，並用 §8.1 的 wrapper 執行。
 
 ```powershell
 python backend/rl/train_ppo.py --profile stand_start_walk_stop_0p7_curriculum_v2 --run-id start-stop-curriculum-seed3700-run02
@@ -225,7 +273,7 @@ python backend/rl/train_ppo.py --profile stand_start_walk_stop_0p7_curriculum_v2
 
 Dynamic Trace 顯示的是 `SOFTWARE_ONLY_MUJOCO_REALIZED_SIMULATION`，不是實體機器人量測；Reference 與 realized 的正式 overlay 尚未完成 identity/alignment contract。
 
-## 11. Software checks
+## 12. Software checks
 
 完整測試套件的指令見 [README](../README.md)。本節只列它**不包含**的兩個窄範圍診斷：
 
@@ -236,9 +284,9 @@ python -X utf8 -B backend/test_pipeline.py
 
 第一個只跑 REST/WebSocket schema、actual metric 與 provenance；第二個保留可直接閱讀的 legacy diagnostics。兩者都不代表 V1 已通過。執行後須保留 command、environment、stdout/stderr、exit code 與 code hash。新增 physics 功能時，優先加入 residual、conservation、constraint 與 convergence oracle。
 
-[RESULT] 完整套件目前為 **1 failed / 816 passed**，那一個失敗是在具名 environment lock 下**記錄為量測結果、未放寬**的 reduction-order 差異。看到它不必修；理由見 [PROJECT_STATUS §9](PROJECT_STATUS.md)。
+[RESULT] 完整套件目前為 **1 failed / 948 passed**，那一個失敗是在具名 environment lock 下**記錄為量測結果、未放寬**的 reduction-order 差異。看到它不必修；理由見 [PROJECT_STATUS §9](PROJECT_STATUS.md)。
 
-## 12. 結果記錄最低要求
+## 13. 結果記錄最低要求
 
 Exploratory note 至少包含：
 
@@ -249,9 +297,9 @@ Exploratory note 至少包含：
 - environment versions；
 - observed result、limitations、blockers。
 
-Formal run 使用 [EXPERIMENT_PROTOCOL](EXPERIMENT_PROTOCOL.md) 的完整 manifest，並須在 run 目錄留下 `environment_lock.json` 與 `run_lock_binding.json`（由 §7.1 的 wrapper 產生）。`/api/simulate` 的 `meta.provenance` 可作初始 identity evidence，但它**明示不在** lock 綁定範圍內（見 [RUN_MANIFEST_LOCK_BINDING_SPEC §3.4](RUN_MANIFEST_LOCK_BINDING_SPEC.md)），且仍須補 immutable raw bundle、artifact inventory 與 validator receipt。
+Formal run 使用 [EXPERIMENT_PROTOCOL](EXPERIMENT_PROTOCOL.md) 的完整 manifest，並須在 run 目錄留下 `environment_lock.json` 與 `run_lock_binding.json`（由 §8.1 的 wrapper 產生）。`/api/simulate` 的 `meta.provenance` 可作初始 identity evidence，但它**明示不在** lock 綁定範圍內（見 [RUN_MANIFEST_LOCK_BINDING_SPEC §3.4](RUN_MANIFEST_LOCK_BINDING_SPEC.md)），且仍須補 immutable raw bundle、artifact inventory 與 validator receipt。
 
-## 13. 常見誤解
+## 14. 常見誤解
 
 | 誤解 | 正確解讀 |
 |---|---|
@@ -262,7 +310,7 @@ Formal run 使用 [EXPERIMENT_PROTOCOL](EXPERIMENT_PROTOCOL.md) 的完整 manife
 | 換成 datasheet 數字就完成 validation | 仍缺 CAD/BOM、drive integration、bench 與 subsystem evidence |
 | software test PASS | 只支持對應 software requirement，不支持 physical validation |
 
-## 14. 疑難排解
+## 15. 疑難排解
 
 - RL 選項回到 Raibert：視為 controller identity failure；正式 run 必須停止，不得以 RL label 繼續。
 - PowerShell 中文或勾號輸出失敗：使用 Python UTF-8 mode；仍須保留非零 exit code。

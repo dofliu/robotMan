@@ -2,6 +2,16 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-16 (aa)
+
+### 文件對齊介面改版：手冊補上介面總覽，並修掉三個過期陳述
+
+- [RESULT] (z) 那批改版把介面整個換了版面，但**操作手冊還在描述舊版**。本次補上 [USAGE §3「介面總覽」](docs/USAGE.md)：共用殼（分頁、結果狀態標籤、證據狀態抽屜）、分析模式、即時互動、三機同步比較、RL 訓練各一小節，另加一節**圖表閱讀規則**（一個量一條 y 軸、圖頂色帶是相位、垂直標記是事件、虛線是門檻、關節依群組上色而左右以線型區分、滑過看讀數點一下定位）。原 §3–§14 順移為 §4–§15，USAGE 內部與 REPOSITORY_GUIDE、PROJECT_ASSESSMENT 的節次引用同步更新；CHANGELOG 舊條目維持原樣，因為它們記錄的是當時的狀態。
+- [BLOCKER] **修掉一個沒有程式支撐的敘述**：手冊原寫 Trace「單次最長 60 秒」。[DYNAMIC_RUN_TRACE_SPEC §3](docs/DYNAMIC_RUN_TRACE_SPEC.md) 確實宣告 `max_duration_s` 值域 `1–60`，但 `backend/live_sim.py` 的 `record_start` **直接採用 client 傳來的值、未驗證範圍**——目前只有 UI 自律送 30 秒。手冊已改為照實描述並標記為 blocker。**未一併補上驗證**：那會改動 WebSocket 命令契約的行為，且 spec 的 `TRACE-R02` 目前記為 PASS，應由負責人決定是補驗證還是修正該 row。
+- [RESULT] **修掉一個過期數字**：USAGE §12（原 §11）寫「1 failed / 816 passed」，實測為 **1 failed / 948 passed**。
+- [RESULT] README 補一段介面說明並指回 USAGE §3；「已有 prototype 能力」的 RL Training Lab 一行改為依家族分組。ARCHITECTURE 的 frontend 條目指回 USAGE §3，§7 API surface 註明 `meta.warning_items` 與 decision `kind` 是既有資料的**結構化鏡射**（一對一、同序），不新增 claim。
+- [RESULT] PROJECT_STATUS 加一則 2026-09-16 條目並更新日期；§6.6 註明介面改版**沒有改變** `BROWSER_VISUAL_PENDING` 與「frontend 不獨立驗證 server config hash」這兩點——版面改了，證據語義沒有。`STATUS.yaml` 的 `ui_simplification` 由只涵蓋第一輪，改寫為涵蓋全部六個 commit。
+
 ## Unreleased — 2026-09-16 (z)
 
 ### 介面重整：每一頁一次只看一件事
