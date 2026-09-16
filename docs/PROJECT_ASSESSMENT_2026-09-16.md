@@ -124,7 +124,7 @@ tracked_lineage_evidence「尚未建立」、測試數 923——兩處都已過�
 |---|---|---|
 | **作為 robotics 研究** | **弱** | 沒有新的控制方法；reduced-order 12 關節 + prescribed gait + PPO 是標準做法；沒有實體驗證；專案自己的 `progress: 0`；可重建的訓練線全部不會走 |
 | **作為評估效度（evaluation-validity）研究** | **真的有一篇** | V7C 表面 −36 pp 的「改善」被量測證明是 exposure artifact；`OBSERVED ⇏ full exposure` 這個盲點；在 Walker2d-v5 第二個 plant 上重現（`PUB-A1a` PASS）；censoring regime 分類；R0 probe。這是 Track A，2026-09-09 已重構成這個題目，**證據已經在手上** |
-| **作為教學工具** | **有實質價值，但被埋住** | 教學應用**完全不依賴**任何研究契約模組（`main.py` 零 import）；前端建置乾淨；USAGE §5 的四條教學流程（致動器敏感度、穩定性概念、控制器行為、手臂示範）在教學上成立；v5 policy 提供可示範的行走 |
+| **作為教學工具** | **有實質價值，但被埋住** | 教學應用**完全不依賴**任何研究契約模組（`main.py` 零 import）；前端建置乾淨；USAGE §6 的四條教學流程（致動器敏感度、穩定性概念、控制器行為、手臂示範）在教學上成立；v5 policy 提供可示範的行走 |
 | **作為「可重現 RL 實驗」的工程範例** | **比多數已發表的 RL 工作嚴謹** | freeze-before-execute、digest 連鎖、fail-closed、narrowing-only amendment、事先宣告量測選擇、負結果據實報告、撤回的觀察留在記錄裡。這本身可以是研究方法課的教材——**但它目前在驗證一個不會走的機器人** |
 
 [INFERENCE] 誠實的總結：**這裡有兩個好東西和一個大問題。** 好東西是教具與 Track A 那篇論文；問題是它們
@@ -244,4 +244,4 @@ repo），證據目錄原地不動、digest 不變。
 | [PUBLICATION_PLAN](PUBLICATION_PLAN.md)、[TRACK_A_REFRAME](TRACK_A_REFRAME_2026-09-09.md) | §3 的論證依據 |
 | [TRACKED_LINEAGE_TRAINING_V2_RECEIPT](TRACKED_LINEAGE_TRAINING_V2_RECEIPT_2026-09-14.md) | §1.3、§1.4 的量測來源 |
 | [REPOSITORY_GUIDE](REPOSITORY_GUIDE.md) | §1.5 引用的證據儲存政策 |
-| [USAGE §5](USAGE.md) | 教學流程，§2 教學價值的依據 |
+| [USAGE §6](USAGE.md) | 教學流程，§2 教學價值的依據 |

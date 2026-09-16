@@ -6,7 +6,7 @@
 
 目前系統是 SIM-only reduced-order humanoid prototype，包含：
 
-- frontend：參數輸入、3D visualization、telemetry 與 live interaction；
+- frontend：參數輸入、3D visualization、telemetry 與 live interaction（版面與呈現規則見 [USAGE §3](USAGE.md)）；
 - backend analysis pipeline：prescribed kinematics、analytical GRF/contact schedule、inverse dynamics；
 - backend live pipeline：MuJoCo forward dynamics、simulated contact、torque command；
 - controller/RL modules：trajectory tracking、Raibert、PPO policy；
@@ -113,7 +113,7 @@ trajectory tracking、Raibert 與 PPO policy 共用同一 live plant interface�
 - POST /api/simulate：執行 analysis pipeline，回傳 trajectory、telemetry、sensor、stability indicators 與 partial runtime provenance。現行 provenance 只涵蓋此 analysis response，包含 config/model/code/result hashes、run/scenario ID、engine、metric set、evidence scope 與 created_at。
 - WebSocket `/ws/live`：建立 live session，以 typed fail-closed contract 接受 mode、controller、push、obstacle、speed、pause、step、gait、assist 與 reset commands；validation/controller-load failure 回傳 structured error，frame 回讀 authoritative controller/intervention state。
 
-Analysis API response 已具有 partial runtime provenance，可用於 stale-result/evidence-state 顯示與初步 identity readback；live WebSocket 已有 typed command errors 與 controller/intervention state readback，但仍無完整 run identity。Frontend 的 request freshness 目前也未獨立驗證 server config hash。兩種 mode 都不是正式 immutable evidence bundle，尚缺 environment lock、完整 raw artifact inventory、checksums、validator receipt 與 failure-preserving storage。正式 run 仍須依 [EXPERIMENT_PROTOCOL](EXPERIMENT_PROTOCOL.md) 補齊。
+Analysis API response 已具有 partial runtime provenance，可用於 stale-result/evidence-state 顯示與初步 identity readback；2026-09-16 起 response 另帶 `meta.warning_items`、live frame 的 decision entry 另帶 `kind`，兩者都只是既有 `meta.warnings` 與決策文字的**結構化鏡射**（一對一、同序），供前端分類顯示，不新增任何 claim；live WebSocket 已有 typed command errors 與 controller/intervention state readback，但仍無完整 run identity。Frontend 的 request freshness 目前也未獨立驗證 server config hash。兩種 mode 都不是正式 immutable evidence bundle，尚缺 environment lock、完整 raw artifact inventory、checksums、validator receipt 與 failure-preserving storage。正式 run 仍須依 [EXPERIMENT_PROTOCOL](EXPERIMENT_PROTOCOL.md) 補齊。
 
 ## 8. Evidence architecture
 
