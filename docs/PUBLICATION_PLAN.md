@@ -1,6 +1,6 @@
 # 學術產出規劃
 
-最後更新：2026-09-10 ｜ ID：`PUBLICATION-PLAN-V3`（V1：2026-09-08；V2：2026-09-09；版本紀錄見 §9）
+最後更新：2026-09-16 ｜ ID：`PUBLICATION-PLAN-V3`（V1：2026-09-08；V2：2026-09-09；版本紀錄見 §9）
 
 狀態：`PLAN_REVISED_V3 / NO_MANUSCRIPT / paper_data_ready=false`
 
@@ -82,7 +82,7 @@ V2 補一句：Track A 的論點不再是「在公開 benchmark 上重現 v7 的
 
 | Gate | Exit condition | 狀態 | 備註 |
 |---|---|---|---|
-| `PUB-A0` Novelty | 文獻地圖中所有 `U` 條目經原文核對改為 `S` 或刪除；§4 gap 判定重寫並仍成立 | `IN_PROGRESS` — `KEY_TWO_VERIFIED_AND_A_C5_SCANNED / REMAINING_U` | 關鍵兩篇 arXiv 1911.05728、2606.10229 已由專案負責人提供 PDF 並全文核對（2026-09-09，[LITERATURE_MAP §7](LITERATURE_MAP_2026-09-08_EVALUATION_VALIDITY.md)）：前者為 conditionally independent censoring + imputation 的點估計（bounds 為 regret／rate），後者為 curation metric 的設計期 common-prefix truncation、未涉及 policy evaluation——兩個「gap 縮小／消失」條件皆不成立。A-C5 的 preregistration／multiverse 補充 scan 已於 2026-09-10 完成（[§1.7](LITERATURE_MAP_2026-09-08_EVALUATION_VALIDITY.md)），結果是**縮小主張**：A-C5 降為 artifact 級併入 A-C4。其餘 `U` 條目需可存取出版方的環境（2026-09-10 重新量測 `arxiv.org` 仍封鎖） |
+| `PUB-A0` Novelty | 文獻地圖中所有 `U` 條目經原文核對改為 `S` 或刪除；§4 gap 判定重寫並仍成立 | `IN_PROGRESS` — **`FOUR_VERIFIED_REMAINING_U`**（2026-09-16；先前為 `KEY_TWO_VERIFIED_AND_A_C5_SCANNED / REMAINING_U`） | 關鍵兩篇 arXiv 1911.05728、2606.10229 已由專案負責人提供 PDF 並全文核對（2026-09-09，[LITERATURE_MAP §7](LITERATURE_MAP_2026-09-08_EVALUATION_VALIDITY.md)）：前者為 conditionally independent censoring + imputation 的點估計（bounds 為 regret／rate），後者為 curation metric 的設計期 common-prefix truncation、未涉及 policy evaluation——兩個「gap 縮小／消失」條件皆不成立。A-C5 的 preregistration／multiverse 補充 scan 已於 2026-09-10 完成（[§1.7](LITERATURE_MAP_2026-09-08_EVALUATION_VALIDITY.md)），結果是**縮小主張**：A-C5 降為 artifact 級併入 A-C4。其餘 `U` 條目需可存取出版方的環境（2026-09-10 重新量測 `arxiv.org` 仍封鎖） |
 | `PUB-A1a` 第二 plant 的機制證據 | 至少一條主貢獻在非專案 plant 上以**凍結的** protocol 取得 receipt 與 stdlib-only replay | **`PASS`** | [execution receipt](SECOND_CASE_EXPOSURE_CENSORING_EXECUTION_RECEIPT_2026-09-08.md)：10/10 cells、300 episodes、replay exact；A-C1 的 R3 實例、A-C2 的 284/284。依據是已存在的 receipt 與其凍結規則下的 outcome |
 | `PUB-A1b` 公開 benchmark 上的不對稱 regime | 在公開 benchmark 上以凍結 protocol 量到 R1 | **`CLOSED_NOT_ATTAINED`**（2026-09-09） | 三個 budget probe（[probe receipt](SECOND_CASE_V2_BUDGET_PROBE_RECEIPT_2026-09-08.md)）後由專案負責人決定停止；寫入 Limitations 第一條。**不是 PASS、不是放寬**；重開需新 protocol id 與含 saturation 下限的 probe 規則 |
 | `PUB-A2` Claim freeze | [TRACK_A_REFRAME §5](TRACK_A_REFRAME_2026-09-09.md) 每列可只由 hash-bound receipts 推出；§6 不可宣稱清單與 §7 figure／table 清單凍結；Limitations 先寫 | `IN_PROGRESS` — 草稿即 TRACK_A_REFRAME；2026-09-11 凍結並執行 [`R0-REGIME-HORIZON-PROBE-V1`](R0_REGIME_PROBE_RECEIPT_2026-09-11.md)：兩個對比皆 `R0_WINDOW_FOUND`，taxonomy 的 `R0` 格已由「未觀察到」改為 pilot 實例 | 凍結須在 A0 之後 |
@@ -152,7 +152,7 @@ V2 補一句：Track A 的論點不再是「在公開 benchmark 上重現 v7 的
 
 [INFERENCE] 本計畫的建議是保留該範圍給 `PUB-B1`／`PUB-B2` 的新訓練線（reference policy 能穩定跑完任務、且有版控 lineage），理由是上述量測。若決定仍在 v7 線上執行，工作順序已寫在 receipt §5，不必重新推導。
 
-[RESULT] 2026-09-14 更新：該新訓練線的 protocol 已凍結為 [`TRACKED-LINEAGE-TRAINING-V1`](TRACKED_LINEAGE_TRAINING_SPEC.md)，但**尚未執行**，因此本子問題仍未決。須一併知道的是，該線是 `DEVELOPMENT`、evaluation seeds 為 `22000–22029`，它**不**解封 `20000–20029`、不觸及 `SELECT-V7-CANDIDATE-FORMAL-V1`，也不會自行回答本子問題——它只讓「保留給新線」這個選項有一個實際存在的對象。
+[RESULT] 2026-09-14 更新：該新訓練線的 protocol 已凍結為 [`TRACKED-LINEAGE-TRAINING-V1`](TRACKED_LINEAGE_TRAINING_SPEC.md)。**[BLOCKER] 本段原寫「但尚未執行」，2026-09-16 盤點時更正：該線當日即執行完畢，且另有加倍預算的續訓線 [`TRACKED-LINEAGE-TRAINING-V2`](TRACKED_LINEAGE_TRAINING_V2_SPEC.md) 一併執行完成。**兩線各 5 replicate 全部完成、checkpoint 進版控（`PUB-B1` **達成**），但 full-exposure 條件在 `2,000,000` 與 realized `4,015,200` 兩個預算下皆 `0/30 × 5`（`PUB-B2` **未達成**），見 [V1 receipt](TRACKED_LINEAGE_TRAINING_RECEIPT_2026-09-14.md) 與 [V2 receipt](TRACKED_LINEAGE_TRAINING_V2_RECEIPT_2026-09-14.md)。**因此本子問題仍未決**——但理由已從「線還沒跑」變成「線跑完了，reference 仍未達 adequacy」。須一併知道的是，該線是 `DEVELOPMENT`、evaluation seeds 為 `22000–22029`，它**不**解封 `20000–20029`、不觸及 `SELECT-V7-CANDIDATE-FORMAL-V1`，也不會自行回答本子問題——它只讓「保留給新線」這個選項有一個實際存在的對象。
 
 ## 6. 寫作規範
 

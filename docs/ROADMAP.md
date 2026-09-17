@@ -1,6 +1,6 @@
 # Gate-first 工作規劃
 
-最後更新：2026-09-09
+最後更新：2026-09-16
 
 專案成熟度改以 **evidence gate** 表示，不再以 UI 或 feature count 換算完成百分比。既有 M1–M6 代表 prototype feature inventory，並非 verification 或 physical validation 已完成。
 
@@ -9,7 +9,7 @@
 | Gate | 目的 | 狀態 | 解除條件 |
 |---|---|---|---|
 | V0 Evidence & Provenance | 凍結 requirements、metrics、scenario、hash、hardware evidence class 與 raw artifact schema | PARTIAL IMPLEMENTED / NOT PASS | bounded input contracts、metric semantics、partial runtime provenance、UI evidence state、`ENVIRONMENT-LOCK-V1` 的可量測 environment identity 與 `RUN-MANIFEST-LOCK-BINDING-V1` 的前向綁定已有；仍須 immutable bundle、validator、完整 hash readback，以及綁定的三項殘餘缺口 |
-| V1 Plant & Numerical Verification | 驗證 equations、base wrench closure、constraints 與 numerical convergence | BLOCKED BY V0 | 所有 V1 oracle 通過，失敗案例保留 |
+| V1 Plant & Numerical Verification | 驗證 equations、base wrench closure、constraints 與 numerical convergence | **PARTIAL IMPLEMENTED / NOT PASS**（**2026-09-16 更正**；此格原寫 `BLOCKED BY V0`，低估了已量到的部分結果，且與 [PROJECT_STATUS §1](PROJECT_STATUS.md) 的 `PARTIAL_IMPLEMENTED_NOT_PASS` 不一致）。已通過：static double-support V4 16/14 exact、analytical fixture 4/4 PASS，含 raw Jacobian 的 stdlib-only replay。仍缺：articulated dynamic、known pendulum、dynamic contact、energy balance、完整 solver／finite-difference convergence | 所有 V1 oracle 通過，失敗案例保留 |
 | V2 Actuator / Sensor / Estimator Fidelity | 建立 torque-speed、thermal、joint limits、latency/noise 與 estimator models | NOT STARTED | 來源與參數不確定性可追溯 |
 | V3 Fair Benchmark & UQ | 公平 controller comparison、scenario strata、Monte Carlo、CI | FOUNDATION SOFTWARE PARTIAL / FORMAL NOT STARTED | protocol frozen、raw traces 完整、統計 gate 通過 |
 | V4 Subsystem Validation | 以 SIL/HIL/bench evidence 校準並驗證 bounded subsystem claims | NOT STARTED | 外部量測與 acceptance criteria 通過 |

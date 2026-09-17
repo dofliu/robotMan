@@ -2,6 +2,18 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-16 (ah)
+
+### Gate 狀態盤點：七份文件逐列對照 receipt，抓到四處過期、三處日期不實
+
+- [RESULT] 起因是 (ag) 在兩份文件就抓到兩處過期（`RQ2` 缺狀態、`P-NEW` 整條線標成 `NOT STARTED`），因此把 `ROADMAP`、`VV_PLAN`、`PUBLICATION_PLAN`、`PAPER_DATA_READINESS`、`EXPERIMENT_PROTOCOL`、`RESEARCH_EXECUTION_PLAN`、`PROJECT_STATUS` 的每一個 gate／status 列與實際 receipt 逐列核對。方法：先從 26 份 receipt 與五個版控證據目錄建立「實際執行了什麼」，再回頭對照文件敘述——反過來做會被文件自己的說法帶著走。
+- [BLOCKER] **`PUBLICATION_PLAN` §5 說 tracked lineage 線「尚未執行」。** 那條線在 2026-09-14 當日就執行完畢，而且還有加倍預算的 V2 續訓線也一併跑完。已更正，並寫明子問題「仍未決」的**理由已經變了**：從「線還沒跑」變成「線跑完了，reference 仍未達 adequacy」。這與 (ag) 修掉的 `P-NEW` 是同一個錯誤的第二個副本。
+- [BLOCKER] **`VV_PLAN` 的 `V3-R06` 理由已被自己的證據推翻。** 原寫「每臂只有一個 common training seed，不能形成 method-level outcome distribution」——但 `SEEDVAR-V7-TRAINING-REPLICATE-DEV-V1` 早在 **2026-09-08** 就每臂跑了 5 個獨立 training seed、15 次訓練與評估。gate 仍是 `BLOCKED`，但**現行 blocker 是另一件事**：每個 replicate 至少一臂被 censoring 截斷，`between_replicate_sd` 無定義。結論不變，理由改為實況。
+- [BLOCKER] **`ROADMAP` 的 V1 列寫 `BLOCKED BY V0`**，低估了已量到的部分結果，且與 [PROJECT_STATUS §1](docs/PROJECT_STATUS.md) 的 `PARTIAL_IMPLEMENTED_NOT_PASS` **互相矛盾**。已改為後者並列出已通過項（static double-support V4 16/14 exact、analytical fixture 4/4 PASS 含 stdlib-only Jacobian replay）與仍缺項。
+- [BLOCKER] **`PUB-A0` 的狀態是我自己在 (af) 漏掉的。** 該次把文獻地圖與 `TRACK_A_REFRAME` 都改成 `FOUR_VERIFIED_REMAINING_U`，**唯獨沒改 `PUBLICATION_PLAN` 的 gate 表**。已補上。同一個事實散在三個檔案，改了兩個——這正是這次盤點要抓的型態。
+- [RESULT] **三處自述日期不實**：`ROADMAP`（寫 `09-09`，實際改到 `09-14`）、`PUBLICATION_PLAN`（寫 `09-10`，實際改到 `09-14`）、`PAPER_DATA_READINESS`（寫 `09-08`，實際改到 `09-13`）。前兩份本次有內容變更，日期更新為 `09-16`；第三份本次**未改內容**，日期更正為其實際內容變更日 `09-13` 並註明。
+- [RESULT] **逐列核對後確認無誤、未改動的**：`PAPER_DATA_READINESS` 的 `PDR-0`–`PDR-8` 九列（皆 PARTIAL／IN PROGRESS／software-only，與 receipt 一致；tracked lineage 不在其 study-matrix 範疇內，不是遺漏）；`PUBLICATION_PLAN` 的 `PUB-A1a` `PASS`、`PUB-A1b` `CLOSED_NOT_ATTAINED`、`PUB-B0`–`PUB-B7`、Track C 全列；`ROADMAP` 的 V0／V2／V3／V4 四列與 §9 第 2 項（該項在 09-14 已正確更新為 `EXECUTED`）；`VV_PLAN` 的 V1／V2／V4 各列與 DCOMP／TRACE／TASK 列。**把核對過而未改的也列出來，是為了讓下一個人知道這次盤點覆蓋到哪裡。**
+
 ## Unreleased — 2026-09-16 (ag)
 
 ### `RQ2` 結案為「文獻已答，非本專案所答」；順手抓到 `P-NEW` 一列過期一整條線
