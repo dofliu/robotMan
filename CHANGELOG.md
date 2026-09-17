@@ -2,6 +2,19 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-17 (ao)
+
+### 拆實驗工具組：把兩個產品的邊界收進**同一個**契約，並審計工具組到底拿不拿得走
+
+- [RESULT] **`TEACHING-BOUNDARY-V1` 一般化為 [`MODULE-BOUNDARY-V1`](docs/TOOLKIT_PORTABILITY.md)**：[登錄檔](backend/module_boundary_registry.json)、[契約](backend/module_boundary_contract.py)、31 個測試。工具組邊界的規則與教學邊界**逐字相同**（閉包必須恰好等於登錄清單），所以登錄檔改成多邊界、**程式只留一份**。再寫一份幾乎相同的契約，正是這個專案剛用 (ai)–(al) 兩個 PR 打掉的那個型態——**同一個事實兩份實作**。教學邊界的規則、模組清單與量測結果**一字未改**，只有名字與登錄檔形狀變了；舊 ID 與舊路徑依先立後撤保留在 (an) 與 [TEACHING_BOUNDARY §0](docs/TEACHING_BOUNDARY.md)。
+- [RESULT] **量到的是一個不對稱，這才是重點。** 工具組閉包**恰好是它自己那 7 個模組、5,300 行、本地相依為零**，而**13 個非測試專案模組 import 它**。它已經坐在相依圖的最底層——那正是函式庫該待的位置；契約的作用不是把它搬過去，而是**讓它留在那裡**。這個方向（函式庫不得反向碰專案）**嚴格強於**教學邊界。
+- [BLOCKER] **但「邊界乾淨」不等於「別人拿得走」，而且沒有任何自動檢查在守第二件事。** 逐模組審計（[TOOLKIT_PORTABILITY §4](docs/TOOLKIT_PORTABILITY.md)）：7 個模組裡**只有 `exposure_identification`（312 行、stdlib-only）今天可以原封不動使用**。契約 docstring、登錄檔註記與一個**專門的測試**（`test_the_boundary_is_not_a_portability_claim`）三處都寫死這件事，就是為了不讓綠燈被讀成「可以複用了」。
+- [BLOCKER] **`SIM_ONLY_MUJOCO` 與 `FROZEN_CLAIM_BOUNDARY` 是擁有者的決定，本次一個字都沒有動。** `experiment_matrix_contract.py:212`、`paired_statistics_contract.py:156` 把 `evidence_scope` 釘成單一值；`experiment_matrix_contract.py:257` 要求 `claim_boundary` **逐字等於**凍結句；`paper_data_contract.py:54-70` 把 `role` 封閉成 16 個值。**這些不是疏忽**——那句「SIM_ONLY_MUJOCO / NOT_PHYSICALLY_VALIDATED」能被逐字檢查，正是這個專案不誇大主張的機制之一。建議是讓外部專案**提供自己的詞彙表**（預設值就是現在這份），而不是放寬這裡的任何一個值。
+- [BLOCKER] **兩個逐字驗證的 bug，兩個都沒有修，因為兩個都需要決定。** `environment_lock.py:425` 的 `learning_fingerprint()` 呼叫 `torch.manual_seed`，動的是**全域** RNG——**對本專案不咬人**（`second_case_runner` 在 `build_model` 明確傳 `seed=`），但擋住同 process 的函式庫複用；**修它會改變 fingerprint 的值，讓 41 份已提交的 lock record 失效**。`run_manifest_lock.py:530` 的 `relative_to` 少了它自己 384 行就有的 `is_relative_to` 防護，逃逸 symlink 會丟**未捕捉的 `ValueError`** 而不是 typed label——對一個「每種失敗都有標籤」的契約來說，這是一條**沒有標籤的失敗路徑**。
+- [BLOCKER] **另外發現一個被凍結卻沒有被強制的欄位**：producer 登錄檔的 `manifest_schema`（如 `RL_TRAINING_RUN_V2`）**全 repo 只在它自己那份 JSON 出現過**，沒有任何程式讀它。binding record 記的是 manifest 自己宣告的 `schema_version`，兩者不一致時沒有東西會說話。
+- [RESULT] **先立後撤：我先前的假設被實測推翻。** 我原本說 `environment_lock` 裡 top-level 的 `mujoco`／`numpy`／`torch` import 是可攜性上最致命的問題。**錯。** 三個重套件的 import **全部在函式內、全部包在 `try/except` 裡**（`numpy:356`、`mujoco:382`、`torch:418/532/541`），在**無 site-packages 的 `python3 -I -S` 下實測可以 import 並使用**，缺套件只讓三個 fingerprint 回報 unavailable。錯的說法留著，更正放在旁邊（[TOOLKIT_PORTABILITY §7](docs/TOOLKIT_PORTABILITY.md)）。
+- [BLOCKER] **本次一樣沒有搬任何檔案，也沒有改任何 API、任何契約語義。**
+
 ## Unreleased — 2026-09-17 (an)
 
 ### `TEACHING-BOUNDARY-V1`：切斷教學應用唯一的跨界 import，並把「已解耦」變成被檢查的事實
@@ -10,7 +23,7 @@
 - [RESULT] **那一行已切斷**：新增 [`backend/rl/training_inventory.py`](backend/rl/training_inventory.py)，stdlib-only 的唯讀投影，`python3 -I -S` 可跑。`main.py` 改為 import 它。
 - [BLOCKER] **`train_ppo.py` 逐位元未動**——連 digest 的問題都不會發生。顯而易見的重構（把 `TrainingProfile` schema 搬出來共用）**被量測否決**：它的 validator 會呼叫 `load_tracked_lineage_protocol()` 並比對 `TRACKED-LINEAGE-TRAINING-V1`／`V2` 與 seed-variance protocol，**schema 與凍結的研究身分是糾纏的**，搬它等於把那個身分一起搬過邊界。（`LB-12` 自己的測試本就保證日後合法編輯 `train_ppo.py` 不得讓契約變紅，`ongoing_protection` 記為 `NONE`；仍選擇不動，因為不需要。）
 - [RESULT] **投影是精確的，不是近似的。** 送出的 payload **不等於**原始 JSON：pydantic 每個 profile 補 7 個欄位（`environment_id` 預設 `fixed_walk_v1`，其餘 6 個 `null`）且依宣告順序輸出。測試**逐位元比對**（含鍵序）本模組與 `train_ppo.public_training_inventory()` 的輸出，**所以這次拆分是被證明行為不變，不是假設它不變**。這是投影不是第二份 schema：`training_profiles.json` 仍是單一來源，`train_ppo` 為訓練驗證它、本模組為顯示驗證它；**唯讀端點沒有義務重新驗證研究凍結**。
-- [RESULT] **邊界成為 fail-closed 契約**：[規範](docs/TEACHING_BOUNDARY.md)、[登錄檔](backend/teaching_boundary_registry.json)、[契約](backend/teaching_boundary_contract.py) 與 25 個測試。規則是一條等式——教學進入點的遞移本地 import 閉包**必須恰好等於**登錄清單。**兩個方向都失敗**：研究模組跑進來會紅；**登錄清單過期也會紅**（留著沒人載入的項目，等於哪天讓某個模組無聲地回來）。錯誤訊息給出**到達路徑**（`main -> live_sim -> controller -> environment_lock`），不只是「有東西 import 了它」。現況 **15 個模組、4,943 行**。
+- [RESULT] **邊界成為 fail-closed 契約**：[規範](docs/TEACHING_BOUNDARY.md)、登錄檔 `backend/teaching_boundary_registry.json`、契約 `backend/teaching_boundary_contract.py` 與 25 個測試。（**2026-09-17 更正**：本條的登錄檔與契約已於 (ao) 一般化為 [`backend/module_boundary_registry.json`](backend/module_boundary_registry.json) 與 [`backend/module_boundary_contract.py`](backend/module_boundary_contract.py)，測試併入 `backend/test_module_boundary_contract.py`；**規則與下列所有量測結果未變**。原路徑依先立後撤保留在本條，但已由連結改為純文字，因為指向的檔案不再存在——保留措辭不等於保留一個會 404 的連結。）規則是一條等式——教學進入點的遞移本地 import 閉包**必須恰好等於**登錄清單。**兩個方向都失敗**：研究模組跑進來會紅；**登錄清單過期也會紅**（留著沒人載入的項目，等於哪天讓某個模組無聲地回來）。錯誤訊息給出**到達路徑**（`main -> live_sim -> controller -> environment_lock`），不只是「有東西 import 了它」。現況 **15 個模組、4,943 行**。
 - [RESULT] 測試把**修正前的狀態重演**（`main.py` 改回 import `train_ppo`），確認契約會抓到它與它帶進來的兩個模組；另測深層 import、**函式內 import**（靜態讀 AST，藏不住）、過期登錄項。
 - [BLOCKER] **邊界畫在研究模組，不是第三方套件的重量。** 教學閉包**確實** import `stable_baselines3`——經由 `controller_rl` 載入 PPO policy 給 Live 頁；**那是教學產品在做它該做的事**。`backend/rl/` 兩邊都有（`policy_registry`、`training_inventory` 是教學；`train_ppo`、`eval_policy`、`humanoid_env` 與各 runner 是研究），**這正是邊界用列舉而非目錄畫的理由**。
 - [BLOCKER] **本次沒有搬任何檔案，也沒有改任何 API。** §4.1 表格描述的「搬」仍未執行；本次讓它變成機械動作——`--list` 就是那份清單，搬完契約會立刻說有沒有漏。訓練頁依負責人決定**保留但只讀**（`execution_mode` 仍為 `OFFLINE_EXPLICIT_COMMAND_ONLY`）。不涵蓋的範圍見[規範 §6](docs/TEACHING_BOUNDARY.md)：測試可 import 任何東西、打包相依不在此檢查、前端只經 API。

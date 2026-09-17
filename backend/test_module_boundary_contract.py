@@ -1,16 +1,26 @@
-"""Tests for ``TEACHING-BOUNDARY-V1`` and the read-only training inventory.
+"""Tests for ``MODULE-BOUNDARY-V1`` and the read-only training inventory.
 
-Two things have to hold for the teaching split to be real rather than asserted.
+``PROJECT_ASSESSMENT`` section 4.1 proposes two products, and each proposal is a
+claim about imports. One contract checks both, by one rule, because copying the
+rule for the second product would have reproduced the failure this repository
+spent two contracts learning to catch: one fact, two implementations.
 
-The boundary has to be clean *and* checked: the teaching application's import
+The teaching boundary has to be clean *and* checked: the application's import
 closure must contain no research module, and the check must fail when one
 appears. The decisive negative test rebuilds the state this repository was in
 before 2026-09-17 -- ``main.py`` importing ``public_training_inventory`` from
 ``rl/train_ppo.py`` -- and requires the contract to catch it.
 
-The cut has to be behaviour-preserving: the new read-only inventory must serve
-the byte-identical payload the training driver served, key order included,
-otherwise the split silently changed the API.
+The toolkit boundary points the other way: the *library* must not reach into the
+project at all. That is strictly stronger than the teaching property, and it is
+measured true, so the tests pin both halves of the asymmetry -- the toolkit
+reaches nothing, while the project reaches it from thirteen places.
+
+Two things the tests deliberately do not claim. A clean toolkit boundary is not
+portability: ``test_the_boundary_is_not_a_portability_claim`` exists to keep the
+green light from being read as one. And the teaching cut has to be
+behaviour-preserving, so the new read-only inventory must serve the
+byte-identical payload the training driver served, key order included.
 """
 
 from __future__ import annotations
@@ -25,10 +35,10 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-import teaching_boundary_contract as tbc  # noqa: E402
+import module_boundary_contract as mbc  # noqa: E402
 from rl import training_inventory  # noqa: E402
 
-REPO_ROOT = tbc.REPO_ROOT
+REPO_ROOT = mbc.REPO_ROOT
 
 
 # --------------------------------------------------------------------------
@@ -36,21 +46,23 @@ REPO_ROOT = tbc.REPO_ROOT
 # --------------------------------------------------------------------------
 
 def test_registry_loads_and_is_well_formed():
-    registry = tbc.load_registry()
-    assert registry["registry_id"] == "TEACHING-BOUNDARY-V1"
-    assert registry["entry_points"] == ["main"]
+    registry = mbc.load_registry()
+    assert registry["registry_id"] == "MODULE-BOUNDARY-V1"
+    assert sorted(registry["boundaries"]) == ["teaching", "toolkit"]
+    assert registry["boundaries"]["teaching"]["entry_points"] == ["main"]
 
 
-def test_teaching_closure_is_clean():
-    summary = tbc.verify()
-    assert summary["result"] == "TEACHING_BOUNDARY_CLEAN"
-    assert summary["modules"] >= 10
+def test_every_declared_boundary_is_clean():
+    summary = mbc.verify()
+    assert summary["result"] == "MODULE_BOUNDARIES_CLEAN"
+    assert summary["boundaries"]["teaching"]["modules"] >= 10
+    assert summary["boundaries"]["toolkit"]["modules"] == 7
 
 
 def test_no_research_module_is_reachable_from_the_application():
     """The property in its own right, independent of the registry's contents."""
-    registry = tbc.load_registry()
-    reached = set(tbc.closure(registry))
+    registry = mbc.load_registry()
+    reached = set(mbc.closure(registry, "teaching"))
     forbidden = {
         "rl.train_ppo", "rl.eval_policy", "rl.humanoid_env", "rl.action_interface_v7",
         "rl.second_case_runner", "rl.bind_run_lock",
@@ -63,14 +75,14 @@ def test_no_research_module_is_reachable_from_the_application():
 
 
 def test_the_two_rl_modules_in_the_closure_are_the_teaching_ones():
-    registry = tbc.load_registry()
-    reached = sorted(m for m in tbc.closure(registry) if m.startswith("rl."))
+    registry = mbc.load_registry()
+    reached = sorted(m for m in mbc.closure(registry, "teaching") if m.startswith("rl."))
     assert reached == ["rl.policy_registry", "rl.training_inventory"]
 
 
 def test_imports_are_read_statically_not_by_importing():
     """A function-local import still counts: reachability, not one code path."""
-    source = io.open(os.path.join(REPO_ROOT, "backend/teaching_boundary_contract.py"),
+    source = io.open(os.path.join(REPO_ROOT, "backend/module_boundary_contract.py"),
                      encoding="utf-8").read()
     assert "ast.parse" in source
     assert "importlib" not in source
@@ -91,7 +103,7 @@ def tree(tmp_path):
 
 
 def test_clean_copy_passes(tree):
-    assert tbc.verify(tbc.REGISTRY_PATH, tree)["result"] == "TEACHING_BOUNDARY_CLEAN"
+    assert mbc.verify(mbc.REGISTRY_PATH, tree)["result"] == "MODULE_BOUNDARIES_CLEAN"
 
 
 def test_the_import_that_was_cut_is_caught(tree):
@@ -102,10 +114,10 @@ def test_the_import_that_was_cut_is_caught(tree):
     io.open(path, "w", encoding="utf-8").write(text.replace(
         "from rl.training_inventory import public_training_inventory",
         "from rl.train_ppo import public_training_inventory"))
-    with pytest.raises(tbc.TeachingBoundaryError) as caught:
-        tbc.verify(tbc.REGISTRY_PATH, tree)
+    with pytest.raises(mbc.ModuleBoundaryError) as caught:
+        mbc.verify(mbc.REGISTRY_PATH, tree)
     message = str(caught.value)
-    assert "RESEARCH_MODULE_IN_TEACHING_CLOSURE" in message
+    assert "MODULE_OUTSIDE_BOUNDARY" in message
     assert "rl.train_ppo" in message
     # and it names how the research module was reached, not merely that it was
     assert "main -> rl.train_ppo" in message
@@ -117,8 +129,8 @@ def test_a_new_research_import_anywhere_in_the_closure_is_caught(tree):
     text = io.open(path, encoding="utf-8").read()
     io.open(path, "w", encoding="utf-8").write(
         "import environment_lock  # noqa: F401\n" + text)
-    with pytest.raises(tbc.TeachingBoundaryError) as caught:
-        tbc.verify(tbc.REGISTRY_PATH, tree)
+    with pytest.raises(mbc.ModuleBoundaryError) as caught:
+        mbc.verify(mbc.REGISTRY_PATH, tree)
     message = str(caught.value)
     assert "environment_lock" in message
     # the trail is reported from the entry point, however deep the module sits
@@ -132,30 +144,126 @@ def test_a_function_local_research_import_is_caught(tree):
     text = io.open(path, encoding="utf-8").read()
     io.open(path, "w", encoding="utf-8").write(
         text + "\n\ndef _later():\n    from v7_pilot_contract import *  # noqa: F401,F403\n")
-    with pytest.raises(tbc.TeachingBoundaryError) as caught:
-        tbc.verify(tbc.REGISTRY_PATH, tree)
+    with pytest.raises(mbc.ModuleBoundaryError) as caught:
+        mbc.verify(mbc.REGISTRY_PATH, tree)
     assert "v7_pilot_contract" in str(caught.value)
 
 
 def test_a_stale_registry_entry_is_caught(tree):
     """An allowlist nothing loads would let a module back in unnoticed."""
-    registry = tbc.load_registry()
-    registry["teaching_modules"] = sorted(registry["teaching_modules"] + ["vv_oracles"])
+    registry = mbc.load_registry()
+    registry["boundaries"]["teaching"]["modules"] = sorted(
+        registry["boundaries"]["teaching"]["modules"] + ["vv_oracles"])
     path = os.path.join(tree, "registry.json")
     io.open(path, "w", encoding="utf-8").write(json.dumps(registry, ensure_ascii=False))
-    with pytest.raises(tbc.TeachingBoundaryError) as caught:
-        tbc.verify(path, tree)
+    with pytest.raises(mbc.ModuleBoundaryError) as caught:
+        mbc.verify(path, tree)
     assert "STALE_REGISTRY_ENTRY" in str(caught.value)
     assert "vv_oracles" in str(caught.value)
 
 
 def test_entry_point_outside_the_module_list_is_rejected(tmp_path):
-    registry = tbc.load_registry()
-    registry["entry_points"] = ["not_a_teaching_module"]
+    registry = mbc.load_registry()
+    registry["boundaries"]["teaching"]["entry_points"] = ["not_a_teaching_module"]
     path = tmp_path / "registry.json"
     path.write_text(json.dumps(registry, ensure_ascii=False), encoding="utf-8")
-    with pytest.raises(tbc.TeachingBoundaryError, match="not itself a registered"):
-        tbc.load_registry(str(path))
+    with pytest.raises(mbc.ModuleBoundaryError, match="not one of its own modules"):
+        mbc.load_registry(str(path))
+
+
+# --------------------------------------------------------------------------
+# the toolkit boundary: the same rule, pointing the other way
+# --------------------------------------------------------------------------
+
+def test_the_toolkit_closure_is_exactly_its_seven_modules():
+    """The library reaches nothing beyond itself -- no project module at all."""
+    registry = mbc.load_registry()
+    reached = sorted(mbc.closure(registry, "toolkit"))
+    assert reached == sorted(registry["boundaries"]["toolkit"]["modules"])
+    assert reached == [
+        "environment_lock", "experiment_matrix_contract", "exposure_identification",
+        "paired_statistics_contract", "paper_data_contract", "rl.bind_run_lock",
+        "run_manifest_lock",
+    ]
+
+
+def test_the_two_boundaries_share_no_module():
+    """A module on both sides would make either boundary meaningless."""
+    registry = mbc.load_registry()
+    teaching = set(mbc.closure(registry, "teaching"))
+    toolkit = set(mbc.closure(registry, "toolkit"))
+    assert not (teaching & toolkit), sorted(teaching & toolkit)
+
+
+def test_the_dependency_runs_from_the_project_to_the_toolkit_not_back():
+    """The asymmetry is the point: many depend on it, it depends on none.
+
+    Thirteen non-test project modules imported a toolkit module on 2026-09-17.
+    The floor is asserted rather than the exact count, because a new bundle
+    script is a legitimate fourteenth and must not turn this red; a collapse to
+    single digits means the registry's note has gone stale.
+    """
+    registry = mbc.load_registry()
+    toolkit = set(registry["boundaries"]["toolkit"]["modules"])
+    root = os.path.join(REPO_ROOT, registry["package_root"])
+
+    dependents = []
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = [d for d in dirnames if d not in ("__pycache__", "artifacts", "run_traces")]
+        for filename in sorted(filenames):
+            if not filename.endswith(".py") or filename.startswith("test_"):
+                continue
+            relative = os.path.relpath(os.path.join(dirpath, filename), root)
+            module = relative[: -len(".py")].replace(os.sep, ".")
+            if module in toolkit:
+                continue
+            if mbc.imported_names(os.path.join(dirpath, filename)) & toolkit:
+                dependents.append(module)
+
+    assert len(dependents) >= 10, dependents
+    assert "rl.second_case_runner" in dependents
+
+
+def test_a_toolkit_module_reaching_into_the_project_is_caught(tree):
+    """The failure this boundary exists for, in the toolkit's direction."""
+    path = os.path.join(tree, "backend", "exposure_identification.py")
+    text = io.open(path, encoding="utf-8").read()
+    io.open(path, "w", encoding="utf-8").write(
+        "import v7_pilot_contract  # noqa: F401\n" + text)
+    with pytest.raises(mbc.ModuleBoundaryError) as caught:
+        mbc.verify(mbc.REGISTRY_PATH, tree)
+    message = str(caught.value)
+    assert "[toolkit]" in message
+    assert "MODULE_OUTSIDE_BOUNDARY: v7_pilot_contract" in message
+    assert "reached by exposure_identification -> v7_pilot_contract" in message
+
+
+def test_a_toolkit_module_importing_a_teaching_module_is_caught(tree):
+    """Reaching sideways into the other product fails as surely as reaching up."""
+    path = os.path.join(tree, "backend", "run_manifest_lock.py")
+    text = io.open(path, encoding="utf-8").read()
+    io.open(path, "w", encoding="utf-8").write("import simulator  # noqa: F401\n" + text)
+    with pytest.raises(mbc.ModuleBoundaryError) as caught:
+        mbc.verify(mbc.REGISTRY_PATH, tree)
+    assert "[toolkit]" in str(caught.value)
+    assert "simulator" in str(caught.value)
+
+
+def test_the_boundary_is_not_a_portability_claim():
+    """A green light here says nothing about whether an outsider can use it.
+
+    Measured 2026-09-17 and recorded in docs/TOOLKIT_PORTABILITY.md: the closure
+    is clean while closed ``Literal`` vocabularies still bind three modules to
+    this project's frozen claim boundary. The registry has to keep saying so,
+    otherwise the clean result reads as "reusable today", which it is not.
+    """
+    registry = mbc.load_registry()
+    note = registry["boundaries"]["toolkit"]["notes"]["portability_is_separate"]
+    assert "docs/TOOLKIT_PORTABILITY.md" in note
+    assert os.path.exists(os.path.join(REPO_ROOT, "docs/TOOLKIT_PORTABILITY.md"))
+    source = io.open(os.path.join(REPO_ROOT, "backend/module_boundary_contract.py"),
+                     encoding="utf-8").read()
+    assert "does NOT check is portability" in source
 
 
 # --------------------------------------------------------------------------
@@ -222,11 +330,11 @@ def test_duplicate_profile_id_is_rejected(tmp_path):
 # --------------------------------------------------------------------------
 
 def test_cli_reports_a_clean_boundary():
-    assert tbc.main([]) == 0
+    assert mbc.main([]) == 0
 
 
 def test_cli_list_prints_the_closure(capsys):
-    assert tbc.main(["--list"]) == 0
+    assert mbc.main(["--list"]) == 0
     printed = capsys.readouterr().out
     assert "main" in printed and "TOTAL" in printed
     assert "train_ppo" not in printed
@@ -236,5 +344,5 @@ def test_cli_returns_nonzero_on_a_violation(tree, capsys):
     path = os.path.join(tree, "backend", "gait.py")
     text = io.open(path, encoding="utf-8").read()
     io.open(path, "w", encoding="utf-8").write("import paper_data_contract  # noqa: F401\n" + text)
-    assert tbc.main(["--registry", tbc.REGISTRY_PATH, "--repo-root", tree]) == 1
-    assert "TEACHING BOUNDARY CHECK FAILED" in capsys.readouterr().err
+    assert mbc.main(["--registry", mbc.REGISTRY_PATH, "--repo-root", tree]) == 1
+    assert "MODULE BOUNDARY CHECK FAILED" in capsys.readouterr().err

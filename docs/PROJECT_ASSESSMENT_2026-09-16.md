@@ -157,7 +157,13 @@ reference policy**——它需要的是被 censoring 截斷的例子，而那正
 
 [BLOCKER] **2026-09-17 更正：上一段少算了一行。** 實測 `main.py` 的遞移閉包，13 個模組裡 12 個成立、**1 行不成立**——`main.py` 從 `rl/train_ppo.py` 取 `public_training_inventory`，於是「列出訓練 profile」這個唯讀端點拉進一個 **1,292 行的訓練驅動**，再經由它拉進 `stable_baselines3` 與該 schema 所驗證的**每一個凍結研究 protocol**。原句說的「不 import 任何契約模組」對 12 個模組為真，對這一行為假。原句依先立後撤保留在上方。
 
-[RESULT] **該行已於 2026-09-17 切斷**，並把邊界變成**被檢查的事實**：[`TEACHING-BOUNDARY-V1`](TEACHING_BOUNDARY.md)（[登錄檔](../backend/teaching_boundary_registry.json)、[契約](../backend/teaching_boundary_contract.py)）。規則是一條等式——教學進入點的遞移本地 import 閉包**必須恰好等於**已登錄的模組清單，兩個方向都失敗：研究模組跑進來會紅，登錄清單過期也會紅。現況 **15 個模組、4,943 行**，`train_ppo` 不在其中。`train_ppo.py` **逐位元未動**。
+[RESULT] **該行已於 2026-09-17 切斷**，並把邊界變成**被檢查的事實**：[`TEACHING-BOUNDARY-V1`](TEACHING_BOUNDARY.md)（登錄檔 `backend/teaching_boundary_registry.json`、契約 `backend/teaching_boundary_contract.py`）。規則是一條等式——教學進入點的遞移本地 import 閉包**必須恰好等於**已登錄的模組清單，兩個方向都失敗：研究模組跑進來會紅，登錄清單過期也會紅。現況 **15 個模組、4,943 行**，`train_ppo` 不在其中。`train_ppo.py` **逐位元未動**。（**2026-09-17 更正**：本段原寫契約 ID 為 `TEACHING-BOUNDARY-V1`、登錄檔 `backend/teaching_boundary_registry.json`、契約 `backend/teaching_boundary_contract.py`，原措辭依先立後撤保留。拆下方產品 B 時發現工具組邊界的規則與此**逐字相同**，因此改為多邊界的 [`MODULE-BOUNDARY-V1`](TEACHING_BOUNDARY.md)（[登錄檔](../backend/module_boundary_registry.json)、[契約](../backend/module_boundary_contract.py)），**程式只留一份**——再寫一份幾乎相同的契約，正是 §4.3 那個「同一個事實多份副本」的型態。教學邊界的規則、模組清單與上述量測結果一字未改。原路徑保留在上方，但已由連結改為純文字，因為指向的檔案不再存在。）
+
+[RESULT] **產品 B 的邊界也已於 2026-09-17 變成被檢查的事實**，由**同一個契約**檢查：[TOOLKIT_PORTABILITY](TOOLKIT_PORTABILITY.md)。量到的是一個**不對稱**——工具組閉包**恰好是它自己那 7 個模組、5,300 行、本地相依為零**，而**13 個非測試專案模組 import 它**。它已經坐在相依圖的最底層，那正是函式庫該待的位置；契約的作用是讓它留在那裡。
+
+[BLOCKER] **但「邊界乾淨」不等於「別人拿得走」，而下表把這兩件事混在同一格。** 2026-09-17 逐模組審計：7 個模組裡**只有 `exposure_identification` 今天可以原封不動使用**；`environment_lock` 可用但功能退化（三個重套件的 import **全部是惰性且包在 `try/except` 裡**，在 `python3 -I -S` 下實測可載入）；其餘 5 個被**平坦兄弟 import**、**封閉 `Literal` 詞彙**與**凍結的 producer 登錄檔**擋住。其中 `evidence_scope: Literal["SIM_ONLY_MUJOCO"]` 與 `FROZEN_CLAIM_BOUNDARY` 的逐字比對**不是疏忽，是這個專案不誇大主張的機制**，放寬它們是擁有者的決定，本次一個字都沒有動。逐項與建議見 [TOOLKIT_PORTABILITY §4–§8](TOOLKIT_PORTABILITY.md)。
+
+[BLOCKER] **下表產品 B 的「~6.4k 行」與實測不符。** 2026-09-17 對表中列出的同一組 7 個檔案實測 `wc -l` 為 **5,300 行**。原數字依先立後撤保留在表中，本行為更正；產生原數字的計算方式未知，因此這裡只記錄重新量到的值與方法。
 
 [BLOCKER] **本次沒有搬任何檔案。** §4.1 表格描述的「搬」仍未執行；本次做的是切斷耦合並讓邊界可驗證，使日後的搬移變成機械動作。仍未涵蓋的範圍見 [TEACHING_BOUNDARY §6](TEACHING_BOUNDARY.md)。
 
