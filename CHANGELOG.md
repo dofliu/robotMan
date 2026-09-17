@@ -2,6 +2,17 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-17 (am)
+
+### 在合併後的乾淨工作樹上重跑完整套件，更新量測條件並直接核對失敗身分
+
+- [RESULT] 依專案負責人指示重跑。條件：**乾淨工作樹**（跑前跑後 `git status` 皆空）於 `5bfc342`，`python3 -X utf8 -m pytest backend/ -p no:cacheprovider -v --durations=0`。結果 **1 failed / 1003 passed**、`314.84` s、收集 `1004`。對帳精確：`1003 + 1 = 1004`；`950`（`979e73b`）＋27（`test_gate_status_contract.py`）＝ `977`（`01afa60`）＋26（`test_derived_claim_contract.py`）＝ **`1003`**。
+- [RESULT] **量測條件更新，原條件依先立後撤保留**：(al) 記的是 `70b8db3` **加上未合併變更**的工作樹（`315.31` s）。合併後在乾淨樹重跑得到**相同結果**，故以乾淨樹那次為準；原條件記於 [PROJECT_STATUS §9](docs/PROJECT_STATUS.md)。兩次一致本身就是一次重現。
+- [BLOCKER] **失敗身分是直接核對出來的，不是從測試名推斷的。** 重跑 replay 取出 `replay["status"] == "FAIL"`、失敗判準 `PRIMARY_CASE_RECEIPT_IDENTITY`，與 [V2 receipt §8](docs/TRACKED_LINEAGE_TRAINING_V2_RECEIPT_2026-09-14.md) 記載的 reduction-order 差異同源，**記錄為量測結果、未放寬**。另已以 `git stash` 在合併基底上重跑確認該失敗先於這一系列變更存在。
+- [BLOCKER] **一個界線寫清楚**：順帶掃過各 case 的數值判準，找到的差異全在 `WEIGHT_BALANCE`（最大 `7.4e-15`），**都在 `1e-12` 門檻內、未造成失敗**。`PRIMARY_CASE_RECEIPT_IDENTITY` 是 receipt 層的同一性檢查，其差異不在那些欄位裡——**本次確認的是判準身分相同，並未重新導出既有 receipt 裡記載的數值**。
+- [RESULT] **無 collection error**：日誌中兩處 `ERROR` 字樣是一個參數化測試的**名字**（`test_v1_bundle_rejects_incomplete_replay_stdout[{"status":"ERROR"}]`），它 PASSED。
+- [RESULT] 兩個文件契約於同一 commit 複跑通過：`GATE_STATUS_SINGLE_SOURCE_CONSISTENT`（33 gates／54 sites）、`DERIVED_CLAIMS_CONSISTENT`（10 papers／1 claim／3 sites）。
+
 ## Unreleased — 2026-09-17 (al)
 
 ### `DERIVED-CLAIM-CONSISTENCY-V1`：把「從文獻核實等級算出來的待核清單」綁回地圖
