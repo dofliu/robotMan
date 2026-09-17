@@ -1,0 +1,173 @@
+{
+  "registry_id": "DERIVED-CLAIM-CONSISTENCY-V1",
+  "as_of": "2026-09-17",
+  "purpose": "A derived claim restates, in prose, something computed from a source of record. It goes stale when the source changes and the prose does not. GATE-STATUS-SINGLE-SOURCE-V1 covers statuses that documents copy; it explicitly does not cover this class, and docs/GATE_STATUS_SINGLE_SOURCE.md section 6 recorded the gap. This registry closes it. Rules: docs/DERIVED_CLAIM_CONSISTENCY.md.",
+  "checked_by": "backend/derived_claim_contract.py",
+  "sources": {
+    "literature_verification": {
+      "what": "per-paper source-verification level in the two literature maps",
+      "docs": [
+        "docs/LITERATURE_MAP_2026-09-08_EVALUATION_VALIDITY.md",
+        "docs/LITERATURE_MAP_2026-09-16_TRAINING_STRATEGY.md"
+      ],
+      "levels": [
+        "U",
+        "R",
+        "S"
+      ],
+      "unverified_level": "U",
+      "level_column": 0,
+      "papers": {
+        "pardo_2018": {
+          "display": "Pardo 2018",
+          "arxiv": "1712.00378",
+          "claim_names": [
+            "Pardo 2018"
+          ]
+        },
+        "learning_to_locomote_2020": {
+          "display": "Reda et al. 2020, Learning to Locomote",
+          "arxiv": "2010.04304",
+          "claim_names": [
+            "Learning to Locomote"
+          ]
+        },
+        "leete_2019": {
+          "display": "Leete et al. 2019, Balanced Policy Evaluation for Right Censored Data",
+          "arxiv": "1911.05728",
+          "claim_names": []
+        },
+        "bedi_2026": {
+          "display": "Bedi 2026, Demonstration Curation Metrics",
+          "arxiv": "2606.10229",
+          "claim_names": []
+        },
+        "colas_2018": {
+          "display": "Colas 2018, How Many Random Seeds?",
+          "arxiv": "1806.08295",
+          "claim_names": [
+            "Colas 2018"
+          ]
+        },
+        "colas_2019": {
+          "display": "Colas 2019, A Hitchhiker's Guide",
+          "arxiv": "1904.06979",
+          "claim_names": [
+            "Colas 2019"
+          ]
+        },
+        "manski_tamer": {
+          "display": "Manski 1990 / Tamer 2010, partial identification",
+          "arxiv": null,
+          "row_match": "Manski (1990) worst-case",
+          "claim_names": [
+            "Manski 1990／Tamer 2010",
+            "Manski 1990 與 Tamer 2010"
+          ]
+        },
+        "hollenbeck_wright_2017": {
+          "display": "Hollenbeck & Wright 2017, Tharking",
+          "arxiv": null,
+          "row_match": "Harking, Sharking, and Tharking",
+          "claim_names": [
+            "Hollenbeck & Wright 2017"
+          ]
+        },
+        "deepmimic_2018": {
+          "display": "Peng et al. 2018, DeepMimic",
+          "arxiv": "1804.02717",
+          "claim_names": [
+            "DeepMimic"
+          ]
+        },
+        "gait_conditioned_2025": {
+          "display": "Peng et al., Gait-Conditioned RL",
+          "arxiv": "2505.20619",
+          "claim_names": []
+        }
+      }
+    }
+  },
+  "claims": {
+    "pub_a0_priority_to_verify": {
+      "what": "the priority list of papers still to be source-verified for PUB-A0",
+      "source": "literature_verification",
+      "members": [
+        "colas_2019",
+        "manski_tamer",
+        "hollenbeck_wright_2017"
+      ],
+      "rules": [
+        "MEMBERS_STILL_UNVERIFIED",
+        "NO_VERIFIED_PAPER_NAMED",
+        "ALL_MEMBERS_NAMED",
+        "COUNT_WORD_MATCHES_MEMBERS",
+        "CLAIM_RETIRES_WHEN_SOURCE_EMPTY"
+      ],
+      "count_template": "優先{count}篇",
+      "sites": [
+        {
+          "doc": "docs/PUBLICATION_PLAN.md",
+          "anchor": "1. **`PUB-A0`**：關鍵兩篇已核對（2026-09-09，gap 仍成立）"
+        },
+        {
+          "doc": "docs/PROJECT_STATUS.md",
+          "anchor": "1. `PUB-A0`：狀態為 **`FOUR_VERIFIED_REMAINING_U`**"
+        },
+        {
+          "doc": "docs/TRACK_A_REFRAME_2026-09-09.md",
+          "anchor": "1. `PUB-A0`：關鍵兩篇已核對（2026-09-09，gap 仍成立，[LITERATURE_MAP §7]"
+        }
+      ],
+      "list_terminator": "。"
+    }
+  },
+  "scan": {
+    "what": "every place in the planning documents that looks like this claim, so a fifth copy cannot appear unregistered",
+    "pattern": "優先[一二兩三四五六七八九十]篇",
+    "docs": [
+      "docs/PUBLICATION_PLAN.md",
+      "docs/PROJECT_STATUS.md",
+      "docs/TRACK_A_REFRAME_2026-09-09.md",
+      "docs/PROJECT_ASSESSMENT_2026-09-16.md",
+      "docs/ROADMAP.md",
+      "docs/VV_PLAN.md",
+      "docs/RESEARCH_EXECUTION_PLAN.md",
+      "docs/PAPER_DATA_READINESS.md",
+      "docs/LITERATURE_MAP_2026-09-08_EVALUATION_VALIDITY.md",
+      "docs/LITERATURE_MAP_2026-09-16_TRAINING_STRATEGY.md",
+      "README.md"
+    ],
+    "acknowledged_non_claims": [
+      {
+        "doc": "docs/PROJECT_ASSESSMENT_2026-09-16.md",
+        "anchor": "| 4 | Pardo 2018（`1712.00378`）已核對、`U` → `S` |",
+        "why": "section 4.3.1's table row describing the measured failure; it quotes the old 「優先四篇」 wording as evidence, it does not assert a to-verify list"
+      },
+      {
+        "doc": "docs/PROJECT_ASSESSMENT_2026-09-16.md",
+        "anchor": "**#4 已於 2026-09-17 由專案負責人指示修掉**",
+        "why": "section 4.3.1 describing what was fixed; it reports the change, it does not assert a to-verify list"
+      }
+    ]
+  },
+  "conventions": {
+    "correction_notes": "A line carrying a '**<date> 更正' marker preserves superseded wording under the project's correct-in-place norm. It is history, not a live claim, and is skipped by both the site check and the scan.",
+    "paper_identity": "A paper is located in a map by its arXiv id where it has one, otherwise by a registered row_match string. Its spellings inside claim prose are registered separately as claim_names, because a map row spells a paper as 'Colas, Sigaud, Oudeyer, A Hitchhiker's Guide' while a claim spells the same paper 'Colas 2019'.",
+    "list_segment": "A site's sentence opens by reporting what has already been verified and only then says what is left. Naming a verified paper in that preamble is correct, so the membership rules read only the list segment: from the cardinality word to the end of its sentence."
+  },
+  "out_of_scope": {
+    "gate_statuses": {
+      "what": "a gate's status copied across documents",
+      "why": "covered by GATE-STATUS-SINGLE-SOURCE-V1 (backend/gate_status_registry.json)"
+    },
+    "gap_judgements": {
+      "what": "the literature maps' section 4 gap findings and the claim to evidence tables",
+      "why": "these are judgements over the whole map, not lists derived by a rule a contract can restate; they are re-argued by hand when a level changes, and TRACK_A_REFRAME records that"
+    },
+    "unregistered_papers": {
+      "what": "map rows for papers no derived claim names",
+      "why": "nothing restates them, so nothing can go stale; registering one costs a claim_names entry"
+    }
+  }
+}

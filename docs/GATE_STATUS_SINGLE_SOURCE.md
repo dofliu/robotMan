@@ -98,8 +98,13 @@ python3 -I -S backend/gate_status_contract.py --list   # 列出每個 gate 的�
 本契約的用處是：**讓那次盤點不必再用手做一遍。**
 
 它也不涵蓋 §1 表中的第 4 例那一類失效——「Pardo 已核對」不是 gate 狀態，而是一個
-**衍生清單**（待核對優先清單）與文獻地圖 `U`／`S` 等級之間的一致性。那需要另一個裝置，目前沒有做，
-記在此處以免被誤以為已經涵蓋。
+**衍生清單**（待核對優先清單）與文獻地圖 `U`／`S` 等級之間的一致性。那需要另一個裝置。
+
+[RESULT] **2026-09-17 已補上**：[`DERIVED-CLAIM-CONSISTENCY-V1`](DERIVED_CLAIM_CONSISTENCY.md)
+（[登錄檔](../backend/derived_claim_registry.json)、[契約](../backend/derived_claim_contract.py)）。
+本段原寫「目前沒有做」，依先立後撤保留在上方。兩個契約的分工見該文件 §2：
+gate 契約比對**被複製的狀態字串**，衍生 claim 契約比對**被重述的集合**——Pardo 過期時
+哪一個 gate 狀態都沒有錯，所以 gate 契約看不到它。
 
 ## 7. 改一個 gate 狀態的步驟
 
