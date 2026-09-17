@@ -188,6 +188,8 @@ Summary 並把過小與過大分別歸為前撲與站立不動兩個局部最優
 
 ## 8. `PUB-A` gates V2
 
+> **本表是 mirror，不是權威來源**（`GATE-STATUS-SINGLE-SOURCE-V1`）。權威在 [PUBLICATION_PLAN §5](PUBLICATION_PLAN.md)；兩邊不一致時以權威為準，且 `backend/gate_status_contract.py` 會讓測試失敗。規則見 [GATE_STATUS_SINGLE_SOURCE](GATE_STATUS_SINGLE_SOURCE.md)。
+
 | Gate | 出口條件 | 狀態 | 依據 |
 |---|---|---|---|
 | `PUB-A0` Novelty | 文獻地圖所有 `U` 經原文核對；§4 gap 判定重寫並仍成立 | `IN_PROGRESS` — `FOUR_VERIFIED_REMAINING_U`（2026-09-16） | 關鍵兩篇已核對（2026-09-09）：1911.05728 為 independent-censoring + imputation 的點估計，2606.10229 為 curation metric 的設計期 truncation。A-C5 補充 scan 已完成（2026-09-10）並使該項降級。其餘 `U` 條目需可存取出版方的環境（2026-09-10 重新量測 `arxiv.org` 仍封鎖）。**2026-09-16 再核兩篇**：`1712.00378`（Pardo）與 `2010.04304`（Learning to Locomote）皆確認為 learning 端、不涉量測端 identification，§1.1 兩列升為 `S`，A-C1／A-C2 的 gap 判定不變 |

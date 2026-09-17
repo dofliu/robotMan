@@ -27,6 +27,8 @@
 
 ## 1. V&V gates
 
+> **本表是這些 gate 狀態的唯一權威來源**（`GATE-STATUS-SINGLE-SOURCE-V1`）。其他文件中陳述同一狀態的地方都登錄為 mirror，由 `backend/gate_status_contract.py` 逐一比對，不一致即測試失敗。改狀態的步驟見 [GATE_STATUS_SINGLE_SOURCE](GATE_STATUS_SINGLE_SOURCE.md) §7。
+
 | Gate | 狀態 | 已有 | 缺 |
 |---|---|---|---|
 | V0 Evidence & Provenance | `PARTIAL_IMPLEMENTED_NOT_PASS` | bounded fail-closed input contracts、`ANALYSIS_METRICS_V1`、run-level `PAPER_RUN_MANIFEST_V2`、artifact inventory/SHA-256、clean-source Git identity、`ENVIRONMENT-LOCK-V1` 可量測 environment identity（一份實測 record）、`RUN-MANIFEST-LOCK-BINDING-V1` fail-closed 綁定（2026-09-13，前向） | project-wide immutable artifact storage；lock 綁定的三項殘餘缺口（sidecar 可被遺漏、`simulator.py` 明示排除、2026-09-08 bundle 的兩個斷言不可重驗）；full raw artifact inventory；complete requirement registry；actual Study A matrix |
@@ -36,6 +38,8 @@
 | V4 Subsystem Validation | `NOT_STARTED` | — | 任何 SIL/HIL/bench/robot evidence |
 
 ## 2. Paper Data Readiness gates
+
+> **本表是 mirror，不是權威來源**（`GATE-STATUS-SINGLE-SOURCE-V1`）。權威在 [PAPER_DATA_READINESS](PAPER_DATA_READINESS.md)；兩邊不一致時以權威為準，且 `backend/gate_status_contract.py` 會讓測試失敗。規則見 [GATE_STATUS_SINGLE_SOURCE](GATE_STATUS_SINGLE_SOURCE.md)。
 
 | Gate | 狀態 | 一句話 |
 |---|---|---|
@@ -209,7 +213,7 @@
 
 ## 9. 測試現況
 
-`backend/`：**1 failed / 950 passed**（2026-09-16，`319.18` s，工作樹在 `979e73b`，`pytest -v --durations=0`）。數字逐步對得起來：2026-09-14 的 `941` ＋7（介面改版的兩支測試檔：`test_warning_items.py` 5 個、`test_decision_kind.py` 2 個）＝ `948`（`9f871ac`）；＋2（PR #25 補上的 `record_start` 時長邊界與預設值回歸測試，均在 `test_run_trace.py`）＝ **`950`**。失敗項仍是同一個、未放寬的 reduction-order 差異，無新增失敗。
+`backend/`：**1 failed / 977 passed**（2026-09-17，`397.65` s，工作樹為 `ee2088b` 加上本次變更）。數字逐步對得起來：2026-09-14 的 `941` ＋7（介面改版的兩支測試檔：`test_warning_items.py` 5 個、`test_decision_kind.py` 2 個）＝ `948`（`9f871ac`）；＋2（PR #25 補上的 `record_start` 時長邊界與預設值回歸測試，均在 `test_run_trace.py`）＝ `950`（`979e73b`）；＋27（`GATE-STATUS-SINGLE-SOURCE-V1` 的 `test_gate_status_contract.py`）＝ **`977`**。失敗項仍是同一個、未放寬的 reduction-order 差異——已於本次以 `git stash` 在合併基底 `ee2088b` 上重跑確認**該失敗先於本次變更存在**，無新增失敗。
 
 2026-09-14 那一輪的逐 commit 實測記錄保留於此：`5b707cb`（V2 contract 之前的 main）收集 `892`；＋`32`（`TRACKED-LINEAGE-TRAINING-V2` contract）＝ `924`，即先前記錄的 1 failed / 923 passed；＋`2`（guard dispatch）＋`2`（resume 路徑）＋`8`（保留線）＝ `936`，即 PR #20 合併後的 main；＋`6`（V2 執行線：replicate 數推導、relocated lock、標籤）＝ **`942`** ＝ 1 failed / 941 passed。更早的記錄為 1 failed / 882 passed、1 failed / 816 passed 與 1 failed / 754 passed。
 

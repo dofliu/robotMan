@@ -80,6 +80,8 @@ V2 補一句：Track A 的論點不再是「在公開 benchmark 上重現 v7 的
 
 ### 3.1 Track A
 
+> **本表是這些 gate 狀態的唯一權威來源**（`GATE-STATUS-SINGLE-SOURCE-V1`）。其他文件中陳述同一狀態的地方都登錄為 mirror，由 `backend/gate_status_contract.py` 逐一比對，不一致即測試失敗。改狀態的步驟見 [GATE_STATUS_SINGLE_SOURCE](GATE_STATUS_SINGLE_SOURCE.md) §7。
+
 | Gate | Exit condition | 狀態 | 備註 |
 |---|---|---|---|
 | `PUB-A0` Novelty | 文獻地圖中所有 `U` 條目經原文核對改為 `S` 或刪除；§4 gap 判定重寫並仍成立 | `IN_PROGRESS` — **`FOUR_VERIFIED_REMAINING_U`**（2026-09-16；先前為 `KEY_TWO_VERIFIED_AND_A_C5_SCANNED / REMAINING_U`） | 關鍵兩篇 arXiv 1911.05728、2606.10229 已由專案負責人提供 PDF 並全文核對（2026-09-09，[LITERATURE_MAP §7](LITERATURE_MAP_2026-09-08_EVALUATION_VALIDITY.md)）：前者為 conditionally independent censoring + imputation 的點估計（bounds 為 regret／rate），後者為 curation metric 的設計期 common-prefix truncation、未涉及 policy evaluation——兩個「gap 縮小／消失」條件皆不成立。A-C5 的 preregistration／multiverse 補充 scan 已於 2026-09-10 完成（[§1.7](LITERATURE_MAP_2026-09-08_EVALUATION_VALIDITY.md)），結果是**縮小主張**：A-C5 降為 artifact 級併入 A-C4。其餘 `U` 條目需可存取出版方的環境（2026-09-10 重新量測 `arxiv.org` 仍封鎖） |
@@ -91,6 +93,8 @@ V2 補一句：Track A 的論點不再是「在公開 benchmark 上重現 v7 的
 | `PUB-A5` Submission | venue 選定；preprint 與 code／receipt archive 帶 DOI | `NOT_STARTED` | |
 
 ### 3.2 Track B
+
+> **本表是這些 gate 狀態的唯一權威來源**（`GATE-STATUS-SINGLE-SOURCE-V1`）。其他文件中陳述同一狀態的地方都登錄為 mirror，由 `backend/gate_status_contract.py` 逐一比對，不一致即測試失敗。改狀態的步驟見 [GATE_STATUS_SINGLE_SOURCE](GATE_STATUS_SINGLE_SOURCE.md) §7。
 
 | Gate | Exit condition | 狀態 |
 |---|---|---|
@@ -104,6 +108,8 @@ V2 補一句：Track A 的論點不再是「在公開 benchmark 上重現 v7 的
 | `PUB-B7` Manuscript | 同 A2–A5 | `NOT_STARTED` |
 
 ### 3.3 Track C
+
+> **本表是這些 gate 狀態的唯一權威來源**（`GATE-STATUS-SINGLE-SOURCE-V1`）。其他文件中陳述同一狀態的地方都登錄為 mirror，由 `backend/gate_status_contract.py` 逐一比對，不一致即測試失敗。改狀態的步驟見 [GATE_STATUS_SINGLE_SOURCE](GATE_STATUS_SINGLE_SOURCE.md) §7。
 
 | Gate | Exit condition | 狀態 |
 |---|---|---|

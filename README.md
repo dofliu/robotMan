@@ -21,6 +21,7 @@ Repository：[github.com/dofliu/robotMan](https://github.com/dofliu/robotMan) �
 | 專案成熟度 | `progress: 0`（以 V&V gate 通過數計，不以功能數計） | [PROJECT_STATUS §0](docs/PROJECT_STATUS.md) |
 | V&V gates | V0 PARTIAL、V1 PARTIAL、V2–V4 NOT STARTED | [PROJECT_STATUS §1](docs/PROJECT_STATUS.md) |
 | Paper-data gates | PDR-0..8 無一 PASS；`paper_data_ready = false` | [PAPER_DATA_READINESS](docs/PAPER_DATA_READINESS.md) |
+| Gate 狀態一致性 | 33 個 gate、54 個站點由 `GATE-STATUS-SINGLE-SOURCE-V1` fail-closed 比對；狀態改了沒同步到 mirror 即測試失敗 | [GATE_STATUS_SINGLE_SOURCE](docs/GATE_STATUS_SINGLE_SOURCE.md) |
 | 最強的一個結果 | V7B 相對 V7A 的 saturation duty method-level bound `[-13.503408, -12.435259]` pp，排除 0，5/5 independent training replicates 方向可識別；**條件於一個不可重建的 warm start** | [PROJECT_STATUS §4](docs/PROJECT_STATUS.md) |
 | 被推翻的一個結果 | V7C 表面上的 `-36` pp 改善經量測確認為 exposure artifact | [PROJECT_STATUS §4.2](docs/PROJECT_STATUS.md) |
 | 學術產出 | 三條路線；Track A 於 2026-09-09 重構為「censoring regime 的評估效度研究」（`PUBLICATION-PLAN-V3`）：`PUB-A1a` PASS（Walker2d-v5 第二案例）、`PUB-A1b` CLOSED_NOT_ATTAINED（三個 budget probe 後停止）；`PUB-A0` 關鍵兩篇已原文核對、gap 仍成立，A-C5 補充 scan 完成後降為 artifact 級（其餘條目待核）；下一步 `PUB-A2` claim freeze，其輸入之一是 2026-09-11 凍結的 `R0` regime probe | [PUBLICATION_PLAN](docs/PUBLICATION_PLAN.md)、[TRACK_A_REFRAME](docs/TRACK_A_REFRAME_2026-09-09.md) |
@@ -30,7 +31,7 @@ Repository：[github.com/dofliu/robotMan](https://github.com/dofliu/robotMan) �
 | **專案評估（2026-09-16）** | 給負責人的**決策文件**：核心 robotics + 應用 `6,871` 行、前端 `3,561` 行，證據契約 `29,294` 行（**1 : 4.3**），其中約 `15,800` 行服務的研究線已結案；**沒有不可達程式**。機器人：v5 會走（10/11）但 checkpoint 是看結果後挑的，所有可重建的線全在 `STEADY_WALK` 起點跌倒，量化診斷指向獎勵形塑而非預算。**價值**：robotics 研究弱；評估效度研究**真的有一篇**（Track A，證據已齊、**不需 `PUB-B2`**）；教學工具有實質價值且與研究契約**完全解耦**。**關鍵觀察：`PUB-B2` 的理由在 09-09 Track A 重構時就消失了。** 三個去向選項見 §5——**負責人尚未決定** | [PROJECT_ASSESSMENT](docs/PROJECT_ASSESSMENT_2026-09-16.md) |
 | 動作任務範圍 | 2026-09-11 決定現在**不**新增跳躍／轉身；順序為先綁 lock record 與建有版控 lineage 的新訓練線，轉身需 `PUB-B2`、跳躍需 V1 PASS | [MOTION_SCOPE_DECISION](docs/MOTION_SCOPE_DECISION_2026-09-11.md) |
 | 下一個決策 | formal evaluation 已於 2026-09-10 授權；剩兩個子問題：用現行 post-hoc 規則或先預註冊替代規則、唯一未檢視的 FORMAL seed 範圍花在 v7 線或新訓練線 | [PUBLICATION_PLAN §5](docs/PUBLICATION_PLAN.md)、[PUB_B0 receipt](docs/PUB_B0_AUTHORIZATION_RECEIPT_2026-09-10.md) |
-| 測試 | `backend/` **1 failed / 950 passed**（2026-09-16，`319.18` s，工作樹在 `979e73b`）。那一個失敗是在具名 environment lock 下**記錄為量測結果、未放寬**的 reduction-order 差異——看到它不必修 | [PROJECT_STATUS §9](docs/PROJECT_STATUS.md)、`STATUS.yaml` 的 `test_suite_status` |
+| 測試 | `backend/` **1 failed / 977 passed**（2026-09-17，`397.65` s，工作樹為 `ee2088b` 加上本次變更）。那一個失敗是在具名 environment lock 下**記錄為量測結果、未放寬**的 reduction-order 差異——看到它不必修 | [PROJECT_STATUS §9](docs/PROJECT_STATUS.md)、`STATUS.yaml` 的 `test_suite_status` |
 
 ## 兩種模式
 
@@ -127,6 +128,7 @@ python -m pytest backend -q
 | [TRACKED_LINEAGE_TRAINING_V2_SPEC](docs/TRACKED_LINEAGE_TRAINING_V2_SPEC.md) | 凍結的 `TRACKED-LINEAGE-TRAINING-V2`：在已知 V1 結果之後設計並據實揭露的加倍預算續訓線 |
 | [TRACKED_LINEAGE_TRAINING_V2_RECEIPT_2026-09-14](docs/TRACKED_LINEAGE_TRAINING_V2_RECEIPT_2026-09-14.md) | 執行結果：`TL2_BUDGET_EXHAUSTED`、`0/5` replicate 達標、曲線在上限處更陡、七個缺陷的記錄，以及一個先立後撤的觀察 |
 | [PROJECT_ASSESSMENT_2026-09-16](docs/PROJECT_ASSESSMENT_2026-09-16.md) | 專案評估（決策文件）：實測盤點、四面向價值判斷、獎勵結構診斷、可拆／可封存的架構、三個去向選項與代價 |
+| [GATE_STATUS_SINGLE_SOURCE](docs/GATE_STATUS_SINGLE_SOURCE.md) | gate 狀態的單一權威來源：`GATE-STATUS-SINGLE-SOURCE-V1` 的規則、33 個 gate 與 54 個站點的 authority／mirror 關係、明確不涵蓋的範圍；由 `backend/gate_status_contract.py` fail-closed 檢查 |
 | [ROADMAP](docs/ROADMAP.md) | V0–V4 gate-first 工程工作順序 |
 | [RESEARCH_EXECUTION_PLAN](docs/RESEARCH_EXECUTION_PLAN.md) | model validity 與 method effectiveness 雙證據鏈、RQ、P-stage gates |
 | [PAPER_DATA_READINESS](docs/PAPER_DATA_READINESS.md) | paper-data-first 架構、run bundle、PDR gates、統計與文獻依據 |
