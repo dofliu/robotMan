@@ -187,7 +187,7 @@ repo），證據目錄原地不動、digest 不變。
 | 文件數 | 63 份 | 活的規劃文件約 12 份留在 `docs/`，其餘進 `docs/archive/` 與 `docs/receipts/` |
 | v7 證據 | 222 MB 只在本容器 | **二選一**：依 REPOSITORY_GUIDE §3 放外部 immutable storage 並在 §4.1 註記；或在 PROJECT_STATUS 明寫「Pilot 欄不可從 repo 重導」（本次已加註後者） |
 | V1 evaluations 的 `run_lock_label` | 五筆仍是佔位字串 `"see gate output"` | 用 `evaluate_relocated_run` 重導並回填，或維持並在 receipt 註明（現為後者） |
-| **同一事實的多份副本** | 一個 gate 狀態散在 **8 份文件、24 處**；三天內量到 **4 次「改了一部分」**，其中 1 次至今未修 | 每個 gate 狀態指定**單一 source of truth**，其餘文件只放連結與一句話摘要，**不複製狀態字串**（詳下） |
+| **同一事實的多份副本** | 一個 gate 狀態散在 **8 份文件、24 處**；三天內量到 **4 次「改了一部分」**，第 4 次是寫本節時才量到的 | 每個 gate 狀態指定**單一 source of truth**，其餘文件只放連結與一句話摘要，**不複製狀態字串**（詳下） |
 
 #### 4.3.1 文件副本不同步——這是量到的，不是推測
 
@@ -198,7 +198,7 @@ repo），證據目錄原地不動、digest 不變。
 | 1 | tracked-lineage 兩線已於 2026-09-14 執行完畢 | V1／V2 兩份 receipt | `RESEARCH_EXECUTION_PLAN` 的 `P-NEW` 列仍寫 `NOT STARTED` | 2 天 | `ab4ac12` |
 | 2 | **同 #1**（第二份副本） | 同上 | `PUBLICATION_PLAN` §5 仍寫「**尚未執行**」 | 2 天 | `0d43096` |
 | 3 | `PUB-A0` 升為 `FOUR_VERIFIED_REMAINING_U` | 兩份文獻地圖、`TRACK_A_REFRAME` §8 gate 表 | `PUBLICATION_PLAN` §5 gate 表沒改 | 同日 | `0d43096` |
-| 4 | Pardo 2018（`1712.00378`）已核對、`U` → `S` | `TRACK_A_REFRAME` §8、`LITERATURE_MAP_2026-09-08` §7／§1.1 | **三份文件的「優先四篇」清單仍把它列為待核對**：`TRACK_A_REFRAME` §10、`PROJECT_STATUS`、`PUBLICATION_PLAN` | — | **仍未修** |
+| 4 | Pardo 2018（`1712.00378`）已核對、`U` → `S` | `TRACK_A_REFRAME` §8、`LITERATURE_MAP_2026-09-08` §7／§1.1 | **三份文件的「優先四篇」清單仍把它列為待核對**：`TRACK_A_REFRAME` §10、`PROJECT_STATUS`、`PUBLICATION_PLAN` | 1 天 | PR #34 |
 
 三件事讓這個型態比「文件過期」更嚴重：
 
@@ -210,7 +210,9 @@ repo），證據目錄原地不動、digest 不變。
 
 [INFERENCE] 這讓文件精簡從「可讀性建議」變成**正確性問題**：63 份文件不只是難讀，它們**會彼此矛盾，而矛盾不會被任何測試抓到**。最小處置不是刪文件，而是讓每個 gate 狀態只有一個權威來源（`STATUS.yaml` 或該 gate 的 receipt），其餘文件放連結而不放狀態字串；這樣一次變更只有一處要改，漏改在結構上就不可能發生。
 
-[BLOCKER] **本次不修 #4。** 那是 gate 狀態的內容變更，屬於規劃文件的職權，不是評估文件該動的東西；依先立後撤，它在此記為**已知、未修**的缺陷，處置由專案負責人決定。
+[RESULT] **#4 已於 2026-09-17 由專案負責人指示修掉**（PR #34）：三份文件的清單改為「優先三篇」，各自以 `[BLOCKER]` 保留原清單供對照並指出矛盾所在；`PROJECT_STATUS` 另補上它從未記錄的 `FOUR_VERIFIED_REMAINING_U` 狀態與 2026-09-16 那一列時間線。**本節初稿寫的是「本次不修」**——那個判斷（改 gate 狀態屬規劃文件職權）在提出時是保守的預設，負責人決定後即執行；依先立後撤，原判斷留在此處。
+
+[BLOCKER] **修掉 #4 並不使這一節失效，反而是它的第一個驗證**：四個實例裡，沒有任何一個是被機制抓到的——#1／#2 是下一次更新順手發現、#3 是事後盤點、#4 是寫這一節查證時才量到。**三個都靠人（或 AI）碰巧回頭看。** 只要狀態字串還有 24 份副本，第 5 次就只是時間問題。
 
 ### 4.4 不建議動的東西
 

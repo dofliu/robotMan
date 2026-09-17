@@ -2,6 +2,16 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-17 (aj)
+
+### 修掉 §4.3.1 記錄的第 4 例：三份文件的「優先四篇」清單仍把已核對的 Pardo 2018 列為待核對
+
+- [RESULT] 依專案負責人指示執行。(ai) 把第 4 例記為「已知、未修」；本次改掉。三處皆由「優先四篇」改為 **優先三篇**（Colas 2019、Manski 1990／Tamer 2010、Hollenbeck & Wright 2017）：[TRACK_A_REFRAME §10](docs/TRACK_A_REFRAME_2026-09-09.md)、[PROJECT_STATUS §8](docs/PROJECT_STATUS.md)、[PUBLICATION_PLAN §8](docs/PUBLICATION_PLAN.md)。
+- [BLOCKER] **依先立後撤，三處各以 `[BLOCKER]` 保留原措辭並指出矛盾所在**，原清單四篇逐一列出，不是刪掉了事。`TRACK_A_REFRAME` 那處寫明它是**同一份文件內部的矛盾**：§8 gate 列早已寫 `FOUR_VERIFIED_REMAINING_U`（Pardo 已核對），§10 卻仍把 Pardo 列為待讀。
+- [RESULT] **`PROJECT_STATUS` 另補兩處它從未記錄的事實**：其 `PUB-A0` 敘述現寫出狀態標籤 `FOUR_VERIFIED_REMAINING_U`；時間線補上 2026-09-16 一列（`1712.00378`、`2010.04304` 原文核對，兩列由 `U` 升為 `S`，A-C1／A-C2 的 gap 判定不變，gate 仍未 PASS）。原本這份「現況文件」對這次核對隻字未提。
+- [RESULT] [PROJECT_ASSESSMENT §4.3.1](docs/PROJECT_ASSESSMENT_2026-09-16.md) 的第 4 列由「仍未修」改為已修並記落差 1 天；原本「本次不修」的保守判斷依先立後撤留在原處，旁邊記下負責人的決定。同時加一句：**修掉 #4 不使該節失效，反而是它的第一個驗證**——四個實例沒有一個是被機制抓到的，全靠回頭看；狀態字串仍有 24 份副本，第 5 次只是時間問題。
+- [RESULT] 兩份文件日期隨內容變更更新為 `2026-09-17`（`PROJECT_STATUS`、`PUBLICATION_PLAN`）。`TRACK_A_REFRAME` 的 `日期：2026-09-09` 是其 ID 的一部分，不隨內容更新。文獻地圖與 gate 表**未動**——它們本來就是對的。
+
 ## Unreleased — 2026-09-17 (ai)
 
 ### 把「同一事實的多份副本」記進 PROJECT_ASSESSMENT §4.3，並在記的過程中量到第四個、仍未修的實例
