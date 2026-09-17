@@ -2,6 +2,19 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-17 (an)
+
+### `TEACHING-BOUNDARY-V1`：切斷教學應用唯一的跨界 import，並把「已解耦」變成被檢查的事實
+
+- [BLOCKER] **`PROJECT_ASSESSMENT` §4.1 的宣稱少算了一行，這是量出來的。** 該節說教學應用與研究基礎設施「在程式碼層面已經完全解耦」「拆開不需要重構，只需要搬」。實測 `main.py` 的遞移閉包：**13 個模組裡 12 個成立、1 行不成立**——`main.py` 從 [`rl/train_ppo.py`](backend/rl/train_ppo.py) 取 `public_training_inventory`，於是「列出訓練 profile」這個**唯讀端點**拉進一個 **1,292 行的訓練驅動**，再經由它拉進 `stable_baselines3` 與該 profile schema 所驗證的**每一個凍結研究 protocol**。原句依先立後撤保留，更正記在其下。
+- [RESULT] **那一行已切斷**：新增 [`backend/rl/training_inventory.py`](backend/rl/training_inventory.py)，stdlib-only 的唯讀投影，`python3 -I -S` 可跑。`main.py` 改為 import 它。
+- [BLOCKER] **`train_ppo.py` 逐位元未動**——連 digest 的問題都不會發生。顯而易見的重構（把 `TrainingProfile` schema 搬出來共用）**被量測否決**：它的 validator 會呼叫 `load_tracked_lineage_protocol()` 並比對 `TRACKED-LINEAGE-TRAINING-V1`／`V2` 與 seed-variance protocol，**schema 與凍結的研究身分是糾纏的**，搬它等於把那個身分一起搬過邊界。（`LB-12` 自己的測試本就保證日後合法編輯 `train_ppo.py` 不得讓契約變紅，`ongoing_protection` 記為 `NONE`；仍選擇不動，因為不需要。）
+- [RESULT] **投影是精確的，不是近似的。** 送出的 payload **不等於**原始 JSON：pydantic 每個 profile 補 7 個欄位（`environment_id` 預設 `fixed_walk_v1`，其餘 6 個 `null`）且依宣告順序輸出。測試**逐位元比對**（含鍵序）本模組與 `train_ppo.public_training_inventory()` 的輸出，**所以這次拆分是被證明行為不變，不是假設它不變**。這是投影不是第二份 schema：`training_profiles.json` 仍是單一來源，`train_ppo` 為訓練驗證它、本模組為顯示驗證它；**唯讀端點沒有義務重新驗證研究凍結**。
+- [RESULT] **邊界成為 fail-closed 契約**：[規範](docs/TEACHING_BOUNDARY.md)、[登錄檔](backend/teaching_boundary_registry.json)、[契約](backend/teaching_boundary_contract.py) 與 25 個測試。規則是一條等式——教學進入點的遞移本地 import 閉包**必須恰好等於**登錄清單。**兩個方向都失敗**：研究模組跑進來會紅；**登錄清單過期也會紅**（留著沒人載入的項目，等於哪天讓某個模組無聲地回來）。錯誤訊息給出**到達路徑**（`main -> live_sim -> controller -> environment_lock`），不只是「有東西 import 了它」。現況 **15 個模組、4,943 行**。
+- [RESULT] 測試把**修正前的狀態重演**（`main.py` 改回 import `train_ppo`），確認契約會抓到它與它帶進來的兩個模組；另測深層 import、**函式內 import**（靜態讀 AST，藏不住）、過期登錄項。
+- [BLOCKER] **邊界畫在研究模組，不是第三方套件的重量。** 教學閉包**確實** import `stable_baselines3`——經由 `controller_rl` 載入 PPO policy 給 Live 頁；**那是教學產品在做它該做的事**。`backend/rl/` 兩邊都有（`policy_registry`、`training_inventory` 是教學；`train_ppo`、`eval_policy`、`humanoid_env` 與各 runner 是研究），**這正是邊界用列舉而非目錄畫的理由**。
+- [BLOCKER] **本次沒有搬任何檔案，也沒有改任何 API。** §4.1 表格描述的「搬」仍未執行；本次讓它變成機械動作——`--list` 就是那份清單，搬完契約會立刻說有沒有漏。訓練頁依負責人決定**保留但只讀**（`execution_mode` 仍為 `OFFLINE_EXPLICIT_COMMAND_ONLY`）。不涵蓋的範圍見[規範 §6](docs/TEACHING_BOUNDARY.md)：測試可 import 任何東西、打包相依不在此檢查、前端只經 API。
+
 ## Unreleased — 2026-09-17 (am)
 
 ### 在合併後的乾淨工作樹上重跑完整套件，更新量測條件並直接核對失敗身分

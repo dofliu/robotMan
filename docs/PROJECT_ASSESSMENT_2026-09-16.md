@@ -155,6 +155,12 @@ reference policy**——它需要的是被 censoring 截斷的例子，而那正
 教學應用與研究基礎設施**在程式碼層面已經完全解耦**：`main.py` 不 import 任何契約模組；前端只打
 7 個 endpoint，全部與契約無關。拆開不需要重構，只需要搬。
 
+[BLOCKER] **2026-09-17 更正：上一段少算了一行。** 實測 `main.py` 的遞移閉包，13 個模組裡 12 個成立、**1 行不成立**——`main.py` 從 `rl/train_ppo.py` 取 `public_training_inventory`，於是「列出訓練 profile」這個唯讀端點拉進一個 **1,292 行的訓練驅動**，再經由它拉進 `stable_baselines3` 與該 schema 所驗證的**每一個凍結研究 protocol**。原句說的「不 import 任何契約模組」對 12 個模組為真，對這一行為假。原句依先立後撤保留在上方。
+
+[RESULT] **該行已於 2026-09-17 切斷**，並把邊界變成**被檢查的事實**：[`TEACHING-BOUNDARY-V1`](TEACHING_BOUNDARY.md)（[登錄檔](../backend/teaching_boundary_registry.json)、[契約](../backend/teaching_boundary_contract.py)）。規則是一條等式——教學進入點的遞移本地 import 閉包**必須恰好等於**已登錄的模組清單，兩個方向都失敗：研究模組跑進來會紅，登錄清單過期也會紅。現況 **15 個模組、4,943 行**，`train_ppo` 不在其中。`train_ppo.py` **逐位元未動**。
+
+[BLOCKER] **本次沒有搬任何檔案。** §4.1 表格描述的「搬」仍未執行；本次做的是切斷耦合並讓邊界可驗證，使日後的搬移變成機械動作。仍未涵蓋的範圍見 [TEACHING_BOUNDARY §6](TEACHING_BOUNDARY.md)。
+
 | 產品 | 內容 | 規模 | 對象 |
 |---|---|---:|---|
 | **A. 教學模擬器** | 核心 14 檔 + 前端 + v5/v2/legacy policy + `USAGE` 教學流程 + `MODEL_CARD` | ~10.4k 行 | 修課學生、教師 |
