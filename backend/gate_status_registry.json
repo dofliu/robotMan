@@ -1,0 +1,728 @@
+{
+  "registry_id": "GATE-STATUS-SINGLE-SOURCE-V1",
+  "as_of": "2026-09-17",
+  "purpose": "One authoritative status per gate. Every other document that states that gate's status is registered as a MIRROR and is checked against it, so a status change that reaches some copies and not others fails closed instead of sitting undetected. Rules and scope: docs/GATE_STATUS_SINGLE_SOURCE.md.",
+  "checked_by": "backend/gate_status_contract.py",
+  "status_vocabulary": {
+    "PASS": [
+      "PASS"
+    ],
+    "NOT_STARTED": [
+      "NOT_STARTED",
+      "NOT STARTED"
+    ],
+    "IN_PROGRESS": [
+      "IN_PROGRESS",
+      "IN PROGRESS"
+    ],
+    "PARTIAL": [
+      "PARTIAL"
+    ],
+    "BLOCKED": [
+      "BLOCKED"
+    ],
+    "AUTHORIZED": [
+      "AUTHORIZED",
+      "AUTHORIZED_2026-09-10"
+    ],
+    "ATTAINED": [
+      "ATTAINED"
+    ],
+    "NOT_ATTAINED": [
+      "NOT_ATTAINED"
+    ],
+    "CLOSED_NOT_ATTAINED": [
+      "CLOSED_NOT_ATTAINED"
+    ],
+    "SOFTWARE_ONLY": [
+      "SOFTWARE_ONLY",
+      "SOFTWARE ONLY",
+      "SOFTWARE VALIDATOR IMPLEMENTED"
+    ],
+    "SOFTWARE_PARTIAL": [
+      "SOFTWARE_PARTIAL",
+      "SOFTWARE PARTIAL",
+      "SOFTWARE CONTRACT PARTIAL"
+    ],
+    "FOUNDATION_SOFTWARE_PARTIAL": [
+      "FOUNDATION_SOFTWARE_PARTIAL",
+      "FOUNDATION SOFTWARE PARTIAL"
+    ],
+    "PARTIAL_IMPLEMENTED_NOT_PASS": [
+      "PARTIAL_IMPLEMENTED_NOT_PASS",
+      "PARTIAL IMPLEMENTED / NOT PASS"
+    ]
+  },
+  "gates": {
+    "PUB-A0": {
+      "title": "Novelty",
+      "status": "IN_PROGRESS",
+      "detail": "FOUR_VERIFIED_REMAINING_U",
+      "as_of": "2026-09-16",
+      "evidence": [
+        "docs/LITERATURE_MAP_2026-09-08_EVALUATION_VALIDITY.md",
+        "docs/LITERATURE_MAP_2026-09-16_TRAINING_STRATEGY.md"
+      ],
+      "sites": [
+        {
+          "doc": "docs/PUBLICATION_PLAN.md",
+          "anchor": "`PUB-A0` Novelty",
+          "kind": "AUTHORITY",
+          "cell": 2
+        },
+        {
+          "doc": "docs/TRACK_A_REFRAME_2026-09-09.md",
+          "anchor": "`PUB-A0` Novelty",
+          "kind": "MIRROR",
+          "cell": 2
+        }
+      ]
+    },
+    "PUB-A1a": {
+      "title": "Second-plant mechanism evidence",
+      "status": "PASS",
+      "detail": "",
+      "as_of": "2026-09-08",
+      "evidence": [
+        "docs/SECOND_CASE_EXPOSURE_CENSORING_EXECUTION_RECEIPT_2026-09-08.md"
+      ],
+      "sites": [
+        {
+          "doc": "docs/PUBLICATION_PLAN.md",
+          "anchor": "`PUB-A1a` 第二 plant 的機制證據",
+          "kind": "AUTHORITY",
+          "cell": 2
+        },
+        {
+          "doc": "docs/TRACK_A_REFRAME_2026-09-09.md",
+          "anchor": "`PUB-A1a` 第二 plant 的機制證據",
+          "kind": "MIRROR",
+          "cell": 2
+        }
+      ]
+    },
+    "PUB-A1b": {
+      "title": "Asymmetric regime on a public benchmark",
+      "status": "CLOSED_NOT_ATTAINED",
+      "detail": "",
+      "as_of": "2026-09-09",
+      "evidence": [
+        "docs/SECOND_CASE_V2_BUDGET_PROBE_RECEIPT_2026-09-08.md"
+      ],
+      "sites": [
+        {
+          "doc": "docs/PUBLICATION_PLAN.md",
+          "anchor": "`PUB-A1b` 公開 benchmark 上的不對稱 regime",
+          "kind": "AUTHORITY",
+          "cell": 2
+        },
+        {
+          "doc": "docs/TRACK_A_REFRAME_2026-09-09.md",
+          "anchor": "`PUB-A1b` 公開 benchmark 上的不對稱 regime",
+          "kind": "MIRROR",
+          "cell": 2
+        }
+      ]
+    },
+    "PUB-A2": {
+      "title": "Claim freeze",
+      "status": "IN_PROGRESS",
+      "detail": "",
+      "as_of": "2026-09-11",
+      "evidence": [
+        "docs/TRACK_A_REFRAME_2026-09-09.md",
+        "docs/R0_REGIME_PROBE_RECEIPT_2026-09-11.md"
+      ],
+      "sites": [
+        {
+          "doc": "docs/PUBLICATION_PLAN.md",
+          "anchor": "`PUB-A2` Claim freeze",
+          "kind": "AUTHORITY",
+          "cell": 2
+        },
+        {
+          "doc": "docs/TRACK_A_REFRAME_2026-09-09.md",
+          "anchor": "`PUB-A2` Claim freeze",
+          "kind": "MIRROR",
+          "cell": 2
+        }
+      ]
+    },
+    "PUB-A3": {
+      "title": "Reproduction",
+      "status": "NOT_STARTED",
+      "detail": "",
+      "as_of": "2026-09-08",
+      "evidence": [],
+      "sites": [
+        {
+          "doc": "docs/PUBLICATION_PLAN.md",
+          "anchor": "`PUB-A3` Reproduction",
+          "kind": "AUTHORITY",
+          "cell": 2
+        },
+        {
+          "doc": "docs/TRACK_A_REFRAME_2026-09-09.md",
+          "anchor": "`PUB-A3` Reproduction",
+          "kind": "MIRROR",
+          "cell": 2
+        }
+      ]
+    },
+    "PUB-A4": {
+      "title": "Internal review",
+      "status": "NOT_STARTED",
+      "detail": "",
+      "as_of": "2026-09-08",
+      "evidence": [],
+      "sites": [
+        {
+          "doc": "docs/PUBLICATION_PLAN.md",
+          "anchor": "`PUB-A4` Internal review",
+          "kind": "AUTHORITY",
+          "cell": 2
+        },
+        {
+          "doc": "docs/TRACK_A_REFRAME_2026-09-09.md",
+          "anchor": "`PUB-A4` Internal review",
+          "kind": "MIRROR",
+          "cell": 2
+        }
+      ]
+    },
+    "PUB-A5": {
+      "title": "Submission",
+      "status": "NOT_STARTED",
+      "detail": "",
+      "as_of": "2026-09-08",
+      "evidence": [],
+      "sites": [
+        {
+          "doc": "docs/PUBLICATION_PLAN.md",
+          "anchor": "`PUB-A5` Submission",
+          "kind": "AUTHORITY",
+          "cell": 2
+        },
+        {
+          "doc": "docs/TRACK_A_REFRAME_2026-09-09.md",
+          "anchor": "`PUB-A5` Submission",
+          "kind": "MIRROR",
+          "cell": 2
+        }
+      ]
+    },
+    "PUB-B0": {
+      "title": "Authorization decision",
+      "status": "AUTHORIZED",
+      "detail": "SUB_OPTION_OPEN",
+      "as_of": "2026-09-10",
+      "evidence": [
+        "docs/PUB_B0_AUTHORIZATION_RECEIPT_2026-09-10.md"
+      ],
+      "sites": [
+        {
+          "doc": "docs/PUBLICATION_PLAN.md",
+          "anchor": "`PUB-B0` Authorization decision",
+          "kind": "AUTHORITY",
+          "cell": 2
+        }
+      ]
+    },
+    "PUB-B1": {
+      "title": "Tracked training line",
+      "status": "ATTAINED",
+      "detail": "",
+      "as_of": "2026-09-14",
+      "evidence": [
+        "docs/TRACKED_LINEAGE_TRAINING_RECEIPT_2026-09-14.md"
+      ],
+      "sites": [
+        {
+          "doc": "docs/PUBLICATION_PLAN.md",
+          "anchor": "`PUB-B1` Tracked training line",
+          "kind": "AUTHORITY",
+          "cell": 2
+        }
+      ]
+    },
+    "PUB-B2": {
+      "title": "Reliable-completion baseline",
+      "status": "NOT_ATTAINED",
+      "detail": "",
+      "as_of": "2026-09-14",
+      "evidence": [
+        "docs/TRACKED_LINEAGE_TRAINING_RECEIPT_2026-09-14.md",
+        "docs/TRACKED_LINEAGE_TRAINING_V2_RECEIPT_2026-09-14.md"
+      ],
+      "sites": [
+        {
+          "doc": "docs/PUBLICATION_PLAN.md",
+          "anchor": "`PUB-B2` Reliable-completion baseline",
+          "kind": "AUTHORITY",
+          "cell": 2
+        }
+      ]
+    },
+    "PUB-B3": {
+      "title": "Pilot variance to N",
+      "status": "BLOCKED",
+      "detail": "",
+      "as_of": "2026-09-14",
+      "evidence": [
+        "docs/TRACKED_LINEAGE_TRAINING_V2_RECEIPT_2026-09-14.md"
+      ],
+      "sites": [
+        {
+          "doc": "docs/PUBLICATION_PLAN.md",
+          "anchor": "`PUB-B3` Pilot variance → N",
+          "kind": "AUTHORITY",
+          "cell": 2
+        }
+      ]
+    },
+    "PUB-B4": {
+      "title": "External preregistration",
+      "status": "NOT_STARTED",
+      "detail": "",
+      "as_of": "2026-09-10",
+      "evidence": [],
+      "sites": [
+        {
+          "doc": "docs/PUBLICATION_PLAN.md",
+          "anchor": "`PUB-B4` External preregistration",
+          "kind": "AUTHORITY",
+          "cell": 2
+        }
+      ]
+    },
+    "PUB-B5": {
+      "title": "Plant credibility",
+      "status": "IN_PROGRESS",
+      "detail": "",
+      "as_of": "2026-09-08",
+      "evidence": [],
+      "sites": [
+        {
+          "doc": "docs/PUBLICATION_PLAN.md",
+          "anchor": "`PUB-B5` Plant credibility",
+          "kind": "AUTHORITY",
+          "cell": 2
+        }
+      ]
+    },
+    "PUB-B6": {
+      "title": "Study execution",
+      "status": "BLOCKED",
+      "detail": "",
+      "as_of": "2026-09-08",
+      "evidence": [],
+      "sites": [
+        {
+          "doc": "docs/PUBLICATION_PLAN.md",
+          "anchor": "`PUB-B6` Study execution",
+          "kind": "AUTHORITY",
+          "cell": 2
+        }
+      ]
+    },
+    "PUB-B7": {
+      "title": "Manuscript",
+      "status": "NOT_STARTED",
+      "detail": "",
+      "as_of": "2026-09-08",
+      "evidence": [],
+      "sites": [
+        {
+          "doc": "docs/PUBLICATION_PLAN.md",
+          "anchor": "`PUB-B7` Manuscript",
+          "kind": "AUTHORITY",
+          "cell": 2
+        }
+      ]
+    },
+    "PUB-C0": {
+      "title": "UI verified",
+      "status": "NOT_STARTED",
+      "detail": "",
+      "as_of": "2026-09-08",
+      "evidence": [],
+      "sites": [
+        {
+          "doc": "docs/PUBLICATION_PLAN.md",
+          "anchor": "`PUB-C0` UI verified",
+          "kind": "AUTHORITY",
+          "cell": 2
+        }
+      ]
+    },
+    "PUB-C1": {
+      "title": "Study design and ethics",
+      "status": "NOT_STARTED",
+      "detail": "",
+      "as_of": "2026-09-08",
+      "evidence": [],
+      "sites": [
+        {
+          "doc": "docs/PUBLICATION_PLAN.md",
+          "anchor": "`PUB-C1` Study design + ethics",
+          "kind": "AUTHORITY",
+          "cell": 2
+        }
+      ]
+    },
+    "PUB-C2": {
+      "title": "Data",
+      "status": "NOT_STARTED",
+      "detail": "",
+      "as_of": "2026-09-08",
+      "evidence": [],
+      "sites": [
+        {
+          "doc": "docs/PUBLICATION_PLAN.md",
+          "anchor": "`PUB-C2` Data",
+          "kind": "AUTHORITY",
+          "cell": 2
+        }
+      ]
+    },
+    "PUB-C3": {
+      "title": "Manuscript",
+      "status": "NOT_STARTED",
+      "detail": "",
+      "as_of": "2026-09-08",
+      "evidence": [],
+      "sites": [
+        {
+          "doc": "docs/PUBLICATION_PLAN.md",
+          "anchor": "`PUB-C3` Manuscript",
+          "kind": "AUTHORITY",
+          "cell": 2
+        }
+      ]
+    },
+    "PDR-0": {
+      "title": "Claim",
+      "status": "PARTIAL",
+      "detail": "",
+      "as_of": "2026-09-08",
+      "evidence": [],
+      "sites": [
+        {
+          "doc": "docs/PAPER_DATA_READINESS.md",
+          "anchor": "PDR-0 Claim",
+          "kind": "AUTHORITY",
+          "cell": 2
+        },
+        {
+          "doc": "docs/PROJECT_STATUS.md",
+          "anchor": "PDR-0 Claim",
+          "kind": "MIRROR",
+          "cell": 1
+        }
+      ]
+    },
+    "PDR-1": {
+      "title": "Model evidence",
+      "status": "PARTIAL",
+      "detail": "",
+      "as_of": "2026-09-08",
+      "evidence": [],
+      "sites": [
+        {
+          "doc": "docs/PAPER_DATA_READINESS.md",
+          "anchor": "PDR-1 Model evidence",
+          "kind": "AUTHORITY",
+          "cell": 2
+        },
+        {
+          "doc": "docs/PROJECT_STATUS.md",
+          "anchor": "PDR-1 Model evidence",
+          "kind": "MIRROR",
+          "cell": 1
+        }
+      ]
+    },
+    "PDR-2": {
+      "title": "Run identity",
+      "status": "IN_PROGRESS",
+      "detail": "",
+      "as_of": "2026-09-13",
+      "evidence": [
+        "docs/RUN_MANIFEST_LOCK_BINDING_SPEC.md"
+      ],
+      "sites": [
+        {
+          "doc": "docs/PAPER_DATA_READINESS.md",
+          "anchor": "PDR-2 Run identity",
+          "kind": "AUTHORITY",
+          "cell": 2
+        },
+        {
+          "doc": "docs/PROJECT_STATUS.md",
+          "anchor": "PDR-2 Run identity",
+          "kind": "MIRROR",
+          "cell": 1
+        }
+      ]
+    },
+    "PDR-3": {
+      "title": "Raw integrity",
+      "status": "IN_PROGRESS",
+      "detail": "",
+      "as_of": "2026-09-08",
+      "evidence": [],
+      "sites": [
+        {
+          "doc": "docs/PAPER_DATA_READINESS.md",
+          "anchor": "PDR-3 Raw integrity",
+          "kind": "AUTHORITY",
+          "cell": 2
+        },
+        {
+          "doc": "docs/PROJECT_STATUS.md",
+          "anchor": "PDR-3 Raw integrity",
+          "kind": "MIRROR",
+          "cell": 1
+        }
+      ]
+    },
+    "PDR-4": {
+      "title": "Matrix completeness",
+      "status": "SOFTWARE_ONLY",
+      "detail": "",
+      "as_of": "2026-09-08",
+      "evidence": [
+        "docs/EXPERIMENT_MATRIX_CONTRACT.md"
+      ],
+      "sites": [
+        {
+          "doc": "docs/PAPER_DATA_READINESS.md",
+          "anchor": "PDR-4 Matrix completeness",
+          "kind": "AUTHORITY",
+          "cell": 2
+        },
+        {
+          "doc": "docs/PROJECT_STATUS.md",
+          "anchor": "PDR-4 Matrix completeness",
+          "kind": "MIRROR",
+          "cell": 1
+        }
+      ]
+    },
+    "PDR-5": {
+      "title": "Independent metrics",
+      "status": "PARTIAL",
+      "detail": "",
+      "as_of": "2026-09-08",
+      "evidence": [],
+      "sites": [
+        {
+          "doc": "docs/PAPER_DATA_READINESS.md",
+          "anchor": "PDR-5 Independent metrics",
+          "kind": "AUTHORITY",
+          "cell": 2
+        },
+        {
+          "doc": "docs/PROJECT_STATUS.md",
+          "anchor": "PDR-5 Independent metrics",
+          "kind": "MIRROR",
+          "cell": 1
+        }
+      ]
+    },
+    "PDR-6": {
+      "title": "Statistics",
+      "status": "SOFTWARE_PARTIAL",
+      "detail": "",
+      "as_of": "2026-09-08",
+      "evidence": [
+        "docs/PAIRED_STATISTICS_CONTRACT.md"
+      ],
+      "sites": [
+        {
+          "doc": "docs/PAPER_DATA_READINESS.md",
+          "anchor": "PDR-6 Statistics",
+          "kind": "AUTHORITY",
+          "cell": 2
+        },
+        {
+          "doc": "docs/PROJECT_STATUS.md",
+          "anchor": "PDR-6 Statistics",
+          "kind": "MIRROR",
+          "cell": 1
+        }
+      ]
+    },
+    "PDR-7": {
+      "title": "Reproduction",
+      "status": "SOFTWARE_PARTIAL",
+      "detail": "",
+      "as_of": "2026-09-08",
+      "evidence": [],
+      "sites": [
+        {
+          "doc": "docs/PAPER_DATA_READINESS.md",
+          "anchor": "PDR-7 Reproduction",
+          "kind": "AUTHORITY",
+          "cell": 2
+        },
+        {
+          "doc": "docs/PROJECT_STATUS.md",
+          "anchor": "PDR-7 Reproduction",
+          "kind": "MIRROR",
+          "cell": 1
+        }
+      ]
+    },
+    "PDR-8": {
+      "title": "Paper export",
+      "status": "SOFTWARE_PARTIAL",
+      "detail": "",
+      "as_of": "2026-09-08",
+      "evidence": [],
+      "sites": [
+        {
+          "doc": "docs/PAPER_DATA_READINESS.md",
+          "anchor": "PDR-8 Paper export",
+          "kind": "AUTHORITY",
+          "cell": 2
+        },
+        {
+          "doc": "docs/PROJECT_STATUS.md",
+          "anchor": "PDR-8 Paper export",
+          "kind": "MIRROR",
+          "cell": 1
+        }
+      ]
+    },
+    "V0": {
+      "title": "Evidence and provenance",
+      "status": "PARTIAL_IMPLEMENTED_NOT_PASS",
+      "detail": "",
+      "as_of": "2026-09-13",
+      "evidence": [
+        "docs/RUN_MANIFEST_LOCK_BINDING_SPEC.md"
+      ],
+      "sites": [
+        {
+          "doc": "docs/PROJECT_STATUS.md",
+          "anchor": "V0 Evidence & Provenance",
+          "kind": "AUTHORITY",
+          "cell": 1
+        },
+        {
+          "doc": "docs/ROADMAP.md",
+          "anchor": "V0 Evidence & Provenance",
+          "kind": "MIRROR",
+          "cell": 2
+        }
+      ]
+    },
+    "V1": {
+      "title": "Plant and numerical verification",
+      "status": "PARTIAL_IMPLEMENTED_NOT_PASS",
+      "detail": "",
+      "as_of": "2026-09-16",
+      "evidence": [],
+      "sites": [
+        {
+          "doc": "docs/PROJECT_STATUS.md",
+          "anchor": "V1 Plant & Numerical",
+          "kind": "AUTHORITY",
+          "cell": 1
+        },
+        {
+          "doc": "docs/ROADMAP.md",
+          "anchor": "V1 Plant & Numerical Verification",
+          "kind": "MIRROR",
+          "cell": 2
+        }
+      ]
+    },
+    "V2": {
+      "title": "Actuator / sensor / estimator fidelity",
+      "status": "NOT_STARTED",
+      "detail": "",
+      "as_of": "2026-09-08",
+      "evidence": [],
+      "sites": [
+        {
+          "doc": "docs/PROJECT_STATUS.md",
+          "anchor": "V2 Actuator / Sensor / Estimator",
+          "kind": "AUTHORITY",
+          "cell": 1
+        },
+        {
+          "doc": "docs/ROADMAP.md",
+          "anchor": "V2 Actuator / Sensor / Estimator Fidelity",
+          "kind": "MIRROR",
+          "cell": 2
+        }
+      ]
+    },
+    "V3": {
+      "title": "Fair benchmark and UQ",
+      "status": "FOUNDATION_SOFTWARE_PARTIAL",
+      "detail": "FORMAL_NOT_STARTED",
+      "as_of": "2026-09-08",
+      "evidence": [],
+      "sites": [
+        {
+          "doc": "docs/PROJECT_STATUS.md",
+          "anchor": "V3 Fair Benchmark & UQ",
+          "kind": "AUTHORITY",
+          "cell": 1
+        },
+        {
+          "doc": "docs/ROADMAP.md",
+          "anchor": "V3 Fair Benchmark & UQ",
+          "kind": "MIRROR",
+          "cell": 2
+        }
+      ]
+    },
+    "V4": {
+      "title": "Subsystem validation",
+      "status": "NOT_STARTED",
+      "detail": "",
+      "as_of": "2026-09-08",
+      "evidence": [],
+      "sites": [
+        {
+          "doc": "docs/PROJECT_STATUS.md",
+          "anchor": "V4 Subsystem Validation",
+          "kind": "AUTHORITY",
+          "cell": 1
+        },
+        {
+          "doc": "docs/ROADMAP.md",
+          "anchor": "V4 Subsystem Validation",
+          "kind": "MIRROR",
+          "cell": 2
+        }
+      ]
+    }
+  },
+  "out_of_scope": {
+    "vv_requirement_rows": {
+      "what": "docs/VV_PLAN.md rows V0-R01 .. V3-R09 and the DCOMP / TRACE / TASK rows",
+      "why": "each row's status is stated in exactly one document, so it has no copy to diverge from"
+    },
+    "frozen_criterion_ids": {
+      "what": "TL-*, TL-CK-*, LB-*, SEL-*, EP-*, PDR-* criterion ids inside specs and receipts",
+      "why": "receipt-bound: their outcome is frozen at execution and must never be rewritten"
+    },
+    "v_gate_pattern_scanning": {
+      "what": "scanning free text for V0..V4",
+      "why": "in this repository V1/V2/V3 denote both a V&V gate and a version number (analytical fixture V1, PAPER_RUN_MANIFEST_V2, PUBLICATION-PLAN-V3), so a pattern scan cannot tell them apart. V-gate sites are therefore enumerated, never matched by pattern"
+    },
+    "prose_references": {
+      "what": "sentences that refer to a gate without stating its status (blocked by PUB-B2)",
+      "why": "they carry no status, so they cannot go stale"
+    }
+  },
+  "conventions": {
+    "status_position": "A table site's status is the accepted form that begins its status cell, after markdown emphasis and backticks are stripped and a short leading particle is allowed. Everything after it is descriptive: 'IN PROGRESS / ... readback PASS' asserts IN_PROGRESS, not PASS.",
+    "correction_notes": "Text from a '（**<date> 更正' marker to the end of a cell is a correction note preserving superseded wording under the project's correct-in-place norm. It is history, not the current status, and is excluded before the status is read."
+  }
+}

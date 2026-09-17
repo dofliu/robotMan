@@ -6,6 +6,8 @@
 
 ## 1. 目前狀態
 
+> **本表是 mirror，不是權威來源**（`GATE-STATUS-SINGLE-SOURCE-V1`）。權威在 [PROJECT_STATUS §1](PROJECT_STATUS.md)；兩邊不一致時以權威為準，且 `backend/gate_status_contract.py` 會讓測試失敗。規則見 [GATE_STATUS_SINGLE_SOURCE](GATE_STATUS_SINGLE_SOURCE.md)。
+
 | Gate | 目的 | 狀態 | 解除條件 |
 |---|---|---|---|
 | V0 Evidence & Provenance | 凍結 requirements、metrics、scenario、hash、hardware evidence class 與 raw artifact schema | PARTIAL IMPLEMENTED / NOT PASS | bounded input contracts、metric semantics、partial runtime provenance、UI evidence state、`ENVIRONMENT-LOCK-V1` 的可量測 environment identity 與 `RUN-MANIFEST-LOCK-BINDING-V1` 的前向綁定已有；仍須 immutable bundle、validator、完整 hash readback，以及綁定的三項殘餘缺口 |

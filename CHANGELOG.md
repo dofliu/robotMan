@@ -2,6 +2,18 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-17 (ak)
+
+### `GATE-STATUS-SINGLE-SOURCE-V1`：每個 gate 一個權威狀態，其餘登錄為 mirror 並 fail-closed 比對
+
+- [RESULT] 依專案負責人指示，把 [PROJECT_ASSESSMENT §4.3.1](docs/PROJECT_ASSESSMENT_2026-09-16.md) 的建議**實作出來**，不再只是記錄。新增 [規範](docs/GATE_STATUS_SINGLE_SOURCE.md)、[登錄檔](backend/gate_status_registry.json)、[契約](backend/gate_status_contract.py) 與 27 個測試。涵蓋 **33 個 gate、54 個站點**（21 個 mirror）：`PUB-*` 的權威是 [PUBLICATION_PLAN §5](docs/PUBLICATION_PLAN.md)、`PDR-*` 是 [PAPER_DATA_READINESS](docs/PAPER_DATA_READINESS.md)、`V0`–`V4` 是 [PROJECT_STATUS §1](docs/PROJECT_STATUS.md)。六張 gate 表各加一行註明自己是權威還是 mirror。
+- [RESULT] **四個已量到的失效全部在測試中重演並確認會被擋下**：mirror 沒跟上、權威自己退回舊值、已執行的線仍寫 `NOT_STARTED`、以及整列被刪除（後者必須**失敗**而不是安靜地不再覆蓋）。契約 stdlib-only，`python3 -I -S` 可跑。
+- [BLOCKER] **實作推翻了原建議的措辭，依先立後撤記錄。** 原建議是「其餘文件只放連結與摘要，不複製狀態字串」；實際量測後改為**保留各文件既有措辭、改以登錄與比對**。理由有二：（a）同一狀態本來就有不同而正確的寫法（`PARTIAL_IMPLEMENTED_NOT_PASS` 對 `PARTIAL IMPLEMENTED / NOT PASS`、`PDR-6` 的 `SOFTWARE CONTRACT PARTIAL` 對 `SOFTWARE PARTIAL`），強制統一等於為了工具改本來正確的文件；（b）**以整列比對產生 11 個假陽性**——鄰欄的 `readback PASS`、`16/14 exact` 說的是子項不是 gate。契約因此改讀「狀態格的開頭」：最早位置、同位置取最長 accepted form，其後視為描述性尾巴。
+- [BLOCKER] **站點是列舉的，不是 pattern 比對的**，因為 `V1` 在本 repo 同時是 V&V gate 與版本號（`analytical fixture V1`、`PAPER_RUN_MANIFEST_V2`、`PUBLICATION-PLAN-V3`）。調嚴 pattern 會**安靜地**不再涵蓋該 gate，比誤判更糟。每個站點登錄檔名與一個 anchor；anchor 找不到或命中多列皆為失敗。
+- [BLOCKER] **更正註記被明確排除在狀態判讀之外**：`（**<日期> 更正` 之後的文字依先立後撤保留被取代的原措辭，是歷史不是現況（否則 `ROADMAP` 的 V1 格會因引用舊值 `BLOCKED BY V0` 而誤判）。
+- [RESULT] **不涵蓋的範圍逐項寫進 [規範 §5、§6](docs/GATE_STATUS_SINGLE_SOURCE.md)**，避免變成安靜的缺口：`VV_PLAN` 的逐項 requirement 列（單一來源、無副本）、receipt-bound 的凍結判準（不得改寫）、只提及而不陳述狀態的句子，以及**衍生清單**那一類失效（「Pardo 已核對」對應的是文獻等級與待核清單的一致性，不是 gate 狀態）——**那一類目前沒有裝置，明寫未做。**
+- [RESULT] 契約也**不判斷狀態是不是真的**，只判斷專案是不是到處都說同一件事；與 receipt 的相符性仍是條目 (ah) 那次逐列盤點的工作。本次的用處是讓那次盤點不必再用手做一遍。
+
 ## Unreleased — 2026-09-17 (aj)
 
 ### 修掉 §4.3.1 記錄的第 4 例：三份文件的「優先四篇」清單仍把已核對的 Pardo 2018 列為待核對

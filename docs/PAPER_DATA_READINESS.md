@@ -118,6 +118,8 @@ Regression bundle 可通過 integrity validation，但只能標為 `REGRESSION_B
 
 ## 5. Paper Data Readiness gates
 
+> **本表是這些 gate 狀態的唯一權威來源**（`GATE-STATUS-SINGLE-SOURCE-V1`）。其他文件中陳述同一狀態的地方都登錄為 mirror，由 `backend/gate_status_contract.py` 逐一比對，不一致即測試失敗。改狀態的步驟見 [GATE_STATUS_SINGLE_SOURCE](GATE_STATUS_SINGLE_SOURCE.md) §7。
+
 | Gate | Exit condition | 目前狀態 |
 |---|---|---|
 | PDR-0 Claim | RQ、hypothesis、primary outcomes、claim boundary frozen | PARTIAL |

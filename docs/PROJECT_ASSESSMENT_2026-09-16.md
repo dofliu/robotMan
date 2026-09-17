@@ -187,7 +187,7 @@ repo），證據目錄原地不動、digest 不變。
 | 文件數 | 63 份 | 活的規劃文件約 12 份留在 `docs/`，其餘進 `docs/archive/` 與 `docs/receipts/` |
 | v7 證據 | 222 MB 只在本容器 | **二選一**：依 REPOSITORY_GUIDE §3 放外部 immutable storage 並在 §4.1 註記；或在 PROJECT_STATUS 明寫「Pilot 欄不可從 repo 重導」（本次已加註後者） |
 | V1 evaluations 的 `run_lock_label` | 五筆仍是佔位字串 `"see gate output"` | 用 `evaluate_relocated_run` 重導並回填，或維持並在 receipt 註明（現為後者） |
-| **同一事實的多份副本** | 一個 gate 狀態散在 **8 份文件、24 處**；三天內量到 **4 次「改了一部分」**，第 4 次是寫本節時才量到的 | 每個 gate 狀態指定**單一 source of truth**，其餘文件只放連結與一句話摘要，**不複製狀態字串**（詳下） |
+| **同一事實的多份副本** | 一個 gate 狀態散在 **8 份文件、24 處**；三天內量到 **4 次「改了一部分」**，第 4 次是寫本節時才量到的 | **已實作**（2026-09-17，`GATE-STATUS-SINGLE-SOURCE-V1`）：33 個 gate 各有唯一權威來源，54 個站點由 [`gate_status_contract`](../backend/gate_status_contract.py) fail-closed 比對。規範見 [GATE_STATUS_SINGLE_SOURCE](GATE_STATUS_SINGLE_SOURCE.md)；仍未涵蓋的見該文件 §5、§6 |
 
 #### 4.3.1 文件副本不同步——這是量到的，不是推測
 
@@ -208,7 +208,13 @@ repo），證據目錄原地不動、digest 不變。
 
 規模是可以量的：`PUB-A0` 這**一個** gate 的狀態出現在 **8 份文件、24 處**（`grep -o "PUB-A0" docs/*.md STATUS.yaml | wc -l`，量測於 `main@653f82d`，不含本文件）。任何一次狀態變更都要同步 24 處，而**沒有任何機制會在漏改時報錯**——契約程式碼有 fail-closed gate，文件沒有。
 
-[INFERENCE] 這讓文件精簡從「可讀性建議」變成**正確性問題**：63 份文件不只是難讀，它們**會彼此矛盾，而矛盾不會被任何測試抓到**。最小處置不是刪文件，而是讓每個 gate 狀態只有一個權威來源（`STATUS.yaml` 或該 gate 的 receipt），其餘文件放連結而不放狀態字串；這樣一次變更只有一處要改，漏改在結構上就不可能發生。
+[INFERENCE] 這讓文件精簡從「可讀性建議」變成**正確性問題**：63 份文件不只是難讀，它們**會彼此矛盾，而矛盾不會被任何測試抓到**。最小處置不是刪文件，而是讓每個 gate 狀態只有一個權威來源，其餘文件放連結而不放狀態字串；這樣一次變更只有一處要改，漏改在結構上就不可能發生。
+
+[RESULT] **2026-09-17 已實作**，`GATE-STATUS-SINGLE-SOURCE-V1`（[規範](GATE_STATUS_SINGLE_SOURCE.md)、[登錄檔](../backend/gate_status_registry.json)、[契約](../backend/gate_status_contract.py)）。33 個 gate、54 個站點：`PUB-*` 的權威是 [PUBLICATION_PLAN](PUBLICATION_PLAN.md) §5、`PDR-*` 是 [PAPER_DATA_READINESS](PAPER_DATA_READINESS.md)、`V0`–`V4` 是 [PROJECT_STATUS §1](PROJECT_STATUS.md)；其餘 21 處登錄為 mirror 並逐一比對，不一致即測試失敗。**上面四個實例都已在測試中重演並確認會被擋下。**
+
+[BLOCKER] **實作過程推翻了本節原本的建議措辭。** 原文寫「其餘文件只放連結與一句話摘要，不複製狀態字串」——實際量測後改為**保留各文件自己的措辭、改為登錄與比對**，理由有二：（a）同一狀態在不同文件本來就有不同但正確的寫法（`PARTIAL_IMPLEMENTED_NOT_PASS` 對 `PARTIAL IMPLEMENTED / NOT PASS`、`SOFTWARE CONTRACT PARTIAL` 對 `SOFTWARE PARTIAL`），強制統一等於為了工具去改本來就正確的文件；（b）以整列比對會產生 **11 個假陽性**——鄰欄的 `readback PASS`、`16/14 exact` 說的是子項而非 gate。契約因此改讀「狀態格開頭」。原措辭依先立後撤留在上一段。
+
+[BLOCKER] **涵蓋範圍不是全部，缺口逐項寫在 [GATE_STATUS_SINGLE_SOURCE §5、§6](GATE_STATUS_SINGLE_SOURCE.md)**：`VV_PLAN` 的逐項 requirement 列（單一來源，無副本）、receipt-bound 的凍結判準（不得改寫）、以及**上表第 4 例那一類**——「Pardo 已核對」不是 gate 狀態而是衍生清單與文獻等級的一致性，需要另一個裝置，**目前沒有做**。
 
 [RESULT] **#4 已於 2026-09-17 由專案負責人指示修掉**（PR #34）：三份文件的清單改為「優先三篇」，各自以 `[BLOCKER]` 保留原清單供對照並指出矛盾所在；`PROJECT_STATUS` 另補上它從未記錄的 `FOUR_VERIFIED_REMAINING_U` 狀態與 2026-09-16 那一列時間線。**本節初稿寫的是「本次不修」**——那個判斷（改 gate 狀態屬規劃文件職權）在提出時是保守的預設，負責人決定後即執行；依先立後撤，原判斷留在此處。
 
