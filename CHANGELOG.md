@@ -2,6 +2,17 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-17 (ai)
+
+### 把「同一事實的多份副本」記進 PROJECT_ASSESSMENT §4.3，並在記的過程中量到第四個、仍未修的實例
+
+- [RESULT] [PROJECT_ASSESSMENT §4.3](docs/PROJECT_ASSESSMENT_2026-09-16.md) 新增一列與一個子節 **§4.3.1**。原本的文件精簡建議只有「新人無法上手」這個可讀性理由；(ag)、(ah) 兩次更新提供了第二個、更硬的理由：**同一個事實在多份文件各有一份副本，更新時只會改到其中幾份。**
+- [RESULT] 四個實例逐一列出，每個都寫明「已更新哪裡／漏掉哪裡／落差／修於哪個 commit」：#1 `P-NEW` 寫 `NOT STARTED`（`ab4ac12` 修）；#2 `PUBLICATION_PLAN` §5 寫「尚未執行」，是 #1 的第二份副本（`0d43096` 修）；#3 `PUB-A0` 狀態改了兩個檔案漏了第三個，是 AI 協作者自己的疏漏（`0d43096` 修）；#4 見下。
+- [BLOCKER] **#4 是寫這一節時才量到的，而且仍未修。** Pardo 2018（`1712.00378`）已於 2026-09-16 原文核對並由 `U` 升為 `S`，但**三份文件的「優先四篇」待核對清單仍把它列進去**：`TRACK_A_REFRAME` §10、`PROJECT_STATUS`、`PUBLICATION_PLAN`。其中 `TRACK_A_REFRAME` 尤其明確——**同一份文件的 §8 gate 列已寫 `FOUR_VERIFIED`（Pardo 已核對），§10 卻仍把 Pardo 列為待讀**，一份文件對同一件事給出兩個答案。
+- [BLOCKER] **本次不修 #4。** 那是 gate 狀態的內容變更，屬於規劃文件的職權，不是評估文件該動的東西；依先立後撤，它在 §4.3.1 記為**已知、未修**的缺陷，處置由專案負責人決定。
+- [RESULT] 規模已量：`PUB-A0` 這**一個** gate 的狀態出現在 **8 份文件、24 處**（`grep -o "PUB-A0" docs/*.md STATUS.yaml | wc -l`，量測於 `main@653f82d`，不含 PROJECT_ASSESSMENT 本身）。任一次狀態變更都要同步 24 處，而**沒有任何機制會在漏改時報錯**——契約程式碼有 fail-closed gate，文件沒有。
+- [INFERENCE] 因此建議的最小處置**不是刪文件**，而是每個 gate 狀態指定**單一 source of truth**（`STATUS.yaml` 或該 gate 的 receipt），其餘文件只放連結與一句話摘要、不複製狀態字串——一次變更只有一處要改，漏改在結構上就不可能發生。PROJECT_ASSESSMENT 的日期隨內容變更更新為 `2026-09-17`。
+
 ## Unreleased — 2026-09-16 (ah)
 
 ### Gate 狀態盤點：七份文件逐列對照 receipt，抓到四處過期、三處日期不實
