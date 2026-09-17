@@ -2,6 +2,18 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-17 (al)
+
+### `DERIVED-CLAIM-CONSISTENCY-V1`：把「從文獻核實等級算出來的待核清單」綁回地圖
+
+- [RESULT] 依專案負責人指示，補上 (ak) 明寫**未做**的那一類裝置。新增 [規範](docs/DERIVED_CLAIM_CONSISTENCY.md)、[登錄檔](backend/derived_claim_registry.json)、[契約](backend/derived_claim_contract.py) 與 26 個測試。追蹤 **10 篇論文**的核實等級、**1 個衍生 claim、3 個站點**。`GATE_STATUS_SINGLE_SOURCE` §6 與 `PROJECT_ASSESSMENT` §4.3.1 原本寫「目前沒有做」的段落**依先立後撤留在原處**，旁邊記下已補。
+- [BLOCKER] **為什麼不能沿用 gate 那一套**：gate 契約比對**被複製的狀態字串**；這裡沒有東西被複製，三份文件各有一個「成員由另外兩個檔案的十列算出來」的清單。Pardo 過期時**哪一個 gate 狀態都沒有錯**——`TRACK_A_REFRAME` §8 寫著正確的 `FOUR_VERIFIED_REMAINING_U`，§10 的清單仍列 Pardo。gate 契約看不到它，因為那裡沒有狀態可比。
+- [RESULT] 六條規則，最有力的是 **`NO_VERIFIED_PAPER_NAMED`**：清單裡出現**任何**來源已標為已核實的論文即失敗，**不依賴有人記得更新 `members`**。另有 `MEMBERS_STILL_UNVERIFIED`、`ALL_MEMBERS_NAMED`、`COUNT_WORD_MATCHES_MEMBERS`（少一篇但「優先三篇」沒改）、`CLAIM_RETIRES_WHEN_SOURCE_EMPTY`，以及 scan 規則 `UNREGISTERED_COPY`——**擋下「第五份副本長出來」**，那正是 §4.3.1 預言的下一次失效。
+- [BLOCKER] **實作時撞到與 gate 契約同一個教訓的第二次出現。** 初版以整行比對，三個站點全部誤判：它們的句子都是**先報告已核對了哪些**（「再兩篇已核對（2026-09-16：Pardo `1712.00378`、Learning to Locomote `2010.04304`）」）再說剩下什麼，而那個前言**本來就該提到已核實的論文**。改為只讀**清單片段**（數量詞到句號）。對照 (ak) 的「讀狀態格開頭而非整列」。
+- [BLOCKER] **一篇論文有兩組互不重疊的身分，兩組都要登錄。** 地圖寫「Colas, Sigaud, Oudeyer, *A Hitchhiker's Guide…*」，claim 寫「Colas 2019」——兩個字串在對方那裡都不出現。以 arXiv id 定位地圖列（Manski、Tamer、Hollenbeck & Wright 沒有 id，改用登錄的 `row_match`），散文寫法另存為 `claim_names`。同一篇在兩份地圖出現而等級不同，視為**來源本身有歧義**，直接失敗。
+- [RESULT] **更正註記全程跳過**：依先立後撤，「本列原寫『優先四篇』並把 Pardo 2018 列為待核對」這句必須留著，而它正好會觸發負向規則。另有兩處 `PROJECT_ASSESSMENT` §4.3.1 的敘述性提及，登錄為 `acknowledged_non_claims` 並寫明理由，不是靜默略過。
+- [RESULT] 仍未涵蓋的寫在[規範 §6](docs/DERIVED_CLAIM_CONSISTENCY.md)：地圖 §4 的 gap 判定與 claim→evidence 對照表——那是對整份地圖的**判斷**，不是一條規則能重算的清單，等級變動時仍須重新論證。
+
 ## Unreleased — 2026-09-17 (ak)
 
 ### `GATE-STATUS-SINGLE-SOURCE-V1`：每個 gate 一個權威狀態，其餘登錄為 mirror 並 fail-closed 比對

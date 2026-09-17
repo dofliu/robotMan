@@ -213,7 +213,7 @@
 
 ## 9. 測試現況
 
-`backend/`：**1 failed / 977 passed**（2026-09-17，`397.65` s，工作樹為 `ee2088b` 加上本次變更）。數字逐步對得起來：2026-09-14 的 `941` ＋7（介面改版的兩支測試檔：`test_warning_items.py` 5 個、`test_decision_kind.py` 2 個）＝ `948`（`9f871ac`）；＋2（PR #25 補上的 `record_start` 時長邊界與預設值回歸測試，均在 `test_run_trace.py`）＝ `950`（`979e73b`）；＋27（`GATE-STATUS-SINGLE-SOURCE-V1` 的 `test_gate_status_contract.py`）＝ **`977`**。失敗項仍是同一個、未放寬的 reduction-order 差異——已於本次以 `git stash` 在合併基底 `ee2088b` 上重跑確認**該失敗先於本次變更存在**，無新增失敗。
+`backend/`：**1 failed / 1003 passed**（2026-09-17，`315.31` s，工作樹為 `70b8db3` 加上本次變更）。數字逐步對得起來：2026-09-14 的 `941` ＋7（介面改版的兩支測試檔：`test_warning_items.py` 5 個、`test_decision_kind.py` 2 個）＝ `948`（`9f871ac`）；＋2（PR #25 補上的 `record_start` 時長邊界與預設值回歸測試，均在 `test_run_trace.py`）＝ `950`（`979e73b`）；＋27（`GATE-STATUS-SINGLE-SOURCE-V1` 的 `test_gate_status_contract.py`）＝ `977`（`01afa60`）；＋26（`DERIVED-CLAIM-CONSISTENCY-V1` 的 `test_derived_claim_contract.py`）＝ **`1003`**。失敗項仍是同一個、未放寬的 reduction-order 差異——已於 2026-09-17 以 `git stash` 在合併基底上重跑確認**該失敗先於這一系列變更存在**，無新增失敗。
 
 2026-09-14 那一輪的逐 commit 實測記錄保留於此：`5b707cb`（V2 contract 之前的 main）收集 `892`；＋`32`（`TRACKED-LINEAGE-TRAINING-V2` contract）＝ `924`，即先前記錄的 1 failed / 923 passed；＋`2`（guard dispatch）＋`2`（resume 路徑）＋`8`（保留線）＝ `936`，即 PR #20 合併後的 main；＋`6`（V2 執行線：replicate 數推導、relocated lock、標籤）＝ **`942`** ＝ 1 failed / 941 passed。更早的記錄為 1 failed / 882 passed、1 failed / 816 passed 與 1 failed / 754 passed。
 

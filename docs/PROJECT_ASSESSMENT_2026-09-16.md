@@ -216,6 +216,10 @@ repo），證據目錄原地不動、digest 不變。
 
 [BLOCKER] **涵蓋範圍不是全部，缺口逐項寫在 [GATE_STATUS_SINGLE_SOURCE §5、§6](GATE_STATUS_SINGLE_SOURCE.md)**：`VV_PLAN` 的逐項 requirement 列（單一來源，無副本）、receipt-bound 的凍結判準（不得改寫）、以及**上表第 4 例那一類**——「Pardo 已核對」不是 gate 狀態而是衍生清單與文獻等級的一致性，需要另一個裝置，**目前沒有做**。
 
+[RESULT] **2026-09-17 第 4 例那一類也做了**：[`DERIVED-CLAIM-CONSISTENCY-V1`](DERIVED_CLAIM_CONSISTENCY.md)。上一段的「目前沒有做」依先立後撤留在原處。追蹤 10 篇論文的核實等級、1 個衍生 claim、3 個站點，六條規則中最有力的是 `NO_VERIFIED_PAPER_NAMED`——清單裡出現**任何**已核實的論文即失敗，**不依賴有人記得更新成員名單**；另有 scan 規則擋下「第五份副本長出來」。上表四個實例現在**全部**有機制擋著。
+
+[BLOCKER] 仍未涵蓋的，寫在 [DERIVED_CLAIM_CONSISTENCY §6](DERIVED_CLAIM_CONSISTENCY.md)：地圖 §4 的 gap 判定與 claim→evidence 對照表。那是對整份地圖的**判斷**，不是一條規則能重算的清單；等級變動時仍須重新論證。
+
 [RESULT] **#4 已於 2026-09-17 由專案負責人指示修掉**（PR #34）：三份文件的清單改為「優先三篇」，各自以 `[BLOCKER]` 保留原清單供對照並指出矛盾所在；`PROJECT_STATUS` 另補上它從未記錄的 `FOUR_VERIFIED_REMAINING_U` 狀態與 2026-09-16 那一列時間線。**本節初稿寫的是「本次不修」**——那個判斷（改 gate 狀態屬規劃文件職權）在提出時是保守的預設，負責人決定後即執行；依先立後撤，原判斷留在此處。
 
 [BLOCKER] **修掉 #4 並不使這一節失效，反而是它的第一個驗證**：四個實例裡，沒有任何一個是被機制抓到的——#1／#2 是下一次更新順手發現、#3 是事後盤點、#4 是寫這一節查證時才量到。**三個都靠人（或 AI）碰巧回頭看。** 只要狀態字串還有 24 份副本，第 5 次就只是時間問題。
