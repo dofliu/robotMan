@@ -213,7 +213,7 @@
 
 ## 9. 測試現況
 
-`backend/`：**1 failed / 1003 passed**（2026-09-17，`314.84` s，**乾淨工作樹**於 `5bfc342`，`python3 -X utf8 -m pytest backend/ -p no:cacheprovider -v --durations=0`）。數字逐步對得起來：2026-09-14 的 `941` ＋7（介面改版的兩支測試檔：`test_warning_items.py` 5 個、`test_decision_kind.py` 2 個）＝ `948`（`9f871ac`）；＋2（PR #25 補上的 `record_start` 時長邊界與預設值回歸測試，均在 `test_run_trace.py`）＝ `950`（`979e73b`）；＋27（`GATE-STATUS-SINGLE-SOURCE-V1` 的 `test_gate_status_contract.py`）＝ `977`（`01afa60`）；＋26（`DERIVED-CLAIM-CONSISTENCY-V1` 的 `test_derived_claim_contract.py`）＝ **`1003`**。失敗項仍是同一個、未放寬的 reduction-order 差異，無新增失敗。
+`backend/`：**1 failed / 1028 passed**（2026-09-17，`321.59` s，工作樹為 `21c4507` 加上本次變更，`python3 -X utf8 -m pytest backend/ -p no:cacheprovider`）。數字逐步對得起來：2026-09-14 的 `941` ＋7（介面改版的兩支測試檔：`test_warning_items.py` 5 個、`test_decision_kind.py` 2 個）＝ `948`（`9f871ac`）；＋2（PR #25 補上的 `record_start` 時長邊界與預設值回歸測試，均在 `test_run_trace.py`）＝ `950`（`979e73b`）；＋27（`GATE-STATUS-SINGLE-SOURCE-V1` 的 `test_gate_status_contract.py`）＝ `977`（`01afa60`）；＋26（`DERIVED-CLAIM-CONSISTENCY-V1` 的 `test_derived_claim_contract.py`）＝ `1003`（`5bfc342`，乾淨樹實測）；＋25（`TEACHING-BOUNDARY-V1` 的 `test_teaching_boundary_contract.py`）＝ **`1028`**。失敗項仍是同一個、未放寬的 reduction-order 差異，無新增失敗。
 
 [RESULT] **量測條件更新（2026-09-17）**：本列原記的是 `70b8db3` **加上未合併變更**的工作樹（`315.31` s）。該批變更合併後（`5bfc342`），在**乾淨工作樹**上重跑，得到**相同的 `1 failed / 1003 passed`**（`314.84` s、收集 `1004`）。兩次量測一致，現以乾淨樹那次為準；原條件依先立後撤記於此。
 [RESULT] **失敗身分已直接核對，不只比對測試名**：重跑 replay 取出失敗判準為 `PRIMARY_CASE_RECEIPT_IDENTITY`（`replay["status"] == "FAIL"`），與 [V2 receipt §8](TRACKED_LINEAGE_TRAINING_V2_RECEIPT_2026-09-14.md) 記載的同一個 reduction-order 差異同源。另於 2026-09-17 以 `git stash` 在合併基底上重跑確認**該失敗先於這一系列變更存在**。

@@ -20,7 +20,7 @@ from simulator import run_simulation
 from live_sim import LiveSession, live_error, validation_error_message
 from compare_live import CompareSession
 from rl.policy_registry import public_policy_inventory
-from rl.train_ppo import public_training_inventory
+from rl.training_inventory import public_training_inventory
 from run_trace import TRACE_STORE, TraceIntegrityError
 
 try:

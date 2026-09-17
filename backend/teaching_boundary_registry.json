@@ -1,0 +1,36 @@
+{
+  "registry_id": "TEACHING-BOUNDARY-V1",
+  "as_of": "2026-09-17",
+  "purpose": "PROJECT_ASSESSMENT section 4.1 says the teaching simulator and the research infrastructure are decoupled and splitting them needs no refactor. This registry turns that from a claim into a checked fact: the teaching entry point's transitive local import closure must be exactly the modules listed here, so a research import cannot enter it unnoticed and the list cannot quietly go stale. Rules: docs/TEACHING_BOUNDARY.md.",
+  "checked_by": "backend/teaching_boundary_contract.py",
+  "package_root": "backend",
+  "entry_points": [
+    "main"
+  ],
+  "teaching_modules": [
+    "compare_live",
+    "config_schema",
+    "controller",
+    "controller_raibert",
+    "controller_rl",
+    "gait",
+    "hardware_db",
+    "live_sim",
+    "main",
+    "model_builder",
+    "motion_tasks",
+    "rl.policy_registry",
+    "rl.training_inventory",
+    "run_trace",
+    "simulator"
+  ],
+  "notes": {
+    "stable_baselines3": "The teaching closure does import stable_baselines3, through controller_rl loading a PPO policy for the Live view. That is the teaching product doing its job, not a research dependency: the boundary is drawn around research MODULES, not around third-party weight.",
+    "rl_package": "backend/rl/ holds both sides. Two of its modules are teaching (policy_registry, training_inventory); the rest - train_ppo, eval_policy, humanoid_env, the runners and the protocol JSONs - are research and must stay out of the closure. A directory boundary would not have expressed this; an enumerated one does."
+  },
+  "out_of_scope": {
+    "tests": "backend/test_*.py may import anything; a test is not the shipped application.",
+    "third_party": "Which PyPI packages the teaching product needs is a packaging question, not a boundary question, and is deliberately not checked here.",
+    "frontend": "The frontend reaches the backend only over the HTTP/WebSocket API, so it cannot import a research module; its surface is 5 REST paths and 2 sockets."
+  }
+}
