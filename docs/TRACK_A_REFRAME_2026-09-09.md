@@ -210,7 +210,8 @@ Summary 並把過小與過大分別歸為前撲與站立不動兩個局部最優
 
 ## 10. 立即下一步
 
-1. `PUB-A0`：關鍵兩篇已核對（2026-09-09，gap 仍成立，[LITERATURE_MAP §7](LITERATURE_MAP_2026-09-08_EVALUATION_VALIDITY.md)）、A-C5 補充 scan 已完成（2026-09-10，該項降級）。**唯一剩餘工作**是在可存取出版方的環境讀 §1.1、§1.3–§1.5、§1.7 與 §2 的 `U` 條目原文；優先四篇：Pardo 2018、Colas 2019、Manski 1990／Tamer 2010、Hollenbeck & Wright 2017。
+1. `PUB-A0`：關鍵兩篇已核對（2026-09-09，gap 仍成立，[LITERATURE_MAP §7](LITERATURE_MAP_2026-09-08_EVALUATION_VALIDITY.md)）、A-C5 補充 scan 已完成（2026-09-10，該項降級）、**再兩篇已核對**（2026-09-16：Pardo `1712.00378`、Learning to Locomote `2010.04304`，§1.1 兩列升為 `S`）。**唯一剩餘工作**是在可存取出版方的環境讀 §1.1 剩餘條目、§1.3–§1.5、§1.7 與 §2 的 `U` 條目原文；**優先三篇**：Colas 2019、Manski 1990／Tamer 2010、Hollenbeck & Wright 2017。
+   [BLOCKER] **2026-09-17 更正**：本列原寫「優先四篇」並把 **Pardo 2018 列為待核對**，但同一份文件 §8 的 gate 列早已寫 `FOUR_VERIFIED_REMAINING_U`（Pardo 已核對）——**同一份文件對同一件事給出兩個答案**。原措辭記於此以供對照（原清單四篇為 Pardo 2018、Colas 2019、Manski 1990／Tamer 2010、Hollenbeck & Wright 2017），判定以 §8 與 [LITERATURE_MAP §1.1／§7](LITERATURE_MAP_2026-09-08_EVALUATION_VALIDITY.md) 為準。此錯誤的成因與規模記於 [PROJECT_ASSESSMENT §4.3.1](PROJECT_ASSESSMENT_2026-09-16.md)。
 2. Recipe 數值核對（rl-baselines3-zoo `hyperparams/ppo.yml` Walker2d／Hopper 條目）——影響 §6 第 5 條的措辭。
 3. `PUB-A2`：A0 完成後，把本文 §5–§7 凍結為 claim freeze receipt。
 4. `PUB-A3`：一次正式 clean-checkout reproduction 執行並記錄。

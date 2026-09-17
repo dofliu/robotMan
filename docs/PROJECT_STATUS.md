@@ -1,6 +1,6 @@
 # 專案進度狀態報告
 
-最後更新：2026-09-16 ｜ 對應 `STATUS.yaml` ｜ Development：`0.2.0-dev`
+最後更新：2026-09-17 ｜ 對應 `STATUS.yaml` ｜ Development：`0.2.0-dev`
 
 證據範圍：`SIM_ONLY_REDUCED_ORDER` / `NOT_PHYSICALLY_VALIDATED`
 
@@ -186,6 +186,7 @@
 | 2026-09-14 | `TRACKED-LINEAGE-AMENDMENT-01` + driver／contract 實作 | 更正我自己凍結裡的兩個缺陷（`environment_id` 未指定、`500_000` 整數倍 checkpoint 不可達），皆在任何訓練之前、皆非門檻放寬。`train_ppo.py` 加第三個互斥身分與 protocol 決定的 `checkpoint_interval`；新增 contract 與 65 個雙向測試；三層 digest 補齊。全套 1 failed / 882 passed，無新增失敗 |
 | 2026-09-14 | 凍結 `TRACKED-LINEAGE-TRAINING-V1`（[spec](TRACKED_LINEAGE_TRAINING_SPEC.md)） | 兩格由負責人在看到任何曲線之前定案：`GIT_DIRECT` + `500_000`、`30/30`。ROADMAP §9 第 2 項收窄為 scratch。凍結 push 時三個 driver／simulator 檔案逐位元未變；範圍收窄為 `PUB-B1`／`PUB-B2`，`PUB-B3` 另需 protocol。**尚未執行、未產生任何證據** |
 | 2026-09-13 | `LOCKBIND-AMENDMENT-01-LB12-SCOPE` | `LB-12` 原本以工作樹比對，等於永久凍結三個檔案；改以 git 讀取本 contract 自己的兩個 commit 比對。非放寬：主張未改、量測更正，且更強。解除了新訓練線必須修改 `train_ppo.py` 的阻礙 |
+| 2026-09-16 | `PUB-A0` 再兩篇原文核對（PDF 由專案負責人提供） | `1712.00378`（Pardo）與 `2010.04304`（Learning to Locomote）皆確認為 **learning 端**、不涉量測端 identification；[LITERATURE_MAP §1.1](LITERATURE_MAP_2026-09-08_EVALUATION_VALIDITY.md) 兩列由 `U` 升為 `S`，A-C1／A-C2 的 gap 判定不變。狀態 `FOUR_VERIFIED_REMAINING_U`；**gate 仍未 PASS** |
 
 ## 8. 下一步
 
@@ -193,7 +194,8 @@
 
 **學術（見 [PUBLICATION_PLAN](PUBLICATION_PLAN.md)）**
 
-1. `PUB-A0`：關鍵兩篇已核對、A-C5 補充 scan 已完成（該項降級）；**唯一剩餘工作**是讀其餘 `U` 條目原文（§1.1、§1.3–§1.5、§1.7、§2 的 Manski／Tamer 線），需可存取出版方的環境——2026-09-10 重新量測 `arxiv.org` 仍封鎖。優先四篇：Pardo 2018、Colas 2019、Manski 1990／Tamer 2010、Hollenbeck & Wright 2017。另需核對 rl-zoo recipe 數值。
+1. `PUB-A0`：狀態為 **`FOUR_VERIFIED_REMAINING_U`**（2026-09-16）——關鍵兩篇已核對（2026-09-09）、A-C5 補充 scan 已完成（2026-09-10，該項降級）、Pardo `1712.00378` 與 Learning to Locomote `2010.04304` 已核對（2026-09-16，[LITERATURE_MAP §1.1／§7](LITERATURE_MAP_2026-09-08_EVALUATION_VALIDITY.md) 兩列升為 `S`）。**唯一剩餘工作**是讀其餘 `U` 條目原文（§1.1 剩餘條目、§1.3–§1.5、§1.7、§2 的 Manski／Tamer 線），需可存取出版方的環境——2026-09-10 重新量測 `arxiv.org` 仍封鎖。**優先三篇**：Colas 2019、Manski 1990／Tamer 2010、Hollenbeck & Wright 2017。另需核對 rl-zoo recipe 數值。
+   [BLOCKER] **2026-09-17 更正**：本列原寫「優先四篇」並把 **Pardo 2018 列為待核對**，漏掉 2026-09-16 的核對結果；gate 狀態標籤也未寫進本文件。原措辭記於此以供對照（原清單四篇為 Pardo 2018、Colas 2019、Manski 1990／Tamer 2010、Hollenbeck & Wright 2017），判定以 [LITERATURE_MAP §1.1／§7](LITERATURE_MAP_2026-09-08_EVALUATION_VALIDITY.md) 為準。成因見 [PROJECT_ASSESSMENT §4.3.1](PROJECT_ASSESSMENT_2026-09-16.md)。
 2. `PUB-A2` claim freeze：A0 之後，把 [TRACK_A_REFRAME §5–§7](TRACK_A_REFRAME_2026-09-09.md) 凍結。**不再開任何第二案例 probe 或 protocol**；`PUB-A1b` 已關閉並寫入 Limitations。輸入之一是 [`R0` regime probe](R0_REGIME_PROBE_RECEIPT_2026-09-11.md)，已於 2026-09-11 執行完成（兩個對比皆 `R0_WINDOW_FOUND`）；其「regime 由 horizon 決定」的量測應寫入 §3 taxonomy 與 A-C3 論述。
 3. `PUB-B0` 授權已取得（2026-09-10）。剩餘依序：專案負責人決定 [PUBLICATION_PLAN §5](PUBLICATION_PLAN.md) 的兩個子問題（規則、FORMAL 範圍花在哪條線）→ `PUB-B4` OSF preregistration（只有負責人能做）→ `SELECT-AMENDMENT-01`（`EP-03` narrowing amendment 並重新 pin digest）→ `EP-01`／`EP-02` amendment。在子問題未決前不鑄造 authorization evidence、不解封 `20000–20029`。
 
