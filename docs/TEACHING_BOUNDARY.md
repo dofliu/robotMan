@@ -1,17 +1,34 @@
 # 教學模擬器的邊界
 
-ID：`TEACHING-BOUNDARY-V1` ｜ 日期：2026-09-17 ｜ 性質：**工程規範與 fail-closed 契約**，不是 protocol、不是 receipt
+ID：`MODULE-BOUNDARY-V1`（teaching 邊界）｜ 日期：2026-09-17
+｜ 性質：**工程規範與 fail-closed 契約**，不是 protocol、不是 receipt
 
-登錄檔：[`backend/teaching_boundary_registry.json`](../backend/teaching_boundary_registry.json)
-｜ 檢查程式：[`backend/teaching_boundary_contract.py`](../backend/teaching_boundary_contract.py)
-｜ 測試：`backend/test_teaching_boundary_contract.py`
+登錄檔：[`backend/module_boundary_registry.json`](../backend/module_boundary_registry.json)
+｜ 檢查程式：[`backend/module_boundary_contract.py`](../backend/module_boundary_contract.py)
+｜ 測試：`backend/test_module_boundary_contract.py`
+｜ 另一個邊界：[TOOLKIT_PORTABILITY](TOOLKIT_PORTABILITY.md)
 
 ```
-python3 -I -S backend/teaching_boundary_contract.py          # 不乾淨則 exit 1
-python3 -I -S backend/teaching_boundary_contract.py --list   # 列出教學閉包與行數
+python3 -I -S backend/module_boundary_contract.py          # 兩個邊界都檢查，不乾淨則 exit 1
+python3 -I -S backend/module_boundary_contract.py --list   # 列出兩個閉包與行數
 ```
 
 ---
+
+## 0. 本文件原本的 ID 是 `TEACHING-BOUNDARY-V1`
+
+（**2026-09-17 更正**：本文件原本登錄為 `TEACHING-BOUNDARY-V1`，登錄檔
+`backend/teaching_boundary_registry.json`、契約 `backend/teaching_boundary_contract.py`。
+原措辭依先立後撤保留在此。）
+
+拆[實驗工具組](TOOLKIT_PORTABILITY.md)時發現，工具組邊界的規則與本文件**逐字相同**：
+一個產品的遞移本地 import 閉包，必須恰好等於它登錄的模組清單。
+再寫一份幾乎相同的契約，就會犯下這個專案剛用兩個 PR 打掉的那個型態——**同一個事實兩份實作**
+（見 [GATE_STATUS_SINGLE_SOURCE](GATE_STATUS_SINGLE_SOURCE.md)、
+[DERIVED_CLAIM_CONSISTENCY](DERIVED_CLAIM_CONSISTENCY.md)）。
+
+所以登錄檔改成多邊界、程式只留一份，ID 改為 `MODULE-BOUNDARY-V1`。
+**規則、教學模組清單與下面所有量測結果一個字都沒有改**，只是檢查它的程式現在同時檢查兩個產品。
 
 ## 1. 這是「拆」的第一步，而且是可驗證的那一步
 
@@ -113,8 +130,8 @@ rl.policy_registry  rl.training_inventory  run_trace  simulator
 ## 8. 加一個教學模組的步驟
 
 1. 寫程式，確認它**不 import 任何研究模組**。
-2. 把模組名加進 `backend/teaching_boundary_registry.json` 的 `teaching_modules`。
-3. 跑 `python3 -I -S backend/teaching_boundary_contract.py`，直到輸出 `TEACHING_BOUNDARY_CLEAN`。
+2. 把模組名加進 `backend/module_boundary_registry.json` 的 `boundaries.teaching.modules`。
+3. 跑 `python3 -I -S backend/module_boundary_contract.py`，直到輸出 `MODULE_BOUNDARIES_CLEAN`。
 
 反過來，如果契約說某個研究模組進了閉包：**先想能不能切，而不是先想把它加進清單。**
 把它加進清單是一個刻意的決定，而不是讓紅燈變綠的手段。

@@ -1,0 +1,69 @@
+{
+  "registry_id": "MODULE-BOUNDARY-V1",
+  "as_of": "2026-09-17",
+  "purpose": "PROJECT_ASSESSMENT section 4.1 proposes splitting this repository into a teaching simulator and a reusable experiment toolkit. Each split is a claim about imports, and this registry makes each one checkable by the same rule: a boundary's transitive local import closure must equal its registered module list exactly. Supersedes TEACHING-BOUNDARY-V1, which checked the teaching boundary with the same code under a name that could only ever describe one of the two. Rules: docs/TEACHING_BOUNDARY.md and docs/TOOLKIT_PORTABILITY.md.",
+  "checked_by": "backend/module_boundary_contract.py",
+  "package_root": "backend",
+  "boundaries": {
+    "teaching": {
+      "what": "the teaching simulator: the FastAPI app and everything it loads",
+      "entry_points": [
+        "main"
+      ],
+      "modules": [
+        "compare_live",
+        "config_schema",
+        "controller",
+        "controller_raibert",
+        "controller_rl",
+        "gait",
+        "hardware_db",
+        "live_sim",
+        "main",
+        "model_builder",
+        "motion_tasks",
+        "rl.policy_registry",
+        "rl.training_inventory",
+        "run_trace",
+        "simulator"
+      ],
+      "rule": "CLOSURE_EQUALS_MODULES",
+      "notes": {
+        "stable_baselines3": "The teaching closure does import stable_baselines3, through controller_rl loading a PPO policy for the Live view. That is the teaching product doing its job, not a research dependency: the boundary is drawn around research MODULES, not around third-party weight.",
+        "rl_package": "backend/rl/ holds both sides. Two of its modules are teaching (policy_registry, training_inventory); train_ppo, eval_policy, humanoid_env and the runners are research and must stay out. A directory boundary could not express this."
+      }
+    },
+    "toolkit": {
+      "what": "the reproducible-experiment toolkit: PROJECT_ASSESSMENT section 4.1 product B, intended for other people's RL projects",
+      "entry_points": [
+        "environment_lock",
+        "experiment_matrix_contract",
+        "exposure_identification",
+        "paired_statistics_contract",
+        "paper_data_contract",
+        "rl.bind_run_lock",
+        "run_manifest_lock"
+      ],
+      "modules": [
+        "environment_lock",
+        "experiment_matrix_contract",
+        "exposure_identification",
+        "paired_statistics_contract",
+        "paper_data_contract",
+        "rl.bind_run_lock",
+        "run_manifest_lock"
+      ],
+      "rule": "CLOSURE_EQUALS_MODULES",
+      "notes": {
+        "already_at_the_bottom": "Measured 2026-09-17: the toolkit's closure is exactly these seven modules and nothing else, while 13 non-test project modules depend ON it. The toolkit already sits at the bottom of the dependency graph, which is the position a library needs. This boundary keeps it there.",
+        "direction": "The teaching boundary stops the APP reaching into research. This one stops the LIBRARY reaching into the project at all - a stricter property, and currently true.",
+        "portability_is_separate": "Import closure is not portability. An outside project can import these modules and still be unable to use them, because of closed Literal vocabularies and frozen claim boundaries. That audit is docs/TOOLKIT_PORTABILITY.md; this contract does not check it and must not be read as saying the toolkit is reusable today."
+      }
+    }
+  },
+  "out_of_scope": {
+    "tests": "backend/test_*.py may import anything; a test is not the shipped product.",
+    "third_party": "Which PyPI packages a product needs is a packaging question, not a boundary question.",
+    "frontend": "The frontend reaches the backend only over HTTP/WebSocket, so it cannot import a module at all; its surface is 5 REST paths and 2 sockets."
+  }
+}
