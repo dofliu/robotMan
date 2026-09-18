@@ -2,6 +2,20 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-18 (ap)
+
+### 把 `RUN-MANIFEST-LOCK-BINDING-V1` 分析期 gate 裡**沒有標籤的失敗路徑**標籤化——包含一個假 PASS
+
+- [BLOCKER] **我先前對這個 bug 的建議是錯的，而且它根本不需要擁有者決定。** (ao) 與 [TOOLKIT_PORTABILITY §8](docs/TOOLKIT_PORTABILITY.md) 建議「歸進現有 `LABEL_MISMATCH`」。凍結規格 [§7.1](docs/RUN_MANIFEST_LOCK_BINDING_SPEC.md) 的標籤表**逐字把「路徑逃逸」列在 `RUN_LOCK_BINDING_METHOD_FAILURE`**；`RUN_LOCK_MISMATCH` 只有兩個 disjunct，而逃逸 symlink 的情形**兩個都可量測地為假**（manifest bytes 與 `bound_manifest_sha256` 逐位元相符、declared 路徑相對於該 run 自己的 root 也正確）。標成 MISMATCH 會是 §7.2 明文禁止的降級。原措辭依先立後撤保留。
+- [RESULT] **修的是「沒有標籤」本身**：`backend/run_manifest_lock.py` 的 `relative_to` 加上 `is_relative_to` 防護並丟 `RunLockBindingError`，由 `evaluate_run` 自己的 `except` 標成 METHOD_FAILURE。**沒有第六個標籤、沒有動任何驗收判準、`PROTOCOL_SHA256` 與 `SPECIFICATION_SHA256` 兩份 digest-pinned 檔案逐位元未動**（`test_protocol_and_specification_digests_match_the_pins` 綠燈即為證明）。
+- [BLOCKER] **觸發條件比原本記的廣，而且其中一條是假 PASS。** 實測三種輸入走同一條未捕捉的 `ValueError`：逃逸 symlink、**run_dir 本身在宣告 root 之外**、**呼叫端傳入含 `..` 的 `manifest_filename`（完全不需要 symlink）**。更嚴重的是第四種：`evaluate_relocated_run` 沒有 `relative_to` 所以不會 crash，但一個「binding record ＋ 指向目錄外的 manifest symlink」的保留目錄**回傳 `RUN_LOCK_BOUND`**——**假 PASS，出現在唯一一個專門判斷保留證據的函式上**。同一個防護一併關掉。
+- [BLOCKER] **最難看出來的一條**：`Path.resolve()` 碰到 symlink 迴圈丟的是 `RuntimeError`，而 `RunLockBindingError` **正是 `RuntimeError` 的子類**——`except RunLockBindingError` 看起來涵蓋它，實際上抓子類、放父類過去。測試直接斷言這個繼承關係，因為**那正是這個 bug 在肉眼審查下隱形的原因**。
+- [RESULT] **兩個「假 PASS」宣稱被實測推翻，因此刻意沒有動。** 有人主張「`manifest_filename` 含 `..`」與「root 內指向別處的 symlink」會產生假 `RUN_LOCK_BOUND`——**兩個都是假的**，實測都回傳 `RUN_LOCK_MISMATCH` 且訊息正確。因此**沒有**加 `safe_relative_path(manifest_filename, ...)`：那會改掉一個本來就正確的標籤，而背後沒有缺陷。
+- [BLOCKER] **`RUN_LOCK_UNBOUND` 的順序是一個決定，不是巧合。** 防護放在 binding-presence 檢查**之後**：`UNBOUND` 的凍結定義是「該 run 目錄沒有綁定記錄」，**不提 root**，所以無論呼叫端宣告哪個 root 它都為真。一個測試專門釘住這個順序。
+- [BLOCKER] **明示拒絕一個更簡單的寫法**：把 `relative_to` 整個拿掉、改成 resolved-to-resolved 比對。那永遠不會丟例外、也不需要防護——但 declared 路徑會走同一條 symlink，兩邊解到同一個檔案，**今天會紅的替換 manifest 會變成 `RUN_LOCK_BOUND`**。那是因結果而放寬門檻。
+- [BLOCKER] **仍然沒有修**：`evaluate_run` **從來不重算 lock record**（刪掉 `environment_lock.json`，該 run 仍是 BOUND）。規格把它列為 METHOD_FAILURE 條件，但 gate 沒實作。**那是「少一個檢查」，不是「有一條沒標籤的路徑」**，範圍不同，記為任務 #95。`sha256_file` 的 `OSError` 一併標籤化，但那條是 argument-from-code——本容器以 euid 0 執行，`chmod 000` 照樣讀得到，**無法重現，不宣稱已量測**。
+- [RESULT] 8 個新正控制測試加在 `backend/test_run_manifest_lock.py` 的 `LB-08` 段（含兩個**負控制**，證明防護沒有吞掉本來就標對的 `RUN_LOCK_MISMATCH`）。該檔 63 → **71**。
+
 ## Unreleased — 2026-09-17 (ao)
 
 ### 拆實驗工具組：把兩個產品的邊界收進**同一個**契約，並審計工具組到底拿不拿得走
@@ -10,7 +24,7 @@
 - [RESULT] **量到的是一個不對稱，這才是重點。** 工具組閉包**恰好是它自己那 7 個模組、5,300 行、本地相依為零**，而**13 個非測試專案模組 import 它**。它已經坐在相依圖的最底層——那正是函式庫該待的位置；契約的作用不是把它搬過去，而是**讓它留在那裡**。這個方向（函式庫不得反向碰專案）**嚴格強於**教學邊界。
 - [BLOCKER] **但「邊界乾淨」不等於「別人拿得走」，而且沒有任何自動檢查在守第二件事。** 逐模組審計（[TOOLKIT_PORTABILITY §4](docs/TOOLKIT_PORTABILITY.md)）：7 個模組裡**只有 `exposure_identification`（312 行、stdlib-only）今天可以原封不動使用**。契約 docstring、登錄檔註記與一個**專門的測試**（`test_the_boundary_is_not_a_portability_claim`）三處都寫死這件事，就是為了不讓綠燈被讀成「可以複用了」。
 - [BLOCKER] **`SIM_ONLY_MUJOCO` 與 `FROZEN_CLAIM_BOUNDARY` 是擁有者的決定，本次一個字都沒有動。** `experiment_matrix_contract.py:212`、`paired_statistics_contract.py:156` 把 `evidence_scope` 釘成單一值；`experiment_matrix_contract.py:257` 要求 `claim_boundary` **逐字等於**凍結句；`paper_data_contract.py:54-70` 把 `role` 封閉成 16 個值。**這些不是疏忽**——那句「SIM_ONLY_MUJOCO / NOT_PHYSICALLY_VALIDATED」能被逐字檢查，正是這個專案不誇大主張的機制之一。建議是讓外部專案**提供自己的詞彙表**（預設值就是現在這份），而不是放寬這裡的任何一個值。
-- [BLOCKER] **兩個逐字驗證的 bug，兩個都沒有修，因為兩個都需要決定。** `environment_lock.py:425` 的 `learning_fingerprint()` 呼叫 `torch.manual_seed`，動的是**全域** RNG——**對本專案不咬人**（`second_case_runner` 在 `build_model` 明確傳 `seed=`），但擋住同 process 的函式庫複用；**修它會改變 fingerprint 的值，讓 41 份已提交的 lock record 失效**。`run_manifest_lock.py:530` 的 `relative_to` 少了它自己 384 行就有的 `is_relative_to` 防護，逃逸 symlink 會丟**未捕捉的 `ValueError`** 而不是 typed label——對一個「每種失敗都有標籤」的契約來說，這是一條**沒有標籤的失敗路徑**。
+- [BLOCKER] **兩個逐字驗證的 bug，兩個都沒有修，因為兩個都需要決定。** `environment_lock.py:425` 的 `learning_fingerprint()` 呼叫 `torch.manual_seed`，動的是**全域** RNG——**對本專案不咬人**（`second_case_runner` 在 `build_model` 明確傳 `seed=`），但擋住同 process 的函式庫複用；**修它會改變 fingerprint 的值，讓 41 份已提交的 lock record 失效**。`run_manifest_lock.py:530` 的 `relative_to` 少了它自己 384 行就有的 `is_relative_to` 防護，逃逸 symlink 會丟**未捕捉的 `ValueError`** 而不是 typed label——對一個「每種失敗都有標籤」的契約來說，這是一條**沒有標籤的失敗路徑**。（**2026-09-18 更正**：已於 (ap) 修掉。本條說它「需要一個決定」是錯的——凍結規格 §7.1 早就把「路徑逃逸」列在 `METHOD_FAILURE`；`LB-09` 一個字都沒動，只加正控制測試。本條也少記了三種觸發條件與一個**假 PASS**，見 (ap)。原措辭依先立後撤保留。）
 - [BLOCKER] **另外發現一個被凍結卻沒有被強制的欄位**：producer 登錄檔的 `manifest_schema`（如 `RL_TRAINING_RUN_V2`）**全 repo 只在它自己那份 JSON 出現過**，沒有任何程式讀它。binding record 記的是 manifest 自己宣告的 `schema_version`，兩者不一致時沒有東西會說話。
 - [RESULT] **先立後撤：我先前的假設被實測推翻。** 我原本說 `environment_lock` 裡 top-level 的 `mujoco`／`numpy`／`torch` import 是可攜性上最致命的問題。**錯。** 三個重套件的 import **全部在函式內、全部包在 `try/except` 裡**（`numpy:356`、`mujoco:382`、`torch:418/532/541`），在**無 site-packages 的 `python3 -I -S` 下實測可以 import 並使用**，缺套件只讓三個 fingerprint 回報 unavailable。錯的說法留著，更正放在旁邊（[TOOLKIT_PORTABILITY §7](docs/TOOLKIT_PORTABILITY.md)）。
 - [BLOCKER] **本次一樣沒有搬任何檔案，也沒有改任何 API、任何契約語義。**

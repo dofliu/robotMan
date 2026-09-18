@@ -202,6 +202,47 @@ actual = manifest_path.resolve().relative_to(run_root).as_posix()
 但新增標籤會動到 `LB-09`「五個標籤各有正控制」的驗收判準，所以**也需要一個決定**：
 是歸進現有標籤，還是開第六個。
 
+（**2026-09-18 更正：上一段把選項說錯了，而且這件事根本不需要擁有者決定。**
+上段寫「歸進 `LABEL_MISMATCH` 或開第六個標籤」，並在 §8 建議前者。
+**兩個都不對。** 凍結規格
+[RUN_MANIFEST_LOCK_BINDING_SPEC](RUN_MANIFEST_LOCK_BINDING_SPEC.md) §7.1 的標籤表，
+`RUN_LOCK_BINDING_METHOD_FAILURE` 那一列**逐字列舉「路徑逃逸」**；
+`RUN_LOCK_MISMATCH` 則只涵蓋兩個 disjunct——digest 不符，或 `bound_manifest_path` 指向別的檔案。
+實測逃逸 symlink 的情形：**manifest bytes 與 `bound_manifest_sha256` 逐位元相符，
+declared 路徑相對於該 run 自己的 root 也是對的**——兩個 disjunct 都**可量測地為假**，
+所以標成 MISMATCH 會是 §7.2 明文禁止的降級。正確答案凍結規格早就寫好了。
+原措辭依先立後撤保留在上方。實際修法見 §6.3。）
+
+### 6.3 上面兩個 bug 中的第二個已於 2026-09-18 修掉——而且它比原本記的更嚴重
+
+**修的是「沒有標籤」這件事本身，不是換一個標籤。** `evaluate_run` 現在對逃逸丟
+`RunLockBindingError`，由它自己的 `except` 標成 `RUN_LOCK_BINDING_METHOD_FAILURE`。
+**沒有新增第六個標籤，沒有動任何凍結值，兩份 digest-pinned 檔案逐位元未動。**
+
+審計過程中量到三件上面沒有記的事：
+
+| 量到的 | 原本以為 | 實測 |
+|---|---|---|
+| **觸發條件比 symlink 廣** | 只有逃逸 symlink | **run_dir 本身在宣告 root 之外**、以及**呼叫端傳入含 `..` 的 `manifest_filename`（完全不需要 symlink）**，都走同一條未捕捉的 `ValueError` |
+| **`evaluate_relocated_run` 更糟** | 沒提到它 | 它沒有 `relative_to`，所以不會 crash——但一個「binding record ＋ 指向目錄外的 manifest symlink」的保留目錄，**回傳 `RUN_LOCK_BOUND`**。那是**假 PASS**，出現在唯一一個專門判斷保留證據的函式上 |
+| **`Path.resolve()` 的 symlink 迴圈丟 `RuntimeError`** | 沒提到 | 而 `RunLockBindingError` **正是 `RuntimeError` 的子類**，所以 `except RunLockBindingError` 看起來涵蓋它、實際上放它過去。這是三條裡最難看出來的一條 |
+
+三條加上 `sha256_file` 的 `OSError` 一併標籤化。**`sha256_file` 那條是 argument-from-code，不是量到的**——
+這個容器以 euid 0 執行，`chmod 000` 的檔案照樣讀得到，所以無法重現，記在這裡而不宣稱已量測。
+
+**刻意沒有做的兩件事**，因為審計中兩個「假 PASS」的宣稱**被實測推翻**：
+
+- 宣稱「`manifest_filename` 含 `..` 會產生假 `RUN_LOCK_BOUND`」——**假的**。實測回傳
+  `RUN_LOCK_MISMATCH`，訊息正確。因此**沒有**加 `safe_relative_path(manifest_filename, ...)`：
+  那會把一個本來就正確的標籤改掉，而背後沒有缺陷。
+- 宣稱「root 內指向別處的 symlink 會產生假 `RUN_LOCK_BOUND`」——**也是假的**，實測為 `RUN_LOCK_MISMATCH`。
+
+**仍然沒有修、需要另一個決定的**：`evaluate_run` **從來不重算 lock record**——
+刪掉或改壞 `environment_lock.json`，該 run 仍是 `RUN_LOCK_BOUND`。
+規格與 protocol 都把「lock record 讀不到或 `validate_lock_record` 失敗」列為 METHOD_FAILURE 條件，
+但分析期 gate 沒有實作它。**那是「少一個檢查」，不是「有一條沒標籤的路徑」**，
+範圍與本次不同，記為任務 #95。
+
 ## 7. 先立後撤：我原本的假設是錯的
 
 **我先前對使用者說**，`environment_lock` 裡 top-level 的 `mujoco`／`numpy`／`torch` import
@@ -228,7 +269,7 @@ actual = manifest_path.resolve().relative_to(run_root).as_posix()
 | 1 | `Literal["SIM_ONLY_MUJOCO"]` 是否放寬 | 動到凍結的主張邊界 | **不要直接放寬。** 改成外部專案提供自己的詞彙表（登錄檔 ＋ 預設值就是現在這份），本專案的值一個字都不變 |
 | 2 | `FROZEN_CLAIM_BOUNDARY` 等值比對是否改為「可設定的凍結句」 | 同上 | 同上：把「必須等於某個凍結句」與「那句話是什麼」分開 |
 | 3 | `learning_fingerprint()` 的全域 RNG（§6.1） | 修＝41 份 lock record 失效 | **不修**，改為在文件與 docstring 明寫這個副作用；若哪天要修，必須當成一次 fingerprint 版本升級 |
-| 4 | `relative_to` 未防護（§6.2） | 可能要動 `LB-09` | **修**，歸進現有 `LABEL_MISMATCH`，不開第六個標籤 |
+| 4 | ~~`relative_to` 未防護（§6.2）~~ **已於 2026-09-18 修掉，見 §6.3** | ~~可能要動 `LB-09`~~ **`LB-09` 未動，只加正控制測試** | ~~**修**，歸進現有 `LABEL_MISMATCH`，不開第六個標籤~~ **這個建議是錯的**：凍結規格 §7.1 已把「路徑逃逸」列在 `METHOD_FAILURE`，不需要擁有者決定。原措辭依先立後撤保留 |
 | 5 | producer 登錄檔可否外部提供（§5.3） | 需要新的 API 面 | 可做，但屬於「抽成套件」那一步，不是現在 |
 | 6 | 平坦兄弟 import 改成 package-relative（§5.1） | 動 4 個模組的 import 行 | 可做，且應該在**真的要搬檔案**時一起做 |
 

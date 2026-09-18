@@ -399,6 +399,135 @@ def test_lb08_a_lock_record_outside_the_run_root_is_refused(tmp_path):
 
 
 # --------------------------------------------------------------------------- #
+# LB-08 the same escape rule on the CHECKING path
+# --------------------------------------------------------------------------- #
+#
+# Until 2026-09-18 the build path failed closed on a path escape and the
+# checking path did not: evaluate_run computed
+# manifest_path.resolve().relative_to(run_root) with no containment guard, so an
+# escape raised a bare ValueError -- a failure with no label at all, in a gate
+# whose whole design is that every failure carries exactly one of five.
+# Specification section 7.1 lists 路徑逃逸 under RUN_LOCK_BINDING_METHOD_FAILURE,
+# so these are its positive controls.  The MISMATCH cases below are the negative
+# controls: they prove the guard did not swallow a case that was already
+# labelled correctly.
+
+
+def _escaping_manifest(root: Path, run_dir: Path, outside: Path) -> None:
+    """Replace the bound manifest with a symlink to identical bytes outside root."""
+    outside.mkdir(parents=True, exist_ok=True)
+    (outside / "run_manifest.json").write_bytes(MANIFEST_BYTES)
+    (run_dir / "run_manifest.json").unlink()
+    (run_dir / "run_manifest.json").symlink_to(outside / "run_manifest.json")
+
+
+def test_lb08_a_manifest_symlinked_outside_the_run_root_is_a_method_failure(tmp_path):
+    """The bytes match the bound digest, so nothing here is a digest mismatch."""
+    root = tmp_path / "root"
+    root.mkdir()
+    run_dir, _ = _bound_run(root)
+    _escaping_manifest(root, run_dir, tmp_path / "outside")
+    outcome = rml.evaluate_run(run_dir, "run_manifest.json", root=root)
+    assert outcome["label"] == rml.LABEL_METHOD_FAILURE
+    assert "escapes the run root" in outcome["detail"]
+
+
+def test_lb08_a_run_directory_outside_the_declared_root_is_a_method_failure(tmp_path):
+    """Neither frozen MISMATCH disjunct holds here: the digest and path are right."""
+    root = tmp_path / "root"
+    root.mkdir()
+    (tmp_path / "otherroot").mkdir()
+    run_dir, _ = _bound_run(root)
+    assert _label(tmp_path / "otherroot", run_dir) == rml.LABEL_METHOD_FAILURE
+
+
+def test_lb08_a_manifest_filename_that_escapes_the_root_is_a_method_failure(tmp_path):
+    """The escape needs no symlink: `..` in the caller's filename reaches it too."""
+    root = tmp_path / "root"
+    root.mkdir()
+    run_dir, _ = _bound_run(root)
+    (tmp_path / "outside").mkdir()
+    (tmp_path / "outside" / "run_manifest.json").write_bytes(MANIFEST_BYTES)
+    outcome = rml.evaluate_run(
+        run_dir, "../../../outside/run_manifest.json", root=root
+    )
+    assert outcome["label"] == rml.LABEL_METHOD_FAILURE
+
+
+def test_lb08_a_path_that_stays_inside_the_root_is_still_only_a_mismatch(tmp_path):
+    """Negative control: the guard must not swallow an already-correct label."""
+    root = tmp_path / "root"
+    root.mkdir()
+    run_dir, _ = _bound_run(root)
+    sibling = root / "runs" / "sibling"
+    sibling.mkdir(parents=True)
+    (sibling / "run_manifest.json").write_bytes(MANIFEST_BYTES)
+    outcome = rml.evaluate_run(run_dir, "../sibling/run_manifest.json", root=root)
+    assert outcome["label"] == rml.LABEL_MISMATCH
+
+
+def test_lb08_an_unbound_directory_outside_the_root_stays_unbound(tmp_path):
+    """Pins the guard's placement, which decides this label.
+
+    RUN_LOCK_UNBOUND's frozen definition is "this run directory has no binding
+    record" and says nothing about the root, so it is true whatever root the
+    caller declared.  The containment guard therefore sits after the
+    binding-presence check, not before it, and this is a decision rather than an
+    accident of ordering.
+    """
+    (tmp_path / "elsewhere").mkdir()
+    assert _label(tmp_path / "elsewhere", tmp_path / "elsewhere") == rml.LABEL_UNBOUND
+
+
+def test_lb08_the_retained_gate_refuses_a_manifest_that_escapes_its_directory(tmp_path):
+    """The same escape was a false PASS here, not a crash -- measured 2026-09-18.
+
+    evaluate_relocated_run deliberately drops the comparison against
+    bound_manifest_path, and before this guard that meant a retained directory
+    holding a binding record plus a symlink to a manifest outside it returned
+    RUN_LOCK_BOUND.  Dropping the path comparison is not the same as hashing
+    whatever the directory points at.
+    """
+    root = tmp_path / "root"
+    root.mkdir()
+    run_dir, _ = _bound_run(root)
+    _escaping_manifest(root, run_dir, tmp_path / "outside")
+    outcome = rml.evaluate_relocated_run(run_dir, "run_manifest.json")
+    assert outcome["label"] == rml.LABEL_METHOD_FAILURE
+    assert outcome["label"] != rml.LABEL_BOUND
+
+
+def test_lb08_a_symlink_loop_is_labelled_rather_than_raised(tmp_path):
+    """Path.resolve() raises a bare RuntimeError, and the contract's own error
+    type is a RuntimeError SUBCLASS -- so `except RunLockBindingError` looks
+    like it covers this and does not.  The assertion on the class relationship
+    is deliberate: it is what makes the bug invisible on inspection."""
+    assert issubclass(rml.RunLockBindingError, RuntimeError)
+    root = tmp_path / "root"
+    root.mkdir()
+    run_dir, _ = _bound_run(root)
+    (run_dir / "run_manifest.json").unlink()
+    (run_dir / "run_manifest.json").symlink_to(run_dir / "loop_b")
+    (run_dir / "loop_b").symlink_to(run_dir / "run_manifest.json")
+    assert _label(root, run_dir) in {rml.LABEL_METHOD_FAILURE, rml.LABEL_UNBOUND}
+
+
+def test_lb08_the_gate_raises_the_contracts_own_type_on_an_escape(tmp_path):
+    """A downstream handler binds to the TYPE, not to the label string.
+
+    Before the guard, require_bound_run raised builtins.ValueError on this
+    input, so a caller failing closed on RunLockBindingError got an unhandled
+    crash instead of a refusal.
+    """
+    root = tmp_path / "root"
+    root.mkdir()
+    run_dir, _ = _bound_run(root)
+    _escaping_manifest(root, run_dir, tmp_path / "outside")
+    with pytest.raises(rml.RunLockBindingError, match=rml.LABEL_METHOD_FAILURE):
+        rml.require_bound_run(run_dir, "run_manifest.json", root=root)
+
+
+# --------------------------------------------------------------------------- #
 # LB-09 five labels, and method failure is never downgraded
 # --------------------------------------------------------------------------- #
 

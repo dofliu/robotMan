@@ -226,6 +226,66 @@ def _utc_now() -> str:
 
 
 # --------------------------------------------------------------------------- #
+# labelling the filesystem
+# --------------------------------------------------------------------------- #
+#
+# The analysis-time gate's whole design is that every failure carries exactly
+# one of five frozen labels.  Three filesystem operations used to break that
+# promise by raising something the gate does not catch.  Each is wrapped here,
+# once, so the label contract holds for the filesystem as well as for the
+# record.  Specification section 7.1 assigns all three to
+# RUN_LOCK_BINDING_METHOD_FAILURE under 「任何 contract 違反」, and names 路徑逃逸
+# (path escape) outright.
+
+
+def _resolve(path: Path, context: str) -> Path:
+    """``Path.resolve()`` with its failures labelled.
+
+    A symlink loop raises a bare ``RuntimeError``.  ``RunLockBindingError`` is
+    itself a ``RuntimeError`` subclass, so ``except RunLockBindingError`` in the
+    two gates catches the child and lets the parent straight through -- the most
+    deceptive of the unlabelled paths, because the except clause looks like it
+    covers this and does not.  ``RecursionError`` is caught by the same clause
+    for the same reason ``load_json_object`` already catches it.
+    """
+    try:
+        return Path(path).resolve()
+    except (OSError, RuntimeError) as exc:
+        raise RunLockBindingError(f"{context} cannot be resolved: {path} ({exc})") from exc
+
+
+def _require_inside(resolved: Path, root: Path, context: str) -> Path:
+    """Fail closed when a resolved path leaves the frame it is judged in.
+
+    Specification section 7.1 lists 路徑逃逸 under ``RUN_LOCK_BINDING_METHOD_FAILURE``
+    and section 7.2 forbids downgrading that label to any of the other four, so
+    this raises rather than returning ``RUN_LOCK_MISMATCH``.  ``RUN_LOCK_MISMATCH``
+    was considered and rejected: its frozen definition is two disjuncts, and for
+    an escaping manifest with identical bytes *both are measurably false* -- the
+    digest matches and the declared path is correct relative to the run's own
+    root.  The build path has always failed closed here (``build_binding_record``);
+    this is the same rule on the checking path.
+    """
+    if not resolved.is_relative_to(root):
+        raise RunLockBindingError(
+            f"{context} escapes the run root: {resolved} is not inside {root}")
+    return resolved
+
+
+def _digest_file(path: Path, context: str) -> str:
+    """``sha256_file`` with its I/O labelled.
+
+    Wrapped at the call site rather than inside ``sha256_file`` itself, because
+    that function is also on the build path and is called by the bundle
+    builders; changing its contract would widen this well past labelling.
+    """
+    try:
+        return sha256_file(path)
+    except OSError as exc:
+        raise RunLockBindingError(f"{context} cannot be read: {path} ({exc})") from exc
+
+
+# --------------------------------------------------------------------------- #
 # protocol
 # --------------------------------------------------------------------------- #
 
@@ -513,9 +573,16 @@ def evaluate_run(
     ``RUN_LOCK_BINDING_METHOD_FAILURE`` and is never any of the other four.
     """
     try:
-        run_root = Path(root).resolve()
-        directory = Path(run_dir).resolve()
+        run_root = _resolve(root, "run root")
+        directory = _resolve(run_dir, "run directory")
         binding_path = directory / BINDING_FILENAME
+        # Deliberately before the containment guard below: RUN_LOCK_UNBOUND's
+        # frozen definition is "this run directory has no binding record",
+        # which says nothing about the root, and is true whatever root the
+        # caller declared.  A directory outside the declared root with no
+        # binding record therefore stays UNBOUND rather than becoming a method
+        # failure.  Measured, and kept as a decision rather than an accident of
+        # ordering.
         if not binding_path.is_file():
             return _result(
                 LABEL_UNBOUND,
@@ -527,14 +594,22 @@ def evaluate_run(
         if not manifest_path.is_file():
             raise RunLockBindingError(f"bound manifest is missing: {manifest_path}")
         declared = record["bound_manifest_path"]
-        actual = manifest_path.resolve().relative_to(run_root).as_posix()
+        # The relative path is computed against run_root, never against the
+        # resolved manifest's own parent.  Comparing resolved-to-resolved would
+        # never raise and would need no guard, and is refused: the declared path
+        # traverses the same symlink, so both sides resolve to the same file and
+        # a substituted manifest would come back RUN_LOCK_BOUND.  That is a
+        # threshold loosened by a result.
+        actual = _require_inside(
+            _resolve(manifest_path, "bound manifest"), run_root, "bound manifest"
+        ).relative_to(run_root).as_posix()
         if declared != actual:
             return _result(
                 LABEL_MISMATCH,
                 f"bound_manifest_path points at {declared!r}, checked {actual!r}",
                 record,
             )
-        digest = sha256_file(manifest_path)
+        digest = _digest_file(manifest_path, "bound manifest")
         if digest != record["bound_manifest_sha256"]:
             return _result(
                 LABEL_MISMATCH,
@@ -569,18 +644,37 @@ def evaluate_relocated_run(directory: Path, manifest_filename: str) -> dict[str,
     What survives relocation is recomputed here: the manifest still hashes to
     the digest the binding bound, and the lock behind it was the required class
     and completeness, verified before the run.  What cannot survive is not
-    guessed at -- the path comparison is dropped, deliberately and visibly,
-    rather than approximated.  Anything unproven returns a non-bound label.
+    guessed at -- the comparison against the binding's ``bound_manifest_path``
+    is dropped, deliberately and visibly, rather than approximated.  Anything
+    unproven returns a non-bound label.
+
+    Dropping that comparison is not the same as reading whatever the directory
+    points at.  Measured 2026-09-18: without the containment guard below, a
+    retained directory holding a binding record and a *symlink* to a manifest
+    outside it returned ``RUN_LOCK_BOUND`` -- a false pass, on the one function
+    whose entire justification is that retained evidence outlives the machine.
+    Both files must therefore resolve inside the directory handed in.  That
+    directory is this function's frame, exactly as the run root is
+    ``evaluate_run``'s, and 路徑逃逸 out of a frame is a method failure in both.
     """
-    binding_path = Path(directory) / BINDING_FILENAME
-    manifest_path = Path(directory) / manifest_filename
     try:
+        binding_path = Path(directory) / BINDING_FILENAME
+        manifest_path = Path(directory) / manifest_filename
+        retained_root = _resolve(directory, "retained directory")
         if not binding_path.is_file():
             return _result(LABEL_UNBOUND, f"no {BINDING_FILENAME} in {directory}")
         if not manifest_path.is_file():
             return _result(LABEL_UNBOUND, f"no {manifest_filename} in {directory}")
+        _require_inside(
+            _resolve(binding_path, "retained binding record"),
+            retained_root,
+            "retained binding record",
+        )
+        _require_inside(
+            _resolve(manifest_path, "retained manifest"), retained_root, "retained manifest"
+        )
         record = validate_binding_record(load_json_object(binding_path, "binding record"))
-        digest = sha256_file(manifest_path)
+        digest = _digest_file(manifest_path, "retained manifest")
         if digest != record["bound_manifest_sha256"]:
             return _result(
                 LABEL_MISMATCH,
