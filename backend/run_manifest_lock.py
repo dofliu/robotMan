@@ -285,6 +285,65 @@ def _digest_file(path: Path, context: str) -> str:
         raise RunLockBindingError(f"{context} cannot be read: {path} ({exc})") from exc
 
 
+def _require_bound_lock_record(record: dict[str, Any], lock_path: Path, frame: Path) -> str:
+    """Re-derive the lock record the binding pinned, or fail closed.
+
+    Until 2026-09-18 neither gate ever looked at ``lock_record_path`` or
+    ``lock_record_sha256``.  Measured: deleting the lock record, truncating it,
+    replacing it with non-JSON, **or swapping it for a different committed lock
+    record** all left the run ``RUN_LOCK_BOUND`` in both gates.  The last of
+    those is the one that matters -- the run would assert it ran under
+    environment X while the retained file is environment Y, and that relation is
+    the only thing this whole contract exists to establish.
+
+    Both failures are ``RUN_LOCK_BINDING_METHOD_FAILURE``, by two different
+    routes, and the distinction is worth keeping straight:
+
+    * **Absent or unreadable** is the condition specification section 7.1
+      enumerates by name, 「lock record 讀不到」.
+    * **Present but differing** is *readable*, so it is not that item.  It is a
+      violation of section 4.1's definition of the field -- ``lock_record_sha256``
+      is 「對 ``lock_record_path`` 逐位元計算」 -- and reaches the same label through
+      the row's head clause 「任何 contract 違反」.
+
+    ``RUN_LOCK_MISMATCH`` was considered and is unavailable.  The strongest case
+    for it is parity with ``LB-02``, which makes a flipped byte in the *bound
+    manifest* a mismatch; a flipped byte in the bound lock record looks like the
+    same kind of fact.  It still loses: both of MISMATCH's frozen disjuncts name
+    ``bound_manifest_*`` and neither mentions the lock record, so MISMATCH would
+    be false rather than merely weaker, and section 7.2 forbids reporting a
+    method failure as one of the other four regardless.
+
+    The path goes through the same containment guards as the manifest, and that
+    is not belt-and-braces: ``safe_relative_path`` rejects only *syntactic*
+    escapes, so a canonical relative path whose directory component is a symlink
+    resolves outside the frame.  This path is also more attacker-controlled than
+    the manifest's -- the manifest is named by the caller, the lock record is
+    named by the record being checked.
+
+    What this deliberately does NOT do is call
+    ``environment_lock.validate_lock_record``.  The reason is not stdlib-ness:
+    ``environment_lock`` is stdlib at module scope and imports fine under
+    ``python -I -S``, and ``LB-11`` constrains only module-scope imports, so that
+    call would pass both of its tests.  The reasons are scope -- re-validating a
+    record's contents is a larger behaviour change than re-deriving its digest --
+    and exception type: ``EnvironmentLockError`` and ``RunLockBindingError`` are
+    *siblings*, both direct subclasses of ``RuntimeError``, so
+    ``except RunLockBindingError`` would not catch it and the call would
+    reintroduce the very class of unlabelled failure path this module just
+    finished closing.  The 「``validate_lock_record`` 失敗」 half of section 7.1's
+    clause therefore remains **unimplemented**, and is recorded as such rather
+    than counted as covered.
+    """
+    resolved = _require_inside(_resolve(lock_path, "lock record"), frame, "lock record")
+    digest = _digest_file(resolved, "lock record")
+    if digest != record["lock_record_sha256"]:
+        raise RunLockBindingError(
+            f"bound lock record digest {digest} does not match the binding's "
+            f"{record['lock_record_sha256']}: {resolved}")
+    return digest
+
+
 # --------------------------------------------------------------------------- #
 # protocol
 # --------------------------------------------------------------------------- #
@@ -589,6 +648,12 @@ def evaluate_run(
                 f"no {BINDING_FILENAME} in {directory}",
             )
         record = validate_binding_record(load_json_object(binding_path, "binding record"))
+        # Before every non-method-failure return, deliberately. Section 7.2 makes
+        # RUN_LOCK_BINDING_METHOD_FAILURE non-downgradable, so a run that is both
+        # lock-corrupt and manifest-mismatched must not come back
+        # RUN_LOCK_MISMATCH. Section 7.1 also groups 「lock record 讀不到」 with
+        # 未知 schema and key set 不符, both of which are already checked here.
+        _require_bound_lock_record(record, run_root / record["lock_record_path"], run_root)
 
         manifest_path = directory / manifest_filename
         if not manifest_path.is_file():
@@ -630,7 +695,12 @@ def evaluate_run(
         return _result(LABEL_METHOD_FAILURE, str(exc))
 
 
-def evaluate_relocated_run(directory: Path, manifest_filename: str) -> dict[str, Any]:
+def evaluate_relocated_run(
+    directory: Path,
+    manifest_filename: str,
+    *,
+    lock_record_filename: str | None = None,
+) -> dict[str, Any]:
     """Classify a run whose artefacts have been COPIED out of their run directory.
 
     ``evaluate_run`` is the authority while a run still sits where it was
@@ -656,6 +726,29 @@ def evaluate_relocated_run(directory: Path, manifest_filename: str) -> dict[str,
     Both files must therefore resolve inside the directory handed in.  That
     directory is this function's frame, exactly as the run root is
     ``evaluate_run``'s, and 路徑逃逸 out of a frame is a method failure in both.
+
+    The bound lock record is re-derived here too, and in this frame only its
+    *bytes* can be: the record's ``lock_record_path`` is relative to the original
+    run root, so it is unusable once the evidence has moved.  Measured
+    2026-09-18, and this is why the basename is not a convenience: of the
+    fifteen binding records under version control, **none** has its
+    ``lock_record_path`` in version control -- every one points into the
+    gitignored ``backend/rl/artifacts/`` -- while **all fifteen** have a tracked
+    sibling copy of the lock record beside them under the same basename, whose
+    digest matches.  The sibling is the only relation that survives a fresh
+    clone.  ``lock_record_filename`` names it explicitly for a retainer that
+    copied it under a different name; by default it is taken from the record.
+
+    That makes the retention convention load-bearing, so it is written down
+    here: a retained directory must carry its lock record beside the binding.
+    One consequence is accepted rather than hidden -- a retained directory that
+    did not keep its lock record becomes a method failure, which is the label
+    section 7.2 makes permanently non-downgradable.  It is not reachable in this
+    repository (0 of 15), and the alternative is worse: a bundle that cannot
+    recompute its own environment relation must not be reported as bound, and no
+    other one of the five labels is true of it.  Widening the lookup to a
+    directory scan is forbidden -- it would let any lock-shaped file in the
+    directory satisfy the check, which is a threshold loosened by a result.
     """
     try:
         binding_path = Path(directory) / BINDING_FILENAME
@@ -674,6 +767,13 @@ def evaluate_relocated_run(directory: Path, manifest_filename: str) -> dict[str,
             _resolve(manifest_path, "retained manifest"), retained_root, "retained manifest"
         )
         record = validate_binding_record(load_json_object(binding_path, "binding record"))
+        # Same position and same reason as in evaluate_run: before any
+        # non-method-failure return, because section 7.2 forbids the downgrade.
+        _require_bound_lock_record(
+            record,
+            retained_root / (lock_record_filename or PurePosixPath(record["lock_record_path"]).name),
+            retained_root,
+        )
         digest = _digest_file(manifest_path, "retained manifest")
         if digest != record["bound_manifest_sha256"]:
             return _result(

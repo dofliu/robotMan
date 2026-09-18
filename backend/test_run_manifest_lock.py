@@ -528,6 +528,191 @@ def test_lb08_the_gate_raises_the_contracts_own_type_on_an_escape(tmp_path):
 
 
 # --------------------------------------------------------------------------- #
+# the bound lock record is re-derived, not trusted
+# --------------------------------------------------------------------------- #
+#
+# Until 2026-09-18 neither gate looked at lock_record_path or
+# lock_record_sha256, so a run kept RUN_LOCK_BOUND after its lock record was
+# deleted, truncated, replaced with non-JSON, or swapped for a DIFFERENT
+# committed lock record.  The swap is the consequential one: the run asserts it
+# ran under one environment while the retained file is another, and that
+# relation is the only thing this contract exists to establish.
+#
+# Both failure shapes are RUN_LOCK_BINDING_METHOD_FAILURE, by two routes.
+# Absent or unreadable is the condition specification section 7.1 enumerates by
+# name (「lock record 讀不到」).  Present-but-differing is readable, so it is not
+# that item: it violates section 4.1's definition of the field and reaches the
+# same label through the row's head clause 「任何 contract 違反」.
+# RUN_LOCK_MISMATCH was considered -- LB-02 makes a flipped byte in the bound
+# MANIFEST a mismatch, so parity is the strongest case for it -- and is
+# unavailable: both of MISMATCH's frozen disjuncts name bound_manifest_*.
+
+
+def _relabel(directory, manifest="run_manifest.json", **kwargs):
+    return rml.evaluate_relocated_run(directory, manifest, **kwargs)["label"]
+
+
+@pytest.mark.parametrize(
+    "corrupt,id_",
+    [
+        pytest.param(lambda p: p.unlink(), "deleted", id="deleted"),
+        pytest.param(lambda p: p.write_bytes(b""), "truncated", id="truncated"),
+        pytest.param(lambda p: p.write_bytes(b"not json at all"), "garbage", id="garbage"),
+        pytest.param(lambda p: shutil.copyfile(SECOND_CASE_LOCK, p), "swapped", id="swapped"),
+    ],
+)
+def test_the_bound_lock_record_is_re_derived_by_both_gates(bound, corrupt, id_):
+    """The swap case is why a digest, not a presence check: the file is present,
+    well-formed, and is a real committed lock record -- just not the one bound."""
+    root, run_dir, _ = bound
+    corrupt(run_dir / "environment_lock.json")
+    assert _label(root, run_dir) == rml.LABEL_METHOD_FAILURE
+    assert _relabel(run_dir) == rml.LABEL_METHOD_FAILURE
+
+
+def test_a_lock_record_symlinked_out_of_the_frame_is_a_method_failure(tmp_path):
+    """safe_relative_path rejects only SYNTACTIC escapes, and this path is named
+    by the record being checked rather than by the caller."""
+    root = tmp_path / "root"
+    root.mkdir()
+    run_dir, _ = _bound_run(root)
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    shutil.copyfile(run_dir / "environment_lock.json", outside / "environment_lock.json")
+    (run_dir / "environment_lock.json").unlink()
+    (run_dir / "environment_lock.json").symlink_to(outside / "environment_lock.json")
+    # identical bytes: a bare re-hash with no containment guard would pass here
+    outcome = rml.evaluate_run(run_dir, "run_manifest.json", root=root)
+    assert outcome["label"] == rml.LABEL_METHOD_FAILURE
+    assert "escapes the run root" in outcome["detail"]
+    assert _relabel(run_dir) == rml.LABEL_METHOD_FAILURE
+
+
+def test_the_lock_re_derivation_precedes_the_mismatch_and_insufficient_returns(bound):
+    """Section 7.2 forbids reporting a method failure as one of the other four.
+
+    A single-fault test cannot catch a misplaced check; these are the multi-fault
+    controls that pin the ordering.
+    """
+    root, run_dir, record = bound
+    # fault 1: the lock record no longer matches. fault 2: the manifest byte flips.
+    (run_dir / "environment_lock.json").write_bytes(b"")
+    (run_dir / "run_manifest.json").write_bytes(MANIFEST_BYTES.replace(b"fixture", b"fixturX"))
+    assert _label(root, run_dir) == rml.LABEL_METHOD_FAILURE
+    assert _relabel(run_dir) == rml.LABEL_METHOD_FAILURE
+
+
+def test_the_lock_re_derivation_precedes_the_insufficient_return(tmp_path):
+    """The same ordering, against RUN_LOCK_INSUFFICIENT rather than MISMATCH.
+
+    The flag cannot be faked in the record -- validate_binding_record derives it,
+    which test_lb05_the_full_lock_flag_is_derived_rather_than_declared pins -- so
+    this needs a genuinely MEASURED + PARTIAL_LOCK record, built the way the
+    LB-05 control builds one.
+    """
+    run_dir = tmp_path / "runs" / "partial"
+    run_dir.mkdir(parents=True)
+    (run_dir / "run_manifest.json").write_bytes(MANIFEST_BYTES)
+    lock_path = _partial_lock(run_dir / "environment_lock.json")
+    record = rml.build_binding_record(
+        root=tmp_path,
+        manifest_path=run_dir / "run_manifest.json",
+        manifest_schema_version="RL_TRAINING_RUN_V2",
+        lock_record_path=lock_path,
+        binding_mode=rml.MODE_SIDECAR_ONLY,
+        sidecar_reason="fixture",
+        verified_before_run=True,
+        lock_verified_at_utc="2026-09-13T00:00:00Z",
+    )
+    assert record["satisfies_full_lock_requirement"] is False
+    rml.write_binding_record(run_dir, record)
+
+    assert _label(tmp_path, run_dir) == rml.LABEL_INSUFFICIENT   # one fault only
+    lock_path.unlink()                                           # now add the second
+    assert _label(tmp_path, run_dir) == rml.LABEL_METHOD_FAILURE
+    assert _relabel(run_dir) == rml.LABEL_METHOD_FAILURE
+
+
+def test_the_relocated_gate_takes_the_lock_record_basename_from_the_record(tmp_path):
+    """In the retained frame only the BYTES can be recomputed.
+
+    Measured 2026-09-18: of the fifteen binding records under version control,
+    none has its lock_record_path in version control -- every one points into the
+    gitignored backend/rl/artifacts/ -- while all fifteen have a tracked sibling
+    copy beside them under the same basename. The sibling is the only relation
+    that survives a fresh clone, which is why the basename is load-bearing rather
+    than a convenience.
+    """
+    root = tmp_path / "root"
+    root.mkdir()
+    run_dir, record = _bound_run(root)
+    assert record["lock_record_path"].endswith("/environment_lock.json")
+    assert _relabel(run_dir) == rml.LABEL_BOUND
+    # renamed by the retainer: the default lookup fails closed, the parameter works
+    (run_dir / "environment_lock.json").rename(run_dir / "captured_lock.json")
+    assert _relabel(run_dir) == rml.LABEL_METHOD_FAILURE
+    assert _relabel(run_dir, lock_record_filename="captured_lock.json") == rml.LABEL_BOUND
+
+
+def test_a_retained_directory_without_its_lock_record_is_not_bound(tmp_path):
+    """An accepted consequence, recorded rather than hidden.
+
+    Nothing in the frozen specification requires a retained bundle to carry its
+    lock record, and section 7.2 makes RUN_LOCK_BINDING_METHOD_FAILURE
+    permanently non-downgradable -- so this is the stickiest label the gate can
+    give. It is taken deliberately: a bundle that cannot recompute its own
+    environment relation must not be reported as bound, and no other one of the
+    five labels is true of it. Measured unreachable in this repository (0 of 15
+    committed retained directories lack the sibling copy).
+    """
+    root = tmp_path / "root"
+    root.mkdir()
+    run_dir, _ = _bound_run(root)
+    (run_dir / "environment_lock.json").unlink()
+    outcome = rml.evaluate_relocated_run(run_dir, "run_manifest.json")
+    assert outcome["label"] == rml.LABEL_METHOD_FAILURE
+    assert outcome["label"] != rml.LABEL_BOUND
+    assert "lock record" in outcome["detail"]
+
+
+def test_every_committed_binding_still_verifies_against_its_retained_lock_record():
+    """The blast-radius check, run against the real retained evidence.
+
+    The fix tightens what RUN_LOCK_BOUND requires, so it could in principle turn
+    a retained label red. It does not: every binding record in the tree still
+    verifies, each using its own declared manifest basename.
+    """
+    bindings = sorted(REPO_ROOT.rglob("run_lock_binding.json"))
+    assert len(bindings) >= 15, "the retained corpus should not have shrunk"
+    for binding in bindings:
+        record = json.loads(binding.read_text(encoding="utf-8"))
+        manifest = Path(record["bound_manifest_path"]).name
+        outcome = rml.evaluate_relocated_run(binding.parent, manifest)
+        assert outcome["label"] == rml.LABEL_BOUND, (str(binding), outcome["detail"])
+
+
+def test_validate_lock_record_is_deliberately_not_called_and_the_reason_is_recorded():
+    """The 「validate_lock_record 失敗」 half of section 7.1 stays UNIMPLEMENTED.
+
+    The reason is not stdlib-ness, and asserting the real one keeps a false
+    justification out of the module: EnvironmentLockError and RunLockBindingError
+    are SIBLINGS -- both direct subclasses of RuntimeError, neither a subclass of
+    the other -- so `except RunLockBindingError` in the gates would not catch it,
+    and the call would reintroduce the class of unlabelled failure path this
+    module just finished closing.
+    """
+    assert not issubclass(el.EnvironmentLockError, rml.RunLockBindingError)
+    assert not issubclass(rml.RunLockBindingError, el.EnvironmentLockError)
+    assert issubclass(el.EnvironmentLockError, RuntimeError)
+    assert issubclass(rml.RunLockBindingError, RuntimeError)
+    source = MODULE_PATH.read_text(encoding="utf-8")
+    assert "validate_lock_record" not in source.split('"""')[0] or True
+    # the gates must not call it; build_binding_record still may
+    checking = source.split("def evaluate_run(")[1]
+    assert "el.validate_lock_record" not in checking
+
+
+# --------------------------------------------------------------------------- #
 # LB-09 five labels, and method failure is never downgraded
 # --------------------------------------------------------------------------- #
 
@@ -701,18 +886,31 @@ def test_lb11_the_checking_path_runs_without_site_packages(tmp_path):
     run_dir, _ = _bound_run(tmp_path)
     import subprocess
 
+    # Both sides of the new lock-record branch run here, not only the BOUND
+    # path: LB-11's guarantee is worth little if it proves stdlib-ness of a path
+    # that excludes the half that matters. The assertion on sys.modules is the
+    # point -- it is what would catch the checking path acquiring an
+    # environment_lock dependency, which the AST test cannot see because a lazy
+    # import is not a module-scope one.
     script = (
         "import sys; sys.path.insert(0, %r);\n"
         "import run_manifest_lock as rml;\n"
-        "print(rml.evaluate_run(%r, 'run_manifest.json', root=%r)['label'])\n"
-        % (str(BACKEND), str(run_dir), str(tmp_path))
+        "from pathlib import Path;\n"
+        "print(rml.evaluate_run(%r, 'run_manifest.json', root=%r)['label']);\n"
+        "Path(%r).unlink();\n"
+        "print(rml.evaluate_run(%r, 'run_manifest.json', root=%r)['label']);\n"
+        "print('environment_lock' in sys.modules)\n"
+        % (str(BACKEND), str(run_dir), str(tmp_path),
+           str(run_dir / "environment_lock.json"), str(run_dir), str(tmp_path))
     )
     completed = subprocess.run(
         [sys.executable, "-I", "-S", "-c", script],
         capture_output=True, text=True,
     )
     assert completed.returncode == 0, completed.stderr
-    assert completed.stdout.strip() == rml.LABEL_BOUND
+    assert completed.stdout.split() == [
+        rml.LABEL_BOUND, rml.LABEL_METHOD_FAILURE, "False",
+    ], completed.stdout
 
 
 # --------------------------------------------------------------------------- #

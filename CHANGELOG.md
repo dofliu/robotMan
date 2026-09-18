@@ -2,6 +2,22 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-18 (aq)
+
+### 讓分析期 gate **重算被綁定的 lock record**（任務 #95）——修前五種輸入全部回傳 `RUN_LOCK_BOUND`
+
+- [BLOCKER] **這個缺陷比 (ap) 記的嚴重。** (ap) 只寫「刪掉 `environment_lock.json`，該 run 仍是 BOUND」。實測**五種**輸入，`evaluate_run` 與 `evaluate_relocated_run` **兩個 gate 全部回傳 `RUN_LOCK_BOUND`**：刪除、截成空檔、換成非 JSON、**換成另一份已提交的 lock record**、以及用**指向框架外的 symlink**（bytes 相同）。**第四種是最要緊的**——檔案存在、格式正確、而且是一份真的已提交 lock record，只是不是被綁定的那一份；該 run 會聲稱在環境 X 執行而保留下來的是環境 Y，**而那個關係是這整個 contract 唯一存在的理由**。這也是為什麼修法是比對 digest，不是檢查檔案存在。
+- [RESULT] **兩種失敗、同一個標籤、兩條不同的路徑。** **不存在或讀不到**是規格 §7.1 逐字列舉的「lock record 讀不到」；**存在但不符**是**讀得到**的，所以不是那一項——它違反 §4.1 對該欄位的定義（`lock_record_sha256` 是「對 `lock_record_path` 逐位元計算」），經由該列開頭的「**任何 contract 違反**」到達同一個標籤。兩者都是 `RUN_LOCK_BINDING_METHOD_FAILURE`，**沒有第六個標籤**。
+- [BLOCKER] **`RUN_LOCK_MISMATCH` 考慮過，不可用。** 支持它最強的論據不是直覺而是 `LB-02`：凍結判準把「被綁 **manifest** 翻一個位元」判為 MISMATCH，那「被綁 lock record 翻一個位元」看起來是同類事實。它仍然輸——MISMATCH 的兩個凍結 disjunct **都只指名 `bound_manifest_*`**，所以 MISMATCH 是**假的**而不只是較弱；§7.2 無論如何禁止把 method failure 報成其他四個。
+- [BLOCKER] **檢查放在所有非 METHOD_FAILURE 的 return 之前，這是必須的而不是風格。** 否則「lock record 壞掉 ＋ manifest 位元翻轉」會回 `MISMATCH`、「lock record 壞掉 ＋ 未達 FULL_LOCK」會回 `INSUFFICIENT`——兩個都是 §7.2 禁止的降級。**單一故障的測試抓不到這件事**，所以有兩個多故障測試專門釘住順序（其中 INSUFFICIENT 那個必須用真的 MEASURED＋PARTIAL_LOCK 記錄，因為該旗標是被推導的而非被信任的）。
+- [BLOCKER] **路徑走的是 (ap) 加的 containment 防護。** `safe_relative_path` 只擋**語法上**的逃逸，所以 canonical 相對路徑只要目錄部分是 symlink 就會解到框架外。而且**這條路徑比 manifest 更受被檢查方控制**——manifest 由呼叫端命名，lock record 由**被檢查的記錄自己**命名。
+- [RESULT] **我原本說不呼叫 `validate_lock_record` 是因為 `LB-11` 的 stdlib-only，那是錯的。** 實測：`environment_lock` 在 module scope 就是 stdlib-only、`python3 -I -S` 下可 import，而 `LB-11` 的 AST 測試**只約束 module-scope import**——那個呼叫兩個測試都會通過。**真正的兩個理由**：範圍，以及**例外型別**——`EnvironmentLockError` 與 `RunLockBindingError` 是**兄弟**（都直接繼承 `RuntimeError`、彼此無繼承關係），`except RunLockBindingError` **抓不到它**，那個呼叫會把 (ap) 剛關掉的那一類沒有標籤的失敗路徑重新引進來。因此「`validate_lock_record` 失敗」那一半**仍然未實作**，明記而不算成已涵蓋；一個測試直接斷言那個兄弟關係。
+- [BLOCKER] **(ap) 與 [TOOLKIT_PORTABILITY](docs/TOOLKIT_PORTABILITY.md) 的「35 份保留 binding」數字需要修正。** `git ls-files` 實測：磁碟上 35 份，**進版控只有 15 份**（其餘 20 在 `.gitignore:31` 排除的 `backend/rl/artifacts/`）；這 15 份的 `lock_record_path` **進版控的有 0 份**（全部指向那個被排除的目錄）；但**旁邊的 sibling 副本 15／15 進版控且 digest 相符**。所以「從 repo root 也 MATCH」**只在這個容器成立**，乾淨 clone 上是 0／15。原數字依先立後撤保留。
+- [RESULT] **這直接決定了保留框架的做法。** 記錄自己的 `lock_record_path` 相對於**原本的** run root，搬移後依建構不可用；**sibling 副本是唯一存活過 clone 的關係**，所以 basename 查找不是近似而是那個框架裡唯一可重算的東西。新增 `lock_record_filename` 參數為「retainer 用別的檔名複製」命名，預設從記錄取 basename。**保留慣例因此成為承重的並寫進 docstring**；一個後果被明確接受：沒有保留 lock record 的保留目錄會變成 method failure（§7.2 永不可降級的標籤），本 repo 量測不可達（15 份裡 0 份缺），而替代方案更糟——無法重算自身環境關係的 bundle 不該被報成 bound，五個標籤裡沒有別的是真的。**把查找放寬成掃目錄被明文禁止。**
+- [RESULT] **量測：修正後全樹 35 份 binding 仍然全部 `RUN_LOCK_BOUND`**（15 進版控 ＋ 20 容器內），`evaluate_run` 對 20 個樹內 run 也全部 BOUND。**沒有任何一份保留證據變紅**，而且一個測試直接對真實保留證據跑這件事。
+- [RESULT] `LB-11` 的 `python3 -I -S` 測試**擴充到涵蓋新的失敗分支**，並斷言 `environment_lock` 不在 `sys.modules` 裡——AST 測試看不到 lazy import，所以這是唯一能抓到檢查路徑長出那個相依的東西。`backend/test_run_manifest_lock.py` 71 → **82**。
+- [BLOCKER] **沒有動任何凍結值**：沒有第六個標籤、`LB-01`–`LB-12` 一字未改、`PROTOCOL_SHA256` 與 `SPECIFICATION_SHA256` 兩份 digest-pinned 檔案逐位元未動、沒有新增 import（`hashlib` 早已在 module scope）。
+
 ## Unreleased — 2026-09-18 (ap)
 
 ### 把 `RUN-MANIFEST-LOCK-BINDING-V1` 分析期 gate 裡**沒有標籤的失敗路徑**標籤化——包含一個假 PASS
@@ -13,7 +29,7 @@
 - [RESULT] **兩個「假 PASS」宣稱被實測推翻，因此刻意沒有動。** 有人主張「`manifest_filename` 含 `..`」與「root 內指向別處的 symlink」會產生假 `RUN_LOCK_BOUND`——**兩個都是假的**，實測都回傳 `RUN_LOCK_MISMATCH` 且訊息正確。因此**沒有**加 `safe_relative_path(manifest_filename, ...)`：那會改掉一個本來就正確的標籤，而背後沒有缺陷。
 - [BLOCKER] **`RUN_LOCK_UNBOUND` 的順序是一個決定，不是巧合。** 防護放在 binding-presence 檢查**之後**：`UNBOUND` 的凍結定義是「該 run 目錄沒有綁定記錄」，**不提 root**，所以無論呼叫端宣告哪個 root 它都為真。一個測試專門釘住這個順序。
 - [BLOCKER] **明示拒絕一個更簡單的寫法**：把 `relative_to` 整個拿掉、改成 resolved-to-resolved 比對。那永遠不會丟例外、也不需要防護——但 declared 路徑會走同一條 symlink，兩邊解到同一個檔案，**今天會紅的替換 manifest 會變成 `RUN_LOCK_BOUND`**。那是因結果而放寬門檻。
-- [BLOCKER] **仍然沒有修**：`evaluate_run` **從來不重算 lock record**（刪掉 `environment_lock.json`，該 run 仍是 BOUND）。規格把它列為 METHOD_FAILURE 條件，但 gate 沒實作。**那是「少一個檢查」，不是「有一條沒標籤的路徑」**，範圍不同，記為任務 #95。`sha256_file` 的 `OSError` 一併標籤化，但那條是 argument-from-code——本容器以 euid 0 執行，`chmod 000` 照樣讀得到，**無法重現，不宣稱已量測**。
+- [BLOCKER] **仍然沒有修**：`evaluate_run` **從來不重算 lock record**（刪掉 `environment_lock.json`，該 run 仍是 BOUND）。規格把它列為 METHOD_FAILURE 條件，但 gate 沒實作。**那是「少一個檢查」，不是「有一條沒標籤的路徑」**，範圍不同，記為任務 #95。（**2026-09-18 更正**：已於 (aq) 修掉。本條只寫了「刪掉或改壞」，實測**五種**輸入在**兩個** gate 都回傳 `RUN_LOCK_BOUND`，其中「換成另一份已提交的 lock record」本條完全沒提到。原措辭依先立後撤保留。）`sha256_file` 的 `OSError` 一併標籤化，但那條是 argument-from-code——本容器以 euid 0 執行，`chmod 000` 照樣讀得到，**無法重現，不宣稱已量測**。
 - [RESULT] 8 個新正控制測試加在 `backend/test_run_manifest_lock.py` 的 `LB-08` 段（含兩個**負控制**，證明防護沒有吞掉本來就標對的 `RUN_LOCK_MISMATCH`）。該檔 63 → **71**。
 
 ## Unreleased — 2026-09-17 (ao)
