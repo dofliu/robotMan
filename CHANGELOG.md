@@ -2,6 +2,17 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-19 (au)
+
+### 把已結案的研究線封存進 `backend/archive/`（任務 #97，`PROJECT_ASSESSMENT` §4.2）
+
+- [RESULT] **22 個檔案進 `backend/archive/`**：v7 pilot／selection、second case（含 runner 與 budget probe）、seed variance（含 replay 與兩個 bundle builder）、tracked lineage V1／V2（含 retention 與 contract runner）、R0 probe，以及 6 個對應測試。**證據目錄一個都沒動，digest 一個都沒變。文件依擁有者選的範圍留在 `docs/`。**
+- [BLOCKER] **§4.2 自己的預期被刻意推翻：測試沒有變少。** 原文寫「942 降到約 520」；實測**搬移前後都是 1,062**。讓那 434 個測試停跑，會停掉**三個沒有被封存的檔案**的不可變性 pin——`config_schema.py`、`motion_tasks.py`（皆教學閉包）由 `test_v7_pilot_contract.py` 釘住，`rl/eval_policy.py`（在 `immutable_sources`，且是 binding protocol 執行期解析的四個 producer 之一）由 `test_tracked_lineage_v2_contract.py` 釘住。**封存的是位置，不是檢查。**
+- [BLOCKER] **`v7_exposure_audit_contract.py` 搬不動，原因是它自己的 pin。** `:2009` 用 `with_name` 把 `motion_tasks.py` 當成兄弟解析，而那是留下來的教學模組；改那一行就得重算 `training_seed_variance_contract.py:77` 的 digest，而那個 pin 的註解寫明它存在是為了偵測「audit 實作漂移後在未變的 protocol digest 下悄悄重新分類 exposure」。**重算它＝廢掉它。** 該 contract、其 replay、其 protocol JSON 與其測試因此全部留在 `backend/`，屬擁有者決定。已封存的 `training_seed_variance_contract.py` 的 pin 路徑改指回 `backend/`（該檔未被釘）。`v7_pilot_contract.py` 同樣被釘住但**不需要改任何一行**（只解析一個跟著搬的兄弟 replay），因此連 pin 一起進了 archive。
+- [BLOCKER] **與 §4.1 相反，這次只有 5 個檔案逐位元未動，22 個要改**，全部是 `__file__` 相對路徑：祖先層級位移；從 `backend/rl/` 搬來的三個模組 `parent` 不再是 `rl/`；指向 `backend/rl/` 凍結 protocol 與 `backend/` 證據目錄的路徑要 `parents[1]`；**5 個 CLI 需要 `sys.path` bootstrap**（從 `backend/archive/` 當腳本跑時 `sys.path[0]` 不再含 `backend/`，`import toolkit_path` 直接 `ModuleNotFoundError`）；7 處 `from rl import` 改平坦名稱。
+- [RESULT] 登錄檔的 `module_search_path` 由「根 ＋ toolkit」擴為「根 ＋ toolkit ＋ archive」——(at) 為了同一個理由加的機制第二次用上。
+- [RESULT] **量測：1 failed / 1061 passed**，失敗項仍是同一個未放寬的 `PRIMARY_CASE_RECEIPT_IDENTITY`；兩個邊界閉包、三個文件契約皆與封存前相同。
+
 ## Unreleased — 2026-09-19 (at)
 
 ### 把實驗工具組搬進 `backend/toolkit/`（任務 #96，`PROJECT_ASSESSMENT` §4.1 產品 B）

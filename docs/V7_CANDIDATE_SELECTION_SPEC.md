@@ -7,7 +7,7 @@
 Protocol：`SELECT-V7-CANDIDATE-FORMAL-V1`
 Machine-readable contract：
 [`backend/rl/v7_candidate_selection_protocol.json`](../backend/rl/v7_candidate_selection_protocol.json)
-實作：[`backend/v7_candidate_selection_contract.py`](../backend/v7_candidate_selection_contract.py)
+實作：`backend/v7_candidate_selection_contract.py`——**2026-09-19 起在 [`backend/archive/v7_candidate_selection_contract.py`](../backend/archive/v7_candidate_selection_contract.py)**，本規格當時寫下的路徑保留為純文字，見 [RESEARCH_LINE_ARCHIVE](RESEARCH_LINE_ARCHIVE_2026-09-19.md)
 
 上游：`PILOT-V7-ACTION-INTERFACE-DEV-V1`、
 `AUDIT-V7-EXPOSURE-CENSORING-V1`、

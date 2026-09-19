@@ -20,7 +20,7 @@ import exposure_identification as ei
 import second_case_exposure_contract as sc
 
 HERE = pathlib.Path(__file__).resolve().parent
-LOCK_FIXTURE = HERE / "environment_locks" / "lock-2026-09-08-seedvar-execution.json"
+LOCK_FIXTURE = HERE.parent / "environment_locks" / "lock-2026-09-08-seedvar-execution.json"
 GIT_SHA = "0123456789abcdef0123456789abcdef01234567"
 
 
@@ -434,7 +434,7 @@ def test_summary_never_permits_a_direction_claim_or_selection(protocol, design, 
 # retained development evidence
 # --------------------------------------------------------------------------- #
 
-EVIDENCE = HERE / "second_case_evidence" / "2026-09-08"
+EVIDENCE = HERE.parent / "second_case_evidence" / "2026-09-08"
 
 
 @pytest.mark.skipif(not EVIDENCE.exists(), reason="retained second-case evidence not present")

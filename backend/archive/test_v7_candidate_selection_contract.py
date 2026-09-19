@@ -44,8 +44,11 @@ from v7_candidate_selection_contract import (
 )
 
 
-BACKEND_ROOT = Path(__file__).resolve().parent
-CONTRACT_PATH = BACKEND_ROOT / "v7_candidate_selection_contract.py"
+BACKEND_ROOT = Path(__file__).resolve().parents[1]
+# The selection contract moved to backend/archive/ on 2026-09-19; the evidence,
+# the audit contract and rl/eval_policy.py it re-hashes all stayed.
+ARCHIVE_ROOT = Path(__file__).resolve().parent
+CONTRACT_PATH = ARCHIVE_ROOT / "v7_candidate_selection_contract.py"
 DEV_SUMMARY = (
     BACKEND_ROOT / "seed_variance_evidence" / "2026-09-08" / "analysis" / "seed_variance_summary.json"
 )

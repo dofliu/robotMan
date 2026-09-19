@@ -33,6 +33,11 @@ from typing import Any
 
 import v7_exposure_audit_contract as audit
 import v7_pilot_contract as pilot
+# Archived on 2026-09-19 to backend/archive/. Run as a script, sys.path[0] is
+# this directory, so backend/ has to be added before the flat imports below.
+_BACKEND = Path(__file__).resolve().parents[1]
+if str(_BACKEND) not in sys.path:
+    sys.path.insert(0, str(_BACKEND))
 import toolkit_path  # noqa: E402,F401  puts backend/toolkit on sys.path
 from environment_lock import load_lock_record, validate_lock_record
 from training_seed_variance_contract import (
@@ -59,11 +64,11 @@ from training_seed_variance_contract import (
 )
 
 
-AUDIT_PROTOCOL_PATH = Path(__file__).resolve().parent / "v7_exposure_audit_protocol.json"
+AUDIT_PROTOCOL_PATH = Path(__file__).resolve().parents[1] / "v7_exposure_audit_protocol.json"
 PILOT_PROTOCOL_PATH = (
-    Path(__file__).resolve().parent / "rl" / "v7_action_interface_pilot_protocol.json"
+    Path(__file__).resolve().parents[1] / "rl" / "v7_action_interface_pilot_protocol.json"
 )
-ARTIFACTS_ROOT = Path(__file__).resolve().parent / "rl" / "artifacts"
+ARTIFACTS_ROOT = Path(__file__).resolve().parents[1] / "rl" / "artifacts"
 EVALUATION_FILENAME = "evaluation_dev18000_18029.json"
 SEEDVAR_PROFILE_BY_ARM = {
     "V7A_REWARD_ONLY": "stand_start_walk_stop_0p7_action_reward_v7a_seedvar",
@@ -226,7 +231,7 @@ def build_raw_bundle(output_root: Path, repository: Path) -> dict[str, Any]:
     frozen_arms = {item["arm_id"]: item for item in pilot_protocol["arms"]}
 
     lock_source = max(
-        (Path(__file__).resolve().parent / "environment_locks").glob("lock-*-seedvar-*.json"),
+        (Path(__file__).resolve().parents[1] / "environment_locks").glob("lock-*-seedvar-*.json"),
         default=None,
     )
     if lock_source is None:
@@ -292,7 +297,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("output_root", type=Path)
     parser.add_argument(
-        "--repository", type=Path, default=Path(__file__).resolve().parent.parent
+        "--repository", type=Path, default=Path(__file__).resolve().parents[2]
     )
     args = parser.parse_args()
     try:

@@ -30,7 +30,7 @@ from typing import Any
 
 
 CONTRACT_ID = "TRACKED-LINEAGE-TRAINING-V1"
-REPO_ROOT = Path(__file__).resolve().parent.parent
+REPO_ROOT = Path(__file__).resolve().parents[2]
 PROTOCOL_PATH = REPO_ROOT / "backend" / "rl" / "tracked_lineage_training_protocol.json"
 SPECIFICATION_PATH = REPO_ROOT / "docs" / "TRACKED_LINEAGE_TRAINING_SPEC.md"
 

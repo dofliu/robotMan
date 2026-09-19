@@ -17,7 +17,7 @@ import pytest
 import second_case_exposure_contract as sc
 
 HERE = pathlib.Path(__file__).resolve().parent
-RUNNER = HERE / "rl" / "second_case_runner.py"
+RUNNER = HERE / "second_case_runner.py"
 
 gym = pytest.importorskip("gymnasium")
 pytest.importorskip("stable_baselines3")
@@ -169,7 +169,7 @@ def test_git_identity_reports_the_repository(runner):
 # V2 budget probe (pilot): validation and a tiny compute loop
 # --------------------------------------------------------------------------- #
 
-PROBE = HERE / "rl" / "second_case_budget_probe.py"
+PROBE = HERE / "second_case_budget_probe.py"
 
 
 def _load_probe_module():
@@ -295,7 +295,7 @@ def test_build_model_applies_policy_kwargs(runner, protocol, design):
 
 def test_probe_v2_recipe_override_is_validated_and_effective(protocol, design):
     probe_mod = _load_probe_module()
-    path = HERE / "rl" / "second_case_v2_budget_probe_v2.json"
+    path = HERE.parent / "rl" / "second_case_v2_budget_probe_v2.json"
     if not path.exists():
         pytest.skip("probe V2 not written yet")
     probe = probe_mod.load_probe(path)
@@ -317,7 +317,7 @@ def test_probe_v2_recipe_override_is_validated_and_effective(protocol, design):
 
 def test_probe_v3_environment_override_repins_the_plant(runner, protocol, design):
     probe_mod = _load_probe_module()
-    path = HERE / "rl" / "second_case_v3_budget_probe_hopper.json"
+    path = HERE.parent / "rl" / "second_case_v3_budget_probe_hopper.json"
     if not path.exists():
         pytest.skip("probe V3 not written yet")
     probe = probe_mod.load_probe(path)
@@ -352,7 +352,7 @@ def test_probe_v3_environment_override_repins_the_plant(runner, protocol, design
 
 def test_probe_v3_seeds_are_disjoint_from_every_earlier_range(protocol, design):
     probe_mod = _load_probe_module()
-    path = HERE / "rl" / "second_case_v3_budget_probe_hopper.json"
+    path = HERE.parent / "rl" / "second_case_v3_budget_probe_hopper.json"
     if not path.exists():
         pytest.skip("probe V3 not written yet")
     probe = probe_mod.load_probe(path)

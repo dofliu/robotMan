@@ -33,6 +33,11 @@ import subprocess
 import sys
 from typing import Any
 
+# Archived on 2026-09-19 to backend/archive/. Run as a script, sys.path[0] is
+# this directory, so backend/ has to be added before the flat imports below.
+_BACKEND = Path(__file__).resolve().parents[1]
+if str(_BACKEND) not in sys.path:
+    sys.path.insert(0, str(_BACKEND))
 import toolkit_path  # noqa: E402,F401  puts backend/toolkit on sys.path
 from environment_lock import (
     MEASURED_LOCK_CLASS,
@@ -392,7 +397,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("output_root", type=Path)
     parser.add_argument(
-        "--repository-root", type=Path, default=Path(__file__).resolve().parent.parent
+        "--repository-root", type=Path, default=Path(__file__).resolve().parents[2]
     )
     args = parser.parse_args()
     try:
