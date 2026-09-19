@@ -29,6 +29,7 @@ import io
 import json
 import os
 import shutil
+import subprocess
 import sys
 
 import pytest
@@ -264,6 +265,113 @@ def test_the_boundary_is_not_a_portability_claim():
     source = io.open(os.path.join(REPO_ROOT, "backend/module_boundary_contract.py"),
                      encoding="utf-8").read()
     assert "does NOT check is portability" in source
+
+
+# --------------------------------------------------------------------------
+# docs/TOOLKIT_USAGE.md tells outsiders to vendor exactly three files
+# --------------------------------------------------------------------------
+#
+# That guide's sections 1 and 2 name three modules and say that copying them
+# into one directory on sys.path is enough. It is the claim most likely to rot
+# silently: one added cross-import inside any of the three and the instruction
+# becomes false with nothing to say so. So it is checked here rather than
+# asserted there.
+
+VENDORED = ("exposure_identification.py", "environment_lock.py", "run_manifest_lock.py")
+
+
+def _vendor(tmp_path):
+    kit = tmp_path / "lockkit"
+    kit.mkdir()
+    for name in VENDORED:
+        shutil.copyfile(os.path.join(REPO_ROOT, "backend", name), kit / name)
+    return kit
+
+
+def test_the_usage_guide_vendor_list_is_self_contained(tmp_path):
+    """Exactly the three named files, copied out, import each other and nothing else."""
+    kit = _vendor(tmp_path)
+    script = (
+        "import sys; sys.path.insert(0, %r);\n"
+        "import exposure_identification, environment_lock, run_manifest_lock;\n"
+        "leaked = [m for m in ('numpy','torch','mujoco','pydantic','gymnasium','fastapi')\n"
+        "          if m in sys.modules];\n"
+        "print('LEAKED' if leaked else 'CLEAN', leaked)\n"
+    ) % str(kit)
+    completed = subprocess.run(
+        [sys.executable, "-I", "-S", "-c", script], capture_output=True, text=True
+    )
+    assert completed.returncode == 0, completed.stderr
+    assert completed.stdout.startswith("CLEAN"), completed.stdout
+
+
+def test_the_usage_guide_flow_produces_the_labels_it_promises(tmp_path):
+    """Section 4.1's table, run from a vendored copy with no site-packages.
+
+    Three of its four rows need no heavy packages and are asserted here. The
+    fourth (RUN_LOCK_BOUND) requires numpy/torch/mujoco to be installed, which
+    is the guide's section 4.2 point rather than an omission: a lock that did
+    not measure the RL stack reports PARTIAL_LOCK, and the gate then says
+    RUN_LOCK_INSUFFICIENT rather than BOUND.
+    """
+    kit = _vendor(tmp_path)
+    run_dir = tmp_path / "runs" / "exp-001"
+    run_dir.mkdir(parents=True)
+
+    script = r"""
+import json, sys
+from pathlib import Path
+sys.path.insert(0, %r)
+import run_manifest_lock as rml
+
+root, run = Path(%r), Path(%r)
+rml.CLAIM_BOUNDARY = "An outside project's own boundary, validated as text rather than by equality."
+cap = rml.capture_lock_for_run(run)
+(run / "run_manifest.json").write_text(
+    json.dumps({"schema_version": "MY_RUN_MANIFEST_V1", "run_id": "exp-001"}, indent=1) + "\n",
+    encoding="utf-8")
+record = rml.build_binding_record(
+    root=root, manifest_path=run / "run_manifest.json",
+    manifest_schema_version="MY_RUN_MANIFEST_V1",
+    lock_record_path=cap["lock_record_path"],
+    binding_mode=rml.MODE_SIDECAR_ONLY,
+    sidecar_reason="an outside project's own reason",
+    verified_before_run=cap["verified_before_run"],
+    lock_verified_at_utc=cap["lock_verified_at_utc"])
+rml.write_binding_record(run, record)
+print("claim_boundary_is_mine", record["claim_boundary"].startswith("An outside project"))
+print("no_packages", rml.evaluate_run(run, "run_manifest.json", root=root)["label"])
+
+manifest = run / "run_manifest.json"
+manifest.write_text(manifest.read_text(encoding="utf-8").replace("exp-001", "exp-XXX"),
+                    encoding="utf-8")
+print("tampered", rml.evaluate_run(run, "run_manifest.json", root=root)["label"])
+
+manifest.write_text(manifest.read_text(encoding="utf-8").replace("exp-XXX", "exp-001"),
+                    encoding="utf-8")
+(run / "environment_lock.json").unlink()
+print("lock_deleted", rml.evaluate_run(run, "run_manifest.json", root=root)["label"])
+""" % (str(kit), str(tmp_path), str(run_dir))
+
+    completed = subprocess.run(
+        [sys.executable, "-I", "-S", "-c", script], capture_output=True, text=True
+    )
+    assert completed.returncode == 0, completed.stderr
+    printed = dict(line.split(maxsplit=1) for line in completed.stdout.strip().splitlines())
+    import run_manifest_lock as rml
+    # the guide tells outsiders they may supply their own claim boundary
+    assert printed["claim_boundary_is_mine"] == "True", completed.stdout
+    # section 4.2: without the RL stack the lock is PARTIAL, so the gate withholds BOUND
+    assert printed["no_packages"] == rml.LABEL_INSUFFICIENT, completed.stdout
+    assert printed["tampered"] == rml.LABEL_MISMATCH, completed.stdout
+    assert printed["lock_deleted"] == rml.LABEL_METHOD_FAILURE, completed.stdout
+
+
+def test_the_usage_guide_names_only_modules_inside_the_toolkit_boundary():
+    """The guide must not send an outsider to a module outside the toolkit boundary."""
+    toolkit = set(mbc.load_registry()["boundaries"]["toolkit"]["modules"])
+    for name in VENDORED:
+        assert name[: -len(".py")] in toolkit, name
 
 
 # --------------------------------------------------------------------------
