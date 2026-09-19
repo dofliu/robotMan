@@ -123,7 +123,7 @@ verdict: NAIVE_ASSERTS_DIRECTION_BOUND_CONTAINS_ZERO
 
 `rl/bind_run_lock.py` **對你關死**：它到一份凍結的 protocol 裡用 **repo 相對路徑**找 producer，
 那裡只有本專案的四個檔案（[§5.3](TOOLKIT_PORTABILITY.md#53-凍結的-producer-登錄檔rlbind_run_lock)）。
-**但它包的那個模組沒有關死。** 你自己寫大約 20 行取代它：
+**但它包的那個模組沒有關死。** 你自己寫大約 30 行取代它（下面這段實為 31 行、26 行非空非註解）：
 
 ```python
 # bind.py
@@ -217,7 +217,7 @@ gate 據此回 `RUN_LOCK_INSUFFICIENT`。
 | `experiment_matrix_contract` | `evidence_scope: Literal["SIM_ONLY_MUJOCO"]`（`:212`）；`claim_boundary` 必須**逐字等於**本專案的 `FROZEN_CLAIM_BOUNDARY`（`:257`） | 不能用。放寬它等於動本專案凍結的主張邊界，那是擁有者的決定（任務 #93） |
 | `paired_statistics_contract` | 同樣的 `Literal["SIM_ONLY_MUJOCO"]`（`:156`）＋ 平坦兄弟 import 另外兩個 contract | 不能用 |
 | `paper_data_contract` | `role` 是 16 個值的封閉 `Literal`（`:54-70`）——多一種 artifact 角色就失敗 | 不能用 |
-| `rl/bind_run_lock` | producer 登錄檔是四個寫死的 repo 相對路徑，找不到就 fail closed | **不必用**：§4 的 20 行直接取代它 |
+| `rl/bind_run_lock` | producer 登錄檔是四個寫死的 repo 相對路徑，找不到就 fail closed | **不必用**：§4 的那 31 行直接取代它 |
 
 前三個**不是疏忽**。那句逐字比對的「SIM_ONLY_MUJOCO / NOT_PHYSICALLY_VALIDATED」，
 正是這個專案不誇大主張的機制之一（[TOOLKIT_PORTABILITY §5.2](TOOLKIT_PORTABILITY.md)）。
@@ -225,7 +225,7 @@ gate 據此回 `RUN_LOCK_INSUFFICIENT`。
 **還有一個已知、未修的 bug 你要知道**：`environment_lock.py:425` 的 `learning_fingerprint()`
 會動**全域** torch RNG。對本專案不咬人，但如果你在同一個 process 裡先量 fingerprint、
 再依賴自己的 RNG 狀態，種子會被悄悄換掉。**修它會改變 fingerprint 的值**，所以本專案沒修
-（41 份已提交的 lock record 會失效）。**你的對策：在自己的訓練流程開始前量，不要量到一半。**
+（~~41 份已提交的 lock record 會失效~~ **2026-09-19 更正：實測為 20 份已提交記錄，而且 0 份會失效**——`torch.Generator` 變體產生**逐位元相同**的 fingerprint。不修的理由換成：那是個**半修**，`torch.nn.Linear` 也從全域預設產生器抽初始化，串流照樣被推進。見 [TOOLKIT_PORTABILITY_DECISIONS_2026-09-19](TOOLKIT_PORTABILITY_DECISIONS_2026-09-19.md) §2.1）。**你的對策：在自己的訓練流程開始前量，不要量到一半。**
 
 ## 7. 本文件的量測條件
 
