@@ -6,7 +6,8 @@
   "package_root": "backend",
   "module_search_path": [
     "",
-    "toolkit"
+    "toolkit",
+    "archive"
   ],
   "boundaries": {
     "teaching": {

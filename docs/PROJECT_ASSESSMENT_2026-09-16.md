@@ -191,6 +191,14 @@ repo），證據目錄原地不動、digest 不變。
 | R0 probe | 411 | 已執行 |
 | 對應的 receipt／spec（約 25 份 md） | — | 移至 `docs/archive/`，README 只留一個索引連結 |
 
+[RESULT] **已於 2026-09-19 執行（任務 #97），記錄見 [RESEARCH_LINE_ARCHIVE](RESEARCH_LINE_ARCHIVE_2026-09-19.md)。** 22 個檔案進 `backend/archive/`，證據目錄與 digest 一個都沒動，文件依擁有者選的範圍留在 `docs/`。
+
+[BLOCKER] **下面「測試會從 942 降到約 520」這個預期被刻意推翻了。** 實測：**搬移前後都是 1,062 個測試**。照原文讓測試停跑會停掉 **434** 個檢查，其中包含**三個沒有被封存的檔案**的不可變性 pin——`config_schema.py`、`motion_tasks.py`（皆教學閉包）與 `rl/eval_policy.py`（`immutable_sources` ＋ binding protocol 執行期解析的 producer）。封存的是位置，不是檢查。
+
+[BLOCKER] **`v7_exposure_audit_contract.py` 搬不動。** 它 `:2009` 以 `with_name` 把 `motion_tasks.py` 當成自己的兄弟解析，而那是留下來的教學模組；改那一行就得重算 `training_seed_variance_contract.py:77` 的 pin，而那個 pin 存在的理由正是偵測它被改動。該組四個檔案因此留在 `backend/`，屬擁有者決定。
+
+原文保留於下：
+
 搬走後全套測試會從 942 降到約 **520**（移除 ~420 個測試函式對應的 case）。這不是損失——那些測試
 測的是已經不會再改的程式。
 

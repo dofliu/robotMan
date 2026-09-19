@@ -22,3 +22,4 @@ if BACKEND_DIR not in sys.path:
     sys.path.insert(0, BACKEND_DIR)
 
 import toolkit_path  # noqa: E402,F401  the one place that knows where the toolkit is
+import archive_path  # noqa: E402,F401  and the one that knows where the archive is

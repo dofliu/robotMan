@@ -224,7 +224,9 @@ def test_the_dependency_runs_from_the_project_to_the_toolkit_not_back():
                 dependents.append(module)
 
     assert len(dependents) >= 10, dependents
-    assert "rl.second_case_runner" in dependents
+    # The named dependant left backend/rl/ for backend/archive/ on 2026-09-19
+    # when the closed research lines were archived; it is the same file.
+    assert "archive.second_case_runner" in dependents
 
 
 def test_a_toolkit_module_reaching_into_the_project_is_caught(tree):

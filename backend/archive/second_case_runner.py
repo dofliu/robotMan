@@ -25,8 +25,8 @@ import time
 from pathlib import Path
 from typing import Any
 
-RL_DIR = Path(__file__).resolve().parent
-BACKEND_DIR = RL_DIR.parent
+BACKEND_DIR = Path(__file__).resolve().parents[1]
+RL_DIR = BACKEND_DIR / "rl"
 REPOSITORY = BACKEND_DIR.parent
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))

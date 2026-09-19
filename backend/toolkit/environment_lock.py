@@ -422,7 +422,7 @@ def learning_fingerprint() -> dict[str, Any]:
     in the ``finally`` block; the RNG state is not.  An in-process caller must
     therefore capture the fingerprint *before* seeding its own run, or its
     draws will silently differ from an unprobed run.  This project is not
-    bitten by it because ``rl/second_case_runner.py`` passes ``seed=`` to SB3
+    bitten by it because ``archive/second_case_runner.py`` passes ``seed=`` to SB3
     at ``build_model`` time, which reseeds after any capture.
     """
     try:

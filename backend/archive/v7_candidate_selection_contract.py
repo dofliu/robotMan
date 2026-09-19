@@ -30,6 +30,12 @@ from pathlib import Path
 import re
 from typing import Any
 
+# Archived on 2026-09-19 to backend/archive/. Run as a script, sys.path[0] is
+# this directory, so backend/ has to be added before the flat imports below.
+import sys
+_BACKEND = Path(__file__).resolve().parents[1]
+if str(_BACKEND) not in sys.path:
+    sys.path.insert(0, str(_BACKEND))
 import toolkit_path  # noqa: E402,F401  puts backend/toolkit on sys.path
 from environment_lock import (
     FULL_LOCK,
@@ -46,7 +52,7 @@ PROTOCOL_SHA256 = (
     "sha256:b4e16370b5744c510fa11b06343dafb3c1893711639721a406504720bbe99b58"
 )
 DEFAULT_PROTOCOL = (
-    Path(__file__).resolve().parent / "rl" / "v7_candidate_selection_protocol.json"
+    Path(__file__).resolve().parents[1] / "rl" / "v7_candidate_selection_protocol.json"
 )
 
 SELECTION_RECEIPT_SCHEMA = "V7_CANDIDATE_SELECTION_RECEIPT_V1"
