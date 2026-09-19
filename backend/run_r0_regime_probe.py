@@ -15,6 +15,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+import toolkit_path  # noqa: E402,F401  puts backend/toolkit on sys.path
 import environment_lock as el
 import r0_regime_probe_contract as r0
 

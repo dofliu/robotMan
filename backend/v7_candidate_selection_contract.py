@@ -30,6 +30,7 @@ from pathlib import Path
 import re
 from typing import Any
 
+import toolkit_path  # noqa: E402,F401  puts backend/toolkit on sys.path
 from environment_lock import (
     FULL_LOCK,
     MEASURED_LOCK_CLASS,

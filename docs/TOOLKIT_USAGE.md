@@ -15,11 +15,11 @@
 
 | 檔案 | 行數 | 第三方相依 | 它給你什麼 |
 |---|---:|---|---|
-| `backend/exposure_identification.py` | 312 | **無** | 早期終止會讓 per-step 平均說謊；這個模組算出不做假設的識別區間 |
-| `backend/environment_lock.py` | 1,366 | mujoco／numpy／torch**（皆惰性，缺了就降級）** | 量測並凍結「這次執行是在哪個環境上跑的」 |
-| `backend/run_manifest_lock.py` | 813 | **無** | 把一份 run manifest 與一份環境 lock 綁成**可重算**的關係，並在分析期 fail-closed 檢查 |
+| `backend/toolkit/exposure_identification.py` | 312 | **無** | 早期終止會讓 per-step 平均說謊；這個模組算出不做假設的識別區間 |
+| `backend/toolkit/environment_lock.py` | 1,366 | mujoco／numpy／torch**（皆惰性，缺了就降級）** | 量測並凍結「這次執行是在哪個環境上跑的」 |
+| `backend/toolkit/run_manifest_lock.py` | 813 | **無** | 把一份 run manifest 與一份環境 lock 綁成**可重算**的關係，並在分析期 fail-closed 檢查 |
 
-其餘四個（`experiment_matrix_contract`、`paired_statistics_contract`、`paper_data_contract`、`rl/bind_run_lock`）
+其餘四個（`experiment_matrix_contract`、`paired_statistics_contract`、`paper_data_contract`、`bind_run_lock`）
 **今天擋死**，原因與繞法見 §6。
 
 ## 2. 安裝：把三個檔案放進同一個目錄
@@ -121,7 +121,7 @@ verdict: NAIVE_ASSERTS_DIRECTION_BOUND_CONTAINS_ZERO
 
 ## 4. 用途二：把 run manifest 綁到環境 lock
 
-`rl/bind_run_lock.py` **對你關死**：它到一份凍結的 protocol 裡用 **repo 相對路徑**找 producer，
+`backend/toolkit/bind_run_lock.py` **對你關死**：它到一份凍結的 protocol 裡用 **repo 相對路徑**找 producer，
 那裡只有本專案的四個檔案（[§5.3](TOOLKIT_PORTABILITY.md#53-凍結的-producer-登錄檔rlbind_run_lock)）。
 **但它包的那個模組沒有關死。** 你自己寫大約 30 行取代它（下面這段實為 31 行、26 行非空非註解）：
 
@@ -217,7 +217,7 @@ gate 據此回 `RUN_LOCK_INSUFFICIENT`。
 | `experiment_matrix_contract` | `evidence_scope: Literal["SIM_ONLY_MUJOCO"]`（`:212`）；`claim_boundary` 必須**逐字等於**本專案的 `FROZEN_CLAIM_BOUNDARY`（`:257`） | 不能用。放寬它等於動本專案凍結的主張邊界，那是擁有者的決定（任務 #93） |
 | `paired_statistics_contract` | 同樣的 `Literal["SIM_ONLY_MUJOCO"]`（`:156`）＋ 平坦兄弟 import 另外兩個 contract | 不能用 |
 | `paper_data_contract` | `role` 是 16 個值的封閉 `Literal`（`:54-70`）——多一種 artifact 角色就失敗 | 不能用 |
-| `rl/bind_run_lock` | producer 登錄檔是四個寫死的 repo 相對路徑，找不到就 fail closed | **不必用**：§4 的那 31 行直接取代它 |
+| `bind_run_lock` | producer 登錄檔是四個寫死的 repo 相對路徑，找不到就 fail closed | **不必用**：§4 的那 31 行直接取代它 |
 
 前三個**不是疏忽**。那句逐字比對的「SIM_ONLY_MUJOCO / NOT_PHYSICALLY_VALIDATED」，
 正是這個專案不誇大主張的機制之一（[TOOLKIT_PORTABILITY §5.2](TOOLKIT_PORTABILITY.md)）。

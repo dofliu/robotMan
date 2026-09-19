@@ -35,6 +35,7 @@ _HERE = Path(__file__).resolve().parent
 if str(_HERE) not in sys.path:
     sys.path.insert(0, str(_HERE))
 
+import toolkit_path  # noqa: E402,F401  puts backend/toolkit on sys.path
 import exposure_identification as ei  # noqa: E402
 from environment_lock import (  # noqa: E402
     EnvironmentLockError,

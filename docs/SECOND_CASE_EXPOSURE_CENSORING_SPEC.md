@@ -88,7 +88,7 @@ Primary measurement：`saturation_duty_pct`。單位為 (control step, joint) pa
 | naive rate | `100 · s_e / (n_e · 6)` | per-step 平均會報的數字；條件於存活 |
 | full-horizon bound | `[100 · s_e / 6000, 100 · (s_e + (1000 − n_e)·6) / 6000]` | assumption-free；`n_e = 1000` 時退化為點且等於 naive |
 
-**引理（在 [exposure_identification](../backend/exposure_identification.py) 以測試斷言）**：naive rate 永遠落在 full-horizon bound 內。所以 bound 排除 0 時 naive 差必同號；反之不成立 —— 這正是 artifact 的空間。
+**引理（在 [exposure_identification](../backend/toolkit/exposure_identification.py) 以測試斷言）**：naive rate 永遠落在 full-horizon bound 內。所以 bound 排除 0 時 naive 差必同號；反之不成立 —— 這正是 artifact 的空間。
 
 聚合（analysis unit = **training replicate**；分母 5；`30`／`60`／`150`／`300` 為 enforced forbidden denominators）：
 

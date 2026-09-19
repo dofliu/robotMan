@@ -167,6 +167,10 @@ reference policy**——它需要的是被 censoring 截斷的例子，而那正
 
 [BLOCKER] **本次沒有搬任何檔案。** §4.1 表格描述的「搬」仍未執行；本次做的是切斷耦合並讓邊界可驗證，使日後的搬移變成機械動作。仍未涵蓋的範圍見 [TEACHING_BOUNDARY §6](TEACHING_BOUNDARY.md)。
 
+[RESULT] **產品 B 已於 2026-09-19 搬進 `backend/toolkit/`**（任務 #96，記錄見 [TOOLKIT_MOVE_2026-09-19](TOOLKIT_MOVE_2026-09-19.md)）。9 個檔案裡 **8 個逐位元未動**，`run_manifest_lock.py` 只改了 docstring 裡一條路徑；兩個邊界的閉包搬移前後**完全相同**。**產品 A 與產品 C 仍未搬。**
+
+[BLOCKER] **「拆開不需要重構，只需要搬」這句話在搬下去之後要修正。** 真的搬了才看到三件事：（a）`module_boundary_contract` 把模組名對到 `package_root/<name>.py`，檔案一進子目錄，工具組內部的平坦兄弟 import 就不再被認成本地 import，**契約會照樣印綠燈而實際上已經瞎掉**——登錄檔因此新增 `module_search_path` 明講搜尋路徑；（b）`paired_statistics_contract.py:62` 以**子行程**啟動兄弟腳本 `paired_statistics_replay.py`，那是 AST 閉包**結構上看不到**的第八個檔案，搬移後 18 個測試立刻紅；（c）**五份凍結且 digest 釘死的檔案**（其中一份在保留證據裡）寫著工具組的舊路徑，改它們就等於破壞自己的 pin，因此那些路徑**永久停在舊值**。逐項見該記錄 §3–§5。
+
 | 產品 | 內容 | 規模 | 對象 |
 |---|---|---:|---|
 | **A. 教學模擬器** | 核心 14 檔 + 前端 + v5/v2/legacy policy + `USAGE` 教學流程 + `MODEL_CARD` | ~10.4k 行 | 修課學生、教師 |

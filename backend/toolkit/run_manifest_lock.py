@@ -2,7 +2,10 @@
 
 ``RUN-MANIFEST-LOCK-BINDING-V1``, frozen in
 ``docs/RUN_MANIFEST_LOCK_BINDING_SPEC.md`` and
-``backend/run_manifest_lock_binding_protocol.json``.
+``backend/toolkit/run_manifest_lock_binding_protocol.json`` (the protocol moved
+with this module on 2026-09-19; its bytes, and therefore ``PROTOCOL_SHA256``,
+are unchanged, and the frozen specification still names the old path because
+its own digest pins the text).
 
 A lock record that no run refers to proves only that some machine looked a
 certain way at some moment.  It does not prove that a given piece of evidence

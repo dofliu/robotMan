@@ -181,10 +181,12 @@ def test_the_toolkit_closure_is_exactly_its_seven_modules():
     registry = mbc.load_registry()
     reached = sorted(mbc.closure(registry, "toolkit"))
     assert reached == sorted(registry["boundaries"]["toolkit"]["modules"])
+    # bind_run_lock lost its rl. prefix when product B moved to backend/toolkit/
+    # on 2026-09-19; the seven files are the same seven files.
     assert reached == [
-        "environment_lock", "experiment_matrix_contract", "exposure_identification",
-        "paired_statistics_contract", "paper_data_contract", "rl.bind_run_lock",
-        "run_manifest_lock",
+        "bind_run_lock", "environment_lock", "experiment_matrix_contract",
+        "exposure_identification", "paired_statistics_contract",
+        "paper_data_contract", "run_manifest_lock",
     ]
 
 
@@ -227,7 +229,7 @@ def test_the_dependency_runs_from_the_project_to_the_toolkit_not_back():
 
 def test_a_toolkit_module_reaching_into_the_project_is_caught(tree):
     """The failure this boundary exists for, in the toolkit's direction."""
-    path = os.path.join(tree, "backend", "exposure_identification.py")
+    path = os.path.join(tree, "backend", "toolkit", "exposure_identification.py")
     text = io.open(path, encoding="utf-8").read()
     io.open(path, "w", encoding="utf-8").write(
         "import v7_pilot_contract  # noqa: F401\n" + text)
@@ -241,7 +243,7 @@ def test_a_toolkit_module_reaching_into_the_project_is_caught(tree):
 
 def test_a_toolkit_module_importing_a_teaching_module_is_caught(tree):
     """Reaching sideways into the other product fails as surely as reaching up."""
-    path = os.path.join(tree, "backend", "run_manifest_lock.py")
+    path = os.path.join(tree, "backend", "toolkit", "run_manifest_lock.py")
     text = io.open(path, encoding="utf-8").read()
     io.open(path, "w", encoding="utf-8").write("import simulator  # noqa: F401\n" + text)
     with pytest.raises(mbc.ModuleBoundaryError) as caught:
@@ -278,13 +280,14 @@ def test_the_boundary_is_not_a_portability_claim():
 # asserted there.
 
 VENDORED = ("exposure_identification.py", "environment_lock.py", "run_manifest_lock.py")
+TOOLKIT_DIR = os.path.join(REPO_ROOT, "backend", "toolkit")
 
 
 def _vendor(tmp_path):
     kit = tmp_path / "lockkit"
     kit.mkdir()
     for name in VENDORED:
-        shutil.copyfile(os.path.join(REPO_ROOT, "backend", name), kit / name)
+        shutil.copyfile(os.path.join(TOOLKIT_DIR, name), kit / name)
     return kit
 
 
@@ -486,7 +489,7 @@ def test_a_relative_sibling_import_is_visible_to_the_closure(tmp_path):
 
 def test_a_toolkit_module_reaching_out_by_relative_import_is_caught(tree):
     """The same violation as the absolute case, written the relative way."""
-    path = os.path.join(tree, "backend", "run_manifest_lock.py")
+    path = os.path.join(tree, "backend", "toolkit", "run_manifest_lock.py")
     text = io.open(path, encoding="utf-8").read()
     io.open(path, "w", encoding="utf-8").write(
         "from . import simulator  # noqa: F401\n" + text)
@@ -512,7 +515,8 @@ def test_the_toolkit_modules_stay_flat_vendorable(tree):
     registry = mbc.load_registry()
     offenders = []
     for module in registry["boundaries"]["toolkit"]["modules"]:
-        path = os.path.join(tree, "backend", module.replace(".", os.sep) + ".py")
+        path = os.path.join(tree, "backend", "toolkit",
+                            module.replace(".", os.sep) + ".py")
         for number, line in enumerate(io.open(path, encoding="utf-8"), start=1):
             stripped = line.strip()
             if stripped.startswith("from .") or stripped.startswith("from ..") \

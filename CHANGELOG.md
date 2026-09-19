@@ -2,6 +2,18 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-19 (at)
+
+### 把實驗工具組搬進 `backend/toolkit/`（任務 #96，`PROJECT_ASSESSMENT` §4.1 產品 B）
+
+- [RESULT] **9 個檔案裡 8 個逐位元未動**：7 個工具組模組、digest-pinned 的 `run_manifest_lock_binding_protocol.json`、以及 `paired_statistics_replay.py`。只有 `run_manifest_lock.py` 改了 **docstring 裡一條指向 protocol 的路徑**（＋5 −1）。`bind_run_lock` 的模組名從 `rl.bind_run_lock` 變成 `bind_run_lock`，**同一個檔案**。
+- [RESULT] **兩個邊界的閉包搬移前後完全相同**：teaching 15 模組／4,943 行；toolkit 7 模組／**5,508** 行（5,505 ＋那 3 行 docstring）。`PROTOCOL_SHA256` 與 `SPECIFICATION_SHA256` 都仍相符——protocol 跟著模組搬，位元組沒動。
+- [RESULT] **平坦 import 保留，用單一一處 `sys.path` shim。** 新增 `backend/toolkit_path.py`（唯一知道路徑的地方）與 `backend/conftest.py`（pytest 收集前載入，因此**整套測試沒有一個檔案為了搬移而改 import**）。13 個 repo 內使用者各加一行 `import toolkit_path`。這是 (as) 那個「平坦 import 留著」決定的直接後果。
+- [BLOCKER] **搬移差一點讓邊界契約瞎掉而照樣印綠燈。** `module_path()` 把模組名對到 `package_root/<name>.py`；檔案一進子目錄，工具組內部的**平坦兄弟 import** 就不再被認成本地 import，閉包會塌成 7 個沒有邊的進入點，而**輸出仍是 `MODULE_BOUNDARIES_CLEAN`**。與 (as) 剛關掉的 `node.level` 是同一類 fail-open，這次由搬移本身製造。修法是登錄檔新增 **`module_search_path: ["", "toolkit"]`**，讓契約模型化真正的 `sys.path`，而不是再多一個隱含假設。
+- [BLOCKER] **工具組有第八個檔案，而 AST 閉包結構上看不到它。** `paired_statistics_contract.py:62` 以**子行程**啟動兄弟腳本 `paired_statistics_replay.py`。搬移後 18 個測試立刻以 `independent replay script is missing` 失敗。該腳本一併搬入（逐位元未動）但**不登錄**（登錄會變成 `STALE_REGISTRY_ENTRY`）。全工具組掃過，這是唯一一處兄弟檔案相依；**沒有做自動檢查**，記錄在案。
+- [BLOCKER] **五份凍結且 digest 釘死的檔案從此指著不存在的路徑，而且不能更正**：binding protocol JSON、凍結規格 `RUN_MANIFEST_LOCK_BINDING_SPEC.md`、`tracked_lineage_training_protocol.json`、`training_seed_variance_protocol.json`，以及**保留證據裡**的一份副本。**先確認過沒有任何一條會在執行期被解析成路徑**（全部落在 `enforcement_scope`／`execution_order`／`forward_only_posture` 等敘述性欄位；唯一真的被解析的 `producers_in_scope` 指的是產品 C 的檔案，未搬）。所以沒有程式壞掉，壞掉的是可讀性；更正只能放在非凍結文件裡。
+- [RESULT] **範圍只有產品 B。** 產品 A（教學模擬器）與產品 C（研究線封存）**沒有搬**；§4.2 的封存清單仍未執行。
+
 ## Unreleased — 2026-09-19 (as)
 
 ### 工具組可攜性六項決定的結案（任務 #93）——三項的前提被量測推翻

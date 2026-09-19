@@ -23,6 +23,7 @@ import numpy as np
 
 from config_schema import GaitParams, default_robot
 from model_builder import build_mjcf
+import toolkit_path  # noqa: E402,F401  puts backend/toolkit on sys.path
 from paper_data_contract import (
     CURRENT_SCHEMA_VERSION,
     artifact_record,

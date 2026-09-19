@@ -15,6 +15,7 @@ from pathlib import Path
 import subprocess
 from typing import Any
 
+import toolkit_path  # noqa: E402,F401  puts backend/toolkit on sys.path
 from paired_statistics_contract import (
     build_paired_statistics_bundle,
     validate_paired_statistics_bundle,
