@@ -16,6 +16,7 @@
 - [BLOCKER] **`manifest_schema` 不是「漏掉一個檢查」，照字面強制會弄壞正確的證據。** 登錄檔為 `eval_policy.py` 釘單一值 `…_V4`，但該 producer **有 `--pilot-arm` 才發 V4、否則發 V3**（`:475,678`），而凍結規格 §3.1 第 2 列本來就寫 `…_V4／V3` **兩個值**，同一份 protocol 的 `enforcement_scope`（:64）也寫「V3 and V4」。實測 35 份 binding record：**20 份（已提交 15 份裡的 10 份）會變紅，而它們全是對的**。裸的 `manifest_schema` 在 SPEC 出現 **0 次**，無任何 `LB-*` 提到它。**不強制、不編輯登錄檔。**
 - [RESULT] **四個真正的問題留給擁有者**，每個附量測過的代價與「不答＝維持現狀」的預設：(A) 外部詞彙表——順帶更正 §5.2，單值 `Literal` 實為**四處**不是兩處、`role` **三處**不是一處，且這套詞彙**沒有全 repo 生效**（24 份帶 `evidence_scope` 的已提交 JSON 裡只有 8 份寫 `SIM_ONLY_MUJOCO`）；(B) 凍結句可設定化——比記的大，**兩個**凍結句、**五個**逐字比對點，且 §5.2 說 `paired_statistics_contract` 只限長度**被它自己的 `:171` 推翻**；(C) 是否改 `ENVIRONMENT_LOCK_SPEC.md:92`；(D) SPEC §3.1 的凍結範圍。
 - [RESULT] **沒有動任何凍結值**：沒有 digest-pinned 檔案、沒有 `FROZEN_CLAIM_BOUNDARY`、沒有任何 `Literal`、沒有五個 `RUN_LOCK_*` 標籤、沒有 `LB-01`–`LB-13`、沒有 `producers_in_scope`、沒有任何已提交證據。
+- [RESULT] **四個問題已於 2026-09-19 由擁有者回答，四項皆為「維持現狀」**：(A) 封閉 `Literal` 詞彙不動；(B) 兩個凍結句與五個逐字比對點不動；(C) 探針不改、`ENVIRONMENT_LOCK_SPEC.md:92` 一字不動，副作用由本次的 docstring 與兩個測試承載；(D) SPEC §3.1 **不放寬**，`rl/bind_run_lock` 對外維持 100% 擋死。四個答案都與建議相同，**因此沒有任何後續程式改動**——但「已回答、選擇維持現狀」與「未回答、依預設維持現狀」是不同的事實，故記錄之。
 
 ## Unreleased — 2026-09-19 (ar)
 
