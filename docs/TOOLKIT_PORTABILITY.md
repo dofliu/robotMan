@@ -243,6 +243,82 @@ declared 路徑相對於該 run 自己的 root 也是對的**——兩個 disjun
 但分析期 gate 沒有實作它。**那是「少一個檢查」，不是「有一條沒標籤的路徑」**，
 範圍與本次不同，記為任務 #95。
 
+### 6.4 #95 已於 2026-09-18 修掉——而且它比 §6.3 記的更嚴重
+
+**§6.3 只說了「刪掉或改壞」。實測五種輸入，兩個 gate 全部回傳 `RUN_LOCK_BOUND`：**
+
+| 對 lock record 做的事 | 修前（兩個 gate 都一樣） | 修後 |
+|---|---|---|
+| 刪除 | `RUN_LOCK_BOUND` | `METHOD_FAILURE` |
+| 截成空檔 | `RUN_LOCK_BOUND` | `METHOD_FAILURE` |
+| 換成非 JSON | `RUN_LOCK_BOUND` | `METHOD_FAILURE` |
+| **換成另一份已提交的 lock record** | `RUN_LOCK_BOUND` | `METHOD_FAILURE` |
+| 用指向框架外的 symlink（bytes 相同） | `RUN_LOCK_BOUND` | `METHOD_FAILURE` |
+
+**第四列是最要緊的。** 檔案存在、格式正確、而且是一份**真的**已提交 lock record——只是不是被綁定的那一份。
+該 run 會聲稱在環境 X 執行，而保留下來的是環境 Y，**而那個關係是這整個 contract 唯一存在的理由**。
+這也是為什麼修法是**比對 digest**，不是檢查檔案存在。
+
+**兩種失敗、同一個標籤、兩條不同的路徑**，這個區別值得寫清楚：
+
+- **不存在或讀不到** 是規格 §7.1 **逐字列舉**的那一項：「lock record 讀不到」。
+- **存在但不符** 是**讀得到**的，所以**不是**那一項。它違反的是 §4.1 對該欄位的定義
+  （`lock_record_sha256` 是「對 `lock_record_path` 逐位元計算」），經由該列的開頭子句
+  「**任何 contract 違反**」到達同一個標籤。
+
+`RUN_LOCK_MISMATCH` **考慮過，不可用**。支持它最強的論據不是直覺而是 `LB-02`：
+凍結判準把「被綁 **manifest** 翻一個位元」判為 MISMATCH，那麼「被綁 lock record 翻一個位元」看起來是同一類事實。
+它仍然輸：MISMATCH 的兩個凍結 disjunct **都只指名 `bound_manifest_*`**，
+所以 MISMATCH 會是**假的**而不只是較弱，而且 §7.2 無論如何都禁止把 method failure 報成其他四個。
+
+### 6.5 這次修正裡三個被量測改掉的設計決定
+
+**一、檢查必須放在所有非 METHOD_FAILURE 的 return 之前。** 否則「lock record 壞掉 ＋ manifest 位元翻轉」
+會回傳 `RUN_LOCK_MISMATCH`，「lock record 壞掉 ＋ 未達 FULL_LOCK」會回傳 `RUN_LOCK_INSUFFICIENT`——
+兩個都是 §7.2 明文禁止的降級。**單一故障的測試抓不到這件事**，所以有兩個多故障測試專門釘住順序。
+
+**二、路徑必須走 containment 防護。** `safe_relative_path` 只擋**語法上**的逃逸，
+所以一個 canonical 相對路徑，只要它的目錄部分是 symlink，就會解到框架外。
+而且**這條路徑比 manifest 更受被檢查方控制**——manifest 由呼叫端命名，lock record 由**被檢查的記錄自己**命名。
+
+**三、我原本說不呼叫 `validate_lock_record` 是因為 `LB-11` 的 stdlib-only，那是錯的。**
+實測：`environment_lock` 在 module scope 就是 stdlib-only、在 `python3 -I -S` 下可以 import，
+而 `LB-11` 的 AST 測試**只約束 module-scope import**——那個呼叫兩個測試都會通過。
+**真正的理由有兩個**：範圍（重新驗證記錄內容是比重算 digest 大得多的行為改變），
+以及**例外型別**——`EnvironmentLockError` 與 `RunLockBindingError` 是**兄弟**，
+兩者都直接繼承 `RuntimeError`、彼此無繼承關係，所以 `except RunLockBindingError` **抓不到它**，
+那個呼叫會把這個模組剛關掉的那一類「沒有標籤的失敗路徑」重新引進來。
+因此 §7.1 那條子句的「`validate_lock_record` 失敗」那一半**仍然未實作**，記在這裡而不算成已涵蓋。
+
+### 6.6 保留框架裡只有 bytes 能重算——而 basename 不是便宜行事
+
+**（2026-09-18 更正：§6.3 與 §4 的「35 份」數字需要修正。）** 原本記「35 份保留 binding 全部 MATCH」。
+實測 `git ls-files` 後的正確讀法：
+
+| | 數量 |
+|---|---|
+| `run_lock_binding.json` 在磁碟上 | 35 |
+| 其中**進版控** | **15**（其餘 20 在 `.gitignore:31` 排除的 `backend/rl/artifacts/`） |
+| 這 15 份的 `lock_record_path` **進版控** | **0**（全部指向那個被排除的目錄） |
+| 這 15 份**旁邊 sibling 副本**進版控且 digest 相符 | **15／15** |
+
+所以「35／35 從 repo root 也 MATCH」**只在這個容器成立**，在乾淨 clone 上是 0／15。
+原數字依先立後撤保留在上方。
+
+這件事直接決定了 `evaluate_relocated_run` 的做法：記錄自己的 `lock_record_path` 相對於**原本的** run root，
+在搬移後**依建構不可用**；**sibling 副本是唯一存活過 clone 的關係**。
+所以 basename 查找不是近似，而是那個框架裡唯一可重算的東西。
+新增 `lock_record_filename` 參數給「retainer 用別的檔名複製」的情況命名；預設從記錄取 basename。
+
+**因此保留慣例現在是承重的，寫在這裡**：保留目錄必須把 lock record 放在 binding 旁邊。
+一個後果被明確接受而不是藏起來——**沒有保留 lock record 的保留目錄會變成 method failure**，
+而那是 §7.2 規定永不可降級的標籤。本 repo 量測不可達（15 份裡 0 份缺），
+而且替代方案更糟：一個無法重算自身環境關係的 bundle 不該被報成 bound，而五個標籤裡沒有別的是真的。
+**把查找放寬成掃目錄是被禁止的**——那會讓目錄裡任何長得像 lock 的檔案都能通過，等於因結果放寬門檻。
+
+**量測：修正後全樹 35 份 binding 仍然全部 `RUN_LOCK_BOUND`**（15 進版控 ＋ 20 容器內），
+`evaluate_run` 對 20 個樹內 run 也全部 BOUND。**沒有任何一份保留證據變紅。**
+
 ## 7. 先立後撤：我原本的假設是錯的
 
 **我先前對使用者說**，`environment_lock` 裡 top-level 的 `mujoco`／`numpy`／`torch` import
@@ -269,7 +345,7 @@ declared 路徑相對於該 run 自己的 root 也是對的**——兩個 disjun
 | 1 | `Literal["SIM_ONLY_MUJOCO"]` 是否放寬 | 動到凍結的主張邊界 | **不要直接放寬。** 改成外部專案提供自己的詞彙表（登錄檔 ＋ 預設值就是現在這份），本專案的值一個字都不變 |
 | 2 | `FROZEN_CLAIM_BOUNDARY` 等值比對是否改為「可設定的凍結句」 | 同上 | 同上：把「必須等於某個凍結句」與「那句話是什麼」分開 |
 | 3 | `learning_fingerprint()` 的全域 RNG（§6.1） | 修＝41 份 lock record 失效 | **不修**，改為在文件與 docstring 明寫這個副作用；若哪天要修，必須當成一次 fingerprint 版本升級 |
-| 4 | ~~`relative_to` 未防護（§6.2）~~ **已於 2026-09-18 修掉，見 §6.3** | ~~可能要動 `LB-09`~~ **`LB-09` 未動，只加正控制測試** | ~~**修**，歸進現有 `LABEL_MISMATCH`，不開第六個標籤~~ **這個建議是錯的**：凍結規格 §7.1 已把「路徑逃逸」列在 `METHOD_FAILURE`，不需要擁有者決定。原措辭依先立後撤保留 |
+| 4 | ~~`relative_to` 未防護（§6.2）~~ **已於 2026-09-18 修掉，見 §6.3；`evaluate_run` 不重算 lock record（任務 #95）亦已修掉，見 §6.4–§6.6** | ~~可能要動 `LB-09`~~ **`LB-09` 未動，只加正控制測試** | ~~**修**，歸進現有 `LABEL_MISMATCH`，不開第六個標籤~~ **這個建議是錯的**：凍結規格 §7.1 已把「路徑逃逸」列在 `METHOD_FAILURE`，不需要擁有者決定。原措辭依先立後撤保留 |
 | 5 | producer 登錄檔可否外部提供（§5.3） | 需要新的 API 面 | 可做，但屬於「抽成套件」那一步，不是現在 |
 | 6 | 平坦兄弟 import 改成 package-relative（§5.1） | 動 4 個模組的 import 行 | 可做，且應該在**真的要搬檔案**時一起做 |
 
