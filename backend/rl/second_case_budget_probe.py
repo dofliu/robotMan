@@ -31,6 +31,7 @@ BACKEND_DIR = RL_DIR.parent
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
+import toolkit_path  # noqa: E402,F401  puts backend/toolkit on sys.path
 import exposure_identification as ei  # noqa: E402
 import second_case_exposure_contract as sc  # noqa: E402
 

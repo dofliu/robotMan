@@ -6,7 +6,7 @@
 
 Contract：`ENVIRONMENT-LOCK-V1`
 Machine-readable record schema：`ENVIRONMENT_LOCK_RECORD_V1`
-實作：[`backend/environment_lock.py`](../backend/environment_lock.py)
+實作：`backend/environment_lock.py`——**2026-09-19 起在 [`backend/toolkit/environment_lock.py`](../backend/toolkit/environment_lock.py)**，檔案逐位元未動；本規格當時寫下的路徑保留為純文字，見 [TOOLKIT_MOVE](TOOLKIT_MOVE_2026-09-19.md)
 
 證據範圍：`SIM_ONLY_MUJOCO / NOT_PHYSICALLY_VALIDATED`
 

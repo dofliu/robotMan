@@ -32,6 +32,7 @@ if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
 import second_case_exposure_contract as sc  # noqa: E402
+import toolkit_path  # noqa: E402,F401  puts backend/toolkit on sys.path
 from environment_lock import (  # noqa: E402
     EnvironmentLockError,
     capture_environment_lock,

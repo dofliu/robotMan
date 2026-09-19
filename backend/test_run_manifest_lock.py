@@ -1,8 +1,9 @@
 """RUN-MANIFEST-LOCK-BINDING-V1 acceptance criteria LB-01 .. LB-12.
 
 Frozen in docs/RUN_MANIFEST_LOCK_BINDING_SPEC.md and
-backend/run_manifest_lock_binding_protocol.json, both pushed before any
-producer was edited.
+backend/toolkit/run_manifest_lock_binding_protocol.json, both pushed before any
+producer was edited. The protocol moved with its module on 2026-09-19; the
+bytes are unchanged and both digests still match.
 """
 
 from __future__ import annotations
@@ -26,8 +27,11 @@ import run_manifest_lock as rml  # noqa: E402
 from paper_data_contract import PaperRunManifest  # noqa: E402
 
 REPO_ROOT = BACKEND.parent
-MODULE_PATH = BACKEND / "run_manifest_lock.py"
-PROTOCOL_PATH = BACKEND / "run_manifest_lock_binding_protocol.json"
+# Both come from the imported module, so they follow product B wherever it
+# lives; it moved to backend/toolkit/ on 2026-09-19.
+MODULE_PATH = Path(rml.__file__).resolve()
+TOOLKIT = MODULE_PATH.parent
+PROTOCOL_PATH = TOOLKIT / "run_manifest_lock_binding_protocol.json"
 SPEC_PATH = REPO_ROOT / "docs" / "RUN_MANIFEST_LOCK_BINDING_SPEC.md"
 SEEDVAR_LOCK = BACKEND / "environment_locks" / "lock-2026-09-08-seedvar-execution.json"
 SECOND_CASE_LOCK = BACKEND / "environment_locks" / "lock-2026-09-08-second-case-execution.json"
@@ -900,7 +904,7 @@ def test_lb11_the_checking_path_runs_without_site_packages(tmp_path):
         "Path(%r).unlink();\n"
         "print(rml.evaluate_run(%r, 'run_manifest.json', root=%r)['label']);\n"
         "print('environment_lock' in sys.modules)\n"
-        % (str(BACKEND), str(run_dir), str(tmp_path),
+        % (str(TOOLKIT), str(run_dir), str(tmp_path),
            str(run_dir / "environment_lock.json"), str(run_dir), str(tmp_path))
     )
     completed = subprocess.run(

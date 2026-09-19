@@ -8,6 +8,7 @@ ID：`MODULE-BOUNDARY-V1`（toolkit 邊界）｜ 日期：2026-09-17
 ｜ 測試：`backend/test_module_boundary_contract.py`
 ｜ 另一個邊界：[TEACHING_BOUNDARY](TEACHING_BOUNDARY.md)
 ｜ §8 六項的結案：[TOOLKIT_PORTABILITY_DECISIONS_2026-09-19](TOOLKIT_PORTABILITY_DECISIONS_2026-09-19.md)
+｜ **搬移記錄（2026-09-19，檔案已進 `backend/toolkit/`）：[TOOLKIT_MOVE_2026-09-19](TOOLKIT_MOVE_2026-09-19.md)**
 
 > **2026-09-19 更正導覽。** §8 的六項已於任務 #93 逐項重新量測，其中**三項的前提被推翻**（§6.1 的「41 份」與「Generator 會改值」、§5.3 的「可攜需要外部登錄檔」、§5.1／§8 第 6 列的「改成 package-relative」）。原文依先立後撤全部留在原處，逐條更正見上面那份決定記錄的 §5。
 
@@ -152,7 +153,7 @@ sim-to-real、物理保真或安全性」——**這句話能被逐字檢查，�
 ### 5.3 凍結的 producer 登錄檔（`rl.bind_run_lock`）
 
 `rl/bind_run_lock.py` 的 `_producer_entry()` 會去
-[`run_manifest_lock_binding_protocol.json`](../backend/run_manifest_lock_binding_protocol.json)
+[`run_manifest_lock_binding_protocol.json`](../backend/toolkit/run_manifest_lock_binding_protocol.json)
 的 `producers_in_scope` 找 producer，找不到就 fail closed。那份清單裡是**四個寫死的 repo 相對路徑**：
 
 ```
@@ -423,7 +424,7 @@ declared 路徑相對於該 run 自己的 root 也是對的**——兩個 disjun
 | **可攜性本身沒有自動檢查** | §4 起是一份**審計**，日期 2026-09-17。契約只檢查 import 邊界；綠燈**不代表**可攜 |
 | `backend/test_*.py` | 測試可以 import 任何東西；測試不是出貨的產品 |
 | 需要哪些 PyPI 套件 | 打包問題，不是邊界問題 |
-| **檔案沒有搬** | 本次只把邊界變成被檢查的事實；§4.1 的「搬」是下一步 |
+| ~~**檔案沒有搬**~~ **產品 B 已於 2026-09-19 搬進 `backend/toolkit/`，見 [TOOLKIT_MOVE](TOOLKIT_MOVE_2026-09-19.md)；產品 A 與 C 仍未搬** | 本次只把邊界變成被檢查的事實；§4.1 的「搬」是下一步 |
 | ~~對外的使用說明書~~ **已於 2026-09-19 寫出：[TOOLKIT_USAGE](TOOLKIT_USAGE.md)** | 先有這份審計，才知道說明書上要寫什麼做不到——說明書因此只寫三個模組，並把「無 site-packages 時 gate 回 `RUN_LOCK_INSUFFICIENT` 而非 `BOUND`」當成正確行為寫進去 |
 
 ## 10. 加一個工具組模組的步驟

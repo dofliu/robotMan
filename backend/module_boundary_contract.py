@@ -125,12 +125,23 @@ def load_registry(path: str = REGISTRY_PATH) -> dict:
     return registry
 
 
-def module_path(root: str, module: str) -> Optional[str]:
-    """The file backing a dotted module name under *root*, or None."""
-    base = os.path.join(root, module.replace(".", os.sep))
-    for candidate in (base + ".py", os.path.join(base, "__init__.py")):
-        if os.path.exists(candidate):
-            return candidate
+def module_path(root: str, module: str,
+                search_path: Sequence[str] = ("",)) -> Optional[str]:
+    """The file backing a dotted module name, or None.
+
+    *search_path* holds directories relative to *root*, tried in order, and it
+    models the real ``sys.path`` rather than an assumption about layout.  The
+    assumption it replaces was that every module sits directly under
+    ``package_root``; that stopped being true when section 4.1 product B moved
+    into ``backend/toolkit/`` while keeping its FLAT sibling imports, and a
+    flat name that resolves at runtime but not here would leave the closure
+    blind to exactly the imports this contract exists to catch.
+    """
+    for directory in search_path:
+        base = os.path.join(root, directory, module.replace(".", os.sep))
+        for candidate in (base + ".py", os.path.join(base, "__init__.py")):
+            if os.path.exists(candidate):
+                return candidate
     return None
 
 
@@ -160,6 +171,7 @@ def closure(registry: dict, boundary_name: str, repo_root: str = REPO_ROOT) -> D
     """Reachable local modules for one boundary, each with its first import trail."""
     boundary = registry["boundaries"][boundary_name]
     root = os.path.join(repo_root, registry["package_root"])
+    search_path = registry.get("module_search_path", [""])
     reached: Dict[str, List[str]] = {}
     queue: List[List[str]] = [[entry] for entry in boundary["entry_points"]]
     while queue:
@@ -167,14 +179,14 @@ def closure(registry: dict, boundary_name: str, repo_root: str = REPO_ROOT) -> D
         module = trail[-1]
         if module in reached:
             continue
-        path = module_path(root, module)
+        path = module_path(root, module, search_path)
         if path is None:
             raise ModuleBoundaryError(
                 f"boundary {boundary_name!r}: entry point {module!r} has no file under "
                 f"{registry['package_root']}/")
         reached[module] = trail
         for name in sorted(imported_names(path)):
-            if module_path(root, name) is not None:
+            if module_path(root, name, search_path) is not None:
                 queue.append(trail + [name])
     return reached
 
@@ -211,12 +223,14 @@ def verify(registry_path: str = REGISTRY_PATH, repo_root: str = REPO_ROOT) -> di
             f"{len(violations)} module-boundary violation(s) against "
             f"{os.path.basename(registry_path)}:\n\n{body}")
     root = os.path.join(repo_root, registry["package_root"])
+    search_path = registry.get("module_search_path", [""])
     summary = {}
     for name in sorted(registry["boundaries"]):
         reached = closure(registry, name, repo_root)
         summary[name] = {
             "modules": len(reached),
-            "lines": sum(sum(1 for _ in open(module_path(root, m), encoding="utf-8"))
+            "lines": sum(sum(1 for _ in open(module_path(root, m, search_path),
+                                             encoding="utf-8"))
                          for m in reached),
         }
     return {
@@ -242,12 +256,14 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if args.list:
         root = os.path.join(args.repo_root, registry["package_root"])
+        search_path = registry.get("module_search_path", [""])
         for name in sorted(registry["boundaries"]):
             reached = closure(registry, name, args.repo_root)
             print(f"{name}: {registry['boundaries'][name]['what']}")
             total = 0
             for module in sorted(reached):
-                count = sum(1 for _ in open(module_path(root, module), encoding="utf-8"))
+                count = sum(1 for _ in open(module_path(root, module, search_path),
+                                            encoding="utf-8"))
                 total += count
                 print(f"  {count:6d}  {module}")
             print(f"  {total:6d}  TOTAL ({len(reached)} modules)\n")

@@ -46,7 +46,11 @@ from environment_lock import (
 
 
 BACKEND_ROOT = Path(__file__).resolve().parent
-MODULE_PATH = BACKEND_ROOT / "environment_lock.py"
+# Read the module from the object rather than from a guessed path: product B
+# moved to backend/toolkit/ on 2026-09-19 and a hard-coded path would have to
+# move with it every time.
+MODULE_PATH = Path(lock_module.__file__).resolve()
+TOOLKIT_ROOT = MODULE_PATH.parent
 
 # Third-party imports must stay inside the probes.  These are the only module
 # roots the top level of environment_lock.py is allowed to reach for.

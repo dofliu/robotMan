@@ -22,8 +22,9 @@ Repository：[github.com/dofliu/robotMan](https://github.com/dofliu/robotMan) �
 | V&V gates | V0 PARTIAL、V1 PARTIAL、V2–V4 NOT STARTED | [PROJECT_STATUS §1](docs/PROJECT_STATUS.md) |
 | Paper-data gates | PDR-0..8 無一 PASS；`paper_data_ready = false` | [PAPER_DATA_READINESS](docs/PAPER_DATA_READINESS.md) |
 | Gate 狀態一致性 | 33 個 gate、54 個站點由 `GATE-STATUS-SINGLE-SOURCE-V1` fail-closed 比對；狀態改了沒同步到 mirror 即測試失敗 | [GATE_STATUS_SINGLE_SOURCE](docs/GATE_STATUS_SINGLE_SOURCE.md) |
-| 教學／研究邊界 | `MODULE-BOUNDARY-V1`：教學應用 **15 個模組、4,943 行**，**不 import 任何研究模組**；唯一的跨界 import 已於 2026-09-17 切斷，`train_ppo.py` 逐位元未動。**檔案尚未搬動** | [TEACHING_BOUNDARY](docs/TEACHING_BOUNDARY.md) |
-| 工具組邊界與可攜性 | 同一個 `MODULE-BOUNDARY-V1` 契約：工具組閉包**恰好 7 個模組、5,505 行、本地相依為零**，而 13 個專案模組 import 它。**但邊界乾淨 ≠ 今天拿得走**——逐模組審計，**3 個**可原封不動使用 | [TOOLKIT_PORTABILITY](docs/TOOLKIT_PORTABILITY.md) |
+| 教學／研究邊界 | `MODULE-BOUNDARY-V1`：教學應用 **15 個模組、4,943 行**，**不 import 任何研究模組**；唯一的跨界 import 已於 2026-09-17 切斷，`train_ppo.py` 逐位元未動。**教學產品的檔案仍未搬動**（工具組已於 2026-09-19 搬出，見下一列） | [TEACHING_BOUNDARY](docs/TEACHING_BOUNDARY.md) |
+| 工具組邊界與可攜性 | 同一個 `MODULE-BOUNDARY-V1` 契約：工具組閉包**恰好 7 個模組、5,508 行、本地相依為零**（已搬至 `backend/toolkit/`），而 13 個專案模組 import 它。**但邊界乾淨 ≠ 今天拿得走**——逐模組審計，**3 個**可原封不動使用 | [TOOLKIT_PORTABILITY](docs/TOOLKIT_PORTABILITY.md) |
+| 工具組已搬出 | **產品 B 於 2026-09-19 搬進 `backend/toolkit/`**：9 個檔案 **8 個逐位元未動**，兩個邊界閉包前後相同。搬下去才看到三件事——邊界契約會**瞎掉但照印綠燈**、工具組有**第八個檔案**是 AST 看不到的子行程腳本、**五份凍結檔案**的路徑從此停在舊值 | [TOOLKIT_MOVE](docs/TOOLKIT_MOVE_2026-09-19.md) |
 | 可攜性六項決定 | §8 的六項逐項重新量測：**三項的前提被推翻**（決定 3 的代價是 **0 份**不是 41 份 lock record；決定 5 的可攜性問題早已解決；決定 6 的方向相反，照做會弄壞發布的安裝方式）。**四個真正的問題已於 2026-09-19 回答，皆為維持現狀** | [TOOLKIT_PORTABILITY_DECISIONS](docs/TOOLKIT_PORTABILITY_DECISIONS_2026-09-19.md) |
 | 工具組對外使用 | 外部 RL 專案今天能拿走的是**三個檔案**（`exposure_identification`、`environment_lock`、`run_manifest_lock`），複製進同一個目錄即可；`rl.bind_run_lock` 用 31 行自寫取代。**無 site-packages 時 gate 回 `RUN_LOCK_INSUFFICIENT` 而非 `BOUND`，那是正確行為** | [TOOLKIT_USAGE](docs/TOOLKIT_USAGE.md) |
 | 衍生 claim 一致性 | `DERIVED-CLAIM-CONSISTENCY-V1`：待核文獻清單與地圖的 `U`／`S` 等級綁定，10 篇論文、3 個站點；清單裡出現已核實的論文即測試失敗 | [DERIVED_CLAIM_CONSISTENCY](docs/DERIVED_CLAIM_CONSISTENCY.md) |
@@ -36,7 +37,7 @@ Repository：[github.com/dofliu/robotMan](https://github.com/dofliu/robotMan) �
 | **專案評估（2026-09-16）** | 給負責人的**決策文件**：核心 robotics + 應用 `6,871` 行、前端 `3,561` 行，證據契約 `29,294` 行（**1 : 4.3**），其中約 `15,800` 行服務的研究線已結案；**沒有不可達程式**。機器人：v5 會走（10/11）但 checkpoint 是看結果後挑的，所有可重建的線全在 `STEADY_WALK` 起點跌倒，量化診斷指向獎勵形塑而非預算。**價值**：robotics 研究弱；評估效度研究**真的有一篇**（Track A，證據已齊、**不需 `PUB-B2`**）；教學工具有實質價值且與研究契約**完全解耦**。**關鍵觀察：`PUB-B2` 的理由在 09-09 Track A 重構時就消失了。** 三個去向選項見 §5——**負責人尚未決定** | [PROJECT_ASSESSMENT](docs/PROJECT_ASSESSMENT_2026-09-16.md) |
 | 動作任務範圍 | 2026-09-11 決定現在**不**新增跳躍／轉身；順序為先綁 lock record 與建有版控 lineage 的新訓練線，轉身需 `PUB-B2`、跳躍需 V1 PASS | [MOTION_SCOPE_DECISION](docs/MOTION_SCOPE_DECISION_2026-09-11.md) |
 | 下一個決策 | formal evaluation 已於 2026-09-10 授權；剩兩個子問題：用現行 post-hoc 規則或先預註冊替代規則、唯一未檢視的 FORMAL seed 範圍花在 v7 線或新訓練線 | [PUBLICATION_PLAN §5](docs/PUBLICATION_PLAN.md)、[PUB_B0 receipt](docs/PUB_B0_AUTHORIZATION_RECEIPT_2026-09-10.md) |
-| 測試 | `backend/` **1 failed / 1028 passed**（2026-09-17，`321.59` s，工作樹為 `21c4507` 加上本次變更，`python3 -X utf8 -m pytest backend/ -p no:cacheprovider`）。那一個失敗是在具名 environment lock 下**記錄為量測結果、未放寬**的 reduction-order 差異——看到它不必修 | [PROJECT_STATUS §9](docs/PROJECT_STATUS.md)、`STATUS.yaml` 的 `test_suite_status` |
+| 測試 | `backend/` **1 failed / 1061 passed**（2026-09-19，`407.95` s，工作樹為 `146f8c0` 加上任務 #96 的變更，`python3 -X utf8 -m pytest backend/ -p no:cacheprovider`）。那一個失敗是在具名 environment lock 下**記錄為量測結果、未放寬**的 reduction-order 差異——看到它不必修 | [PROJECT_STATUS §9](docs/PROJECT_STATUS.md)、`STATUS.yaml` 的 `test_suite_status` |
 
 ## 兩種模式
 
@@ -136,6 +137,7 @@ python -m pytest backend -q
 | [GATE_STATUS_SINGLE_SOURCE](docs/GATE_STATUS_SINGLE_SOURCE.md) | gate 狀態的單一權威來源：`GATE-STATUS-SINGLE-SOURCE-V1` 的規則、33 個 gate 與 54 個站點的 authority／mirror 關係、明確不涵蓋的範圍；由 `backend/gate_status_contract.py` fail-closed 檢查 |
 | [TEACHING_BOUNDARY](docs/TEACHING_BOUNDARY.md) | 教學模擬器的邊界：`MODULE-BOUNDARY-V1` 的 teaching 邊界，教學進入點的遞移 import 閉包必須恰好等於登錄清單；研究模組跑進來或清單過期皆 fail closed |
 | [TOOLKIT_PORTABILITY](docs/TOOLKIT_PORTABILITY.md) | 實驗工具組的邊界與**可攜性審計**：同一契約的 toolkit 邊界（函式庫不得反向碰專案），加上七個模組逐一的 blocking／friction 分類，以及三件需要擁有者決定的事 |
+| [TOOLKIT_MOVE](docs/TOOLKIT_MOVE_2026-09-19.md) | **搬移記錄**：產品 B 進 `backend/toolkit/` 的逐檔改動、`sys.path` shim 的設計、以及搬移過程中量到的三件事（契約 fail-open、第八個檔案、五份凍結檔案的舊路徑） |
 | [TOOLKIT_PORTABILITY_DECISIONS](docs/TOOLKIT_PORTABILITY_DECISIONS_2026-09-19.md) | **六項可攜性決定的結案記錄**：哪三項的前提被量測推翻、哪四個問題真的還在等擁有者，每個都附量測過的代價與「不答＝維持現狀」的預設 |
 | [TOOLKIT_USAGE](docs/TOOLKIT_USAGE.md) | **對外使用說明**：外部 RL 專案怎麼用這套工具組。只寫今天真的做得到的事——三個可攜模組、31 行取代 `bind_run_lock`、識別區間的完整流程、四個標籤的實測，以及四個擋死模組的原因 |
 | [DERIVED_CLAIM_CONSISTENCY](docs/DERIVED_CLAIM_CONSISTENCY.md) | 衍生 claim 的一致性：`DERIVED-CLAIM-CONSISTENCY-V1`，把「從文獻核實等級算出來的待核清單」與地圖綁在一起；補上 gate 契約明寫不涵蓋的那一類失效 |

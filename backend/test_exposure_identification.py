@@ -23,7 +23,7 @@ EVIDENCE = pathlib.Path(__file__).resolve().parent / "seed_variance_evidence" / 
 def test_module_is_stdlib_only():
     import ast
 
-    source = (pathlib.Path(__file__).resolve().parent / "exposure_identification.py").read_text(encoding="utf-8")
+    source = pathlib.Path(ei.__file__).resolve().read_text(encoding="utf-8")
     tree = ast.parse(source)
     imported: set[str] = set()
     for node in ast.walk(tree):

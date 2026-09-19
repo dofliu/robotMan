@@ -33,6 +33,7 @@ from typing import Any
 
 import v7_exposure_audit_contract as audit
 import v7_pilot_contract as pilot
+import toolkit_path  # noqa: E402,F401  puts backend/toolkit on sys.path
 from environment_lock import load_lock_record, validate_lock_record
 from training_seed_variance_contract import (
     ARM_IDS,

@@ -7,7 +7,7 @@ Spec：[`docs/ENVIRONMENT_LOCK_SPEC.md`](ENVIRONMENT_LOCK_SPEC.md)
 （SHA-256 `96e931aebf4a1814ae1d6e267fa5e6bd757278269ec044dc169cdf18b48cdbcd`）
 
 實作：
-- [`backend/environment_lock.py`](../backend/environment_lock.py)
+- `backend/environment_lock.py`（**2026-09-19 起在 [`backend/toolkit/environment_lock.py`](../backend/toolkit/environment_lock.py)**；本 receipt 當時記的路徑保留為純文字而不改寫，見 [TOOLKIT_MOVE](TOOLKIT_MOVE_2026-09-19.md)）
   SHA-256 `d220960672426bfdbf06f79841990563002097a56d9d70899fb700b282b3d488`
 - [`backend/test_environment_lock.py`](../backend/test_environment_lock.py)
   SHA-256 `288963ee57817a4581cfb1701b38934d36c14e733d8568a6fb8647e38b518f2e`

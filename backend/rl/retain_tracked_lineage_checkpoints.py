@@ -32,6 +32,7 @@ REPO_ROOT = BACKEND.parent
 if str(BACKEND) not in sys.path:
     sys.path.insert(0, str(BACKEND))
 
+import toolkit_path  # noqa: E402,F401  puts backend/toolkit on sys.path
 import run_manifest_lock  # noqa: E402
 from rl.train_ppo import (  # noqa: E402
     TRACKED_LINEAGE_PROFILE_PREFIX,

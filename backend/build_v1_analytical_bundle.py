@@ -22,6 +22,7 @@ import traceback
 from typing import Any
 import uuid
 
+import toolkit_path  # noqa: E402,F401  puts backend/toolkit on sys.path
 from paper_data_contract import (
     CURRENT_SCHEMA_VERSION,
     artifact_record,

@@ -4,6 +4,10 @@
   "purpose": "PROJECT_ASSESSMENT section 4.1 proposes splitting this repository into a teaching simulator and a reusable experiment toolkit. Each split is a claim about imports, and this registry makes each one checkable by the same rule: a boundary's transitive local import closure must equal its registered module list exactly. Supersedes TEACHING-BOUNDARY-V1, which checked the teaching boundary with the same code under a name that could only ever describe one of the two. Rules: docs/TEACHING_BOUNDARY.md and docs/TOOLKIT_PORTABILITY.md.",
   "checked_by": "backend/module_boundary_contract.py",
   "package_root": "backend",
+  "module_search_path": [
+    "",
+    "toolkit"
+  ],
   "boundaries": {
     "teaching": {
       "what": "the teaching simulator: the FastAPI app and everything it loads",
@@ -36,21 +40,21 @@
     "toolkit": {
       "what": "the reproducible-experiment toolkit: PROJECT_ASSESSMENT section 4.1 product B, intended for other people's RL projects",
       "entry_points": [
+        "bind_run_lock",
         "environment_lock",
         "experiment_matrix_contract",
         "exposure_identification",
         "paired_statistics_contract",
         "paper_data_contract",
-        "rl.bind_run_lock",
         "run_manifest_lock"
       ],
       "modules": [
+        "bind_run_lock",
         "environment_lock",
         "experiment_matrix_contract",
         "exposure_identification",
         "paired_statistics_contract",
         "paper_data_contract",
-        "rl.bind_run_lock",
         "run_manifest_lock"
       ],
       "rule": "CLOSURE_EQUALS_MODULES",
