@@ -2,6 +2,20 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-19 (ar)
+
+### 工具組的對外使用說明（任務 #92）——只寫今天真的做得到的事
+
+- [RESULT] **[TOOLKIT_USAGE](docs/TOOLKIT_USAGE.md)**：外部 RL 專案能拿走的是**三個檔案**——`exposure_identification`（312 行、stdlib-only）、`environment_lock`（1,366 行）、`run_manifest_lock`（813 行）。複製進**同一個目錄**並放上 `sys.path` 即可（那三個模組彼此用**平坦**名稱 import）。**不需要**複製 protocol JSON：模組 import 時不讀它，本流程也不呼叫 `load_protocol()`。
+- [RESULT] **`rl/bind_run_lock` 對外關死，但它包的模組沒有。** 說明書給出**約 20 行**的自寫取代品，直接呼叫 `capture_lock_for_run` → `build_binding_record` → `evaluate_run`，完全繞開那份四個寫死 repo 路徑的凍結 producer 登錄檔。
+- [RESULT] **`claim_boundary` 可以是你自己的。** 實測 `validate_binding_record` 對該欄位只做「非空字串」檢查，**不是等值比對**——這與 `experiment_matrix_contract.py:257` 要求逐字等於 `FROZEN_CLAIM_BOUNDARY` 形成對比，後者正是擋死那三個 contract 模組的原因。
+- [BLOCKER] **無 site-packages 時 gate 回 `RUN_LOCK_INSUFFICIENT` 而不是 `BOUND`，而那是正確行為。** 實測對照：裝了 numpy／torch／mujoco → `FULL_LOCK` → `RUN_LOCK_BOUND`；`python3 -I -S` → 三個重量級 fingerprint 回報 unavailable → `PARTIAL_LOCK` → `RUN_LOCK_INSUFFICIENT`。**一個沒量到 RL 執行環境主要組成的 lock，不該被報成「已綁定」**，而 `satisfies_full_lock_requirement` 是推導的、不是宣告的，寫 `True` 也沒用。說明書把這件事當成設計而不是缺陷寫出來。
+- [RESULT] **四個標籤全部從外部專案實測過**：正常 → `BOUND`；無套件 → `INSUFFICIENT`；改 manifest 一個數字 → `MISMATCH`；刪掉 lock record → `METHOD_FAILURE`。最後一個是 (aq) 才修好的——說明書明寫**複製更早的版本等於把那個假 PASS 一起複製走**。
+- [RESULT] **識別區間那一段給的是會改變結論的例子，不是加誤差棒。** 五個 replicate、候選組兩個早期終止：per-step 平均報 mean `-3.78` pp、t-interval `[-5.339016, -2.220984]`**不含零、宣告候選組更好**；不做假設的區間是 `[-6.88, +24.12]`，**跨過零**，`compare_naive_to_bound` 判為 `NAIVE_ASSERTS_DIRECTION_BOUND_CONTAINS_ZERO`。
+- [RESULT] **說明書的核心宣稱變成被檢查的事實，不是宣稱。** `backend/test_module_boundary_contract.py` 加 3 個測試：三個檔案複製出去後在 `python3 -I -S` 下互相 import 且**不拉進任何第三方模組**；§4.1 那張表裡不需要重套件的三列**逐一斷言**；以及說明書列的三個模組**都在 toolkit 邊界登錄檔內**。該檔 31 → **34**。
+- [BLOCKER] **已知未修的 bug 寫進說明書**：`environment_lock.py:425` 的 `learning_fingerprint()` 動全域 torch RNG。對本專案不咬人，修它會讓 41 份已提交的 lock record 失效，所以沒修——說明書給外部使用者的對策是「在自己的訓練流程開始前量，不要量到一半」。
+- [BLOCKER] **四個擋死的模組逐一寫出原因**，其中三個（`experiment_matrix_contract`、`paired_statistics_contract`、`paper_data_contract`）的封閉 `Literal` 與逐字 claim boundary **不是疏忽**，是這個專案不誇大主張的機制，仍屬任務 #93 的擁有者決定。
+
 ## Unreleased — 2026-09-18 (aq)
 
 ### 讓分析期 gate **重算被綁定的 lock record**（任務 #95）——修前五種輸入全部回傳 `RUN_LOCK_BOUND`
