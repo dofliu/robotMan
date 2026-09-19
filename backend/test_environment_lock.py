@@ -711,3 +711,40 @@ def test_tracked_record_pins_match_the_constraints_file(path: Path) -> None:
         if isinstance(version, str)
     }
     assert pinned == measured
+
+
+# --------------------------------------------------------------------------- #
+# the learning probe's global side effect must stay documented                  #
+# --------------------------------------------------------------------------- #
+#
+# Decision 3 of docs/TOOLKIT_PORTABILITY.md section 8 chose to document this
+# rather than change the probe.  A documentation-only decision rots silently
+# unless something checks it, so this is the check.  Both mutation sites are
+# named because a fix that only replaces torch.manual_seed with a local
+# torch.Generator is a HALF fix: measured 2026-09-19, torch.nn.Linear draws its
+# initialisation from the global default generator too, so a caller who seeds
+# 987654321 still gets a different draw afterwards.
+
+def test_the_learning_probe_documents_its_global_rng_side_effect() -> None:
+    """The docstring must name the side effect, and both sites that cause it."""
+    doc = lock_module.learning_fingerprint.__doc__ or ""
+    assert "SIDE EFFECT" in doc
+    assert "torch.manual_seed" in doc and "torch.nn.Linear" in doc
+    assert "does not restore" in doc
+    # the asymmetry is the part a caller gets wrong: threads restored, RNG not
+    assert "finally" in doc
+
+
+def test_the_probe_still_contains_both_documented_mutation_sites() -> None:
+    """If the probe stops mutating the RNG, the docstring above must be revised.
+
+    This is the other direction of the same contract: the docstring claims a
+    side effect, so the code must still have one.  Read from the source rather
+    than by running torch, so the check holds on a machine without it.
+    """
+    source = Path(lock_module.__file__).read_text(encoding="utf-8")
+    body = source.split("def learning_fingerprint(")[1].split("\ndef ")[0]
+    assert "torch.manual_seed(LEARNING_PROBE_SEED)" in body
+    assert "torch.nn.Linear(" in body
+    # and the thread count really is the thing that gets restored
+    assert "torch.set_num_threads(ambient_threads)" in body

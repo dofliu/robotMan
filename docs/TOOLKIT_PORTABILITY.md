@@ -7,6 +7,9 @@ ID：`MODULE-BOUNDARY-V1`（toolkit 邊界）｜ 日期：2026-09-17
 ｜ 檢查程式：[`backend/module_boundary_contract.py`](../backend/module_boundary_contract.py)
 ｜ 測試：`backend/test_module_boundary_contract.py`
 ｜ 另一個邊界：[TEACHING_BOUNDARY](TEACHING_BOUNDARY.md)
+｜ §8 六項的結案：[TOOLKIT_PORTABILITY_DECISIONS_2026-09-19](TOOLKIT_PORTABILITY_DECISIONS_2026-09-19.md)
+
+> **2026-09-19 更正導覽。** §8 的六項已於任務 #93 逐項重新量測，其中**三項的前提被推翻**（§6.1 的「41 份」與「Generator 會改值」、§5.3 的「可攜需要外部登錄檔」、§5.1／§8 第 6 列的「改成 package-relative」）。原文依先立後撤全部留在原處，逐條更正見上面那份決定記錄的 §5。
 
 ```
 python3 -I -S backend/module_boundary_contract.py          # 兩個邊界都檢查，不乾淨則 exit 1
@@ -26,6 +29,8 @@ python3 -I -S backend/module_boundary_contract.py --list   # 列出兩個閉包�
 |---|---|
 | **它有沒有反過來依賴這個專案？**（import 邊界） | **沒有。乾淨，而且現在被契約守著。** |
 | **外面的人今天拿得走嗎？**（可攜性） | **拿不走。七個模組裡只有一個可以原封不動使用。** |
+
+（**2026-09-19 更正：「只有一個」偏嚴。** 實測把 `exposure_identification`、`environment_lock`、`run_manifest_lock` **逐位元**拷進外部專案可以直接用——是**三個**，見 [TOOLKIT_USAGE](TOOLKIT_USAGE.md)。§7 與 README 已是三個，本表未同步。原措辭依先立後撤保留。）
 
 **這兩件事必須分開講，否則綠燈會被讀成第二件事。**
 契約檢查的是第一件；第二件是本文件 §4 起的審計，**沒有**任何自動檢查在守它。
@@ -55,7 +60,7 @@ python3 -I -S backend/module_boundary_contract.py --list   # 列出兩個閉包�
 2026-09-17 實測：
 
 ```
-toolkit 閉包 ＝ 恰好 7 個模組、5,300 行，本地相依為零
+toolkit 閉包 ＝ 恰好 7 個模組、5,300 行，本地相依為零   ← 2026-09-19 實測 5,505 行（模組數不變）
               environment_lock  experiment_matrix_contract  exposure_identification
               paired_statistics_contract  paper_data_contract  rl.bind_run_lock
               run_manifest_lock
@@ -84,7 +89,7 @@ toolkit 閉包 ＝ 恰好 7 個模組、5,300 行，本地相依為零
 |---|---:|---|---|---|
 | `exposure_identification` | 312 | 無（stdlib） | **可以** | 0（只有 friction） |
 | `environment_lock` | 1,366 | mujoco/numpy/torch**（皆惰性）** | **可以，功能退化** | 0（只有 friction，見 §5） |
-| `run_manifest_lock` | 619 | 無（stdlib） | 大致可以 | 0 blocking；1 個 bug，見 §6 |
+| `run_manifest_lock` | ~~619~~ **813**（2026-09-19 量） | 無（stdlib） | 大致可以 | 0 blocking；1 個 bug，見 §6 |
 | `rl.bind_run_lock` | 133 | 無（stdlib） | **不行** | 4（見 §5.3） |
 | `paired_statistics_contract` | 1,780 | pydantic | **不行** | 2 |
 | `experiment_matrix_contract` | 758 | pydantic | **不行** | 2 |
@@ -102,11 +107,14 @@ toolkit 閉包 ＝ 恰好 7 個模組、5,300 行，本地相依為零
 |---|---|
 | `experiment_matrix_contract.py:22` | `from paper_data_contract import (...)` |
 | `paired_statistics_contract.py:24,29` | `from experiment_matrix_contract import (...)`、`from paper_data_contract import (...)` |
-| `run_manifest_lock.py:338,376,452` | `import environment_lock as el`（函式內，但仍是平坦名稱） |
-| `rl/bind_run_lock.py:43-46` | `REPO_ROOT` 由 `__file__` 往上推兩層，並 `sys.path.insert(0, BACKEND)` |
+| ~~`run_manifest_lock.py:338,376,452`~~ **`:457,495,571`**（2026-09-19 量） | `import environment_lock as el`（函式內，但仍是平坦名稱） |
+| ~~`rl/bind_run_lock.py:43-46`~~ **`:42-47`**（2026-09-19 量；原範圍漏掉 `:47` 那行真正的平坦 import） | `REPO_ROOT` 由 `__file__` 往上推兩層，並 `sys.path.insert(0, BACKEND)` |
 
 外部專案把這些檔案拷進自己的 package 之後，這些 import 全部斷掉——除非他把 `backend/` 整個放進 `sys.path`，
 而那等於把這個專案的**全部** 60 幾個模組名稱倒進他的命名空間。
+
+（**2026-09-19 更正：下面這段的修法被量測推翻，不要照做。**
+把三個兄弟 import 改成 `from . import environment_lock as el`、照 [TOOLKIT_USAGE](TOOLKIT_USAGE.md) §2 發布的平坦方式擺好，實測 **import 成功、第一次真的呼叫才丟 `ImportError: attempted relative import with no known parent package`**——遲發失敗，使用者會以為安裝好了；在同一個平坦目錄加 `__init__.py` 也救不回來。本節寫於說明書之前，把平坦 import 當成待移除的缺陷；§2 已把它變成**官方安裝機制**並用測試背書。現以量測為準：**平坦兄弟 import 留著**，並由 `test_the_toolkit_modules_stay_flat_vendorable` 守著。原文依先立後撤保留於下。）
 
 **這一類我可以修**（改成 package-relative import ＋ 一個 `__init__.py`），但它會動到
 `run_manifest_lock.py` 與三個 contract 模組的 import 行，而這些模組被 13 個依賴者與整套測試覆蓋。
@@ -135,6 +143,12 @@ sim-to-real、物理保真或安全性」——**這句話能被逐字檢查，�
 本來就比較通用；`paired_statistics_contract.py:157` 的 `claim_boundary` 只限長度、不做等值比對。
 **不是每一處都一樣硬**，這個差異在做決定時有用。）
 
+（**2026-09-19 更正：上一段括號裡關於 `paired_statistics_contract` 的那半句是錯的。**
+`:157` 本身確實只有長度限制，但**同一個 model 的 `@model_validator`（`:171`）做逐字等值比對**，另外 `:295`、`:376` 與 `paired_statistics_replay.py:263` 也各有一處——**兩個凍結句、五個逐字比對點**，這個模組和 `experiment_matrix_contract` 一樣硬。
+真正較軟的是 `run_manifest_lock.py:420`（只要求非空非空白字串）與 `paper_data_contract`，而**外部使用者實際會碰到的正是前者**。
+上表的站點數也偏少：單值 `Literal["SIM_ONLY_MUJOCO"]` 實為**四處**（另有 `paired_statistics_contract.py:259`、`:369`），`role` 實為**三處**（另有 `paired_statistics_contract.py:87`、`:301`）。
+並且這套詞彙**目前沒有全 repo 生效**：24 份已提交、帶 `evidence_scope` 的 JSON 裡只有 8 份寫 `SIM_ONLY_MUJOCO`，另外三個值不在任何 `Literal` 清單裡。原措辭依先立後撤保留在上方。）
+
 ### 5.3 凍結的 producer 登錄檔（`rl.bind_run_lock`）
 
 `rl/bind_run_lock.py` 的 `_producer_entry()` 會去
@@ -152,6 +166,11 @@ backend/build_v1_analytical_bundle.py  EMBEDDED_AND_SIDECAR
 這一項的 fail-closed **是對的**：binding mode 與理由必須來自凍結的 protocol，不能由呼叫端自由填寫。
 要可攜，需要的是**讓外部專案能提供自己的 producer 登錄檔**，而不是放寬這個檢查。
 
+（**2026-09-19 更正：上面這句話是錯的——可攜性根本不需要那份登錄檔。**
+[TOOLKIT_USAGE](TOOLKIT_USAGE.md) §4 的三呼叫流程在一個**沒有那份 protocol JSON 的目錄**裡跑得完，全程 0 次開啟該檔。`bind_run_lock` 對外關死仍然成立，但**沒有人需要它**。
+§8 第 5 列記的代價「需要新的 API 面」也是錯的：`build_binding_record` （`run_manifest_lock.py:484-485`）早就把 `binding_mode` 與 `sidecar_reason` 當普通關鍵字參數收。
+真正剩下的問題是別的：讓 repo 外的 producer 進來，等於放寬 [SPEC](RUN_MANIFEST_LOCK_BINDING_SPEC.md) §3.1「逐 producer 的處置（**凍結**）」的範圍——見決定記錄的問題 D。原措辭依先立後撤保留在上方。）
+
 另外三項：`REPO_ROOT` 由 `__file__` 往上推兩層（§5.1）、`sys.path` 注入（§5.1）、
 `--require-full-lock` 的語義綁在 protocol §6.2。
 
@@ -160,6 +179,12 @@ backend/build_v1_analytical_bundle.py  EMBEDDED_AND_SIDECAR
 `bind_run_lock.py:111` 記進 binding record 的是**manifest 自己宣告的** `schema_version`，
 不是登錄檔期望的那個。兩者不一致時沒有東西會說話。
 這是一個**被凍結卻沒有被強制的欄位**，記在這裡，不在本次修。
+
+（**2026-09-19 更正：它不是「漏掉一個檢查」，而且照字面強制會弄壞正確的證據。**
+登錄檔為 `eval_policy.py` 釘單一值 `RL_TRAINING_ENV_EVALUATION_V4`，但該 producer **有 `--pilot-arm` 才發 V4、否則發 V3**（`eval_policy.py:475,678`），而凍結規格 [SPEC §3.1](RUN_MANIFEST_LOCK_BINDING_SPEC.md) 第 2 列本來就寫著 `RL_TRAINING_ENV_EVALUATION_V4／V3` **兩個值**，同一份 protocol 的 `enforcement_scope`（:64）也寫著「V3 and V4」。
+實測 35 份 binding record：**20 份（已提交的 15 份裡有 10 份）會因為這個等值檢查變紅，而它們全是對的**。
+裸的 `manifest_schema` 在整份 SPEC 出現 **0 次**，`LB-01`–`LB-13` 沒有一條提到它；SPEC §4.1 把 `bound_manifest_schema_version` 定義為「被綁 manifest **自身的** `schema_version`」，而 `bind_run_lock.py:111` 記的正是那個——**記錄是合規的，登錄檔那一欄是雙值事實的有損抄本**。
+處置：**不強制、不編輯登錄檔**。原措辭依先立後撤保留在上方。）
 
 ## 6. 審計中逐字驗證的兩個 bug
 
@@ -180,6 +205,43 @@ stream = torch.rand(8)
 **但它不能就這樣修。** 改用 `torch.Generator` 區域產生器會**改變 fingerprint 的值**，
 而目前有 **41 份已提交的 lock record** 釘著現在這個值。
 修它＝讓 41 份 receipt 全部失效。**這是擁有者的決定**（選項見 §8）。
+
+（**2026-09-19 更正：上面三句話裡有兩句被實測推翻，第三句的理由也換了。**
+
+**一、「41 份已提交的 lock record」是錯的，實際是 20 份。** 逐一解析 `git ls-files` 下每一份
+`schema_version == ENVIRONMENT_LOCK_RECORD_V1` 的 JSON：**20 份**，全部釘同一組值。
+41 是**磁碟 grep 數**（含 `.gitignore:31` 排除的 `backend/rl/artifacts/` 裡 20 份副本）；
+已提交且內文含該 digest 的**檔案**是 21 份（20 份記錄 ＋ 1 份 markdown receipt）。
+這與 §6.6 更正過的「35 vs 15」是**同一個型態的錯誤，在同一份文件裡犯了第二次**。
+
+**二、「改用 `torch.Generator` 會改變 fingerprint 的值」是錯的。** 在 20 份記錄都釘著的
+torch 2.14.0+cu130 上實測，兩個變體**逐位元相同**：
+
+```
+variant A (global manual_seed): sha256:a8224af9d2333d4d2287f0fd29745aa1bcb9227d056214825382a5d1bff6b096
+variant B (torch.Generator)  : sha256:a8224af9d2333d4d2287f0fd29745aa1bcb9227d056214825382a5d1bff6b096
+A==B: True | both == committed pin: True
+```
+
+全新 process 亦同；整份記錄的 `locked_sha256`（`sha256:d350a110…fa3d7c`）代入變體 B 後不變。
+**所以「修＝41 份 receipt 全部失效」量測為 0 份失效。**
+
+**三、但仍然不該那樣修，理由換成新量到的：那是個半修。** 本函式有**兩個**獨立的全域 RNG 擾動點——
+`torch.manual_seed`（:425）與 **`torch.nn.Linear`（:429，自己從全域預設產生器抽初始化）**。
+今天前者的重設遮住了後者。只換 :425：
+
+```
+caller draw without Linear: 0.9817181825637817
+caller draw with    Linear: 0.8873135447502136   STREAM DISTURBED: True
+```
+
+種子不再被換掉，呼叫端的**串流仍然被悄悄推進**。
+
+**已做**：§8 自己建議的「在 docstring 明寫」從來沒有做過
+（`grep -i "side effect|global|mutat|restore"` 掃 1,366 行，**0 命中**）。
+2026-09-19 補上，兩個擾動點都點名，並由兩個測試釘住。
+**剩下的**只有一行凍結散文 [`ENVIRONMENT_LOCK_SPEC.md:92`](ENVIRONMENT_LOCK_SPEC.md)
+（逐字寫著 `torch.manual_seed(0)`），見決定記錄的問題 C。原措辭依先立後撤保留在上方。）
 
 ### 6.2 `backend/run_manifest_lock.py:530`——未防護的 `relative_to`
 
@@ -340,14 +402,19 @@ declared 路徑相對於該 run 自己的 root 也是對的**——兩個 disjun
 
 我**沒有**動下列任何一項。它們都需要擁有者先做決定：
 
+（**2026-09-19 結案：六項已於任務 #93 逐項重新量測，「全部都需要擁有者決定」這句話是錯的。**
+第 3、5、6 列的**前提被量測推翻**，第 4 列早已修掉，只剩四個真正的問題。
+完整結果見 [TOOLKIT_PORTABILITY_DECISIONS_2026-09-19](TOOLKIT_PORTABILITY_DECISIONS_2026-09-19.md)；
+下表原文依先立後撤保留，逐列更正加在「我的建議」欄後面。）
+
 | # | 決定 | 代價 | 我的建議 |
 |---|---|---|---|
 | 1 | `Literal["SIM_ONLY_MUJOCO"]` 是否放寬 | 動到凍結的主張邊界 | **不要直接放寬。** 改成外部專案提供自己的詞彙表（登錄檔 ＋ 預設值就是現在這份），本專案的值一個字都不變 |
 | 2 | `FROZEN_CLAIM_BOUNDARY` 等值比對是否改為「可設定的凍結句」 | 同上 | 同上：把「必須等於某個凍結句」與「那句話是什麼」分開 |
-| 3 | `learning_fingerprint()` 的全域 RNG（§6.1） | 修＝41 份 lock record 失效 | **不修**，改為在文件與 docstring 明寫這個副作用；若哪天要修，必須當成一次 fingerprint 版本升級 |
+| 3 | `learning_fingerprint()` 的全域 RNG（§6.1） | ~~修＝41 份 lock record 失效~~ **代價量測為 0 份失效**（§6.1 更正） | **不修**，改為在文件與 docstring 明寫這個副作用；~~若哪天要修，必須當成一次 fingerprint 版本升級~~ **不必當版本升級：值沒有變**。**docstring 那一半 2026-09-19 已做**；剩下的只有 `ENVIRONMENT_LOCK_SPEC.md:92` 一行凍結散文 |
 | 4 | ~~`relative_to` 未防護（§6.2）~~ **已於 2026-09-18 修掉，見 §6.3；`evaluate_run` 不重算 lock record（任務 #95）亦已修掉，見 §6.4–§6.6** | ~~可能要動 `LB-09`~~ **`LB-09` 未動，只加正控制測試** | ~~**修**，歸進現有 `LABEL_MISMATCH`，不開第六個標籤~~ **這個建議是錯的**：凍結規格 §7.1 已把「路徑逃逸」列在 `METHOD_FAILURE`，不需要擁有者決定。原措辭依先立後撤保留 |
-| 5 | producer 登錄檔可否外部提供（§5.3） | 需要新的 API 面 | 可做，但屬於「抽成套件」那一步，不是現在 |
-| 6 | 平坦兄弟 import 改成 package-relative（§5.1） | 動 4 個模組的 import 行 | 可做，且應該在**真的要搬檔案**時一起做 |
+| 5 | producer 登錄檔可否外部提供（§5.3） | ~~需要新的 API 面~~ **不需要**：`build_binding_record` 早就收那兩個參數 | ~~可做，但屬於「抽成套件」那一步~~ **可攜性那一半已經解決**（三呼叫流程 0 次開啟該 protocol）。剩下的是要不要放寬 SPEC §3.1 的凍結 producer 範圍 |
+| 6 | 平坦兄弟 import 改成 package-relative（§5.1） | ~~動 4 個模組的 import 行~~ **會弄壞 [TOOLKIT_USAGE](TOOLKIT_USAGE.md) §2 發布的安裝方式**，而且是遲發失敗 | ~~可做，且應該在**真的要搬檔案**時一起做~~ **方向相反：不要做。** 已寫成 `test_the_toolkit_modules_stay_flat_vendorable`。順手關掉了一個相關的 fail-open：`imported_names` 對 `from . import X` 原本完全隱形 |
 
 ## 9. 明確不在範圍內
 

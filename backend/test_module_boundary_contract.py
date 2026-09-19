@@ -454,3 +454,70 @@ def test_cli_returns_nonzero_on_a_violation(tree, capsys):
     io.open(path, "w", encoding="utf-8").write("import paper_data_contract  # noqa: F401\n" + text)
     assert mbc.main(["--registry", mbc.REGISTRY_PATH, "--repo-root", tree]) == 1
     assert "MODULE BOUNDARY CHECK FAILED" in capsys.readouterr().err
+
+
+# --------------------------------------------------------------------------
+# relative sibling imports must not be invisible to the closure
+# --------------------------------------------------------------------------
+#
+# Measured 2026-09-19 while answering decision 6 of docs/TOOLKIT_PORTABILITY.md
+# section 8: ``imported_names`` read ``node.module`` and never ``node.level``,
+# so ``from . import environment_lock`` contributed NOTHING to the closure. A
+# toolkit module could have reached into the teaching product that way and the
+# contract would still have printed MODULE_BOUNDARIES_CLEAN. No module in this
+# repo uses the form today, so closing it changed no closure -- which is the
+# point: it is closed BEFORE decision 6 could ever make it load-bearing.
+
+def test_a_relative_sibling_import_is_visible_to_the_closure(tmp_path):
+    """All four import forms reach the closure, not only the two absolute ones."""
+    probe = tmp_path / "probe.py"
+    probe.write_text(
+        "import environment_lock\n"
+        "from paper_data_contract import ArtifactRecord\n"
+        "from . import run_manifest_lock\n"
+        "from .exposure_identification import episode_bound_pct\n",
+        encoding="utf-8")
+    names = mbc.imported_names(str(probe))
+    assert "environment_lock" in names          # import X
+    assert "paper_data_contract" in names       # from X import Y
+    assert "run_manifest_lock" in names         # from . import X  <-- was invisible
+    assert "exposure_identification" in names   # from .X import Y
+
+
+def test_a_toolkit_module_reaching_out_by_relative_import_is_caught(tree):
+    """The same violation as the absolute case, written the relative way."""
+    path = os.path.join(tree, "backend", "run_manifest_lock.py")
+    text = io.open(path, encoding="utf-8").read()
+    io.open(path, "w", encoding="utf-8").write(
+        "from . import simulator  # noqa: F401\n" + text)
+    with pytest.raises(mbc.ModuleBoundaryError) as caught:
+        mbc.verify(mbc.REGISTRY_PATH, tree)
+    message = str(caught.value)
+    assert "[toolkit]" in message
+    assert "MODULE_OUTSIDE_BOUNDARY: simulator" in message
+    assert "run_manifest_lock -> simulator" in message
+
+
+def test_the_toolkit_modules_stay_flat_vendorable(tree):
+    """No toolkit module may use a relative import: the usage guide forbids it.
+
+    docs/TOOLKIT_USAGE.md section 2 tells outsiders to copy three files into one
+    directory on ``sys.path``. Measured 2026-09-19: rewriting the three sibling
+    imports in ``run_manifest_lock`` to ``from . import environment_lock as el``
+    still IMPORTS cleanly under that recipe and then fails at the first real
+    call with ``ImportError: attempted relative import with no known parent
+    package`` -- a late failure, after the caller believes the install worked.
+    Adding ``__init__.py`` beside the flat copies does not rescue it.
+    """
+    registry = mbc.load_registry()
+    offenders = []
+    for module in registry["boundaries"]["toolkit"]["modules"]:
+        path = os.path.join(tree, "backend", module.replace(".", os.sep) + ".py")
+        for number, line in enumerate(io.open(path, encoding="utf-8"), start=1):
+            stripped = line.strip()
+            if stripped.startswith("from .") or stripped.startswith("from ..") \
+                    or stripped.startswith("import ."):
+                offenders.append(f"{module}:{number}: {stripped}")
+    assert offenders == [], (
+        "a relative import would break the flat vendoring recipe published in "
+        "docs/TOOLKIT_USAGE.md section 2: " + "; ".join(offenders))

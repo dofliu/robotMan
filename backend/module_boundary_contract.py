@@ -146,6 +146,13 @@ def imported_names(path: str) -> Set[str]:
         elif isinstance(node, ast.ImportFrom):
             if node.module:
                 names.add(node.module)
+            elif node.level:
+                # ``from . import sibling`` carries no node.module at all, so
+                # reading node.module alone makes a relative sibling import
+                # invisible to the closure — a fail-open in a fail-closed
+                # contract.  The imported names are the siblings.
+                for alias in node.names:
+                    names.add(alias.name)
     return names
 
 

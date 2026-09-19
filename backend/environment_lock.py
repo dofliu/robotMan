@@ -413,6 +413,17 @@ def learning_fingerprint() -> dict[str, Any]:
     probe pins ``set_num_threads(1)`` so the locked values do not move with the
     machine's core count; the ambient thread count is recorded as observed
     context instead.
+
+    SIDE EFFECT — this probe disturbs the process-global torch RNG stream and
+    does not restore it.  Two independent sites do it: ``torch.manual_seed``
+    replaces the default generator's seed, and ``torch.nn.Linear`` draws its
+    own initialisation from that same default generator, advancing the stream
+    even when the seed is left alone.  The ambient thread count *is* restored
+    in the ``finally`` block; the RNG state is not.  An in-process caller must
+    therefore capture the fingerprint *before* seeding its own run, or its
+    draws will silently differ from an unprobed run.  This project is not
+    bitten by it because ``rl/second_case_runner.py`` passes ``seed=`` to SB3
+    at ``build_model`` time, which reseeds after any capture.
     """
     try:
         import torch

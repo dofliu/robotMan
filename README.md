@@ -23,8 +23,9 @@ Repository：[github.com/dofliu/robotMan](https://github.com/dofliu/robotMan) �
 | Paper-data gates | PDR-0..8 無一 PASS；`paper_data_ready = false` | [PAPER_DATA_READINESS](docs/PAPER_DATA_READINESS.md) |
 | Gate 狀態一致性 | 33 個 gate、54 個站點由 `GATE-STATUS-SINGLE-SOURCE-V1` fail-closed 比對；狀態改了沒同步到 mirror 即測試失敗 | [GATE_STATUS_SINGLE_SOURCE](docs/GATE_STATUS_SINGLE_SOURCE.md) |
 | 教學／研究邊界 | `MODULE-BOUNDARY-V1`：教學應用 **15 個模組、4,943 行**，**不 import 任何研究模組**；唯一的跨界 import 已於 2026-09-17 切斷，`train_ppo.py` 逐位元未動。**檔案尚未搬動** | [TEACHING_BOUNDARY](docs/TEACHING_BOUNDARY.md) |
-| 工具組邊界與可攜性 | 同一個 `MODULE-BOUNDARY-V1` 契約：工具組閉包**恰好 7 個模組、5,300 行、本地相依為零**，而 13 個專案模組 import 它。**但邊界乾淨 ≠ 今天拿得走**——逐模組審計只有 1 個可原封不動使用 | [TOOLKIT_PORTABILITY](docs/TOOLKIT_PORTABILITY.md) |
-| 工具組對外使用 | 外部 RL 專案今天能拿走的是**三個檔案**（`exposure_identification`、`environment_lock`、`run_manifest_lock`），複製進同一個目錄即可；`rl.bind_run_lock` 用 20 行自寫取代。**無 site-packages 時 gate 回 `RUN_LOCK_INSUFFICIENT` 而非 `BOUND`，那是正確行為** | [TOOLKIT_USAGE](docs/TOOLKIT_USAGE.md) |
+| 工具組邊界與可攜性 | 同一個 `MODULE-BOUNDARY-V1` 契約：工具組閉包**恰好 7 個模組、5,505 行、本地相依為零**，而 13 個專案模組 import 它。**但邊界乾淨 ≠ 今天拿得走**——逐模組審計，**3 個**可原封不動使用 | [TOOLKIT_PORTABILITY](docs/TOOLKIT_PORTABILITY.md) |
+| 可攜性六項決定 | §8 的六項逐項重新量測：**三項的前提被推翻**（決定 3 的代價是 **0 份**不是 41 份 lock record；決定 5 的可攜性問題早已解決；決定 6 的方向相反，照做會弄壞發布的安裝方式）。**只剩四個真正要擁有者回答的問題** | [TOOLKIT_PORTABILITY_DECISIONS](docs/TOOLKIT_PORTABILITY_DECISIONS_2026-09-19.md) |
+| 工具組對外使用 | 外部 RL 專案今天能拿走的是**三個檔案**（`exposure_identification`、`environment_lock`、`run_manifest_lock`），複製進同一個目錄即可；`rl.bind_run_lock` 用 31 行自寫取代。**無 site-packages 時 gate 回 `RUN_LOCK_INSUFFICIENT` 而非 `BOUND`，那是正確行為** | [TOOLKIT_USAGE](docs/TOOLKIT_USAGE.md) |
 | 衍生 claim 一致性 | `DERIVED-CLAIM-CONSISTENCY-V1`：待核文獻清單與地圖的 `U`／`S` 等級綁定，10 篇論文、3 個站點；清單裡出現已核實的論文即測試失敗 | [DERIVED_CLAIM_CONSISTENCY](docs/DERIVED_CLAIM_CONSISTENCY.md) |
 | 最強的一個結果 | V7B 相對 V7A 的 saturation duty method-level bound `[-13.503408, -12.435259]` pp，排除 0，5/5 independent training replicates 方向可識別；**條件於一個不可重建的 warm start** | [PROJECT_STATUS §4](docs/PROJECT_STATUS.md) |
 | 被推翻的一個結果 | V7C 表面上的 `-36` pp 改善經量測確認為 exposure artifact | [PROJECT_STATUS §4.2](docs/PROJECT_STATUS.md) |
@@ -135,7 +136,8 @@ python -m pytest backend -q
 | [GATE_STATUS_SINGLE_SOURCE](docs/GATE_STATUS_SINGLE_SOURCE.md) | gate 狀態的單一權威來源：`GATE-STATUS-SINGLE-SOURCE-V1` 的規則、33 個 gate 與 54 個站點的 authority／mirror 關係、明確不涵蓋的範圍；由 `backend/gate_status_contract.py` fail-closed 檢查 |
 | [TEACHING_BOUNDARY](docs/TEACHING_BOUNDARY.md) | 教學模擬器的邊界：`MODULE-BOUNDARY-V1` 的 teaching 邊界，教學進入點的遞移 import 閉包必須恰好等於登錄清單；研究模組跑進來或清單過期皆 fail closed |
 | [TOOLKIT_PORTABILITY](docs/TOOLKIT_PORTABILITY.md) | 實驗工具組的邊界與**可攜性審計**：同一契約的 toolkit 邊界（函式庫不得反向碰專案），加上七個模組逐一的 blocking／friction 分類，以及三件需要擁有者決定的事 |
-| [TOOLKIT_USAGE](docs/TOOLKIT_USAGE.md) | **對外使用說明**：外部 RL 專案怎麼用這套工具組。只寫今天真的做得到的事——三個可攜模組、20 行取代 `bind_run_lock`、識別區間的完整流程、四個標籤的實測，以及四個擋死模組的原因 |
+| [TOOLKIT_PORTABILITY_DECISIONS](docs/TOOLKIT_PORTABILITY_DECISIONS_2026-09-19.md) | **六項可攜性決定的結案記錄**：哪三項的前提被量測推翻、哪四個問題真的還在等擁有者，每個都附量測過的代價與「不答＝維持現狀」的預設 |
+| [TOOLKIT_USAGE](docs/TOOLKIT_USAGE.md) | **對外使用說明**：外部 RL 專案怎麼用這套工具組。只寫今天真的做得到的事——三個可攜模組、31 行取代 `bind_run_lock`、識別區間的完整流程、四個標籤的實測，以及四個擋死模組的原因 |
 | [DERIVED_CLAIM_CONSISTENCY](docs/DERIVED_CLAIM_CONSISTENCY.md) | 衍生 claim 的一致性：`DERIVED-CLAIM-CONSISTENCY-V1`，把「從文獻核實等級算出來的待核清單」與地圖綁在一起；補上 gate 契約明寫不涵蓋的那一類失效 |
 | [ROADMAP](docs/ROADMAP.md) | V0–V4 gate-first 工程工作順序 |
 | [RESEARCH_EXECUTION_PLAN](docs/RESEARCH_EXECUTION_PLAN.md) | model validity 與 method effectiveness 雙證據鏈、RQ、P-stage gates |

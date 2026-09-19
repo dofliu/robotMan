@@ -2,6 +2,21 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-19 (as)
+
+### 工具組可攜性六項決定的結案（任務 #93）——三項的前提被量測推翻
+
+- [RESULT] **[TOOLKIT_PORTABILITY_DECISIONS_2026-09-19](docs/TOOLKIT_PORTABILITY_DECISIONS_2026-09-19.md)**：[§8](docs/TOOLKIT_PORTABILITY.md) 把六項全部歸為「擁有者的決定」。逐項重新量測後，**第 3、5、6 列的前提是假的**，第 4 列早已修掉，**只剩四個真正的問題**。原文依先立後撤全部保留，逐條更正加在旁邊。
+- [BLOCKER] **決定 3 的代價從「41 份 lock record 失效」量到「0 份」。** 兩個前提都被推翻：已提交的 `ENVIRONMENT_LOCK_RECORD_V1` 記錄是 **20 份**（41 是**磁碟 grep 數**，含 `.gitignore:31` 排除的 20 份副本——與 §6.6 更正過的「35 vs 15」是**同一份文件裡的第二次同型錯誤**）；而 `torch.Generator` 變體在 20 份記錄都釘著的 torch 2.14.0+cu130 上產生**逐位元相同**的 `rng_sha256`、`parameter_sha256`、`loss_value` 與整份 `locked_sha256`。
+- [RESULT] **仍然不改探針，但理由換成新量到的：那是半修。** 有**兩個**獨立的全域 RNG 擾動點，不是一個——`torch.manual_seed`（:425）與 **`torch.nn.Linear`（:429，自己從全域預設產生器抽初始化）**。只換前者，種子不再被換掉，呼叫端的**串流仍被推進**（實測 `0.9817181825637817` → `0.8873135447502136`）。
+- [RESULT] **§8 自己建議的 docstring 從來沒寫過，現在寫了。** 修前 `grep -i "side effect|global|mutat|restore"` 掃 `environment_lock.py` 全部 1,366 行、**0 命中**。新 docstring **兩個擾動點都點名**，並寫出那個不對稱：thread 數在 `finally` 被還原、RNG 沒有。兩個測試釘住雙向（docstring 必須說、程式必須仍然那樣做）。剩下的只有一行凍結散文 `ENVIRONMENT_LOCK_SPEC.md:92`。
+- [BLOCKER] **決定 6 的方向是相反的。** 把三個兄弟 import 改成 `from . import environment_lock as el`，照 [TOOLKIT_USAGE §2](docs/TOOLKIT_USAGE.md) 發布的平坦方式擺好，實測 **import 成功、第一次真的呼叫才丟 `ImportError: attempted relative import with no known parent package`**——遲發失敗；加 `__init__.py` 也救不回來。§5.1 寫於說明書之前，兩者作為計畫互相矛盾，**以量測為準：平坦 import 留著**，由 `test_the_toolkit_modules_stay_flat_vendorable` 守著。
+- [BLOCKER] **量決定 6 時撞到邊界契約自己的 fail-open：`imported_names` 對 `from . import X` 完全隱形。** 它只讀 `node.module`、從不讀 `node.level`。負控制：一棵工具組模組 `from . import simulator` 的樹，**舊解析器照樣印出 `MODULE_BOUNDARIES_CLEAN`**，新的抓到 5 個違規。全 repo 今天 **0 處**相對 import，所以修它對現有閉包**可證明是 no-op**——現在修，正是為了**不讓它在決定 6 哪天被重提時才變成承重**。
+- [RESULT] **決定 5 的可攜性那一半早就解決了。** 三呼叫流程在一個**沒有那份 protocol JSON 的目錄**裡跑得完，全程 **0 次**開啟該檔；記的代價「需要新的 API 面」也是錯的——`build_binding_record`（`:484-485`）早就收 `binding_mode` 與 `sidecar_reason`。剩下的是要不要放寬 [SPEC §3.1](docs/RUN_MANIFEST_LOCK_BINDING_SPEC.md)「逐 producer 的處置（**凍結**）」。
+- [BLOCKER] **`manifest_schema` 不是「漏掉一個檢查」，照字面強制會弄壞正確的證據。** 登錄檔為 `eval_policy.py` 釘單一值 `…_V4`，但該 producer **有 `--pilot-arm` 才發 V4、否則發 V3**（`:475,678`），而凍結規格 §3.1 第 2 列本來就寫 `…_V4／V3` **兩個值**，同一份 protocol 的 `enforcement_scope`（:64）也寫「V3 and V4」。實測 35 份 binding record：**20 份（已提交 15 份裡的 10 份）會變紅，而它們全是對的**。裸的 `manifest_schema` 在 SPEC 出現 **0 次**，無任何 `LB-*` 提到它。**不強制、不編輯登錄檔。**
+- [RESULT] **四個真正的問題留給擁有者**，每個附量測過的代價與「不答＝維持現狀」的預設：(A) 外部詞彙表——順帶更正 §5.2，單值 `Literal` 實為**四處**不是兩處、`role` **三處**不是一處，且這套詞彙**沒有全 repo 生效**（24 份帶 `evidence_scope` 的已提交 JSON 裡只有 8 份寫 `SIM_ONLY_MUJOCO`）；(B) 凍結句可設定化——比記的大，**兩個**凍結句、**五個**逐字比對點，且 §5.2 說 `paired_statistics_contract` 只限長度**被它自己的 `:171` 推翻**；(C) 是否改 `ENVIRONMENT_LOCK_SPEC.md:92`；(D) SPEC §3.1 的凍結範圍。
+- [RESULT] **沒有動任何凍結值**：沒有 digest-pinned 檔案、沒有 `FROZEN_CLAIM_BOUNDARY`、沒有任何 `Literal`、沒有五個 `RUN_LOCK_*` 標籤、沒有 `LB-01`–`LB-13`、沒有 `producers_in_scope`、沒有任何已提交證據。
+
 ## Unreleased — 2026-09-19 (ar)
 
 ### 工具組的對外使用說明（任務 #92）——只寫今天真的做得到的事
@@ -13,7 +28,7 @@
 - [RESULT] **四個標籤全部從外部專案實測過**：正常 → `BOUND`；無套件 → `INSUFFICIENT`；改 manifest 一個數字 → `MISMATCH`；刪掉 lock record → `METHOD_FAILURE`。最後一個是 (aq) 才修好的——說明書明寫**複製更早的版本等於把那個假 PASS 一起複製走**。
 - [RESULT] **識別區間那一段給的是會改變結論的例子，不是加誤差棒。** 五個 replicate、候選組兩個早期終止：per-step 平均報 mean `-3.78` pp、t-interval `[-5.339016, -2.220984]`**不含零、宣告候選組更好**；不做假設的區間是 `[-6.88, +24.12]`，**跨過零**，`compare_naive_to_bound` 判為 `NAIVE_ASSERTS_DIRECTION_BOUND_CONTAINS_ZERO`。
 - [RESULT] **說明書的核心宣稱變成被檢查的事實，不是宣稱。** `backend/test_module_boundary_contract.py` 加 3 個測試：三個檔案複製出去後在 `python3 -I -S` 下互相 import 且**不拉進任何第三方模組**；§4.1 那張表裡不需要重套件的三列**逐一斷言**；以及說明書列的三個模組**都在 toolkit 邊界登錄檔內**。該檔 31 → **34**。
-- [BLOCKER] **已知未修的 bug 寫進說明書**：`environment_lock.py:425` 的 `learning_fingerprint()` 動全域 torch RNG。對本專案不咬人，修它會讓 41 份已提交的 lock record 失效，所以沒修——說明書給外部使用者的對策是「在自己的訓練流程開始前量，不要量到一半」。
+- [BLOCKER] **已知未修的 bug 寫進說明書**：`environment_lock.py:425` 的 `learning_fingerprint()` 動全域 torch RNG。對本專案不咬人，修它會讓 41 份已提交的 lock record 失效，所以沒修——說明書給外部使用者的對策是「在自己的訓練流程開始前量，不要量到一半」。（**2026-09-19 更正（as）**：「41 份」與「修它會讓記錄失效」**兩個都被實測推翻**——已提交記錄是 **20 份**，且 `torch.Generator` 變體產生**逐位元相同**的 fingerprint 與 `locked_sha256`，**0 份失效**。不修的理由換成：那是**半修**，`torch.nn.Linear`（:429）也從全域預設產生器抽初始化。給外部使用者的對策不變，仍是量測過的。原措辭依先立後撤保留。）
 - [BLOCKER] **四個擋死的模組逐一寫出原因**，其中三個（`experiment_matrix_contract`、`paired_statistics_contract`、`paper_data_contract`）的封閉 `Literal` 與逐字 claim boundary **不是疏忽**，是這個專案不誇大主張的機制，仍屬任務 #93 的擁有者決定。
 
 ## Unreleased — 2026-09-18 (aq)
@@ -54,7 +69,7 @@
 - [RESULT] **量到的是一個不對稱，這才是重點。** 工具組閉包**恰好是它自己那 7 個模組、5,300 行、本地相依為零**，而**13 個非測試專案模組 import 它**。它已經坐在相依圖的最底層——那正是函式庫該待的位置；契約的作用不是把它搬過去，而是**讓它留在那裡**。這個方向（函式庫不得反向碰專案）**嚴格強於**教學邊界。
 - [BLOCKER] **但「邊界乾淨」不等於「別人拿得走」，而且沒有任何自動檢查在守第二件事。** 逐模組審計（[TOOLKIT_PORTABILITY §4](docs/TOOLKIT_PORTABILITY.md)）：7 個模組裡**只有 `exposure_identification`（312 行、stdlib-only）今天可以原封不動使用**。契約 docstring、登錄檔註記與一個**專門的測試**（`test_the_boundary_is_not_a_portability_claim`）三處都寫死這件事，就是為了不讓綠燈被讀成「可以複用了」。
 - [BLOCKER] **`SIM_ONLY_MUJOCO` 與 `FROZEN_CLAIM_BOUNDARY` 是擁有者的決定，本次一個字都沒有動。** `experiment_matrix_contract.py:212`、`paired_statistics_contract.py:156` 把 `evidence_scope` 釘成單一值；`experiment_matrix_contract.py:257` 要求 `claim_boundary` **逐字等於**凍結句；`paper_data_contract.py:54-70` 把 `role` 封閉成 16 個值。**這些不是疏忽**——那句「SIM_ONLY_MUJOCO / NOT_PHYSICALLY_VALIDATED」能被逐字檢查，正是這個專案不誇大主張的機制之一。建議是讓外部專案**提供自己的詞彙表**（預設值就是現在這份），而不是放寬這裡的任何一個值。
-- [BLOCKER] **兩個逐字驗證的 bug，兩個都沒有修，因為兩個都需要決定。** `environment_lock.py:425` 的 `learning_fingerprint()` 呼叫 `torch.manual_seed`，動的是**全域** RNG——**對本專案不咬人**（`second_case_runner` 在 `build_model` 明確傳 `seed=`），但擋住同 process 的函式庫複用；**修它會改變 fingerprint 的值，讓 41 份已提交的 lock record 失效**。`run_manifest_lock.py:530` 的 `relative_to` 少了它自己 384 行就有的 `is_relative_to` 防護，逃逸 symlink 會丟**未捕捉的 `ValueError`** 而不是 typed label——對一個「每種失敗都有標籤」的契約來說，這是一條**沒有標籤的失敗路徑**。（**2026-09-18 更正**：已於 (ap) 修掉。本條說它「需要一個決定」是錯的——凍結規格 §7.1 早就把「路徑逃逸」列在 `METHOD_FAILURE`；`LB-09` 一個字都沒動，只加正控制測試。本條也少記了三種觸發條件與一個**假 PASS**，見 (ap)。原措辭依先立後撤保留。）
+- [BLOCKER] **兩個逐字驗證的 bug，兩個都沒有修，因為兩個都需要決定。** `environment_lock.py:425` 的 `learning_fingerprint()` 呼叫 `torch.manual_seed`，動的是**全域** RNG——**對本專案不咬人**（`second_case_runner` 在 `build_model` 明確傳 `seed=`），但擋住同 process 的函式庫複用；**修它會改變 fingerprint 的值，讓 41 份已提交的 lock record 失效**（**2026-09-19 更正（as）：實測 20 份，且值不變、0 份失效**）。`run_manifest_lock.py:530` 的 `relative_to` 少了它自己 384 行就有的 `is_relative_to` 防護，逃逸 symlink 會丟**未捕捉的 `ValueError`** 而不是 typed label——對一個「每種失敗都有標籤」的契約來說，這是一條**沒有標籤的失敗路徑**。（**2026-09-18 更正**：已於 (ap) 修掉。本條說它「需要一個決定」是錯的——凍結規格 §7.1 早就把「路徑逃逸」列在 `METHOD_FAILURE`；`LB-09` 一個字都沒動，只加正控制測試。本條也少記了三種觸發條件與一個**假 PASS**，見 (ap)。原措辭依先立後撤保留。）
 - [BLOCKER] **另外發現一個被凍結卻沒有被強制的欄位**：producer 登錄檔的 `manifest_schema`（如 `RL_TRAINING_RUN_V2`）**全 repo 只在它自己那份 JSON 出現過**，沒有任何程式讀它。binding record 記的是 manifest 自己宣告的 `schema_version`，兩者不一致時沒有東西會說話。
 - [RESULT] **先立後撤：我先前的假設被實測推翻。** 我原本說 `environment_lock` 裡 top-level 的 `mujoco`／`numpy`／`torch` import 是可攜性上最致命的問題。**錯。** 三個重套件的 import **全部在函式內、全部包在 `try/except` 裡**（`numpy:356`、`mujoco:382`、`torch:418/532/541`），在**無 site-packages 的 `python3 -I -S` 下實測可以 import 並使用**，缺套件只讓三個 fingerprint 回報 unavailable。錯的說法留著，更正放在旁邊（[TOOLKIT_PORTABILITY §7](docs/TOOLKIT_PORTABILITY.md)）。
 - [BLOCKER] **本次一樣沒有搬任何檔案，也沒有改任何 API、任何契約語義。**
