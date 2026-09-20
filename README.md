@@ -32,12 +32,12 @@ Repository：[github.com/dofliu/robotMan](https://github.com/dofliu/robotMan) �
 | 最強的一個結果 | V7B 相對 V7A 的 saturation duty method-level bound `[-13.503408, -12.435259]` pp，排除 0，5/5 independent training replicates 方向可識別；**條件於一個不可重建的 warm start** | [PROJECT_STATUS §4](docs/PROJECT_STATUS.md) |
 | 被推翻的一個結果 | V7C 表面上的 `-36` pp 改善經量測確認為 exposure artifact | [PROJECT_STATUS §4.2](docs/PROJECT_STATUS.md) |
 | 學術產出 | 三條路線；Track A 於 2026-09-09 重構為「censoring regime 的評估效度研究」（`PUBLICATION-PLAN-V3`）：`PUB-A1a` PASS（Walker2d-v5 第二案例）、`PUB-A1b` CLOSED_NOT_ATTAINED（三個 budget probe 後停止）；`PUB-A0` 關鍵兩篇已原文核對、gap 仍成立，A-C5 補充 scan 完成後降為 artifact 級（其餘條目待核）；下一步 `PUB-A2` claim freeze，其輸入之一是 2026-09-11 凍結的 `R0` regime probe | [PUBLICATION_PLAN](docs/PUBLICATION_PLAN.md)、[TRACK_A_REFRAME](docs/TRACK_A_REFRAME_2026-09-09.md) |
-| 證據環境綁定 | `ENVIRONMENT-LOCK-V1` 量測環境身分；`RUN-MANIFEST-LOCK-BINDING-V1`（2026-09-13）以 SHA-256 把 lock record 綁進 run manifest，fail-closed。**前向**，V0 blocker 收窄未清除 | [RUN_MANIFEST_LOCK_BINDING_RECEIPT](docs/RUN_MANIFEST_LOCK_BINDING_RECEIPT_2026-09-13.md) |
+| 證據環境綁定 | `ENVIRONMENT-LOCK-V1` 量測環境身分；`RUN-MANIFEST-LOCK-BINDING-V1`（2026-09-13）以 SHA-256 把 lock record 綁進 run manifest，fail-closed。**前向**，V0 blocker 收窄未清除 | [RUN_MANIFEST_LOCK_BINDING_RECEIPT](docs/receipts/RUN_MANIFEST_LOCK_BINDING_RECEIPT_2026-09-13.md) |
 | 新訓練線 | `TRACKED-LINEAGE-TRAINING-V1` 於 2026-09-14 **執行完成**：scratch、5 replicates、20 個 checkpoint 進版控（`38.0 MiB`）、10 次執行皆 `RUN_LOCK_BOUND`。**`PUB-B1` 達成**（provenance 可重建的訓練線存在）；**`PUB-B2` 未達成**——5 個 replicate 的 full exposure 皆 `0/30`，標籤 **`TL_BUDGET_EXHAUSTED`**（曲線在上限處仍未收斂，見 amendment 03 的更正）。**門檻不得下調，上限亦不得因「再多跑一點」而上調** | [receipt](docs/archive/TRACKED_LINEAGE_TRAINING_RECEIPT_2026-09-14.md) |
 | 加倍預算的續訓線 | `TRACKED-LINEAGE-TRAINING-V2` 於 2026-09-14 **執行完成**：由 V1 各 replicate 保留的 `1,999,968` 步 checkpoint 續訓，各再加 `2,000,000` 步（realized `4,015,200`）。獎勵升到 `283.1`–`295.3`（`+51.5`–`+66.5`）、平均存活升到 `2.725`–`3.458` s，而**完整曝露仍是 `0/30`，五個全部**。五個皆未收斂，且**四個的末四分位斜率比首四分位還大**——曲線更陡了，曝露沒動。標籤 **`TL2_BUDGET_EXHAUSTED`**，由 contract runner 在保留證據上算出。**`PUB-B2` 仍未達成；規格禁止以此為由再加預算** | [V2 receipt](docs/archive/TRACKED_LINEAGE_TRAINING_V2_RECEIPT_2026-09-14.md) |
 | **專案評估（2026-09-16）** | 給負責人的**決策文件**：核心 robotics + 應用 `6,871` 行、前端 `3,561` 行，證據契約 `29,294` 行（**1 : 4.3**），其中約 `15,800` 行服務的研究線已結案；**沒有不可達程式**。機器人：v5 會走（10/11）但 checkpoint 是看結果後挑的，所有可重建的線全在 `STEADY_WALK` 起點跌倒，量化診斷指向獎勵形塑而非預算。**價值**：robotics 研究弱；評估效度研究**真的有一篇**（Track A，證據已齊、**不需 `PUB-B2`**）；教學工具有實質價值且與研究契約**完全解耦**。**關鍵觀察：`PUB-B2` 的理由在 09-09 Track A 重構時就消失了。** 三個去向選項見 §5——**負責人尚未決定** | [PROJECT_ASSESSMENT](docs/PROJECT_ASSESSMENT_2026-09-16.md) |
 | 動作任務範圍 | 2026-09-11 決定現在**不**新增跳躍／轉身；順序為先綁 lock record 與建有版控 lineage 的新訓練線，轉身需 `PUB-B2`、跳躍需 V1 PASS | [MOTION_SCOPE_DECISION](docs/MOTION_SCOPE_DECISION_2026-09-11.md) |
-| 下一個決策 | formal evaluation 已於 2026-09-10 授權；剩兩個子問題：用現行 post-hoc 規則或先預註冊替代規則、唯一未檢視的 FORMAL seed 範圍花在 v7 線或新訓練線 | [PUBLICATION_PLAN §5](docs/PUBLICATION_PLAN.md)、[PUB_B0 receipt](docs/PUB_B0_AUTHORIZATION_RECEIPT_2026-09-10.md) |
+| 下一個決策 | formal evaluation 已於 2026-09-10 授權；剩兩個子問題：用現行 post-hoc 規則或先預註冊替代規則、唯一未檢視的 FORMAL seed 範圍花在 v7 線或新訓練線 | [PUBLICATION_PLAN §5](docs/PUBLICATION_PLAN.md)、[PUB_B0 receipt](docs/receipts/PUB_B0_AUTHORIZATION_RECEIPT_2026-09-10.md) |
 | 測試 | `backend/` **1 failed / 1061 passed**（2026-09-19，`407.95` s，工作樹為 `146f8c0` 加上任務 #96 的變更，`python3 -X utf8 -m pytest backend/ -p no:cacheprovider`）。那一個失敗是在具名 environment lock 下**記錄為量測結果、未放寬**的 reduction-order 差異——看到它不必修 | [PROJECT_STATUS §9](docs/PROJECT_STATUS.md)、`STATUS.yaml` 的 `test_suite_status` |
 
 ## 兩種模式
@@ -138,6 +138,7 @@ python -m pytest backend -q
 | [GATE_STATUS_SINGLE_SOURCE](docs/GATE_STATUS_SINGLE_SOURCE.md) | gate 狀態的單一權威來源：`GATE-STATUS-SINGLE-SOURCE-V1` 的規則、33 個 gate 與 54 個站點的 authority／mirror 關係、明確不涵蓋的範圍；由 `backend/gate_status_contract.py` fail-closed 檢查 |
 | [TEACHING_BOUNDARY](docs/TEACHING_BOUNDARY.md) | 教學模擬器的邊界：`MODULE-BOUNDARY-V1` 的 teaching 邊界，教學進入點的遞移 import 閉包必須恰好等於登錄清單；研究模組跑進來或清單過期皆 fail closed |
 | [TOOLKIT_PORTABILITY](docs/TOOLKIT_PORTABILITY.md) | 實驗工具組的邊界與**可攜性審計**：同一契約的 toolkit 邊界（函式庫不得反向碰專案），加上七個模組逐一的 blocking／friction 分類，以及三件需要擁有者決定的事 |
+| [`docs/receipts/`](docs/receipts/README.md) | **實作 receipt 索引**——14 份，2026-09-20 由 `docs/` 搬入；仍然有效，只是不是規劃文件 |
 | [`docs/archive/`](docs/archive/README.md) | **已結案研究線的 receipt 與 spec 索引**——17 份，2026-09-20 搬入；另 **3 份 spec 因 digest 被凍結證據釘住而搬不動**（改連結就是改位元組），7 份在原路徑留轉址。記錄見 [DOC_ARCHIVE](docs/DOC_ARCHIVE_2026-09-20.md) |
 | [RESEARCH_LINE_ARCHIVE](docs/RESEARCH_LINE_ARCHIVE_2026-09-19.md) | **封存記錄**：已結案研究線進 `backend/archive/` 的逐項改動、為什麼測試必須繼續跑、以及那個因自己的 pin 而搬不動的 contract |
 | [TOOLKIT_MOVE](docs/TOOLKIT_MOVE_2026-09-19.md) | **搬移記錄**：產品 B 進 `backend/toolkit/` 的逐檔改動、`sys.path` shim 的設計、以及搬移過程中量到的三件事（契約 fail-open、第八個檔案、五份凍結檔案的舊路徑） |
@@ -200,29 +201,29 @@ python -m pytest backend -q
 
 | 文件 | 內容 |
 |---|---|
-| [V0_IMPLEMENTATION_RECEIPT_2026-08-26](docs/V0_IMPLEMENTATION_RECEIPT_2026-08-26.md) | 第一批 V0 hardening |
-| [COMPARE_RL_IMPLEMENTATION_RECEIPT_2026-08-26](docs/COMPARE_RL_IMPLEMENTATION_RECEIPT_2026-08-26.md) | 三機比較、registry、training smoke |
-| [DYNAMIC_RUN_TRACE_IMPLEMENTATION_RECEIPT_2026-08-29](docs/DYNAMIC_RUN_TRACE_IMPLEMENTATION_RECEIPT_2026-08-29.md) | recorder、artifact/API、UI bridge |
-| [MOTION_TASK_IMPLEMENTATION_RECEIPT_2026-08-29](docs/MOTION_TASK_IMPLEMENTATION_RECEIPT_2026-08-29.md) | Motion Task registry 與第一組負結果 |
-| [CONTROLLED_STOP_TRAINING_IMPLEMENTATION_RECEIPT_2026-08-30](docs/CONTROLLED_STOP_TRAINING_IMPLEMENTATION_RECEIPT_2026-08-30.md) | controlled stop、Training Lab、curriculum |
-| [START_STOP_POLICY_TRAINING_RECEIPT_2026-08-30](docs/START_STOP_POLICY_TRAINING_RECEIPT_2026-08-30.md) | v1 early stop、curriculum-v2 warm start |
-| [PATH_PHASE_SATURATION_TRAINING_RECEIPT_2026-08-30](docs/PATH_PHASE_SATURATION_TRAINING_RECEIPT_2026-08-30.md) | v2–v6 iterations、500 Hz sampling defect |
-| [V1_RAW_JACOBIAN_IMPLEMENTATION_RECEIPT_2026-08-31](docs/V1_RAW_JACOBIAN_IMPLEMENTATION_RECEIPT_2026-08-31.md) | raw relative Jacobian replay V4 |
-| [V1_ANALYTICAL_SUITE_IMPLEMENTATION_RECEIPT_2026-09-02](docs/V1_ANALYTICAL_SUITE_IMPLEMENTATION_RECEIPT_2026-09-02.md) | analytical fixture clean-source bundle |
-| [EXPERIMENT_MATRIX_IMPLEMENTATION_RECEIPT_2026-09-03](docs/EXPERIMENT_MATRIX_IMPLEMENTATION_RECEIPT_2026-09-03.md) | matrix validator synthetic receipt |
-| [PAIRED_STATISTICS_IMPLEMENTATION_RECEIPT_2026-09-05](docs/PAIRED_STATISTICS_IMPLEMENTATION_RECEIPT_2026-09-05.md) | paired statistics/export regression receipt |
+| [V0_IMPLEMENTATION_RECEIPT_2026-08-26](docs/receipts/V0_IMPLEMENTATION_RECEIPT_2026-08-26.md) | 第一批 V0 hardening |
+| [COMPARE_RL_IMPLEMENTATION_RECEIPT_2026-08-26](docs/receipts/COMPARE_RL_IMPLEMENTATION_RECEIPT_2026-08-26.md) | 三機比較、registry、training smoke |
+| [DYNAMIC_RUN_TRACE_IMPLEMENTATION_RECEIPT_2026-08-29](docs/receipts/DYNAMIC_RUN_TRACE_IMPLEMENTATION_RECEIPT_2026-08-29.md) | recorder、artifact/API、UI bridge |
+| [MOTION_TASK_IMPLEMENTATION_RECEIPT_2026-08-29](docs/receipts/MOTION_TASK_IMPLEMENTATION_RECEIPT_2026-08-29.md) | Motion Task registry 與第一組負結果 |
+| [CONTROLLED_STOP_TRAINING_IMPLEMENTATION_RECEIPT_2026-08-30](docs/receipts/CONTROLLED_STOP_TRAINING_IMPLEMENTATION_RECEIPT_2026-08-30.md) | controlled stop、Training Lab、curriculum |
+| [START_STOP_POLICY_TRAINING_RECEIPT_2026-08-30](docs/receipts/START_STOP_POLICY_TRAINING_RECEIPT_2026-08-30.md) | v1 early stop、curriculum-v2 warm start |
+| [PATH_PHASE_SATURATION_TRAINING_RECEIPT_2026-08-30](docs/receipts/PATH_PHASE_SATURATION_TRAINING_RECEIPT_2026-08-30.md) | v2–v6 iterations、500 Hz sampling defect |
+| [V1_RAW_JACOBIAN_IMPLEMENTATION_RECEIPT_2026-08-31](docs/receipts/V1_RAW_JACOBIAN_IMPLEMENTATION_RECEIPT_2026-08-31.md) | raw relative Jacobian replay V4 |
+| [V1_ANALYTICAL_SUITE_IMPLEMENTATION_RECEIPT_2026-09-02](docs/receipts/V1_ANALYTICAL_SUITE_IMPLEMENTATION_RECEIPT_2026-09-02.md) | analytical fixture clean-source bundle |
+| [EXPERIMENT_MATRIX_IMPLEMENTATION_RECEIPT_2026-09-03](docs/receipts/EXPERIMENT_MATRIX_IMPLEMENTATION_RECEIPT_2026-09-03.md) | matrix validator synthetic receipt |
+| [PAIRED_STATISTICS_IMPLEMENTATION_RECEIPT_2026-09-05](docs/receipts/PAIRED_STATISTICS_IMPLEMENTATION_RECEIPT_2026-09-05.md) | paired statistics/export regression receipt |
 | [V7_ACTION_INTERFACE_PILOT_IMPLEMENTATION_RECEIPT_2026-09-06](docs/archive/V7_ACTION_INTERFACE_PILOT_IMPLEMENTATION_RECEIPT_2026-09-06.md) | v7 三臂 pilot bundle 與 conditional statistics |
 | [V7_EXPOSURE_CENSORING_AUDIT_IMPLEMENTATION_RECEIPT_2026-09-08](docs/archive/V7_EXPOSURE_CENSORING_AUDIT_IMPLEMENTATION_RECEIPT_2026-09-08.md) | audit software synthetic receipt、phase-convention finding |
 | [V7_EXPOSURE_CENSORING_AUDIT_FROZEN_BUNDLE_RECEIPT_2026-09-08](docs/archive/V7_EXPOSURE_CENSORING_AUDIT_FROZEN_BUNDLE_RECEIPT_2026-09-08.md) | 對 frozen pilot bundle 的 read-only audit run |
-| [ENVIRONMENT_LOCK_IMPLEMENTATION_RECEIPT_2026-09-08](docs/ENVIRONMENT_LOCK_IMPLEMENTATION_RECEIPT_2026-09-08.md) | 實測 lock record、reduction-order 差異 |
-| [RUN_MANIFEST_LOCK_BINDING_RECEIPT_2026-09-13](docs/RUN_MANIFEST_LOCK_BINDING_RECEIPT_2026-09-13.md) | `LB-01`..`LB-12`、兩個 digest 的正控制、三個承諾不碰的檔案逐位元未變、以及凍結 §12 的一個具名缺陷 |
+| [ENVIRONMENT_LOCK_IMPLEMENTATION_RECEIPT_2026-09-08](docs/receipts/ENVIRONMENT_LOCK_IMPLEMENTATION_RECEIPT_2026-09-08.md) | 實測 lock record、reduction-order 差異 |
+| [RUN_MANIFEST_LOCK_BINDING_RECEIPT_2026-09-13](docs/receipts/RUN_MANIFEST_LOCK_BINDING_RECEIPT_2026-09-13.md) | `LB-01`..`LB-12`、兩個 digest 的正控制、三個承諾不碰的檔案逐位元未變、以及凍結 §12 的一個具名缺陷 |
 | [TRAINING_SEED_VARIANCE_IMPLEMENTATION_RECEIPT_2026-09-08](docs/archive/TRAINING_SEED_VARIANCE_IMPLEMENTATION_RECEIPT_2026-09-08.md) | plant identity、結構性規則、synthetic regression |
 | [TRAINING_SEED_VARIANCE_EXECUTION_RECEIPT_2026-09-08](docs/archive/TRAINING_SEED_VARIANCE_EXECUTION_RECEIPT_2026-09-08.md) | 1,843,200 timesteps 的實際執行與 method-level bounds |
 | [V7_PRETRAINING_SEED_VARIANCE_INFEASIBILITY_RECEIPT_2026-09-08](docs/archive/V7_PRETRAINING_SEED_VARIANCE_INFEASIBILITY_RECEIPT_2026-09-08.md) | 為何 pretraining-seed variance 不可量測 |
 | [V7_CANDIDATE_SELECTION_IMPLEMENTATION_RECEIPT_2026-09-08](docs/archive/V7_CANDIDATE_SELECTION_IMPLEMENTATION_RECEIPT_2026-09-08.md) | selection rule 自檢、三項執行前置條件 |
 | [SECOND_CASE_EXPOSURE_CENSORING_EXECUTION_RECEIPT_2026-09-08](docs/archive/SECOND_CASE_EXPOSURE_CENSORING_EXECUTION_RECEIPT_2026-09-08.md) | 第二案例的 10 cells 執行、method-level 結果、兩臂皆 censored 的保留發現 |
 | [SECOND_CASE_V2_BUDGET_PROBE_RECEIPT_2026-09-08](docs/archive/SECOND_CASE_V2_BUDGET_PROBE_RECEIPT_2026-09-08.md) | 三個 budget probe（pilot）、exposure-only adequacy 規則的缺口、2026-09-09 停止該線的決定 |
-| [PUB_B0_AUTHORIZATION_RECEIPT_2026-09-10](docs/PUB_B0_AUTHORIZATION_RECEIPT_2026-09-10.md) | 2026-09-10 的 formal-evaluation 授權紀錄、仍存在的四項 blocker、v7 線上 `SEL-C2` 的可行性量測 |
+| [PUB_B0_AUTHORIZATION_RECEIPT_2026-09-10](docs/receipts/PUB_B0_AUTHORIZATION_RECEIPT_2026-09-10.md) | 2026-09-10 的 formal-evaluation 授權紀錄、仍存在的四項 blocker、v7 線上 `SEL-C2` 的可行性量測 |
 
 ## 下一階段
 

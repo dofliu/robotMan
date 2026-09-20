@@ -78,7 +78,7 @@ Fixture 是具有 free joint、20 kg carrier、單一 rectangular support geom�
 
 ## 5. Clean-source bounded result
 
-完整 receipt見 [V1 Analytical Suite Implementation Receipt](V1_ANALYTICAL_SUITE_IMPLEMENTATION_RECEIPT_2026-09-02.md)。
+完整 receipt見 [V1 Analytical Suite Implementation Receipt](receipts/V1_ANALYTICAL_SUITE_IMPLEMENTATION_RECEIPT_2026-09-02.md)。
 
 - [RESULT] Source Git SHA為 `b39a5ea2524a10189959d4968a9a7e15747fbf59`；
   run前後 worktree皆 clean且 source identity stable。

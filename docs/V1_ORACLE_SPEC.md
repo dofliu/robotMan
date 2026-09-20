@@ -133,7 +133,7 @@ PASS when support_margin >= -1e-9 m and both feet have loaded CoP
 ## 3. V4 reference result
 
 Clean-source implementation evidence 見
-[V1 Raw-Jacobian V4 Implementation Receipt](V1_RAW_JACOBIAN_IMPLEMENTATION_RECEIPT_2026-08-31.md)。
+[V1 Raw-Jacobian V4 Implementation Receipt](receipts/V1_RAW_JACOBIAN_IMPLEMENTATION_RECEIPT_2026-08-31.md)。
 
 Primary static oracle 通過 16/16 criteria：
 

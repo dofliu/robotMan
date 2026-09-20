@@ -213,6 +213,10 @@ repo），證據目錄原地不動、digest 不變。
 | `STATUS.yaml` | 78 KB，單欄位數千字元的敘事字串 | 拆成結構化欄位；敘事移到 receipt |
 | `CHANGELOG.md` | 110 KB，每個工作階段一條長條目 | 保留，但改為每個 PR 一段摘要；細節在 receipt |
 | 文件數 | 63 份 | 活的規劃文件約 12 份留在 `docs/`，其餘進 `docs/archive/` 與 `docs/receipts/` |
+
+[BLOCKER] **「約 12 份」達不到，這是量出來的。** 2026-09-20 執行時 `docs/` 裡已有 **11 份結構性搬不動**——4 份內容 digest 被凍結證據釘住的 spec，加上 §4.2 執行時為保住那些 pin 而留下的 7 份轉址。「12 份留在 `docs/`」等於只剩 1 個名額給真正的規劃文件。與「942 → 520」同類。
+
+[RESULT] **已改為保守分流並執行（任務 #99）**：14 份實作 receipt 進 `docs/receipts/`，`docs/` 由 64 降到 **51**，spec 與計畫文件留在原地。記錄見 [DOC_ARCHIVE §8](DOC_ARCHIVE_2026-09-20.md)。
 | v7 證據 | 222 MB 只在本容器 | **二選一**：依 REPOSITORY_GUIDE §3 放外部 immutable storage 並在 §4.1 註記；或在 PROJECT_STATUS 明寫「Pilot 欄不可從 repo 重導」（本次已加註後者） |
 | V1 evaluations 的 `run_lock_label` | 五筆仍是佔位字串 `"see gate output"` | 用 `evaluate_relocated_run` 重導並回填，或維持並在 receipt 註明（現為後者） |
 | **同一事實的多份副本** | 一個 gate 狀態散在 **8 份文件、24 處**；三天內量到 **4 次「改了一部分」**，第 4 次是寫本節時才量到的 | **已實作**（2026-09-17，`GATE-STATUS-SINGLE-SOURCE-V1`）：33 個 gate 各有唯一權威來源，54 個站點由 [`gate_status_contract`](../backend/gate_status_contract.py) fail-closed 比對。規範見 [GATE_STATUS_SINGLE_SOURCE](GATE_STATUS_SINGLE_SOURCE.md)；仍未涵蓋的見該文件 §5、§6 |
