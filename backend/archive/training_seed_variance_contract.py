@@ -44,6 +44,11 @@ import subprocess
 import sys
 from typing import Any
 
+# Archived on 2026-09-19 to backend/archive/. Run as a script, sys.path[0] is
+# this directory, so backend/ has to be added before the flat imports below.
+_BACKEND = Path(__file__).resolve().parents[1]
+if str(_BACKEND) not in sys.path:
+    sys.path.insert(0, str(_BACKEND))
 import toolkit_path  # noqa: E402,F401  puts backend/toolkit on sys.path
 from environment_lock import (
     FULL_LOCK,
@@ -74,7 +79,7 @@ AUDIT_PROTOCOL_SHA256 = (
 # episode classification. Pinning them is what makes "the audit rules were
 # applied" checkable rather than asserted: a drifted audit implementation would
 # otherwise silently reclassify exposure under an unchanged protocol digest.
-AUDIT_CONTRACT_SOURCE = Path(__file__).resolve().parent / "v7_exposure_audit_contract.py"
+AUDIT_CONTRACT_SOURCE = Path(__file__).resolve().parents[1] / "v7_exposure_audit_contract.py"
 AUDIT_CONTRACT_SOURCE_SHA256 = (
     "sha256:365d7669f0f5a388d34afe8f4960e39d533c43b35c733a4f5852546d7957c376"
 )
@@ -134,9 +139,9 @@ CLAIM_BOUNDARY = (
     "sim-to-real performance."
 )
 
-DEFAULT_PROTOCOL = Path(__file__).resolve().parent / "rl" / "training_seed_variance_protocol.json"
+DEFAULT_PROTOCOL = Path(__file__).resolve().parents[1] / "rl" / "training_seed_variance_protocol.json"
 DEFAULT_PILOT_PROTOCOL = (
-    Path(__file__).resolve().parent / "rl" / "v7_action_interface_pilot_protocol.json"
+    Path(__file__).resolve().parents[1] / "rl" / "v7_action_interface_pilot_protocol.json"
 )
 
 EPISODE_FIELDS = (

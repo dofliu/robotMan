@@ -58,8 +58,8 @@
 |---|---|---|
 | v5（2026-08-30） | **10/11 準則通過、無跌倒**、穩態 0.586 m/s、只有 saturation duty 38.4% > 30% 未過 | `motion_task_status` |
 | v6、v7A/B/C | 全部退步；v7C 30/30 早跌 | `motion_task_training_status` |
-| tracked lineage V1（5 × 2.0M 步，從零） | **0/30 × 5**，平均存活 2.44–2.81 s | [V1 receipt](TRACKED_LINEAGE_TRAINING_RECEIPT_2026-09-14.md) |
-| tracked lineage V2（各再 +2.0M 步） | **0/30 × 5**，平均存活 2.73–3.46 s；獎勵 +51–+66 | [V2 receipt](TRACKED_LINEAGE_TRAINING_V2_RECEIPT_2026-09-14.md) |
+| tracked lineage V1（5 × 2.0M 步，從零） | **0/30 × 5**，平均存活 2.44–2.81 s | [V1 receipt](archive/TRACKED_LINEAGE_TRAINING_RECEIPT_2026-09-14.md) |
+| tracked lineage V2（各再 +2.0M 步） | **0/30 × 5**，平均存活 2.73–3.46 s；獎勵 +51–+66 | [V2 receipt](archive/TRACKED_LINEAGE_TRAINING_V2_RECEIPT_2026-09-14.md) |
 
 **機器人會走**——v5 的 policy artifact（1.9 MB）在版控裡、registry 選定、Live 模式可載入，10/11
 準則通過。**機器人從零學不會走**——十個 replicate、兩種預算、300 個 episode，沒有一個撐過 9 秒，
@@ -191,6 +191,18 @@ repo），證據目錄原地不動、digest 不變。
 | R0 probe | 411 | 已執行 |
 | 對應的 receipt／spec（約 25 份 md） | — | 移至 `docs/archive/`，README 只留一個索引連結 |
 
+[RESULT] **文件部分已於 2026-09-20 執行（任務 #98），記錄見 [DOC_ARCHIVE](DOC_ARCHIVE_2026-09-20.md)。** 對應五條線的實際是 **20 份**（非 25）；**17 份搬入 `docs/archive/`，3 份搬不動**，`docs/` 由 73 降到 64。
+
+[BLOCKER] **3 份 spec 結構性地搬不動。** 搬移必須改內部相對連結，改連結就改位元組，而 `TRACKED_LINEAGE_TRAINING_SPEC`、`TRACKED_LINEAGE_TRAINING_V2_SPEC`、`R0_REGIME_PROBE_SPEC` 的**內容 digest 被凍結 protocol 與凍結證據釘住**（`r0_probe_evidence/probe_result.json` 即為一例）。兩者不可兼得，因此退回原地、位元組還原。另有 7 份雖已搬，但原路徑必須留轉址。
+
+[RESULT] **已於 2026-09-19 執行（任務 #97），記錄見 [RESEARCH_LINE_ARCHIVE](RESEARCH_LINE_ARCHIVE_2026-09-19.md)。** 22 個檔案進 `backend/archive/`，證據目錄與 digest 一個都沒動，文件依擁有者選的範圍留在 `docs/`。
+
+[BLOCKER] **下面「測試會從 942 降到約 520」這個預期被刻意推翻了。** 實測：**搬移前後都是 1,062 個測試**。照原文讓測試停跑會停掉 **434** 個檢查，其中包含**三個沒有被封存的檔案**的不可變性 pin——`config_schema.py`、`motion_tasks.py`（皆教學閉包）與 `rl/eval_policy.py`（`immutable_sources` ＋ binding protocol 執行期解析的 producer）。封存的是位置，不是檢查。
+
+[BLOCKER] **`v7_exposure_audit_contract.py` 搬不動。** 它 `:2009` 以 `with_name` 把 `motion_tasks.py` 當成自己的兄弟解析，而那是留下來的教學模組；改那一行就得重算 `training_seed_variance_contract.py:77` 的 pin，而那個 pin 存在的理由正是偵測它被改動。該組四個檔案因此留在 `backend/`，屬擁有者決定。
+
+原文保留於下：
+
 搬走後全套測試會從 942 降到約 **520**（移除 ~420 個測試函式對應的 case）。這不是損失——那些測試
 測的是已經不會再改的程式。
 
@@ -294,6 +306,6 @@ repo），證據目錄原地不動、digest 不變。
 |---|---|
 | [PROJECT_STATUS](PROJECT_STATUS.md) | 逐 gate 的現況；本文件是它的**判斷層** |
 | [PUBLICATION_PLAN](PUBLICATION_PLAN.md)、[TRACK_A_REFRAME](TRACK_A_REFRAME_2026-09-09.md) | §3 的論證依據 |
-| [TRACKED_LINEAGE_TRAINING_V2_RECEIPT](TRACKED_LINEAGE_TRAINING_V2_RECEIPT_2026-09-14.md) | §1.3、§1.4 的量測來源 |
+| [TRACKED_LINEAGE_TRAINING_V2_RECEIPT](archive/TRACKED_LINEAGE_TRAINING_V2_RECEIPT_2026-09-14.md) | §1.3、§1.4 的量測來源 |
 | [REPOSITORY_GUIDE](REPOSITORY_GUIDE.md) | §1.5 引用的證據儲存政策 |
 | [USAGE §6](USAGE.md) | 教學流程，§2 教學價值的依據 |

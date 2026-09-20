@@ -29,8 +29,10 @@ import tracked_lineage_contract as v1
 
 
 CONTRACT_ID = "TRACKED-LINEAGE-TRAINING-V2"
-REPO_ROOT = Path(__file__).resolve().parent.parent
+REPO_ROOT = Path(__file__).resolve().parents[2]
 PROTOCOL_PATH = REPO_ROOT / "backend" / "rl" / "tracked_lineage_training_v2_protocol.json"
+# Stays in docs/: its bytes are digest-pinned by the frozen protocol, and
+# moving it would force a link rewrite that changes those bytes.
 SPECIFICATION_PATH = REPO_ROOT / "docs" / "TRACKED_LINEAGE_TRAINING_V2_SPEC.md"
 EVIDENCE_PREFIX = "backend/tracked_lineage_evidence/"
 

@@ -26,8 +26,8 @@ import time
 from pathlib import Path
 from typing import Any
 
-RL_DIR = Path(__file__).resolve().parent
-BACKEND_DIR = RL_DIR.parent
+BACKEND_DIR = Path(__file__).resolve().parents[1]
+RL_DIR = BACKEND_DIR / "rl"
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
@@ -96,7 +96,8 @@ class ProbeError(RuntimeError):
 
 
 def _runner():
-    spec = importlib.util.spec_from_file_location("second_case_runner", RL_DIR / "second_case_runner.py")
+    spec = importlib.util.spec_from_file_location(
+        "second_case_runner", Path(__file__).resolve().parent / "second_case_runner.py")
     module = importlib.util.module_from_spec(spec)
     assert spec.loader is not None
     spec.loader.exec_module(module)

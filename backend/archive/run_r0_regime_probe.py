@@ -15,11 +15,16 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+# Archived on 2026-09-19 to backend/archive/. Run as a script, sys.path[0] is
+# this directory, so backend/ has to be added before the flat imports below.
+_BACKEND = Path(__file__).resolve().parents[1]
+if str(_BACKEND) not in sys.path:
+    sys.path.insert(0, str(_BACKEND))
 import toolkit_path  # noqa: E402,F401  puts backend/toolkit on sys.path
 import environment_lock as el
 import r0_regime_probe_contract as r0
 
-BACKEND = Path(__file__).resolve().parent
+BACKEND = Path(__file__).resolve().parents[1]
 REPO = BACKEND.parent
 INDEX_PATH = BACKEND / "r0_probe_evidence/2026-09-11/horizon_trace_index.json"
 PROTOCOL_PATH = BACKEND / "rl/r0_regime_probe_protocol.json"

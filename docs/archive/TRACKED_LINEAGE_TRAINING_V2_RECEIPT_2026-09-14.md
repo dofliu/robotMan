@@ -3,7 +3,7 @@
 最後更新：2026-09-14 ｜ Protocol ID：`TRACKED-LINEAGE-TRAINING-V2` ｜ 對應 gate：`PUB-B2`
 ｜ 前身：[TRACKED-LINEAGE-TRAINING-V1](TRACKED_LINEAGE_TRAINING_RECEIPT_2026-09-14.md)
 
-規格：[TRACKED_LINEAGE_TRAINING_V2_SPEC](TRACKED_LINEAGE_TRAINING_V2_SPEC.md)
+規格：[TRACKED_LINEAGE_TRAINING_V2_SPEC](../TRACKED_LINEAGE_TRAINING_V2_SPEC.md)
 （`sha256:ea1a56f0809f5a588c420fb8c52104fbc2b0eb10567be1baae8c152a35662289`）
 
 證據等級：`DEVELOPMENT / SIM_ONLY_MUJOCO`
@@ -23,7 +23,7 @@
 V1 的驗收由人逐條核對後寫進 receipt，讀者只能選擇相信作者。V2 不同：
 `backend/rl/run_tracked_lineage_v2_contract.py` **只讀版控內的保留證據**，跑完
 `TL2-01`..`TL2-09` 後輸出
-[`tl2_contract_receipt.json`](../backend/tracked_lineage_evidence/2026-09-14/tl2_contract_receipt.json)。
+[`tl2_contract_receipt.json`](../../backend/tracked_lineage_evidence/2026-09-14/tl2_contract_receipt.json)。
 任何人可以重跑並 diff。
 
 ```
@@ -227,8 +227,8 @@ checkpoint（`r<i>-3999936.zip`），不是那個未保留的 `policy.zip` 副�
 
 | 文件 | 關係 |
 |---|---|
-| [TRACKED_LINEAGE_TRAINING_V2_SPEC](TRACKED_LINEAGE_TRAINING_V2_SPEC.md) | 本線的凍結規格 |
+| [TRACKED_LINEAGE_TRAINING_V2_SPEC](../TRACKED_LINEAGE_TRAINING_V2_SPEC.md) | 本線的凍結規格 |
 | [TRACKED_LINEAGE_TRAINING_RECEIPT_2026-09-14](TRACKED_LINEAGE_TRAINING_RECEIPT_2026-09-14.md) | V1 的結果，本線存在的理由 |
-| [TRACKED_LINEAGE_TRAINING_SPEC](TRACKED_LINEAGE_TRAINING_SPEC.md) | V1 規格與三份 amendment |
-| [PUBLICATION_PLAN](PUBLICATION_PLAN.md) | `PUB-B` 系列 gate 定義 |
-| [PROJECT_STATUS](PROJECT_STATUS.md) | 專案現況 |
+| [TRACKED_LINEAGE_TRAINING_SPEC](../TRACKED_LINEAGE_TRAINING_SPEC.md) | V1 規格與三份 amendment |
+| [PUBLICATION_PLAN](../PUBLICATION_PLAN.md) | `PUB-B` 系列 gate 定義 |
+| [PROJECT_STATUS](../PROJECT_STATUS.md) | 專案現況 |

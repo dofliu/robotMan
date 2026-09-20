@@ -2,6 +2,30 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-20 (av)
+
+### 把已結案研究線的文件搬進 `docs/archive/`（任務 #98，`PROJECT_ASSESSMENT` §4.2 的文件部分）
+
+- [RESULT] **17 份進 `docs/archive/`，`docs/` 的 md 由 73 降到 64。** §4.2 寫「約 25 份」，對應五條已封存程式線的實際是 20 份。建了 `docs/archive/README.md` 索引，README 只放一個連結。
+- [BLOCKER] **規劃時的一個前提被執行推翻。** 我掃 `grep -rn "specification_path" backend/**/*.py` 得到空結果，因而判斷「沒有程式在執行期解析文件路徑」。**錯了**——契約用的是模組常數 `SPECIFICATION_PATH`，小寫 grep 掃不到；它會讀文件、算 sha256、和凍結 protocol 比對。擋下我的是全套測試裡的 `TL2_SPECIFICATION_DIGEST_MISMATCH`，不是我的推理。
+- [BLOCKER] **3 份 spec 結構性地搬不動：改連結就是改位元組。** 搬移必須把 `](../backend/…)` 改成 `](../../backend/…)`，而 `TRACKED_LINEAGE_TRAINING_SPEC`、`TRACKED_LINEAGE_TRAINING_V2_SPEC`、`R0_REGIME_PROBE_SPEC` 的內容 digest 被凍結 protocol 與**不可改的凍結證據**（`r0_probe_evidence/2026-09-11/probe_result.json`）釘住。三份全部退回 `docs/`，位元組逐一比對還原無誤。
+- [BLOCKER] **連帶改壞了一個與本次搬移無關的檔案。** `RUN_MANIFEST_LOCK_BINDING_SPEC.md` 本來就沒要搬，但它連到搬走的文件，我的連結改寫動了它的位元組，破壞了 `toolkit/run_manifest_lock_binding_protocol.json` 的 pin。抓到它的是 `test_protocol_and_specification_digests_match_the_pins`，不是我的檢查清單。已還原。
+- [RESULT] **7 份在原路徑留一行轉址**，兩種理由：4 份被凍結 JSON 以路徑指名（`specification_path` 等，那些 JSON 不能改）；3 份被上述「位元組不能動」的 spec 連到（那些連結改不了）。
+- [RESULT] `gate_status_registry.json` 的 5 筆 evidence 路徑非改不可——`gate_status_contract.py:279` 逐筆驗證檔案存在，漏改即 fail-closed。已全部改為 `docs/archive/…`。其餘約 190 處連結沒有任何機制會在漏改時報錯（§4.3.1 的型態），靠連結檢查器掃到 0。
+- [RESULT] `test_gate_status_contract.py` 的 fixture 只建 `docs/` 平層，文件進子目錄就 `FileNotFoundError`；改為依各檔深度建父目錄。**不是放寬檢查**，是讓合成 repo 反映真實結構。
+- [RESULT] **量測：1 failed / 1061 passed**，與搬移前完全相同，失敗項仍是同一個未放寬的 `PRIMARY_CASE_RECEIPT_IDENTITY`；0 個壞連結；三個文件契約全過。
+
+## Unreleased — 2026-09-19 (au)
+
+### 把已結案的研究線封存進 `backend/archive/`（任務 #97，`PROJECT_ASSESSMENT` §4.2）
+
+- [RESULT] **22 個檔案進 `backend/archive/`**：v7 pilot／selection、second case（含 runner 與 budget probe）、seed variance（含 replay 與兩個 bundle builder）、tracked lineage V1／V2（含 retention 與 contract runner）、R0 probe，以及 6 個對應測試。**證據目錄一個都沒動，digest 一個都沒變。文件依擁有者選的範圍留在 `docs/`。**
+- [BLOCKER] **§4.2 自己的預期被刻意推翻：測試沒有變少。** 原文寫「942 降到約 520」；實測**搬移前後都是 1,062**。讓那 434 個測試停跑，會停掉**三個沒有被封存的檔案**的不可變性 pin——`config_schema.py`、`motion_tasks.py`（皆教學閉包）由 `test_v7_pilot_contract.py` 釘住，`rl/eval_policy.py`（在 `immutable_sources`，且是 binding protocol 執行期解析的四個 producer 之一）由 `test_tracked_lineage_v2_contract.py` 釘住。**封存的是位置，不是檢查。**
+- [BLOCKER] **`v7_exposure_audit_contract.py` 搬不動，原因是它自己的 pin。** `:2009` 用 `with_name` 把 `motion_tasks.py` 當成兄弟解析，而那是留下來的教學模組；改那一行就得重算 `training_seed_variance_contract.py:77` 的 digest，而那個 pin 的註解寫明它存在是為了偵測「audit 實作漂移後在未變的 protocol digest 下悄悄重新分類 exposure」。**重算它＝廢掉它。** 該 contract、其 replay、其 protocol JSON 與其測試因此全部留在 `backend/`，屬擁有者決定。已封存的 `training_seed_variance_contract.py` 的 pin 路徑改指回 `backend/`（該檔未被釘）。`v7_pilot_contract.py` 同樣被釘住但**不需要改任何一行**（只解析一個跟著搬的兄弟 replay），因此連 pin 一起進了 archive。
+- [BLOCKER] **與 §4.1 相反，這次只有 5 個檔案逐位元未動，22 個要改**，全部是 `__file__` 相對路徑：祖先層級位移；從 `backend/rl/` 搬來的三個模組 `parent` 不再是 `rl/`；指向 `backend/rl/` 凍結 protocol 與 `backend/` 證據目錄的路徑要 `parents[1]`；**5 個 CLI 需要 `sys.path` bootstrap**（從 `backend/archive/` 當腳本跑時 `sys.path[0]` 不再含 `backend/`，`import toolkit_path` 直接 `ModuleNotFoundError`）；7 處 `from rl import` 改平坦名稱。
+- [RESULT] 登錄檔的 `module_search_path` 由「根 ＋ toolkit」擴為「根 ＋ toolkit ＋ archive」——(at) 為了同一個理由加的機制第二次用上。
+- [RESULT] **量測：1 failed / 1061 passed**，失敗項仍是同一個未放寬的 `PRIMARY_CASE_RECEIPT_IDENTITY`；兩個邊界閉包、三個文件契約皆與封存前相同。
+
 ## Unreleased — 2026-09-19 (at)
 
 ### 把實驗工具組搬進 `backend/toolkit/`（任務 #96，`PROJECT_ASSESSMENT` §4.1 產品 B）
@@ -106,7 +130,7 @@
 
 - [RESULT] 依專案負責人指示重跑。條件：**乾淨工作樹**（跑前跑後 `git status` 皆空）於 `5bfc342`，`python3 -X utf8 -m pytest backend/ -p no:cacheprovider -v --durations=0`。結果 **1 failed / 1003 passed**、`314.84` s、收集 `1004`。對帳精確：`1003 + 1 = 1004`；`950`（`979e73b`）＋27（`test_gate_status_contract.py`）＝ `977`（`01afa60`）＋26（`test_derived_claim_contract.py`）＝ **`1003`**。
 - [RESULT] **量測條件更新，原條件依先立後撤保留**：(al) 記的是 `70b8db3` **加上未合併變更**的工作樹（`315.31` s）。合併後在乾淨樹重跑得到**相同結果**，故以乾淨樹那次為準；原條件記於 [PROJECT_STATUS §9](docs/PROJECT_STATUS.md)。兩次一致本身就是一次重現。
-- [BLOCKER] **失敗身分是直接核對出來的，不是從測試名推斷的。** 重跑 replay 取出 `replay["status"] == "FAIL"`、失敗判準 `PRIMARY_CASE_RECEIPT_IDENTITY`，與 [V2 receipt §8](docs/TRACKED_LINEAGE_TRAINING_V2_RECEIPT_2026-09-14.md) 記載的 reduction-order 差異同源，**記錄為量測結果、未放寬**。另已以 `git stash` 在合併基底上重跑確認該失敗先於這一系列變更存在。
+- [BLOCKER] **失敗身分是直接核對出來的，不是從測試名推斷的。** 重跑 replay 取出 `replay["status"] == "FAIL"`、失敗判準 `PRIMARY_CASE_RECEIPT_IDENTITY`，與 [V2 receipt §8](docs/archive/TRACKED_LINEAGE_TRAINING_V2_RECEIPT_2026-09-14.md) 記載的 reduction-order 差異同源，**記錄為量測結果、未放寬**。另已以 `git stash` 在合併基底上重跑確認該失敗先於這一系列變更存在。
 - [BLOCKER] **一個界線寫清楚**：順帶掃過各 case 的數值判準，找到的差異全在 `WEIGHT_BALANCE`（最大 `7.4e-15`），**都在 `1e-12` 門檻內、未造成失敗**。`PRIMARY_CASE_RECEIPT_IDENTITY` 是 receipt 層的同一性檢查，其差異不在那些欄位裡——**本次確認的是判準身分相同，並未重新導出既有 receipt 裡記載的數值**。
 - [RESULT] **無 collection error**：日誌中兩處 `ERROR` 字樣是一個參數化測試的**名字**（`test_v1_bundle_rejects_incomplete_replay_stdout[{"status":"ERROR"}]`），它 PASSED。
 - [RESULT] 兩個文件契約於同一 commit 複跑通過：`GATE_STATUS_SINGLE_SOURCE_CONSISTENT`（33 gates／54 sites）、`DERIVED_CLAIMS_CONSISTENT`（10 papers／1 claim／3 sites）。
@@ -309,7 +333,7 @@
 
 ### `TRACKED-LINEAGE-TRAINING-V1` 執行完成：`PUB-B1` 達成、`PUB-B2` `NOT_ATTAINED`
 
-- [RESULT] **標籤 `TL_REFERENCE_NOT_ATTAINED`**（[receipt](docs/TRACKED_LINEAGE_TRAINING_RECEIPT_2026-09-14.md)）。五個 scratch replicate 全部訓練完成、全部產出版控 checkpoint lineage，但**沒有任何一個** reference policy 達到事先凍結的 `30/30`：五個皆 `0/30`。
+- [RESULT] **標籤 `TL_REFERENCE_NOT_ATTAINED`**（[receipt](docs/archive/TRACKED_LINEAGE_TRAINING_RECEIPT_2026-09-14.md)）。五個 scratch replicate 全部訓練完成、全部產出版控 checkpoint lineage，但**沒有任何一個** reference policy 達到事先凍結的 `30/30`：五個皆 `0/30`。
 - [BLOCKER] **這是事先宣告的結果，不是失敗。** 規格 §3、§4.2 與 §9 在看到任何訓練曲線之前就寫明 v5 是經 v1→v5 多輪 curriculum 才到 Live 10/11、單發 scratch 未必能到、`30/30` 很可能得到 `TL_REFERENCE_NOT_ATTAINED`。門檻**不得因此下調**；未達即 `PUB-B2` `NOT_ATTAINED`，那是一項結果。
 - [RESULT] **不對稱的結論，也是本次最重要的一點**：本線**達成了它存在的主要目的**——一條 pretraining provenance 可重建的訓練線現在存在（`PUB-B1`）——但**沒有**產出一個能可靠完成任務的 reference policy（`PUB-B2`）。兩者是不同的事，不可互相代替。
 - [RESULT] 量測：5 replicates、seeds `9100/9112/9124/9136/9148`、每個 realized **恰為 `2,015,232`** 步（五次皆與 amendment 01 的預測相同）、`warm_start` 與 `resume` 全為 null、20 個 checkpoint 共 `39,899,261` bytes（`38.0 MiB`）落在 `499,992`／`999,984`／`1,499,976`／`1,999,968`、無一被 gitignore、digest 與大小皆與磁碟位元組相符。
@@ -415,7 +439,7 @@
 
 ### `R0-REGIME-HORIZON-PROBE-V1` 執行完成：兩個對比皆 `R0_WINDOW_FOUND`
 
-- 凍結（`06ebf60`）push 之後，在 clean source `edf3611` 上執行。先 commit 分析程式再執行，故 source pre == post。[receipt](docs/R0_REGIME_PROBE_RECEIPT_2026-09-11.md)、結果檔 `backend/r0_probe_evidence/2026-09-11/probe_result.json`（`sha256:f8a8db72…`）。
+- 凍結（`06ebf60`）push 之後，在 clean source `edf3611` 上執行。先 commit 分析程式再執行，故 source pre == post。[receipt](docs/archive/R0_REGIME_PROBE_RECEIPT_2026-09-11.md)、結果檔 `backend/r0_probe_evidence/2026-09-11/probe_result.json`（`sha256:f8a8db72…`）。
 - [RESULT] **兩個對比皆 `R0_WINDOW_FOUND`**：`C_B`（`V7B` vs `V7A`）有 290 個 horizon 滿足 `R0-P0a`（`125`–`414`），**全部 290 個同時滿足 `R0-P0b`**，選中 `H = 414`（8.28 s，reference 平均 duty `40.262319` pp）；`C_C`（`V7C` vs `V7A`）有 28 個（`125`–`152`），全部 adequate，選中 `H = 152`（3.04 s，`22.089474` pp）。
 - [RESULT] **本 probe 設計要防的 R5 陷阱，在這個 plant 上沒有發生。** reference 平均 duty 在整個 P0a 範圍內最低 `9.893333` pp（於 `H = 125`），是被判定為退化的 Hopper reference（`2.712%`）的 3.6 倍。[BLOCKER] 這是關於**這個 plant 與任務**的量測，不是一般結論——同一個兩段式規則在 Hopper 上確實會擋下退化 reference。兩者合起來說明非退化性必須逐案檢查。
 - [RESULT] **綁住 R0 窗口的是 candidate 不是 reference**：每個 P0a 上界恰等於該 candidate 最短的 episode（`V7B` `414`、`V7C` `152`；reference 最短 `419`）。
@@ -459,7 +483,7 @@
 - [BLOCKER] **機器可讀的 authorization evidence 刻意未鑄造**：`_require_authorization` 要求 `protocol_sha256` 等於現行 digest `sha256:b4e16370…`，鑄造它等於選定「用現行 post-hoc 規則」這個尚未決定的子選項。
 - [RESULT] **本次的實質內容是一項量測**：授權之後的問題不是「能不能跑」，而是「跑了會得到什麼」。由 retained seed-variance evidence（`seed_variance_summary.json`）重算，每臂 150 個 episode 的 `COMPARABLE` 數為 reference `V7A_REWARD_ONLY` **143/150**、`V7B_REDUCED_JOINT_ENVELOPE` **120/150**、`V7C_FILTERED_ACTION` **0/150**。`SEL-C2` 要求 reference 與 candidate 的每一個 episode 都 comparable；iid 外推的聯合通過機率為 reference + `V7B` **`2.2 × 10⁻¹⁸`**、reference + `V7C` **`0`**。`SEL-C4` 與之耦合（`between_replicate_sd` 為 null 的原因正是 censoring）。
 - [INFERENCE] 結論不依賴精確機率，而依賴一個結構事實：**reference arm 自己就在 3 個 replicate 上早期終止**，而 FORMAL 用的是同一批已訓練 policy、只換 evaluation seed，沒有機制支持質性不同的結果。預期輸出是 `SELECTION_COMPLETE_NO_CANDIDATE`，機率接近 1。
-- [BLOCKER] FORMAL 資料**只套用一次**（[V7_CANDIDATE_SELECTION_SPEC §5](docs/V7_CANDIDATE_SELECTION_SPEC.md)），且 `20000–20029` 是唯一未被檢視的範圍。在 v7 線上執行等於用掉它換一個 `NO_CANDIDATE`，並永久失去日後在該線做出可信 selection 的可能。失敗的原因不是規則設計，而是**這條 policy 線本身跑不完任務**，其 warm start 又不可重建。
+- [BLOCKER] FORMAL 資料**只套用一次**（[V7_CANDIDATE_SELECTION_SPEC §5](docs/archive/V7_CANDIDATE_SELECTION_SPEC.md)），且 `20000–20029` 是唯一未被檢視的範圍。在 v7 線上執行等於用掉它換一個 `NO_CANDIDATE`，並永久失去日後在該線做出可信 selection 的可能。失敗的原因不是規則設計，而是**這條 policy 線本身跑不完任務**，其 warm start 又不可重建。
 - 因此 [PUBLICATION_PLAN](docs/PUBLICATION_PLAN.md) 升版 **`PUBLICATION-PLAN-V3`**：`PUB-B0` 由 `BLOCKED` 改為 `AUTHORIZED_2026-09-10 / SUB_OPTION_OPEN`；§5 由「一個決定」改為「已授權 + 兩個子問題」，新增子問題 (b)「唯一未檢視的 FORMAL seed 範圍花在哪條訓練線」，建議保留給 `PUB-B1`／`PUB-B2` 的新訓練線。Track A、Track C、§6–§7 與四個總開關不變。
 - 對齊：`STATUS.yaml`、[PROJECT_STATUS](docs/PROJECT_STATUS.md)（§0、§6.5、§7 milestone、§8）、README（現況一覽、receipt 索引、下一階段）、[RESEARCH_EXECUTION_PLAN](docs/RESEARCH_EXECUTION_PLAN.md)。
 - [BLOCKER] 本次**沒有**任何程式、contract、protocol、門檻、arm 定義、seed 或測試變更；frozen protocol JSON 逐位元不變（已驗證）。`paper_data_ready`、`statistics_ready`、`method_level_power_ready`、`sample_size_decision_input_ready` 皆為 false 不變；`selected_candidate_arm_id` 仍為 `null`。
@@ -494,7 +518,7 @@
 
 ### 三個 budget probe、一個決定、Track A 重構
 
-- **三個 budget probe 全部記錄為 pilot，不是 evidence。** 為了讓第二案例的 reference 達到事先凍結的 adequacy（≥ 27/30 FULL_EXPOSURE、連續兩個 checkpoint），依序跑了 `SECONDCASE-V2-BUDGET-PROBE-V1`（Walker2d-v5、SB3 PPO 預設、上限 2,949,120）、`-V2`（同 plant、rl-zoo tuned recipe、上限 1,966,080）與 `SECONDCASE-V3-BUDGET-PROBE-HOPPER-V1`（Hopper-v5、tuned、上限 1,966,080）。每一次都在 clean source、同一 `locked_sha256` 下執行、0 mismatch；每一個上限都在看到曲線前寫死，**沒有一次事後提高**；每一次的下一步都在結果出來前寫下。詳見 [probe receipt](docs/SECOND_CASE_V2_BUDGET_PROBE_RECEIPT_2026-09-08.md)。
+- **三個 budget probe 全部記錄為 pilot，不是 evidence。** 為了讓第二案例的 reference 達到事先凍結的 adequacy（≥ 27/30 FULL_EXPOSURE、連續兩個 checkpoint），依序跑了 `SECONDCASE-V2-BUDGET-PROBE-V1`（Walker2d-v5、SB3 PPO 預設、上限 2,949,120）、`-V2`（同 plant、rl-zoo tuned recipe、上限 1,966,080）與 `SECONDCASE-V3-BUDGET-PROBE-HOPPER-V1`（Hopper-v5、tuned、上限 1,966,080）。每一次都在 clean source、同一 `locked_sha256` 下執行、0 mismatch；每一個上限都在看到曲線前寫死，**沒有一次事後提高**；每一次的下一步都在結果出來前寫下。詳見 [probe receipt](docs/archive/SECOND_CASE_V2_BUDGET_PROBE_RECEIPT_2026-09-08.md)。
 - [RESULT] Probe V1：360 個 probe episode 只有 1 個跑完 horizon → `PROBE_NEGATIVE_MAX_BUDGET_REACHED`。Probe V2：240 個中 5 個，全在一個 checkpoint，之後退化 → `PROBE_NEGATIVE_MAX_BUDGET_REACHED`。Probe V3：`PROBE_BUDGET_FOUND` 1,474,560（ck5、ck6 連續 30/30）。
 - [BLOCKER] Probe V3 選出的 reference 是**站著不動**的 hopper：六個 checkpoint 的 return 中位數 1006–1014，選定 checkpoint 的 saturation 2.712%，兩個更早的 30/30 checkpoint ≈ 0%。凍結規則的缺口：adequacy 只檢查 exposure，不檢查 primary measurement 是否退化；reference 為 0% 時 naive 與 bound 的 contrast **必然同號**，artifact 在數學上不可能出現。記錄為 blocker，**沒有**事後修規則。
 - [BLOCKER] Recipe 數值（rl-baselines3-zoo Walker2d／Hopper PPO）為 `U_VERIFIED_FROM_MEMORY`：執行環境無法讀 GitHub raw content。
@@ -515,11 +539,11 @@
 
 ### `PUB-A1` 第二案例：凍結、push、執行完成
 
-- **凍結先於資料。** `SECONDCASE-EXPOSURE-CENSORING-WALKER2D-V1`（[spec](docs/SECOND_CASE_EXPOSURE_CENSORING_SPEC.md)，protocol `sha256:45d1ec55…`）在任何 Walker2d run 之前 commit 並 push（PR #7）。Gymnasium `Walker2d-v5` **全預設**，兩臂共用一個 wrapper 只差 `alpha`（1.0 vs 0.25），5 × 30 配對 seeds，PPO from scratch 精確 `301,056` 步。**不預測方向**；P1／P2 與五個 outcome label 由 contract 強制。`preregistered=false` 由 contract 強制。
+- **凍結先於資料。** `SECONDCASE-EXPOSURE-CENSORING-WALKER2D-V1`（[spec](docs/archive/SECOND_CASE_EXPOSURE_CENSORING_SPEC.md)，protocol `sha256:45d1ec55…`）在任何 Walker2d run 之前 commit 並 push（PR #7）。Gymnasium `Walker2d-v5` **全預設**，兩臂共用一個 wrapper 只差 `alpha`（1.0 vs 0.25），5 × 30 配對 seeds，PPO from scratch 精確 `301,056` 步。**不預測方向**；P1／P2 與五個 outcome label 由 contract 強制。`preregistered=false` 由 contract 強制。
 - **通用模組 `exposure_identification.py`。** stdlib-only；對 v7 seed-variance 的 retained evidence 重算全部 10 個 replicate bound 與兩個 method-level θ，**bit-exact**。兩套實作、同一份資料、同一個答案。
 - [RESULT] 執行：10/10 cells `COMPLETED`、300 terminal records、0 method failure、每 cell realized 精確 301,056、environment lock 20 次驗證 0 mismatch（`locked_sha256` 與 seed-variance 執行**相同**）、`python -I -S` replay bytes 一致。證據保留於 `backend/second_case_evidence/2026-09-08/`。
 - [RESULT] **`SECOND_CASE_ARTIFACT_REPRODUCED`**：naive `W2D_C − W2D_A` = `−28.795138` pp、95% t-interval `[−46.698919, −10.891357]`（排除 0）；identification bound θ = `[−79.118, +55.913333]` pp（含 0、0/5 可識別）。同一份資料、兩種 estimator、相反結論——v7 的機制在第二個 plant 上重現。P3：284/284 early-terminated episode 的 `outcome_state` 皆 `OBSERVED`。
-- [BLOCKER] **gate 仍未 PASS。** 只有 16/300 episode 跑完 horizon，reference 本身 4/5 replicate 30/30 早跌；bound 因兩臂皆 censored 而必然含 0。這證明「對稱 censoring 下 naive 會偽造方向」，但沒有重現 v7 的關鍵形狀（reference 近乎 full、bound 單側變寬）。budget 選擇的後果，如實記錄；**不得**回頭調 budget 重跑 V1。下一步凍結 V2（reference 達事先凍結的 full-exposure 比例）。詳見 [execution receipt](docs/SECOND_CASE_EXPOSURE_CENSORING_EXECUTION_RECEIPT_2026-09-08.md)。
+- [BLOCKER] **gate 仍未 PASS。** 只有 16/300 episode 跑完 horizon，reference 本身 4/5 replicate 30/30 早跌；bound 因兩臂皆 censored 而必然含 0。這證明「對稱 censoring 下 naive 會偽造方向」，但沒有重現 v7 的關鍵形狀（reference 近乎 full、bound 單側變寬）。budget 選擇的後果，如實記錄；**不得**回頭調 budget 重跑 V1。下一步凍結 V2（reference 達事先凍結的 full-exposure 比例）。詳見 [execution receipt](docs/archive/SECOND_CASE_EXPOSURE_CENSORING_EXECUTION_RECEIPT_2026-09-08.md)。
 - [BLOCKER] `direction_claim_permitted=false`；`paper_data_ready` 等 flag 不變；NPZ trace 與 checkpoint 為 gitignored 本機 artifact，digest 保留於 raw bundle，且本次沒有任何主張依賴它們。
 
 ## Unreleased — 2026-09-08 (h)
@@ -548,7 +572,7 @@
 - [RESULT] 而 v5 自己的 training profile 寫 `warm_start_policy_id: null`、`planned_timesteps: 2000000`，與 registry 在 warm start 與 budget 兩件事上都矛盾。Driver 讀的是 profile，所以單看 frozen training contract，v5 看起來是從零訓練的。
 - [INFERENCE] 三件事同時擋住：起點不存在、frozen contract 不記錄它、停止點本身是一次 selection（在新 seed 上照抄「取第 122,880 步」，等於把一次在舊 seed 上做過的 selection 當成規則）。v5 artifact 的 `sha256:c548867f…` 無法從本 repository 重建。
 - [BLOCKER] 因此 `training_replicate_scope = CONDITIONAL_ON_FIXED_WARM_START` 對 v7 line 是**永久的**，不是待補的缺口。V7B 的方向結論永遠附帶「條件於那一個 v5 warm start」。這是**縮小**可宣稱範圍。
-- Profile/registry 的矛盾**刻意不修**：`training_profiles.json` 已被 `SEEDVAR-AMENDMENT-01` pin 進 protocol，而該 protocol digest 又被 contract pin 住，其下游是已 merge 的 seed-variance evidence。修 metadata 而動搖一份**已完成執行**證據的 source identity，不划算。記錄於 [pretraining infeasibility receipt](docs/V7_PRETRAINING_SEED_VARIANCE_INFEASIBILITY_RECEIPT_2026-09-08.md)。
+- Profile/registry 的矛盾**刻意不修**：`training_profiles.json` 已被 `SEEDVAR-AMENDMENT-01` pin 進 protocol，而該 protocol digest 又被 contract pin 住，其下游是已 merge 的 seed-variance evidence。修 metadata 而動搖一份**已完成執行**證據的 source identity，不划算。記錄於 [pretraining infeasibility receipt](docs/archive/V7_PRETRAINING_SEED_VARIANCE_INFEASIBILITY_RECEIPT_2026-09-08.md)。
 
 ### `SELECT-V7-CANDIDATE-FORMAL-V1`：凍結一條自己承認不是 preregistered 的規則
 
@@ -571,14 +595,14 @@
 - [RESULT] 第一版的 self-check **在任何輸入上都不可能通過**：它把 `SEL-C5` 當成必須提供的輸入，而 self-check 從不提供，所以 `SEL-C5` 恆 FAIL。那使「規則擋下 V7B」的論證變成空話 —— 它擋下一切，因此對規則本身沒有提供任何證據。
 - 修正：`SEL-C5`／`SEL-C6` 在 self-check scope 下標為 `NOT_APPLICABLE`（兩者都不區分 candidate，也都不可由 summary 導出），因此一份乾淨的 summary **真的會通過** self-check —— 這才使它在真實資料上的拒絕成為證據。`test_the_self_check_could_have_passed_which_is_what_makes_it_evidence` 同時斷言兩個方向。
 - 另有防漂移檢查：`test_the_protocols_documented_self_check_matches_what_the_code_reports` 逐條比對 protocol 記載的 self-check 表格與 contract 實際輸出的 condition chain；若分歧，frozen 文件就會在描述一個沒人在跑的規則。
-- `SEL-01..SEL-09` 共 **47 個測試**通過。新增 [selection spec](docs/V7_CANDIDATE_SELECTION_SPEC.md) 與 [implementation receipt](docs/V7_CANDIDATE_SELECTION_IMPLEMENTATION_RECEIPT_2026-09-08.md)。
+- `SEL-01..SEL-09` 共 **47 個測試**通過。新增 [selection spec](docs/archive/V7_CANDIDATE_SELECTION_SPEC.md) 與 [implementation receipt](docs/archive/V7_CANDIDATE_SELECTION_IMPLEMENTATION_RECEIPT_2026-09-08.md)。
 - [BLOCKER] **沒有執行 selection、沒有存取 `20000–20029`、沒有產生任何 FORMAL 資料、沒有選出任何 candidate。** `selected_candidate_arm_id` 維持 `null`，`method_level_power_ready`、`statistics_ready`、`paper_data_ready` 全部維持 `false`。
 
 ## Unreleased — 2026-09-08 (f)
 
 ### `SEEDVAR-V7-TRAINING-REPLICATE-DEV-V1` 實際執行完成
 
-- **凍結的 protocol 一開始是無法執行的**，而 freeze 沒有抓到這件事。`train_ppo.py` 對任何 v7 profile 硬性要求 `seed_base == 8700`，`eval_policy.py` 只在 pilot 路徑輸出 `control_step_trace` 且該路徑強制 pilot 自己的 artifact 目錄。凍結時把兩個 driver 都以 digest pin 住，卻沒有檢查它們能不能跑本設計。記錄為 [Amendment 01](docs/TRAINING_SEED_VARIANCE_SPEC.md)（執行前、narrowing-only），並在 `validate_protocol` 強制 amendment 必須同時聲明 narrowing-only 與 applied-before-any-execution——事後的 amendment 等於讓設計繞著資料重寫。
+- **凍結的 protocol 一開始是無法執行的**，而 freeze 沒有抓到這件事。`train_ppo.py` 對任何 v7 profile 硬性要求 `seed_base == 8700`，`eval_policy.py` 只在 pilot 路徑輸出 `control_step_trace` 且該路徑強制 pilot 自己的 artifact 目錄。凍結時把兩個 driver 都以 digest pin 住，卻沒有檢查它們能不能跑本設計。記錄為 [Amendment 01](docs/archive/TRAINING_SEED_VARIANCE_SPEC.md)（執行前、narrowing-only），並在 `validate_protocol` 強制 amendment 必須同時聲明 narrowing-only 與 applied-before-any-execution——事後的 amendment 等於讓設計繞著資料重寫。
 - 兩個 driver 各加一個**互斥**的 frozen identity：v7 profile 必須且只能宣告一個 governing protocol；replicate 的 training seed 由 protocol 依 index 解析，**永遠不能**由 CLI 提供。Pilot branch 的檢查順序原樣保留——我第一版把共用檢查上提，害得 arm 換掉時先觸發的 rejection 從 `V7_PROFILE_ID_MISMATCH` 變成 `V7_ENVIRONMENT_ID_MISMATCH`，被 pilot 自己的測試抓到並還原。
 - 選擇擴充而非另寫 driver：另寫會複製 PPO geometry、warm-start transplant 與 artifact 寫入，而與 pilot 的可比性正建立在這些**完全相同**之上，兩份副本無聲分歧的風險更大。
 
@@ -597,7 +621,7 @@
 - 每個 cell 綁定四項：frozen audit protocol digest（哪些規則）、`v7_exposure_audit_contract.py` 與 `v7_pilot_contract.py` 的 source digest（哪些實作套用了規則）、以及該 cell 的 `evaluation_output_sha256`（套用在哪一份 raw 輸出上）。原本設計的 `audit_summary_sha256` 無法使用：audit 的 frozen bundle classes 只有 pilot bundle 與 synthetic regression bundle，而本資料兩者皆非；把真實量測稱為 synthetic 以便重用 CLI 會敗壞該 class 存在的目的。兩個 implementation pin 在分析時對磁碟重新 hash。
 - Bundle adapter 重用 `v7_pilot_contract` 的 canonicalisation 與 audit 的 `_episode_exposure`。重用在這裡正確、在 replay 裡錯誤：audit 是 exposure 的 frozen 上游權威，而 replay 存在的目的是檢查本 contract 的算術，因此不得共用任何東西。
 - [RESULT] **Guard 抓到的是我自己。** 第一次執行跑完 2 個 replicate 後，其餘 13 個全部以 `SEEDVAR_SOURCE_GIT_NOT_CLEAN` 拒絕——因為我在 runs 進行中修改 tracked files。這是 guard 按設計運作：source identity 釘不住的 training run 作為 evidence 一文不值。修正是把程式修改先 commit 完再跑，不是放寬 guard。（另外我自己的 runner script 在失敗路徑 `mkdir -p` 了 run 目錄，於是 driver 的 `exist_ok=False` 防覆寫 gate 正確擋下重試。）
-- 新增 [execution receipt](docs/TRAINING_SEED_VARIANCE_EXECUTION_RECEIPT_2026-09-08.md)。保留證據會從 repository 重新驗證並 exact replay，由測試斷言。
+- 新增 [execution receipt](docs/archive/TRAINING_SEED_VARIANCE_EXECUTION_RECEIPT_2026-09-08.md)。保留證據會從 repository 重新驗證並 exact replay，由測試斷言。
 
 ## Unreleased — 2026-09-08 (e)
 
@@ -614,7 +638,7 @@
 
 ### `SEEDVAR-V7-TRAINING-REPLICATE-DEV-V1`：凍結 independent training-seed variance protocol
 
-- 這是 `STATUS.yaml` 自己排定的 next milestone。新增 [TRAINING_SEED_VARIANCE_SPEC](docs/TRAINING_SEED_VARIANCE_SPEC.md) 與 `backend/rl/training_seed_variance_protocol.json`，**在任何 source implementation 前凍結**。
+- 這是 `STATUS.yaml` 自己排定的 next milestone。新增 [TRAINING_SEED_VARIANCE_SPEC](docs/archive/TRAINING_SEED_VARIANCE_SPEC.md) 與 `backend/rl/training_seed_variance_protocol.json`，**在任何 source implementation 前凍結**。
 - **Analysis unit 是 training replicate，不是 episode。** Method-level 分母恆為 `replicate_count = 5`；`150`（episode-level pairs）與 `450`（terminal records）在 protocol 內被明列為 forbidden denominators。把 150 個 episode-level pair 當成 150 個獨立單位，是把 evaluation-seed 變異冒充成 training-seed 變異，標準誤會縮小約 `sqrt(30)` 倍。這條規則在三處被檢查，名稱為 `PSEUDO_REPLICATION_FORBIDDEN`。
 - **Exposure censoring 逐層向上組合，不在中途退回點估計。** Cell、paired、method 三層都用 interval arithmetic（對 independent unknowns 皆為 tight）。只要有任一 replicate difference 不是 point-identified，`between_replicate_sd` 就輸出 `null`：sample SD 沒有定義在 interval 上，用區間中點代替就是 imputation。依 audit 的實測結果，V7C 幾乎確定落在這個 blocked 分支——那是**正確**輸出。
 - **Method failure 不是 censoring。** 含 method failure 的 cell 沒有 mean，因為要產生一個 mean 就得刪掉那個 failure；因此 method-level bound 變 `NULL` 並列出被 blocked 的 replicate。
@@ -634,7 +658,7 @@
 - 修掉一個 lock 驗證顆粒度與 spec 不符的缺陷：spec 要求每一個 training **與** evaluation run 之前都要 verify lock，但 raw schema 起初每個 cell 只有一個 flag，把兩個獨立 run 混成一個 —— training 驗過而 evaluation 沒驗過的 cell 會通過。改為 `training_environment_lock_verified` 與 `evaluation_environment_lock_verified` 兩個欄位皆須為 true，receipt 記錄 `2 × 5 × 3 = 30` 次 verification。Frozen protocol 只規定 verify point 不規定欄位名，故未動到它。
 - 順帶修掉 contract 的一個行為缺陷：`analyse_seed_variance` 現在拒絕位於 source bundle 內的 output root。把衍生 artifact 寫進被審查的 bundle 會破壞 read-only 保證，而原本的 "file set changed" 失敗訊息會怪錯對象。
 - **也修掉自己 fixture 的一個缺陷**（值得記錄，因為它會讓 suite 假綠）：初版讓三臂共用同一組 per-replicate offset。Replicate-level pairing 正是用來消掉共同 offset 的，所以它在 contrast 中被完全抵銷——`between_replicate_sd` 只有 `0.146` pp 對比 within-replicate paired SD `0.811` pp，測試全綠但從未驗證「paired difference 的 between-replicate 變異」，也就是本 protocol 唯一要量的東西。修正後每臂各有自己的 offset series，並新增測試直接斷言該性質。修正後 fixture 上正確的 `n=5` 標準誤比 pseudo-replicated 的 `n=150` 標準誤大 `12.92×`（V7B）與 `10.11×`（V7C）——這是機制示範，不是 v7 的結果。
-- 新增 [environment lock receipt](docs/ENVIRONMENT_LOCK_IMPLEMENTATION_RECEIPT_2026-09-08.md) 與 [seed-variance receipt](docs/TRAINING_SEED_VARIANCE_IMPLEMENTATION_RECEIPT_2026-09-08.md)。
+- 新增 [environment lock receipt](docs/ENVIRONMENT_LOCK_IMPLEMENTATION_RECEIPT_2026-09-08.md) 與 [seed-variance receipt](docs/archive/TRAINING_SEED_VARIANCE_IMPLEMENTATION_RECEIPT_2026-09-08.md)。
 - **沒有執行任何訓練。** 因此沒有任何 v7 method-level variance 數值；`selected_candidate_arm_id=null`、`method_level_power_ready=false`、`statistics_ready=false`、`paper_data_ready=false` 全部保留，`formal_sample_size_decision` 改為 `BLOCKED_UNTIL_THIS_PROTOCOL_EXECUTES`。
 
 ## Unreleased — 2026-09-08 (d)
@@ -662,7 +686,7 @@
 - 實測盲點確認：V7B 那 3 個 censored episode 的 `outcome_state` 全為 `OBSERVED` —— 它們在 `FINAL_STAND` 內才終止，六項 required numeric 皆有值、`reason` 為 null，算術上看不出異常。`outcome_state == OBSERVED` 不蘊含 full exposure。
 - `AX-04` 在真實資料上通過：90 個 episode 的每一筆 recorded `command_phase` 都等於重現的 end-of-step accumulated recorder convention。該 convention 相對 contract 的 start-of-step schedule 位移一個 control step，只影響 `INITIAL_STAND`／`START`／`STEADY_WALK` 邊界，原樣保留為 validity finding。若沿用 protocol freeze commit 的原始規則，本次 run 會在 `k=49` 誤判為 structural failure。
 - Descriptive exposure-matched sensitivity：V7B `-12.9968027 ± 1.0755263` pp（k 420–450）、V7C `-21.9635049 ± 1.2888118` pp（k 154–165）。截斷對齊後差值未消失，但仍為 `DESCRIPTIVE_ONLY` 且 informative censoring 依然存在，不得用於 selection、CI 或 sample-size。
-- 新增 [frozen bundle receipt](docs/V7_EXPOSURE_CENSORING_AUDIT_FROZEN_BUNDLE_RECEIPT_2026-09-08.md)；2026-09-06 pilot receipt 與 synthetic regression receipt 皆未回改。`PAPER_DATA_READINESS` 的 PDR-5／PDR-6 與立即執行順序第 9 項更新為 DONE，第 10 項改為 independent training-seed variance protocol。
+- 新增 [frozen bundle receipt](docs/archive/V7_EXPOSURE_CENSORING_AUDIT_FROZEN_BUNDLE_RECEIPT_2026-09-08.md)；2026-09-06 pilot receipt 與 synthetic regression receipt 皆未回改。`PAPER_DATA_READINESS` 的 PDR-5／PDR-6 與立即執行順序第 9 項更新為 DONE，第 10 項改為 independent training-seed variance protocol。
 - 保留的 blocker 未變：`selected_candidate_arm_id=null`、`pilot_planning_ready=false`、`method_level_power_ready=false`、`statistics_ready=false`、`paper_data_ready=false`、`formal_sample_size_decision=BLOCKED_INDEPENDENT_TRAINING_SEED_VARIANCE_NOT_ESTIMATED`。
 
 ## Unreleased — 2026-09-08 (b)

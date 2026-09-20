@@ -6,7 +6,7 @@
 
 Protocol：`PILOT-V7-ACTION-INTERFACE-DEV-V1`
 Machine-readable contract：
-[`backend/rl/v7_action_interface_pilot_protocol.json`](../backend/rl/v7_action_interface_pilot_protocol.json)
+[`backend/rl/v7_action_interface_pilot_protocol.json`](../../backend/rl/v7_action_interface_pilot_protocol.json)
 
 證據範圍：`SIM_ONLY_MUJOCO / NOT_PHYSICALLY_VALIDATED`
 

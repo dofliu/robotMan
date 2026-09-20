@@ -25,7 +25,7 @@ from v7_pilot_contract import (
 )
 
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
+REPO_ROOT = Path(__file__).resolve().parents[2]
 PROTOCOL_PATH = REPO_ROOT / "backend" / "rl" / "v7_action_interface_pilot_protocol.json"
 SOURCE_SHA = "a" * 40
 

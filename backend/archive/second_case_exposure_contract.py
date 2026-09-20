@@ -32,8 +32,11 @@ from pathlib import Path
 from typing import Any
 
 _HERE = Path(__file__).resolve().parent
-if str(_HERE) not in sys.path:
-    sys.path.insert(0, str(_HERE))
+# Archived to backend/archive/ on 2026-09-19: backend/ has to go on the path
+# too, because toolkit_path lives there and this module runs under -I -S.
+for _d in (_HERE, _HERE.parent):
+    if str(_d) not in sys.path:
+        sys.path.insert(0, str(_d))
 
 import toolkit_path  # noqa: E402,F401  puts backend/toolkit on sys.path
 import exposure_identification as ei  # noqa: E402
@@ -135,7 +138,7 @@ CELL_BLOCKED = "BLOCKED_METHOD_FAILURE"
 SHA_PATTERN = re.compile(r"^sha256:[0-9a-f]{64}$")
 GIT_PATTERN = re.compile(r"^[0-9a-f]{40}$")
 
-DEFAULT_PROTOCOL = _HERE / "rl" / "second_case_exposure_protocol.json"
+DEFAULT_PROTOCOL = _HERE.parent / "rl" / "second_case_exposure_protocol.json"
 
 CLAIM_BOUNDARY = (
     "Supports only whether the naive per-step saturation estimator and the assumption-free "

@@ -71,7 +71,7 @@ python backend/rl/train_ppo.py --profile walk_0p4_fixed_v1 --run-id smoke-walk-0
 
 Live 目前可選 registry-gated v2 與 v5，兩者都是 deterministic inference，不會即時學習。v2 的 unchanged task 失敗於 lateral drift 與 saturation；v5 通過其他10項、失敗於 saturation duty。v6與v7 artifacts均未加入 registry；v7B不符合 frozen eligibility，V7C為30/30 early fall。
 
-原 evaluator 曾每20 ms只取一次 saturation，而正式 Motion Task每2 ms取樣。`RL_TRAINING_ENV_EVALUATION_V4`在每個 control step保存500 Hz physics substeps的 saturation aggregate numerator/denominator（total固定10），並在v7 raw bundle保存 requested/applied action、joint target與 action deltas；它不保存10筆逐substep torque samples。舊的50 Hz saturation PASS已撤銷。v2–v6完整數值與 seed reuse規則見 [PATH_PHASE_SATURATION_TRAINING_RECEIPT_2026-08-30](PATH_PHASE_SATURATION_TRAINING_RECEIPT_2026-08-30.md)，v7見 [V7_ACTION_INTERFACE_PILOT_IMPLEMENTATION_RECEIPT_2026-09-06](V7_ACTION_INTERFACE_PILOT_IMPLEMENTATION_RECEIPT_2026-09-06.md)。
+原 evaluator 曾每20 ms只取一次 saturation，而正式 Motion Task每2 ms取樣。`RL_TRAINING_ENV_EVALUATION_V4`在每個 control step保存500 Hz physics substeps的 saturation aggregate numerator/denominator（total固定10），並在v7 raw bundle保存 requested/applied action、joint target與 action deltas；它不保存10筆逐substep torque samples。舊的50 Hz saturation PASS已撤銷。v2–v6完整數值與 seed reuse規則見 [PATH_PHASE_SATURATION_TRAINING_RECEIPT_2026-08-30](PATH_PHASE_SATURATION_TRAINING_RECEIPT_2026-08-30.md)，v7見 [V7_ACTION_INTERFACE_PILOT_IMPLEMENTATION_RECEIPT_2026-09-06](archive/V7_ACTION_INTERFACE_PILOT_IMPLEMENTATION_RECEIPT_2026-09-06.md)。
 
 ## 6. 下一個 policy 形式
 

@@ -6,7 +6,7 @@ Protocol：`SEEDVAR-V7-TRAINING-REPLICATE-DEV-V1`
 Spec：[`docs/TRAINING_SEED_VARIANCE_SPEC.md`](TRAINING_SEED_VARIANCE_SPEC.md)
 （SHA-256 `102fdb4811690e9b9bee53a2f623fa514b6320504f3e77310d3b39826db2174b`）
 Machine-readable protocol：
-[`backend/rl/training_seed_variance_protocol.json`](../backend/rl/training_seed_variance_protocol.json)
+[`backend/rl/training_seed_variance_protocol.json`](../../backend/rl/training_seed_variance_protocol.json)
 （SHA-256 `56c51e2ab37c4777c0c0434d60cdf73c9835489704d7ec439c684c0e0a86d5a5`）
 
 實作：

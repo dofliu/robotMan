@@ -71,8 +71,8 @@
 
 ## 2. 本專案已量測、且與上述文獻交會的事實
 
-這些是 repo 內可重導的量測（見 [V1 receipt](TRACKED_LINEAGE_TRAINING_RECEIPT_2026-09-14.md)、
-[V2 receipt](TRACKED_LINEAGE_TRAINING_V2_RECEIPT_2026-09-14.md)、[PROJECT_ASSESSMENT §1.4](PROJECT_ASSESSMENT_2026-09-16.md)）：
+這些是 repo 內可重導的量測（見 [V1 receipt](archive/TRACKED_LINEAGE_TRAINING_RECEIPT_2026-09-14.md)、
+[V2 receipt](archive/TRACKED_LINEAGE_TRAINING_V2_RECEIPT_2026-09-14.md)、[PROJECT_ASSESSMENT §1.4](PROJECT_ASSESSMENT_2026-09-16.md)）：
 
 1. 10 個 independent training replicate、2 種預算（`2,000,000` 與 realized `4,015,200` 步）、300 個 evaluation episode，**full exposure 一律 `0/30`**。
 2. 獎勵拆解：站好 ≈ `2.5`／步 × 125 步 ≈ `310`，減 `−50` 跌倒 ≈ `260`；**實測 V1 `227`–`232`、V2 `283`–`295`**。

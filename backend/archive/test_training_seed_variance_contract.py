@@ -58,9 +58,12 @@ from training_seed_variance_contract import (
 )
 
 
-BACKEND_ROOT = Path(__file__).resolve().parent
-CONTRACT_PATH = BACKEND_ROOT / "training_seed_variance_contract.py"
-REPLAY_PATH = BACKEND_ROOT / "training_seed_variance_replay.py"
+BACKEND_ROOT = Path(__file__).resolve().parents[1]
+# The contract, its replay and the bundle builder moved to backend/archive/ on
+# 2026-09-19; the evidence they read did not.
+ARCHIVE_ROOT = Path(__file__).resolve().parent
+CONTRACT_PATH = ARCHIVE_ROOT / "training_seed_variance_contract.py"
+REPLAY_PATH = ARCHIVE_ROOT / "training_seed_variance_replay.py"
 FIXTURE_GIT_SHA = "a" * 40
 
 # The replay must run under ``python -I -S``, so its top level may not reach
@@ -958,7 +961,7 @@ def test_builder_cannot_emit_the_development_bundle_class(
 ) -> None:
     payload = builder.build_raw_bundle(design, pinned_lock["locked_sha256"], FIXTURE_GIT_SHA)
     assert payload["bundle_class"] == SYNTHETIC_BUNDLE_CLASS
-    source = (BACKEND_ROOT / "build_training_seed_variance_regression_bundle.py").read_text(
+    source = (ARCHIVE_ROOT / "build_training_seed_variance_regression_bundle.py").read_text(
         encoding="utf-8"
     )
     assert DEVELOPMENT_BUNDLE_CLASS not in source

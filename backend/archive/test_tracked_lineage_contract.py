@@ -22,8 +22,10 @@ import tracked_lineage_contract as tl
 from rl import train_ppo
 
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
+REPO_ROOT = Path(__file__).resolve().parents[2]
 PROTOCOL_PATH = REPO_ROOT / "backend" / "rl" / "tracked_lineage_training_protocol.json"
+# Stays in docs/: its bytes are digest-pinned by the frozen protocol, and
+# moving it would force a link rewrite that changes those bytes.
 SPEC_PATH = REPO_ROOT / "docs" / "TRACKED_LINEAGE_TRAINING_SPEC.md"
 
 

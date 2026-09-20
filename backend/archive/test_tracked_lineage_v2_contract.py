@@ -23,8 +23,10 @@ import tracked_lineage_contract as tl1
 from rl import train_ppo
 
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
+REPO_ROOT = Path(__file__).resolve().parents[2]
 PROTOCOL_PATH = REPO_ROOT / "backend" / "rl" / "tracked_lineage_training_v2_protocol.json"
+# Stays in docs/: its bytes are digest-pinned by the frozen protocol, and
+# moving it would force a link rewrite that changes those bytes.
 SPEC_PATH = REPO_ROOT / "docs" / "TRACKED_LINEAGE_TRAINING_V2_SPEC.md"
 V1_REFERENCE_STEPS = 1_999_968
 
@@ -497,7 +499,7 @@ def test_the_two_lines_cannot_overwrite_each_others_retained_records():
     retention that silently rewrote V1's index would destroy the only
     reconstructable source of V2's own starting point.
     """
-    from rl import retain_tracked_lineage_checkpoints as retain
+    import retain_tracked_lineage_checkpoints as retain
 
     v1, v2 = retain.LINES["v1"], retain.LINES["v2"]
     assert v1.index_filename != v2.index_filename
@@ -513,7 +515,7 @@ def test_the_two_lines_cannot_overwrite_each_others_retained_records():
 
 def test_the_two_lines_checkpoint_step_ranges_are_disjoint(protocol):
     """Why one checkpoints/ directory is safe for both lines."""
-    from rl import retain_tracked_lineage_checkpoints as retain
+    import retain_tracked_lineage_checkpoints as retain
 
     v1_protocol = retain.LINES["v1"].protocol_loader()
     v1_steps = [int(s) for s in v1_protocol["checkpoint_lineage"]["expected_realized_timesteps"]]
@@ -586,7 +588,7 @@ def test_the_training_run_records_are_retained_where_nothing_is_overwritten():
     nobody has is not evidence. Both lines now retain them, each into its own
     index, so no already-retained index is rewritten to add them.
     """
-    from rl import retain_tracked_lineage_checkpoints as retain
+    import retain_tracked_lineage_checkpoints as retain
 
     v1, v2 = retain.LINES["v1"], retain.LINES["v2"]
     assert v1.training_run_index_filename != v2.training_run_index_filename
@@ -601,7 +603,7 @@ def test_a_retained_training_run_carries_what_the_criteria_are_judged_on():
     """Whatever TL2-03, TL2-04, TL2-05 and TL2-07 read must survive the container."""
     import inspect
 
-    from rl import retain_tracked_lineage_checkpoints as retain
+    import retain_tracked_lineage_checkpoints as retain
 
     source = inspect.getsource(retain.retain_training_run)
     for field in ("resume", "warm_start", "seed_base", "run_lock_label", "realized_timesteps"):
@@ -620,7 +622,7 @@ def test_the_contract_runner_declares_its_convergence_aggregate_and_records_both
     """
     import inspect
 
-    from rl import run_tracked_lineage_v2_contract as runner
+    import run_tracked_lineage_v2_contract as runner
 
     source = inspect.getsource(runner.run)
     assert 'curve_index["any_replicate_converged"]' in source
@@ -670,7 +672,7 @@ def test_verifying_the_lineage_does_not_mutate_the_protocol(protocol):
     """A verifier that edits what it verifies has stopped being one."""
     import json as _json
 
-    from rl import run_tracked_lineage_v2_contract as runner
+    import run_tracked_lineage_v2_contract as runner
 
     before = _json.dumps(protocol, sort_keys=True)
     index = _json.loads(
@@ -733,7 +735,7 @@ def test_a_relocated_run_with_the_wrong_manifest_is_not_bound(tmp_path):
 
 def test_the_line_label_is_the_contract_runners_output_not_a_written_claim():
     """The whole point of the runner: the label is computed, then recorded."""
-    from rl import run_tracked_lineage_v2_contract as runner
+    import run_tracked_lineage_v2_contract as runner
 
     receipt = runner.run("2026-09-14")
     assert receipt["result"]["label"] == tl2.LABEL_BUDGET_EXHAUSTED

@@ -8,7 +8,7 @@
 
 ## 0. 決定
 
-三個選項（詳見 [probe receipt §7](SECOND_CASE_V2_BUDGET_PROBE_RECEIPT_2026-09-08.md)）：(1) 照 probe V3 結果凍結並執行 Hopper protocol；(2) 加 reference-saturation 下限再開 probe V4；(3) 停止並重構 Track A。**專案負責人選擇 (3)。**
+三個選項（詳見 [probe receipt §7](archive/SECOND_CASE_V2_BUDGET_PROBE_RECEIPT_2026-09-08.md)）：(1) 照 probe V3 結果凍結並執行 Hopper protocol；(2) 加 reference-saturation 下限再開 probe V4；(3) 停止並重構 Track A。**專案負責人選擇 (3)。**
 
 [INFERENCE] 選 (3) 的核心理由：原 `PUB-A1` 想在公開 benchmark 上「湊出」v7 那種不對稱 censoring 的形狀，但三次 probe 一起顯示，**一個比較落在哪一種 censoring regime，是 budget、recipe、plant 共同決定的、而標準評估流程既不控制也不報告的變數**。這件事本身就是 Track A 範圍內（量測程序）的發現，比再投入算力去達成某一個 regime 更誠實、也對讀者更有用。
 
@@ -18,9 +18,9 @@
 
 | 步驟 | 結果 | 出處 |
 |---|---|---|
-| Probe V1：Walker2d-v5、SB3 PPO 預設、上限 2,949,120 | `PROBE_NEGATIVE_MAX_BUDGET_REACHED`，360 個 probe episode 只有 1 個跑完 horizon | [probe receipt §1](SECOND_CASE_V2_BUDGET_PROBE_RECEIPT_2026-09-08.md) |
-| Probe V2：同 plant、rl-zoo tuned recipe、上限 1,966,080 | `PROBE_NEGATIVE_MAX_BUDGET_REACHED`，240 個中 5 個，全在一個 checkpoint，之後退化 | [§3](SECOND_CASE_V2_BUDGET_PROBE_RECEIPT_2026-09-08.md) |
-| Probe V3：Hopper-v5、tuned recipe、上限 1,966,080 | `PROBE_BUDGET_FOUND` 1,474,560；但 reference 是站立不動的 policy，saturation 2.71%（ck1／ck3 為 ≈ 0%） | [§4](SECOND_CASE_V2_BUDGET_PROBE_RECEIPT_2026-09-08.md) |
+| Probe V1：Walker2d-v5、SB3 PPO 預設、上限 2,949,120 | `PROBE_NEGATIVE_MAX_BUDGET_REACHED`，360 個 probe episode 只有 1 個跑完 horizon | [probe receipt §1](archive/SECOND_CASE_V2_BUDGET_PROBE_RECEIPT_2026-09-08.md) |
+| Probe V2：同 plant、rl-zoo tuned recipe、上限 1,966,080 | `PROBE_NEGATIVE_MAX_BUDGET_REACHED`，240 個中 5 個，全在一個 checkpoint，之後退化 | [§3](archive/SECOND_CASE_V2_BUDGET_PROBE_RECEIPT_2026-09-08.md) |
+| Probe V3：Hopper-v5、tuned recipe、上限 1,966,080 | `PROBE_BUDGET_FOUND` 1,474,560；但 reference 是站立不動的 policy，saturation 2.71%（ck1／ck3 為 ≈ 0%） | [§4](archive/SECOND_CASE_V2_BUDGET_PROBE_RECEIPT_2026-09-08.md) |
 
 [RESULT] 三次 probe 都在 clean source、同一 `locked_sha256`（`sha256:93d23a27…`）下執行、0 mismatch；每一次的上限都在看到曲線前寫死，且**沒有一次被事後提高**。
 [BLOCKER] Probe V3 暴露了凍結規則的缺口：adequacy 只檢查 exposure，不檢查 primary measurement 是否退化。若 ck2 也 ≥ 27/30，規則會在 491,520 就選出 saturation ≈ 0% 的 reference——對這種 reference，naive 與 bound 的 contrast **必然同號**，artifact 在數學上不可能出現（§3.6）。
@@ -34,11 +34,11 @@
 
 ## 3. Censoring regime 分類與已量測的實例
 
-記號：`H` = frozen horizon；每個 episode 的 rate 型 outcome 在實現 exposure `h ≤ H` 上觀察；naive = 觀察到的 positive count／`h`；assumption-free full-horizon bound = `[positive／H, (positive + (H − h))／H]`（[V7_EXPOSURE_CENSORING_AUDIT_SPEC §4](V7_EXPOSURE_CENSORING_AUDIT_SPEC.md)）。引理：naive 恆落在 bound 內（`exposure_identification.py`，於 v7 450 個與 Walker2d 300 個 episode 上皆成立）。
+記號：`H` = frozen horizon；每個 episode 的 rate 型 outcome 在實現 exposure `h ≤ H` 上觀察；naive = 觀察到的 positive count／`h`；assumption-free full-horizon bound = `[positive／H, (positive + (H − h))／H]`（[V7_EXPOSURE_CENSORING_AUDIT_SPEC §4](archive/V7_EXPOSURE_CENSORING_AUDIT_SPEC.md)）。引理：naive 恆落在 bound 內（`exposure_identification.py`，於 v7 450 個與 Walker2d 300 個 episode 上皆成立）。
 
 | Regime | 定義（reference／candidate exposure；reference metric） | 已量測實例 | Bound 行為 | Naive 行為 | 對評估的意義 | 證據等級 |
 |---|---|---|---|---|---|---|
-| **R0** 無 censoring | 兩臂皆 full；reference metric 非退化 | **已觀察到（pilot，2026-09-11）**：[`R0-REGIME-HORIZON-PROBE-V1`](R0_REGIME_PROBE_RECEIPT_2026-09-11.md) 在**截斷 horizon** 上對兩個對比皆得 `R0_WINDOW_FOUND`——`C_B` 於 `H ≤ 414`（8.28 s，reference 平均 duty `40.262319` pp）、`C_C` 於 `H ≤ 152`（3.04 s，`22.089474` pp）。**不是第六個獨立實例**：同一批 450 個 episode 的重讀 | 點識別 | 與 bound 一致 | 標準統計即可 | PILOT，凍結規則，`python -I -S` replay bit-exact；`CONDITIONAL_ON_FIXED_WARM_START` |
+| **R0** 無 censoring | 兩臂皆 full；reference metric 非退化 | **已觀察到（pilot，2026-09-11）**：[`R0-REGIME-HORIZON-PROBE-V1`](archive/R0_REGIME_PROBE_RECEIPT_2026-09-11.md) 在**截斷 horizon** 上對兩個對比皆得 `R0_WINDOW_FOUND`——`C_B` 於 `H ≤ 414`（8.28 s，reference 平均 duty `40.262319` pp）、`C_C` 於 `H ≤ 152`（3.04 s，`22.089474` pp）。**不是第六個獨立實例**：同一批 450 個 episode 的重讀 | 點識別 | 與 bound 一致 | 標準統計即可 | PILOT，凍結規則，`python -I -S` replay bit-exact；`CONDITIONAL_ON_FIXED_WARM_START` |
 | **R1** 不對稱 | reference 近乎 full；candidate 重度 censored；reference metric 非退化 | v7 `V7C − V7A`：pilot 30/30 vs 0/30（seed 8700）；seed-variance 143/150 vs 0/150 | 單側變寬；paired bound 含 0；pilot 0/30、seed-variance 0/5 sign-identified | 主張 `−36.2185185` pp（pilot）／θ `[−37.195407, +27.315704]` 含 0（seed-variance） | **artifact**：naive 偽造方向 | DEVELOPMENT，凍結 protocol，replay exact（×2） |
 | **R2** 輕度 censoring、bound 有資訊 | 兩臂大多 full；candidate 少量 censored | v7 `V7B − V7A`：120/150 vs 143/150 | θ `[−13.503408, −12.435259]` pp 排除 0、寬 1.068149、5/5 sign-identified；**但** `between_replicate_sd` 無定義 | 一致 | bound **不是**永遠無資訊；**方向可識別 ≠ 變異可估計**，power／sample-size 被封鎖 | DEVELOPMENT，凍結 protocol，replay exact |
 | **R3** 對稱重度 censoring | 兩臂皆重度 censored | Walker2d-v5 V1：300 個 episode 16 個 full；reference 4/5 replicates 30/30 早跌 | 兩側皆寬；θ `[−79.118, +55.913333]` pp 寬 135.031333、**構造上必含 0**、0/5 | 主張 `−28.795138` pp、95% t-interval `[−46.698919, −10.891357]` 排除 0 | **artifact**，但 bound 的無資訊是關於 reference 的事實、與 candidate 無關 | DEVELOPMENT，凍結 protocol，replay exact |
@@ -47,8 +47,8 @@
 
 ### 3.1 R1 的數字與出處
 
-[RESULT] Frozen-bundle audit：V7C 30 個 episode 全部在 `159.7000 ± 2.7687` control steps（`3.08–3.30` s，horizon 的 `0.354889`）於 `STEADY_WALK` 終止；arm-level bound `[0.0, 64.511111]`% 與 V7A `36.2185185`% 重疊；paired bound `[−36.2185185, +28.2925927]` pp 含 0，30/30 pair sign 不可識別。→ [frozen bundle receipt](V7_EXPOSURE_CENSORING_AUDIT_FROZEN_BUNDLE_RECEIPT_2026-09-08.md)；`audit_summary.json` `sha256:74f6edfa7ed04615f2dff60bccc9f10e818ecdb4c12b8dfa480717f29dc0ce94`、`audit_receipt.json` `sha256:6da78e2856d6e9be7727ff0de91515ee40fd4717acd439215c220f3f2c8f4b97`、audit protocol `sha256:b15505b73f3745141c2dfa31cf57564b0863242949f5d1ad4d351dfb96dec6ce`。
-[RESULT] Seed variance：V7C 在 5 個獨立 training seeds 上 150/150 early termination、150 NULL outcomes；θ `[−37.195407, +27.315704]` pp、寬 64.511111（與 pilot 的 full-horizon 寬度**相同**，因 exposure fraction 幾乎相同）。→ [execution receipt](TRAINING_SEED_VARIANCE_EXECUTION_RECEIPT_2026-09-08.md)；raw `sha256:0fe9c0b9e8cc81446f64c9522bb5c64ef5b1c4bc2ea054f3ef651ac859ff4535`、summary `sha256:42b4cfac2ffff47b922c2ffe8f74492a7310e5cdb637bde1201084e365027965`、receipt `sha256:bc8a5b059842df3c200e7498cc0e095beb713e10e3f6602e3734215545eec1a4`、protocol `sha256:9ab17c74ddb021f9b69b1df843f9fa49ea45ecf790837204270d8bc01046b359`、lock `sha256:93d23a2703adc86a1394eacf5dece8d7229fdf742857f1a271656aa1cfeac72d`、source `12bfddfc5143298d43db6b3a2e477c5e05e2856d`。
+[RESULT] Frozen-bundle audit：V7C 30 個 episode 全部在 `159.7000 ± 2.7687` control steps（`3.08–3.30` s，horizon 的 `0.354889`）於 `STEADY_WALK` 終止；arm-level bound `[0.0, 64.511111]`% 與 V7A `36.2185185`% 重疊；paired bound `[−36.2185185, +28.2925927]` pp 含 0，30/30 pair sign 不可識別。→ [frozen bundle receipt](archive/V7_EXPOSURE_CENSORING_AUDIT_FROZEN_BUNDLE_RECEIPT_2026-09-08.md)；`audit_summary.json` `sha256:74f6edfa7ed04615f2dff60bccc9f10e818ecdb4c12b8dfa480717f29dc0ce94`、`audit_receipt.json` `sha256:6da78e2856d6e9be7727ff0de91515ee40fd4717acd439215c220f3f2c8f4b97`、audit protocol `sha256:b15505b73f3745141c2dfa31cf57564b0863242949f5d1ad4d351dfb96dec6ce`。
+[RESULT] Seed variance：V7C 在 5 個獨立 training seeds 上 150/150 early termination、150 NULL outcomes；θ `[−37.195407, +27.315704]` pp、寬 64.511111（與 pilot 的 full-horizon 寬度**相同**，因 exposure fraction 幾乎相同）。→ [execution receipt](archive/TRAINING_SEED_VARIANCE_EXECUTION_RECEIPT_2026-09-08.md)；raw `sha256:0fe9c0b9e8cc81446f64c9522bb5c64ef5b1c4bc2ea054f3ef651ac859ff4535`、summary `sha256:42b4cfac2ffff47b922c2ffe8f74492a7310e5cdb637bde1201084e365027965`、receipt `sha256:bc8a5b059842df3c200e7498cc0e095beb713e10e3f6602e3734215545eec1a4`、protocol `sha256:9ab17c74ddb021f9b69b1df843f9fa49ea45ecf790837204270d8bc01046b359`、lock `sha256:93d23a2703adc86a1394eacf5dece8d7229fdf742857f1a271656aa1cfeac72d`、source `12bfddfc5143298d43db6b3a2e477c5e05e2856d`。
 [BLOCKER] 兩份 v7 證據皆 `CONDITIONAL_ON_FIXED_WARM_START`（永久）；pilot 與 audit 的環境為 `ABSENT_UNRECOVERABLE`（lock contract 晚於它們）。R1 的 plant 是本專案的 reduced-order humanoid，不是公開 benchmark。
 
 ### 3.2 R2 的數字與出處
@@ -59,7 +59,7 @@
 
 ### 3.3 R3 的數字與出處
 
-[RESULT] 300 個 episode：284 `EARLY_TERMINATED`、16 `FULL_EXPOSURE`；reference `W2D_A_DIRECT` median realized steps 178–376（8.0 s horizon 的 1.4–3.0 s）；5/5 replicates 的 naive paired diff 為負、bound 全部 `UNIDENTIFIED`；method-level naive mean `−28.795138` pp、SD `14.419184`、t-interval `[−46.698919, −10.891357]`；θ `[−79.118, +55.913333]`；outcome `SECOND_CASE_ARTIFACT_REPRODUCED`。**P3**：284/284 early episode 的 `outcome_state` 皆 `OBSERVED`。→ [execution receipt](SECOND_CASE_EXPOSURE_CENSORING_EXECUTION_RECEIPT_2026-09-08.md)；raw `sha256:0e9ceaf9a4c4defbe568e4849db48f5dfb2782c0c21b69a0039a36bca7bc143b`、summary `sha256:e6761b78644b0807bc18bf3791de679e2ebebb359d130d3d672ac063285d47ee`、receipt `sha256:3ceb8d1b20f435f327f5a6d201be7da86951d4ace93611cb2ee199ef3facd744`、protocol `sha256:45d1ec553a1124fd613f90a8034b27f10ef8f01f23a219cca216479fc4c5350c`、plant `walker2d_v5.xml` `sha256:6bed53a6cc3ca73c4fe8ac3486d3b4228927264a6454f4ef16d3eed3c58bc09d`、lock record `sha256:911b436231c8e0b1d7a3d07bca6894ce4c42c517c4a5cbbbdd0f9dff694ff631`、source `b683ddc363b1e040ba366c194430eba546e6ad22`。
+[RESULT] 300 個 episode：284 `EARLY_TERMINATED`、16 `FULL_EXPOSURE`；reference `W2D_A_DIRECT` median realized steps 178–376（8.0 s horizon 的 1.4–3.0 s）；5/5 replicates 的 naive paired diff 為負、bound 全部 `UNIDENTIFIED`；method-level naive mean `−28.795138` pp、SD `14.419184`、t-interval `[−46.698919, −10.891357]`；θ `[−79.118, +55.913333]`；outcome `SECOND_CASE_ARTIFACT_REPRODUCED`。**P3**：284/284 early episode 的 `outcome_state` 皆 `OBSERVED`。→ [execution receipt](archive/SECOND_CASE_EXPOSURE_CENSORING_EXECUTION_RECEIPT_2026-09-08.md)；raw `sha256:0e9ceaf9a4c4defbe568e4849db48f5dfb2782c0c21b69a0039a36bca7bc143b`、summary `sha256:e6761b78644b0807bc18bf3791de679e2ebebb359d130d3d672ac063285d47ee`、receipt `sha256:3ceb8d1b20f435f327f5a6d201be7da86951d4ace93611cb2ee199ef3facd744`、protocol `sha256:45d1ec553a1124fd613f90a8034b27f10ef8f01f23a219cca216479fc4c5350c`、plant `walker2d_v5.xml` `sha256:6bed53a6cc3ca73c4fe8ac3486d3b4228927264a6454f4ef16d3eed3c58bc09d`、lock record `sha256:911b436231c8e0b1d7a3d07bca6894ce4c42c517c4a5cbbbdd0f9dff694ff631`、source `b683ddc363b1e040ba366c194430eba546e6ad22`。
 [RESULT] Protocol 在任何 run 之前 commit 並 push（PR #7），不預測方向，中間無 amendment；CLI 無 override 旗標（測試固定）。
 [INFERENCE] R3 是 R1 的鏡像：同樣的 estimator 分歧，但 bound 的寬度來自 reference 而非 candidate。兩者一起才完整描述 estimator——R1 說「naive 錯在哪」，R3 說「bound 在什麼條件下什麼都不能說、且那是正確的」。
 
@@ -94,7 +94,7 @@ V2 的 contract runner 輸出 `label = TL2_BUDGET_EXHAUSTED`、`replicates_attai
 protocol `sha256:a38662d99c6c6a25015e3ab5f8d642b0bc601be8b1d5d157d7f5e00b8d9292d0`；
 spec `sha256:ea1a56f0809f5a588c420fb8c52104fbc2b0eb10567be1baae8c152a35662289`；
 lock `sha256:93d23a27…`（與 seed-variance 執行逐位元相同）。
-[V1 receipt](TRACKED_LINEAGE_TRAINING_RECEIPT_2026-09-14.md)、[V2 receipt](TRACKED_LINEAGE_TRAINING_V2_RECEIPT_2026-09-14.md)。
+[V1 receipt](archive/TRACKED_LINEAGE_TRAINING_RECEIPT_2026-09-14.md)、[V2 receipt](archive/TRACKED_LINEAGE_TRAINING_V2_RECEIPT_2026-09-14.md)。
 
 [RESULT] **預算加倍不改變 regime**：獎勵由 `226.9`–`231.6` 升到 `283.1`–`295.3`（`+51.5`–`+66.5`）、
 平均存活由 `2.440`–`2.811` s 升到 `2.725`–`3.458` s，**而 full exposure 在五個 replicate 上仍然全是 `0/30`**。
@@ -157,7 +157,7 @@ Summary 並把過小與過大分別歸為前撲與站立不動兩個局部最優
 | 11 | 同環境 1000 個 reciprocal：stdlib 順序 `7.485470860550343`，`numpy.ndarray.sum` `7.485470860550345` | lock record `889efeb0…` | 量測 | — |
 | 12 | Method-level 分母在每條路徑恆為 5（training replicate）；30／60／150／300（second case）與 150／450（seed variance）為 enforced forbidden denominators | contract 測試 | 軟體 | 測試固定 |
 | 13 | 在 `TRACKED-LINEAGE-TRAINING-V1`／`V2` 的凍結 protocol 下，五個 replicate 於 `2,000,000` 與 realized `4,015,200` 兩個預算的 full exposure 皆為 `0/30`（`replicates_attaining_threshold = 0`、`threshold = 30/30`）——R4 的一個非 pilot 實例 | `tl2_contract_receipt.json` `0cd90e12…`；protocol `a38662d9…` | DEVELOPMENT，凍結 protocol，標籤由 contract runner 算出 | 由版控證據重算 |
-| 14 | 該線的獎勵由 `226.9`–`231.6` 升至 `283.1`–`295.3`、平均存活由 `2.440`–`2.811` s 升至 `2.725`–`3.458` s，**而 regime 未改變**（仍 `0/30` × 5）：預算不是決定 reference 是否可達 adequacy 的那一項 | 同上；[V1](TRACKED_LINEAGE_TRAINING_RECEIPT_2026-09-14.md)／[V2 receipt](TRACKED_LINEAGE_TRAINING_V2_RECEIPT_2026-09-14.md) | 同上 | 同上 |
+| 14 | 該線的獎勵由 `226.9`–`231.6` 升至 `283.1`–`295.3`、平均存活由 `2.440`–`2.811` s 升至 `2.725`–`3.458` s，**而 regime 未改變**（仍 `0/30` × 5）：預算不是決定 reference 是否可達 adequacy 的那一項 | 同上；[V1](archive/TRACKED_LINEAGE_TRAINING_RECEIPT_2026-09-14.md)／[V2 receipt](archive/TRACKED_LINEAGE_TRAINING_V2_RECEIPT_2026-09-14.md) | 同上 | 同上 |
 
 ## 6. 不可宣稱與限制（凍結候選清單）
 
@@ -222,5 +222,5 @@ Summary 並把過小與過大分別歸為前撲與站立不動兩個局部最優
 ## 11. 對其他文件的影響
 
 - [PUBLICATION_PLAN](PUBLICATION_PLAN.md)：升版 `PUBLICATION-PLAN-V2`；Track A §2.1 與 §3.1 依本文改寫；Track B／C 不動。
-- [probe receipt](SECOND_CASE_V2_BUDGET_PROBE_RECEIPT_2026-09-08.md) §7：決定紀錄。
+- [probe receipt](archive/SECOND_CASE_V2_BUDGET_PROBE_RECEIPT_2026-09-08.md) §7：決定紀錄。
 - `STATUS.yaml`：`publication_plan_status`、`second_case_exposure_status`、`next_milestone`、新增 `track_a_reframe`；[PROJECT_STATUS](PROJECT_STATUS.md)、[README](../README.md)、[CHANGELOG](../CHANGELOG.md)、[ROADMAP §10](ROADMAP.md)、[RESEARCH_EXECUTION_PLAN](RESEARCH_EXECUTION_PLAN.md) `PUB-A` 列同步。

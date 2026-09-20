@@ -103,11 +103,11 @@
 
 | 事實 | 出處 |
 |---|---|
-| V7C 30/30 early termination 於 horizon 的 `0.354889`；full-horizon bound `[0.0, 64.511111]`% 與 V7A `36.2185185`% 重疊；paired bound 含 0 | [frozen bundle receipt](V7_EXPOSURE_CENSORING_AUDIT_FROZEN_BUNDLE_RECEIPT_2026-09-08.md) |
+| V7C 30/30 early termination 於 horizon 的 `0.354889`；full-horizon bound `[0.0, 64.511111]`% 與 V7A `36.2185185`% 重疊；paired bound 含 0 | [frozen bundle receipt](archive/V7_EXPOSURE_CENSORING_AUDIT_FROZEN_BUNDLE_RECEIPT_2026-09-08.md) |
 | V7B 3 個 censored episode 的 `outcome_state == OBSERVED` 且六項 numeric 齊全 | 同上 |
-| 跨 5 個 independent training seeds，V7C 的崩潰 150/150 重現；V7B 方向 5/5 可識別但 variance 不可估 | [execution receipt](TRAINING_SEED_VARIANCE_EXECUTION_RECEIPT_2026-09-08.md) |
+| 跨 5 個 independent training seeds，V7C 的崩潰 150/150 重現；V7B 方向 5/5 可識別但 variance 不可估 | [execution receipt](archive/TRAINING_SEED_VARIANCE_EXECUTION_RECEIPT_2026-09-08.md) |
 | 同環境同資料兩種 IEEE-conformant reduction order 給不同結果 | [environment lock receipt](ENVIRONMENT_LOCK_IMPLEMENTATION_RECEIPT_2026-09-08.md) |
-| 分母 `150`／`450` 為 enforced forbidden denominators | [TRAINING_SEED_VARIANCE_SPEC](TRAINING_SEED_VARIANCE_SPEC.md) |
+| 分母 `150`／`450` 為 enforced forbidden denominators | [TRAINING_SEED_VARIANCE_SPEC](archive/TRAINING_SEED_VARIANCE_SPEC.md) |
 
 ## 4. Gap 判定（[INFERENCE]，條件於 §1–§2 經原文核對後仍成立）
 

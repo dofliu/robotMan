@@ -30,13 +30,13 @@
 
 ### 1.3 它使 Track A 更難，不是更容易
 
-[SOURCE] Track A 目前缺的是一個「reference 曝露充分且 metric 非退化」的設定；三個 budget probe（Walker2d ×2、Hopper ×1）皆未找到（[SECOND_CASE_V2_BUDGET_PROBE_RECEIPT](SECOND_CASE_V2_BUDGET_PROBE_RECEIPT_2026-09-08.md)）。
+[SOURCE] Track A 目前缺的是一個「reference 曝露充分且 metric 非退化」的設定；三個 budget probe（Walker2d ×2、Hopper ×1）皆未找到（[SECOND_CASE_V2_BUDGET_PROBE_RECEIPT](archive/SECOND_CASE_V2_BUDGET_PROBE_RECEIPT_2026-09-08.md)）。
 
 [INFERENCE] 轉身與跳躍的早期終止率高於走路，只會把更多比較推入 `R3`／`R4` regime——bound 更寬、含 0、方向不可識別。對一個以 exposure censoring 為論點的研究而言，加入更難的任務降低而非提高可得結論。
 
 ### 1.4 現在加動作會複製已發生過的 provenance 損毀
 
-[SOURCE] v7 的 warm start 來自 gitignored `backend/rl/artifacts/` 下的 v4 local artifact，v3/v4 已不存在於 repo 或磁碟，因此 `CONDITIONAL_ON_FIXED_WARM_START` 對整條 v7 line **永久成立**（[infeasibility receipt](V7_PRETRAINING_SEED_VARIANCE_INFEASIBILITY_RECEIPT_2026-09-08.md)）。
+[SOURCE] v7 的 warm start 來自 gitignored `backend/rl/artifacts/` 下的 v4 local artifact，v3/v4 已不存在於 repo 或磁碟，因此 `CONDITIONAL_ON_FIXED_WARM_START` 對整條 v7 line **永久成立**（[infeasibility receipt](archive/V7_PRETRAINING_SEED_VARIANCE_INFEASIBILITY_RECEIPT_2026-09-08.md)）。
 
 [INFERENCE] 在版控 checkpoint lineage 建立之前新增訓練線，只會再產出一批同樣不可重建的 artifact。先修管線再加任務，成本低於先加任務再回頭補管線。
 
