@@ -73,7 +73,7 @@ path = Path(__file__).with_name(PurePosixPath(contract["motion_task_source"]).na
 | tracked lineage | `tracked_lineage_contract`、`tracked_lineage_v2_contract`、`retain_tracked_lineage_checkpoints`、`run_tracked_lineage_v2_contract` |
 | R0 | `run_r0_regime_probe` |
 
-**證據目錄一個都沒有動**，digest 一個都沒有變。**文件也沒有搬**（擁有者選的範圍）。
+**證據目錄一個都沒有動**，digest 一個都沒有變。**本次（2026-09-19）文件沒有搬**（擁有者當時選的範圍）——文件已於**隔日 2026-09-20** 由任務 #98 處理，見 [DOC_ARCHIVE](DOC_ARCHIVE_2026-09-20.md)。
 
 ---
 
@@ -130,7 +130,7 @@ path = Path(__file__).with_name(PurePosixPath(contract["motion_task_source"]).na
 | 沒做 | 為什麼 |
 |---|---|
 | **v7 audit 那一組沒有封存** | 搬它要改一個被 pin 釘住的檔案，見 §2——擁有者的決定 |
-| **文件沒有搬** | 擁有者選的範圍是只搬程式；§4.2 的約 25 份 receipt／spec 仍在 `docs/` |
+| **本次文件沒有搬** | 擁有者當時選的範圍是只搬程式。**已於 2026-09-20 補做**（任務 #98）：17 份進 `docs/archive/`，3 份因內容 digest 被凍結證據釘住而搬不動，見 [DOC_ARCHIVE](DOC_ARCHIVE_2026-09-20.md) |
 | **產品 A（教學模擬器）沒有搬** | 不在 §4.2 範圍 |
 | **測試沒有變少** | 見 §1：變少會停掉三個仍在線上檔案的 pin |
 | **沒有搬成獨立 repo** | §4.2 提的另一個選項；本次選 repo 內目錄，維持單一測試指令 |
