@@ -177,12 +177,29 @@ v7 pilot 三臂、v7 seed-variance replicates、Tracked lineage V1／V2、legacy
 絕對機械功 1353.8 J。圖頂色帶標示控制器狀態（站立／行走）。
 標頭明寫 **「模擬 realized 輸出，非實體量測」**。
 
-### 4.6 主控台錯誤
+### 4.6 主控台錯誤（已修，同日）
 
-五頁合計 **1 個主控台錯誤**，發生在分析模式：
+首次量測時五頁合計 **1 個主控台錯誤**（分析模式）：
 `Failed to load resource: the server responded with a status of 404 (Not Found)`。
-**未定位到是哪一個資源**（很可能是 favicon 一類的靜態資產）；
-不影響任何畫面渲染，五頁皆完整顯示。**這一項留著，沒有修。**
+
+**定位過程**：用 Playwright 的 `page.on("response")` 攔截 ≥400 的回應——**0 筆**。
+但 `console` 事件確實有 1 筆。這個差異本身就是答案：**favicon 請求由瀏覽器行程自己發，
+不經過頁面層的網路事件，但它的 404 會進 console**。直接驗證：`GET /favicon.ico → 404`。
+`index.html` 沒有 `<link rel="icon">`、沒有 `public/`、後端也沒路由。
+
+**修法**（兩個檔案）：新增 `frontend/public/favicon.svg`（558 bytes，SVG 人形圖示，配合深色主題），
+`index.html` 加一行 `<link rel="icon" type="image/svg+xml" href="/favicon.svg" />`。
+後端不必動——它把 `dist/` 整個掛在 `/`，Vite 會把 `public/` 原樣放進 `dist/`。
+
+**修後量測**：
+
+| 檢查 | 結果 |
+|---|---|
+| dev `GET /favicon.svg` | **200**，`image/svg+xml` |
+| prod（`python backend/main.py`）`GET /favicon.svg` | **200**，`image/svg+xml` |
+| `dist/favicon.svg` 存在、`dist/index.html` 含 `<link rel="icon">` | 是 |
+| `npm run typecheck` | exit 0 |
+| 分析模式 console 錯誤 | **1 → 0** |
 
 ---
 
@@ -191,7 +208,6 @@ v7 pilot 三臂、v7 seed-variance replicates、Tracked lineage V1／V2、legacy
 | 沒做 | 說明 |
 |---|---|
 | **沒有重新推導那個既有失敗的根因** | §1.1；只確認它重現且未被放寬 |
-| **沒有追查那個 404** | §4.6；已記錄，未定位 |
 | **沒有處理 build 的 chunk 大小警告** | §3 |
 | **沒有跑任何 RL 訓練或評估** | 需要 GPU 時數與 lock 綁定，屬獨立研究線 |
 | **沒有實體硬體量測** | 全部是模擬 realized 輸出，各頁自己也這樣標示 |

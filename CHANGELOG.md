@@ -2,6 +2,15 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-20 (ay)
+
+### 修掉測試報告裡那個 404（任務 #101）
+
+- [RESULT] **是 `/favicon.ico`。** 定位方式值得記：Playwright `page.on("response")` 攔 ≥400 得到 **0 筆**，但 `console` 有 1 筆——favicon 由瀏覽器行程自己發，頁面層網路事件看不到，404 卻會進 console。直接 `curl` 驗證 `GET /favicon.ico → 404`；`index.html` 沒宣告 icon、沒有 `public/`、後端無路由。
+- [RESULT] **修法兩個檔案**：`frontend/public/favicon.svg`（558 bytes SVG）＋ `index.html` 一行 `<link rel="icon">`。後端不動——`dist/` 整個掛在 `/`，Vite 把 `public/` 原樣放進 `dist/`。
+- [RESULT] **修後量測**：dev 與 prod 的 `GET /favicon.svg` 皆 **200 `image/svg+xml`**；`dist/favicon.svg` 已產出；typecheck exit 0；**分析模式 console 錯誤 1 → 0**。
+- [RESULT] (ax) 那行「未定位、未修」在同一個 PR 內就變成假的，已就地改為指向本條——不留同 PR 內的自相矛盾（§4.3.1 的型態）。
+
 ## Unreleased — 2026-09-20 (ax)
 
 ### 全面測試與測試報告（任務 #100）
@@ -12,7 +21,7 @@
 - [RESULT] **README 承諾的啟動指令實測成立**：`python -X utf8 backend/main.py` → `/` 與 `/api/defaults` 皆 200。附帶量到 `uvicorn backend.main:app`（套件路徑）會 `ModuleNotFoundError: No module named 'config_schema'`——後端用平坦 import，必須讓 `backend/` 成為 `sys.path[0]`。
 - [RESULT] **五個畫面全部實際渲染並截圖存證**（`docs/assets/ui-2026-09-20/`，Chromium 1440×1100）。三機同步比較那張是**跑起來的狀態**（t=2.83 s：兩個控制器跌倒、RL policy 行走，`time skew 0.000000 s`、同一個 `plant sha256`），不是靜止畫面。
 - [RESULT] 截圖改用 CDP `Page.captureScreenshot`：3D 是持續重繪的 three.js canvas，Playwright 的 `screenshot()` 會等「畫面穩定」而逾時。
-- [BLOCKER] 五頁合計 **1 個主控台 404**（分析模式），**未定位是哪個資源**，不影響渲染。已記錄，未修。
+- [BLOCKER→RESULT] 五頁合計 **1 個主控台 404**（分析模式），寫下當時未定位、未修——**同日於 (ay) 定位並修掉**，是 `/favicon.ico`。
 - [RESULT] 報告：`docs/TEST_REPORT_2026-09-20.md`；README 與 PROJECT_STATUS 已連結並更新量測值。
 
 ## Unreleased — 2026-09-20 (aw)

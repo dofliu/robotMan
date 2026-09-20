@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <rect width="32" height="32" rx="6" fill="#0f172a"/>
+  <!-- humanoid: head, torso, legs mid-stride -->
+  <circle cx="16" cy="7.5" r="3" fill="#38bdf8"/>
+  <rect x="13" y="11.5" width="6" height="8" rx="1.5" fill="#38bdf8"/>
+  <path d="M14 19.5 L11 27 M18 19.5 L21.5 26.5" stroke="#38bdf8" stroke-width="2.6" stroke-linecap="round" fill="none"/>
+  <path d="M13 13 L9.5 17.5 M19 13 L22.5 16.5" stroke="#38bdf8" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+</svg>
