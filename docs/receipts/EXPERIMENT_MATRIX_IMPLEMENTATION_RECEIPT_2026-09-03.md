@@ -5,7 +5,7 @@
 ## 1. 唯一目標與 frozen boundary
 
 - Milestone：`PDR4-EXPERIMENT-MATRIX-COMPLETENESS-V1`。
-- 唯一目標：實作 [Experiment Matrix Completeness Contract V1](EXPERIMENT_MATRIX_CONTRACT.md)，對 frozen controller × seed × scenario explicit cells做 exact inventory與 identity readback。
+- 唯一目標：實作 [Experiment Matrix Completeness Contract V1](../EXPERIMENT_MATRIX_CONTRACT.md)，對 frozen controller × seed × scenario explicit cells做 exact inventory與 identity readback。
 - Acceptance criteria：`MX-01`至`MX-10`必須全部通過，才可輸出 `MATRIX_COMPLETE`；strict JSON、spec/index hash、run bundle path/bytes/SHA-256、common/cell identity、missing/duplicate/unexpected/unindexed與 terminal status retention均 fail closed。
 - Failure semantics：`FAILED`與`CANCELLED`保留為不同 terminal status；`COMPLETED`不可夾帶 failure record；structural error由 CLI輸出 machine-readable `ERROR` receipt與非零 exit code。不得刪除 negative/null result或調整 frozen gate來取得 PASS。
 - Frozen claim：`SIM_ONLY_MUJOCO / NOT_PHYSICALLY_VALIDATED; matrix inventory identity only, without controller superiority, sim-to-real, physical fidelity, or safety claims.`

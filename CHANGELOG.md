@@ -2,6 +2,16 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-20 (aw)
+
+### §4.3 的 receipt 分流：14 份進 `docs/receipts/`（任務 #99）
+
+- [BLOCKER] **§4.3 的「活的規劃文件約 12 份留在 `docs/`」達不到，而且是算術上達不到。** 執行前量到 `docs/` 已有 **11 份結構性搬不動**：4 份內容 digest 被凍結證據釘住的 spec（`R0_REGIME_PROBE_SPEC`、`RUN_MANIFEST_LOCK_BINDING_SPEC`、`TRACKED_LINEAGE_TRAINING_SPEC`、`TRACKED_LINEAGE_TRAINING_V2_SPEC`），加上 (av) 為了保住那些 pin 而留下的 7 份轉址。「12 份」等於只剩 **1 個名額**給真正的規劃文件。與 §4.2 的「942 → 520」同類：寫下時合理，遇到不變量就不成立。
+- [RESULT] **擁有者選保守分流：只搬 receipt。** 14 份實作 receipt 進 `docs/receipts/`，索引 `docs/receipts/README.md`，README 加一個連結。**`docs/` 由 64 降到 51。** spec、計畫文件、文獻地圖全部留在原地。
+- [RESULT] **這次沒有重演 (av) 的位元組事故。** 搬移前先查「哪些 receipt 被那 4 份位元組不能動的 spec 連到」——只有 `PUB_B0_AUTHORIZATION_RECEIPT_2026-09-10`，已在原路徑留轉址。搬完後四份被釘住的 spec 逐一比對 sha256，與 `HEAD` 完全相同。
+- [RESULT] `gate_status_registry.json` 的 `PUB_B0` evidence 路徑同步改為 `docs/receipts/…`（`gate_status_contract.py:279` 會 fail-closed 驗證存在）。
+- [RESULT] **量測：1 failed / 1061 passed**，與搬移前相同，失敗項仍是同一個未放寬的 `PRIMARY_CASE_RECEIPT_IDENTITY`；0 個壞連結；三個文件契約全過。
+
 ## Unreleased — 2026-09-20 (av)
 
 ### 把已結案研究線的文件搬進 `docs/archive/`（任務 #98，`PROJECT_ASSESSMENT` §4.2 的文件部分）
@@ -425,7 +435,7 @@
 
 ### `RUN-MANIFEST-LOCK-BINDING-V1`：lock record 綁進 run manifest，而且沒有讓任何既有為真的事變成假的
 
-- 凍結先於實作：[spec](docs/RUN_MANIFEST_LOCK_BINDING_SPEC.md)（`sha256:1b3a7b26…`）與 `backend/run_manifest_lock_binding_protocol.json`（`sha256:2e3bde9a…`）在 commit `00f8e62` 推送，該 commit **不含任何程式碼改動**。[receipt](docs/RUN_MANIFEST_LOCK_BINDING_RECEIPT_2026-09-13.md)。
+- 凍結先於實作：[spec](docs/RUN_MANIFEST_LOCK_BINDING_SPEC.md)（`sha256:1b3a7b26…`）與 `backend/run_manifest_lock_binding_protocol.json`（`sha256:2e3bde9a…`）在 commit `00f8e62` 推送，該 commit **不含任何程式碼改動**。[receipt](docs/receipts/RUN_MANIFEST_LOCK_BINDING_RECEIPT_2026-09-13.md)。
 - [RESULT] **量到一個活著的 provenance 缺陷**：同一個欄位名 `environment_lock_sha256` 在 `second_case_evidence` 存的是 lock **檔案位元組**（`sha256:911b4362…`），在 `seed_variance_evidence` 存的是 **`locked` 子樹** digest（`sha256:93d23a27…`），而兩次執行所用 lock record 的 `locked_sha256` **完全相同**。兩個保留值不同**只因為兩條 pipeline 對該欄位的定義不同**；讀者比較它們會錯誤地推論「證據來自不同環境」。新記錄以 `lock_record_sha256` 與 `environment_locked_sha256` 兩個名字保留兩個量，並在兩處拒絕那個模糊名稱。舊 bundle 未改寫（digest 已被釘住），缺陷具名記錄。
 - [RESULT] **綁定採 sidecar**，因為三個 producer 若直接改寫會讓某件今天為真的事變成假的：`rl/eval_policy.py` 被 `test_v7_candidate_selection_contract.py` **主動重算**並比對 owner 於 2026-09-10 授權之 protocol 的 pin；`rl/train_ppo.py` 被已執行的 `SEEDVAR-...-V1` 釘住而執行期無人重算；`simulator.py` 的 `meta.provenance` 進入 deterministic content hash。[INFERENCE] 為了修一個 provenance blocker 而讓兩個既有 pinned digest 變成假的，等於拿本專案存在的理由去換方便。
 - [RESULT] 結果是**沒有任何 pinned digest 變假、沒有任何綠測試變紅、不需要任何 protocol amendment**，`v7_candidate_selection_contract.PROTOCOL_SHA256` 未重釘，2026-09-10 的授權仍指向同一份 protocol。`LB-12` 以測試重算那三個檔案的 SHA-256，把「我不碰它們」從宣稱變成機器檢查。
@@ -477,7 +487,7 @@
 
 ### `PUB-B0`：formal evaluation 授權；同時量出這條線上 selection 幾乎必然選不出東西
 
-- [SOURCE] 專案負責人於 2026-09-10 指示「授權 formal evaluation」。紀錄於新增的 [PUB_B0_AUTHORIZATION_RECEIPT_2026-09-10](docs/PUB_B0_AUTHORIZATION_RECEIPT_2026-09-10.md)，狀態 `AUTHORIZATION_GRANTED / PROTOCOL_STILL_NOT_EXECUTABLE / FORMAL_SEEDS_NOT_ACCESSED`。
+- [SOURCE] 專案負責人於 2026-09-10 指示「授權 formal evaluation」。紀錄於新增的 [PUB_B0_AUTHORIZATION_RECEIPT_2026-09-10](docs/receipts/PUB_B0_AUTHORIZATION_RECEIPT_2026-09-10.md)，狀態 `AUTHORIZATION_GRANTED / PROTOCOL_STILL_NOT_EXECUTABLE / FORMAL_SEEDS_NOT_ACCESSED`。
 - [BLOCKER] **授權是一項決定，不是一項狀態變更。** frozen protocol JSON 內 `execution_preconditions` 的 `EP-03` 仍硬寫 `"state": "BLOCKING"`，而 `assert_executable()` 讀的正是該 JSON；改為 `RESOLVED` 需要一次 narrowing-only、execution-before 的 amendment 並重新 pin contract 內的 `PROTOCOL_SHA256`（同 `SEEDVAR-AMENDMENT-01` 機制）。`EP-01`（audit contract 對 sealed seeds raise）與 `EP-02`（`eval_policy.py` 兩個 branch 都釘死 seed schedule）未動。
 - [BLOCKER] `PUB-B4` 外部預註冊仍未完成，而 [PUBLICATION_PLAN §4](docs/PUBLICATION_PLAN.md) 的凍結順序是「授權在前、預註冊在中、解封在後」，且預註冊需要 registry 帳號、**只有專案負責人能做**。因此當日**沒有存取** FORMAL seeds `20000–20029`。
 - [BLOCKER] **機器可讀的 authorization evidence 刻意未鑄造**：`_require_authorization` 要求 `protocol_sha256` 等於現行 digest `sha256:b4e16370…`，鑄造它等於選定「用現行 post-hoc 規則」這個尚未決定的子選項。
@@ -658,7 +668,7 @@
 - 修掉一個 lock 驗證顆粒度與 spec 不符的缺陷：spec 要求每一個 training **與** evaluation run 之前都要 verify lock，但 raw schema 起初每個 cell 只有一個 flag，把兩個獨立 run 混成一個 —— training 驗過而 evaluation 沒驗過的 cell 會通過。改為 `training_environment_lock_verified` 與 `evaluation_environment_lock_verified` 兩個欄位皆須為 true，receipt 記錄 `2 × 5 × 3 = 30` 次 verification。Frozen protocol 只規定 verify point 不規定欄位名，故未動到它。
 - 順帶修掉 contract 的一個行為缺陷：`analyse_seed_variance` 現在拒絕位於 source bundle 內的 output root。把衍生 artifact 寫進被審查的 bundle 會破壞 read-only 保證，而原本的 "file set changed" 失敗訊息會怪錯對象。
 - **也修掉自己 fixture 的一個缺陷**（值得記錄，因為它會讓 suite 假綠）：初版讓三臂共用同一組 per-replicate offset。Replicate-level pairing 正是用來消掉共同 offset 的，所以它在 contrast 中被完全抵銷——`between_replicate_sd` 只有 `0.146` pp 對比 within-replicate paired SD `0.811` pp，測試全綠但從未驗證「paired difference 的 between-replicate 變異」，也就是本 protocol 唯一要量的東西。修正後每臂各有自己的 offset series，並新增測試直接斷言該性質。修正後 fixture 上正確的 `n=5` 標準誤比 pseudo-replicated 的 `n=150` 標準誤大 `12.92×`（V7B）與 `10.11×`（V7C）——這是機制示範，不是 v7 的結果。
-- 新增 [environment lock receipt](docs/ENVIRONMENT_LOCK_IMPLEMENTATION_RECEIPT_2026-09-08.md) 與 [seed-variance receipt](docs/archive/TRAINING_SEED_VARIANCE_IMPLEMENTATION_RECEIPT_2026-09-08.md)。
+- 新增 [environment lock receipt](docs/receipts/ENVIRONMENT_LOCK_IMPLEMENTATION_RECEIPT_2026-09-08.md) 與 [seed-variance receipt](docs/archive/TRAINING_SEED_VARIANCE_IMPLEMENTATION_RECEIPT_2026-09-08.md)。
 - **沒有執行任何訓練。** 因此沒有任何 v7 method-level variance 數值；`selected_candidate_arm_id=null`、`method_level_power_ready=false`、`statistics_ready=false`、`paper_data_ready=false` 全部保留，`formal_sample_size_decision` 改為 `BLOCKED_UNTIL_THIS_PROTOCOL_EXECUTES`。
 
 ## Unreleased — 2026-09-08 (d)

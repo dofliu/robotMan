@@ -18,7 +18,7 @@ power/sample-size decision或任何 HIL/bench/robot validation。
 
 ## 2. Frozen acceptance、failure semantics and claim boundary
 
-- Acceptance：[Paired Statistics and Paper Export Contract V1](PAIRED_STATISTICS_CONTRACT.md)
+- Acceptance：[Paired Statistics and Paper Export Contract V1](../PAIRED_STATISTICS_CONTRACT.md)
   的 `PS-01..PS-12`，包含 strict/bounded JSON、exact pair map、source/matrix/run/raw
   identity、observation-state retention、effect/CI、artifact inventory與 `python -I -S`
   replay。
@@ -113,7 +113,7 @@ Cancellation case：
 differences與interval reporting；Fay and Lumbard (2021)、Newcombe (1998)與Chang
 et al. (2022) 說明matched-pair binary CI不能以marginal intervals取代；Wünsch
 et al. (2025) 支持將method failure及其handling明示保留。完整來源與
-method boundary見 [Paired Statistics and Paper Export Contract V1](PAIRED_STATISTICS_CONTRACT.md)。
+method boundary見 [Paired Statistics and Paper Export Contract V1](../PAIRED_STATISTICS_CONTRACT.md)。
 
 [RESULT] Synthetic contract的pairing、continuous arithmetic/bootstrap、state retention、
 paper-input serialization、artifact identity與independent replay通過。

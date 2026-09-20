@@ -1,6 +1,6 @@
 # `RUN-MANIFEST-LOCK-BINDING-V1` 實作 receipt
 
-日期：2026-09-13 ｜ Contract：`RUN-MANIFEST-LOCK-BINDING-V1` ｜ 規格：[RUN_MANIFEST_LOCK_BINDING_SPEC](RUN_MANIFEST_LOCK_BINDING_SPEC.md)
+日期：2026-09-13 ｜ Contract：`RUN-MANIFEST-LOCK-BINDING-V1` ｜ 規格：[RUN_MANIFEST_LOCK_BINDING_SPEC](../RUN_MANIFEST_LOCK_BINDING_SPEC.md)
 
 狀態：`IMPLEMENTED / LB-01..LB-12 PASS / BLOCKER_NARROWED_NOT_CLEARED`
 
@@ -82,7 +82,7 @@
 
 [RESULT] 規格 §12 指令 (b)（`python -m pytest backend -q`）：**1 failed / 816 passed**（405.58 s）。
 
-[BLOCKER] **規格 §12 寫「兩條都必須全綠」，這句話是錯的，而且在我凍結它之前就已經是錯的。** 本 repo 的 suite 並非全綠：`test_v1_analytical_suite.py::test_stdlib_replay_passes_exact_synthetic_fixture`（`PRIMARY_CASE_RECEIPT_IDENTITY`）自 2026-09-08 起就被**記錄為量測結果而非放寬**，見 [PROJECT_STATUS §4.3、§9](PROJECT_STATUS.md)。我在凍結 §12 時沒有先核對本專案自己記錄的 suite 狀態。
+[BLOCKER] **規格 §12 寫「兩條都必須全綠」，這句話是錯的，而且在我凍結它之前就已經是錯的。** 本 repo 的 suite 並非全綠：`test_v1_analytical_suite.py::test_stdlib_replay_passes_exact_synthetic_fixture`（`PRIMARY_CASE_RECEIPT_IDENTITY`）自 2026-09-08 起就被**記錄為量測結果而非放寬**，見 [PROJECT_STATUS §4.3、§9](../PROJECT_STATUS.md)。我在凍結 §12 時沒有先核對本專案自己記錄的 suite 狀態。
 
 [RESULT] 本次工作的實際影響是可量的，且為零新增失敗：
 
@@ -111,11 +111,11 @@
 
 ## 9. Amendment `LOCKBIND-AMENDMENT-01-LB12-SCOPE`（同日）
 
-[BLOCKER] 本 receipt §5 記錄 `LB-12` PASS，那仍然為真；但**該條的量測方式當時是錯的**，同日已由 [規格 §15](RUN_MANIFEST_LOCK_BINDING_SPEC.md) 的 amendment 更正。
+[BLOCKER] 本 receipt §5 記錄 `LB-12` PASS，那仍然為真；但**該條的量測方式當時是錯的**，同日已由 [規格 §15](../RUN_MANIFEST_LOCK_BINDING_SPEC.md) 的 amendment 更正。
 
 [RESULT] 缺陷：`LB-12` 條文宣稱的是「**本 contract** 的實作沒有修改這三個檔案」，實作出來的測試卻比對**工作樹當下**的內容——那回答的是「有沒有任何人在任何時候改過」，屬於各檔案自己的 contract，不屬於本 contract。兩種讀法在實作當下給出相同答案，所以驗收時沒有顯現。
 
-[RESULT] 具體傷害：[ROADMAP §9 第 2 項](ROADMAP.md) 的新訓練線必須修改 `backend/rl/train_ppo.py`（`:705` 的 `checkpoint_interval = 2_000_000` 使 2M 以下的 run 不存任何中間 checkpoint，而 lineage 正是該項的定義）。在原始 `LB-12` 之下，那次修改會讓一個與它無關的 contract 變紅。
+[RESULT] 具體傷害：[ROADMAP §9 第 2 項](../ROADMAP.md) 的新訓練線必須修改 `backend/rl/train_ppo.py`（`:705` 的 `checkpoint_interval = 2_000_000` 使 2M 以下的 run 不存任何中間 checkpoint，而 lineage 正是該項的定義）。在原始 `LB-12` 之下，那次修改會讓一個與它無關的 contract 變紅。
 
 [RESULT] 更正：`LB-12` 改為以 git 讀取**凍結父 commit `501a7ee`** 與**實作 commit `c4bd470`** 兩點的檔案內容比對釘住的 digest，並新增一個測試斷言本 contract **不**凍結這三個檔案、持續保護屬於各自具名的 contract。實測：把 `train_ppo.py` 改成 `fb012e85…`（非釘住值）後，本 contract 63 個測試全綠；同樣的修改在原版會是紅的。
 
