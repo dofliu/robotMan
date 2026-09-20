@@ -102,7 +102,7 @@ defect）把有效 bundle誤報為 structurally invalid。因此在任何 audit 
 [RESULT] 因此 non-finite、terminal failure與 no-exposure保留為 method failure而不是
 censoring，也不取得 bound。
 
-[SOURCE] 本 repo [Paired Statistics and Paper Export Contract V1](PAIRED_STATISTICS_CONTRACT.md)
+[SOURCE] 本 repo [Paired Statistics and Paper Export Contract V1](../PAIRED_STATISTICS_CONTRACT.md)
 已凍結「未凍結 censored estimator前只保存 bound並阻擋一般 mean/bootstrap」。
 [RESULT] 本 audit因此對 `COMPARABLE`與 `EXPOSURE_CENSORED` episode輸出 worst-case
 identification bounds，不輸出 censored point estimate。此處「assumption-free」限定於：

@@ -1,6 +1,6 @@
 # `PUB-B0` 授權紀錄與 v7 線的 selection 可行性量測
 
-日期：2026-09-10 ｜ Gate：`PUB-B0` ｜ 對應 protocol：[V7_CANDIDATE_SELECTION_SPEC](V7_CANDIDATE_SELECTION_SPEC.md)（`SELECT-V7-CANDIDATE-FORMAL-V1`）
+日期：2026-09-10 ｜ Gate：`PUB-B0` ｜ 對應 protocol：[V7_CANDIDATE_SELECTION_SPEC](archive/V7_CANDIDATE_SELECTION_SPEC.md)（`SELECT-V7-CANDIDATE-FORMAL-V1`）
 
 狀態：`AUTHORIZATION_GRANTED / PROTOCOL_STILL_NOT_EXECUTABLE / FORMAL_SEEDS_NOT_ACCESSED`
 
@@ -8,7 +8,7 @@
 
 ## 1. 授權
 
-[SOURCE] 專案負責人於 2026-09-10 的工作 session 中指示「授權 formal evaluation」。這解除 [V7_CANDIDATE_SELECTION_SPEC §7](V7_CANDIDATE_SELECTION_SPEC.md) 的 `EP-03`（`formal authorization has not been obtained`）作為一項**決定**。
+[SOURCE] 專案負責人於 2026-09-10 的工作 session 中指示「授權 formal evaluation」。這解除 [V7_CANDIDATE_SELECTION_SPEC §7](archive/V7_CANDIDATE_SELECTION_SPEC.md) 的 `EP-03`（`formal authorization has not been obtained`）作為一項**決定**。
 
 [BLOCKER] 但**授權本身不使 protocol 可執行**，原因有三，全部在授權之前就已記錄，不是事後新增的門檻：
 
@@ -61,7 +61,7 @@
 
 ## 4. 一次性的代價，與待負責人決定的兩件事
 
-[BLOCKER] [V7_CANDIDATE_SELECTION_SPEC §5](V7_CANDIDATE_SELECTION_SPEC.md) 明文：FORMAL 資料**只套用一次**；看過結果後不得重跑、不得調門檻、不得改 `replicate_count`、不得改 arm 定義、不得改 primary outcome；任何改動都需要新的 protocol version，且新版本必須揭露它是在已知 FORMAL 結果的情況下設計的。`20000–20029` 是[§3](V7_CANDIDATE_SELECTION_SPEC.md) 記載的**唯一未被檢視的範圍**（`18000–18029` 已 `DEVELOPMENT_EXHAUSTED`，`19000–19029` 已 `RETIRED`）。
+[BLOCKER] [V7_CANDIDATE_SELECTION_SPEC §5](archive/V7_CANDIDATE_SELECTION_SPEC.md) 明文：FORMAL 資料**只套用一次**；看過結果後不得重跑、不得調門檻、不得改 `replicate_count`、不得改 arm 定義、不得改 primary outcome；任何改動都需要新的 protocol version，且新版本必須揭露它是在已知 FORMAL 結果的情況下設計的。`20000–20029` 是[§3](archive/V7_CANDIDATE_SELECTION_SPEC.md) 記載的**唯一未被檢視的範圍**（`18000–18029` 已 `DEVELOPMENT_EXHAUSTED`，`19000–19029` 已 `RETIRED`）。
 
 [INFERENCE] 合起來：把唯一剩下的未檢視 seed 範圍花在一條預期回傳 `NO_CANDIDATE` 的規則上，會**永久失去**日後在 v7 線上做出可信 selection 的可能性。這不是規則設計失誤——規則之所以嚴格，正是因為 audit 量測到 `outcome_state == OBSERVED` 不蘊含 full exposure；失敗的原因是**這條 policy 線本身跑不完任務**，而它的 warm start 不可重建（`CONDITIONAL_ON_FIXED_WARM_START` 對 v7 線永久成立）。
 

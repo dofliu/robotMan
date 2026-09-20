@@ -6,7 +6,7 @@ Protocol：`SEEDVAR-V7-TRAINING-REPLICATE-DEV-V1`
 （`sha256:9ab17c74ddb021f9b69b1df843f9fa49ea45ecf790837204270d8bc01046b359`，
 含 [Amendment 01](TRAINING_SEED_VARIANCE_SPEC.md)）
 
-保留證據：[`backend/seed_variance_evidence/2026-09-08/`](../backend/seed_variance_evidence/2026-09-08/)
+保留證據：[`backend/seed_variance_evidence/2026-09-08/`](../../backend/seed_variance_evidence/2026-09-08/)
 
 證據範圍：`SIM_ONLY_MUJOCO / NOT_PHYSICALLY_VALIDATED / DEVELOPMENT_ONLY`
 

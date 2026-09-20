@@ -39,7 +39,7 @@
 
 [RESULT] `python -I -S` replay（isolated、no site、零第三方模組載入）由 raw + protocol 重算 summary，**bytes 一致**。`test_second_case_exposure_contract.py::test_retained_development_evidence_revalidates_and_replays_exactly` 以測試固定此事。
 
-[BLOCKER] 300 個 per-episode NPZ trace 與 10 個 `policy.zip` 位於 gitignored `backend/rl/artifacts/second_case/2026-09-08/runs/`，**不在版控內**；每個 trace 的 `trace_sha256` 與每個 policy 的 `policy_sha256` 保留在 `raw_replicates.json`。這是依 [REPOSITORY_GUIDE](REPOSITORY_GUIDE.md) 的 artifact policy 所做的選擇，並且與 v4 warm start 遺失的情況**不同**：本回條的每一個主張都只依賴 raw JSON 中的 counts，不依賴 trace 或 checkpoint；沒有任何下游訓練以這些 checkpoint 為起點。風險仍在：若要對 trace 做本回條以外的分析，需要這台機器上的檔案。
+[BLOCKER] 300 個 per-episode NPZ trace 與 10 個 `policy.zip` 位於 gitignored `backend/rl/artifacts/second_case/2026-09-08/runs/`，**不在版控內**；每個 trace 的 `trace_sha256` 與每個 policy 的 `policy_sha256` 保留在 `raw_replicates.json`。這是依 [REPOSITORY_GUIDE](../REPOSITORY_GUIDE.md) 的 artifact policy 所做的選擇，並且與 v4 warm start 遺失的情況**不同**：本回條的每一個主張都只依賴 raw JSON 中的 counts，不依賴 trace 或 checkpoint；沒有任何下游訓練以這些 checkpoint 為起點。風險仍在：若要對 trace 做本回條以外的分析，需要這台機器上的檔案。
 
 ## 3. 實測結果
 
@@ -113,7 +113,7 @@ V1 的結果保留為 Track A 的一個**邊界案例**：它顯示 bound 在對
 
 ## 7. 對上游文件的影響
 
-- [PUBLICATION_PLAN](PUBLICATION_PLAN.md) `PUB-A1`：`EXECUTED — SECOND_CASE_ARTIFACT_REPRODUCED`，gate 未 PASS，下一步 V2。
+- [PUBLICATION_PLAN](../PUBLICATION_PLAN.md) `PUB-A1`：`EXECUTED — SECOND_CASE_ARTIFACT_REPRODUCED`，gate 未 PASS，下一步 V2。
 - `STATUS.yaml`：新增 `second_case_exposure_status`／`second_case_exposure_receipt`。
 - Track A 主張 A-C1／A-C2：獲得第二個 plant 上的機制證據與 `OBSERVED ⇏ full exposure` 證據；generalizability 的**完整**支持仍待 V2。
 - 工程：無任何 contract、protocol、training driver 或 threshold 被更動。

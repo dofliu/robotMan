@@ -8,7 +8,7 @@
 
 ## 1. 這份 protocol 要回答什麼
 
-[PUBLICATION_PLAN](PUBLICATION_PLAN.md) Track A 的主貢獻 A-C1 是：early termination 是 rate 型 outcome 的 **exposure censoring**；naive 的 per-step 平均會條件於存活，可以主張一個 assumption-free 的 full-horizon identification bound 並不支持的方向。這件事在 v7 humanoid 上量到了（V7C 表面 `-36` pp 的「改善」，bound 含 0，跨 5 個獨立 seeds 重現）。
+[PUBLICATION_PLAN](../PUBLICATION_PLAN.md) Track A 的主貢獻 A-C1 是：early termination 是 rate 型 outcome 的 **exposure censoring**；naive 的 per-step 平均會條件於存活，可以主張一個 assumption-free 的 full-horizon identification bound 並不支持的方向。這件事在 v7 humanoid 上量到了（V7C 表面 `-36` pp 的「改善」，bound 含 0，跨 5 個獨立 seeds 重現）。
 
 審稿人的第一個問題會是：**這是 v7 那條線的特例，還是機制本身？** 本 protocol 在一個公開 benchmark、不同 plant、from-scratch policy、零專案控制程式碼的環境下，測同一個機制。
 
@@ -88,7 +88,7 @@ Primary measurement：`saturation_duty_pct`。單位為 (control step, joint) pa
 | naive rate | `100 · s_e / (n_e · 6)` | per-step 平均會報的數字；條件於存活 |
 | full-horizon bound | `[100 · s_e / 6000, 100 · (s_e + (1000 − n_e)·6) / 6000]` | assumption-free；`n_e = 1000` 時退化為點且等於 naive |
 
-**引理（在 [exposure_identification](../backend/toolkit/exposure_identification.py) 以測試斷言）**：naive rate 永遠落在 full-horizon bound 內。所以 bound 排除 0 時 naive 差必同號；反之不成立 —— 這正是 artifact 的空間。
+**引理（在 [exposure_identification](../../backend/toolkit/exposure_identification.py) 以測試斷言）**：naive rate 永遠落在 full-horizon bound 內。所以 bound 排除 0 時 naive 差必同號；反之不成立 —— 這正是 artifact 的空間。
 
 聚合（analysis unit = **training replicate**；分母 5；`30`／`60`／`150`／`300` 為 enforced forbidden denominators）：
 

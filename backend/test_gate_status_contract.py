@@ -125,6 +125,9 @@ def tree(tmp_path):
               for site in entry["sites"]}
     needed |= {rel for entry in registry["gates"].values() for rel in entry["evidence"]}
     for rel in needed:
+        # Evidence stopped being flat under docs/ on 2026-09-20, when the closed
+        # lines' receipts moved to docs/archive/; mirror whatever depth it has.
+        (root / rel).parent.mkdir(parents=True, exist_ok=True)
         shutil.copy(os.path.join(REPO_ROOT, rel), root / rel)
     registry_path = root / "gate_status_registry.json"
     registry_path.write_text(json.dumps(registry, ensure_ascii=False, indent=2),

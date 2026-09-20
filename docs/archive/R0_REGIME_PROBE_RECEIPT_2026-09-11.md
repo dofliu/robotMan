@@ -1,6 +1,6 @@
 # `R0-REGIME-HORIZON-PROBE-V1` 執行 receipt
 
-日期：2026-09-11 ｜ Protocol：`R0-REGIME-HORIZON-PROBE-V1` ｜ 規格：[R0_REGIME_PROBE_SPEC](R0_REGIME_PROBE_SPEC.md)
+日期：2026-09-11 ｜ Protocol：`R0-REGIME-HORIZON-PROBE-V1` ｜ 規格：[R0_REGIME_PROBE_SPEC](../R0_REGIME_PROBE_SPEC.md)
 
 狀態：`EXECUTED / R0_WINDOW_FOUND_BOTH_CONTRASTS / PILOT_NOT_EVIDENCE`
 
@@ -35,7 +35,7 @@
 | `V7B_REDUCED_JOINT_ENVELOPE` | 120 / 150 | 30 | `414`（8.28 s） | 8.28 – 8.98 s |
 | `V7C_FILTERED_ACTION` | 0 / 150 | 150 | `152`（3.04 s） | 3.04 – 3.28 s |
 
-[RESULT] **`V7A` 的 7 個與 `V7B` 的 30 個早期終止，全部落在 9 s 任務的最後 `0.62`／`0.72` 秒之內**——依 [MOTION_TASK_SPEC](MOTION_TASK_SPEC.md) 的 phase 表，那是 `FINAL_STAND`（8.0–9.0 s）。`V7C` 完全不同：150 個 episode 全部在 `3.04`–`3.28` s 跌倒，落在 `STEADY_WALK`。
+[RESULT] **`V7A` 的 7 個與 `V7B` 的 30 個早期終止，全部落在 9 s 任務的最後 `0.62`／`0.72` 秒之內**——依 [MOTION_TASK_SPEC](../MOTION_TASK_SPEC.md) 的 phase 表，那是 `FINAL_STAND`（8.0–9.0 s）。`V7C` 完全不同：150 個 episode 全部在 `3.04`–`3.28` s 跌倒，落在 `STEADY_WALK`。
 
 ## 4. 對 A-C3 的意義：regime 由一個沒人報告的旋鈕決定
 
@@ -89,7 +89,7 @@
 
 本結果**只**支持：未來一份凍結 R0 protocol 的 horizon 選擇；以及「regime 在 horizon 維度上可達且由 horizon 決定」這項觀察，用於 A-C3。
 
-本結果**不**支持：`V7B` 或 `V7C` 在 9 s 任務上的任何表現或優劣陳述；任何 task PASS；任何 controller superiority；對 [MOTION_TASK_SPEC](MOTION_TASK_SPEC.md) 11 項 criteria 的任何判定；把截斷 horizon 的 duty 與 9 s 的 duty 相比或混用；以及任何 physical feasibility、safety、sim-to-real 或 actuator 陳述。
+本結果**不**支持：`V7B` 或 `V7C` 在 9 s 任務上的任何表現或優劣陳述；任何 task PASS；任何 controller superiority；對 [MOTION_TASK_SPEC](../MOTION_TASK_SPEC.md) 11 項 criteria 的任何判定；把截斷 horizon 的 duty 與 9 s 的 duty 相比或混用；以及任何 physical feasibility、safety、sim-to-real 或 actuator 陳述。
 
 [BLOCKER] 本 probe 在**已被檢視過**的 DEVELOPMENT 資料（seeds `18000–18029`，`DEVELOPMENT_EXHAUSTED`）上執行，且 v7 線的 5 個 replicate 共用同一個不可重建的 v5 warm start。稿件引用時必須同時出現這兩項限制。
 
