@@ -138,6 +138,8 @@ python -m pytest backend -q
 | [GATE_STATUS_SINGLE_SOURCE](docs/GATE_STATUS_SINGLE_SOURCE.md) | gate 狀態的單一權威來源：`GATE-STATUS-SINGLE-SOURCE-V1` 的規則、33 個 gate 與 54 個站點的 authority／mirror 關係、明確不涵蓋的範圍；由 `backend/gate_status_contract.py` fail-closed 檢查 |
 | [TEACHING_BOUNDARY](docs/TEACHING_BOUNDARY.md) | 教學模擬器的邊界：`MODULE-BOUNDARY-V1` 的 teaching 邊界，教學進入點的遞移 import 閉包必須恰好等於登錄清單；研究模組跑進來或清單過期皆 fail closed |
 | [TOOLKIT_PORTABILITY](docs/TOOLKIT_PORTABILITY.md) | 實驗工具組的邊界與**可攜性審計**：同一契約的 toolkit 邊界（函式庫不得反向碰專案），加上七個模組逐一的 blocking／friction 分類，以及三件需要擁有者決定的事 |
+| [TEST_REPORT_2026-09-20](docs/TEST_REPORT_2026-09-20.md) | **全面測試報告**——1,062 測試（1,061 過／1 既有失敗）、三個契約、796 個連結、五個畫面的實際截圖與數據 |
+| [TEST_REPORT_2026-09-20](docs/TEST_REPORT_2026-09-20.md) | **全面測試報告**——1,062 測試（1,061 過／1 既有失敗）、三個契約、796 個連結、五個畫面的實際截圖與數據 |
 | [`docs/receipts/`](docs/receipts/README.md) | **實作 receipt 索引**——14 份，2026-09-20 由 `docs/` 搬入；仍然有效，只是不是規劃文件 |
 | [`docs/archive/`](docs/archive/README.md) | **已結案研究線的 receipt 與 spec 索引**——17 份，2026-09-20 搬入；另 **3 份 spec 因 digest 被凍結證據釘住而搬不動**（改連結就是改位元組），7 份在原路徑留轉址。記錄見 [DOC_ARCHIVE](docs/DOC_ARCHIVE_2026-09-20.md) |
 | [RESEARCH_LINE_ARCHIVE](docs/RESEARCH_LINE_ARCHIVE_2026-09-19.md) | **封存記錄**：已結案研究線進 `backend/archive/` 的逐項改動、為什麼測試必須繼續跑、以及那個因自己的 pin 而搬不動的 contract |

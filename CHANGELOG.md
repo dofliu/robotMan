@@ -2,6 +2,19 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-20 (ax)
+
+### 全面測試與測試報告（任務 #100）
+
+- [RESULT] **後端全套：1,062 收集／1,061 通過／1 失敗／0 跳過**，`499.18` s（同機併跑 API 與前端 dev server，故長於先前的 `408.43` s）。失敗項是同一個既有的 `test_stdlib_replay_passes_exact_synthetic_fixture`（`assert 'FAIL' == 'PASS'`），**未放寬、未跳過**。**沒有重新推導它的根因**，只確認重現。
+- [RESULT] 三個 fail-closed 文件契約全過：`gate_status`（33 gates／54 sites）、`derived_claim`（1 claim／3 sites／10 papers）、`module_boundary`（teaching 15／4,943、toolkit 7／5,508）。**796 個 Markdown 內部連結，壞掉 0 個。**
+- [RESULT] 前端 `npm run typecheck` 與 `npm run build` 皆 exit 0（build 7.48 s）。有一個非阻斷警告：chunk > 500 kB（three.js），**未處理**。
+- [RESULT] **README 承諾的啟動指令實測成立**：`python -X utf8 backend/main.py` → `/` 與 `/api/defaults` 皆 200。附帶量到 `uvicorn backend.main:app`（套件路徑）會 `ModuleNotFoundError: No module named 'config_schema'`——後端用平坦 import，必須讓 `backend/` 成為 `sys.path[0]`。
+- [RESULT] **五個畫面全部實際渲染並截圖存證**（`docs/assets/ui-2026-09-20/`，Chromium 1440×1100）。三機同步比較那張是**跑起來的狀態**（t=2.83 s：兩個控制器跌倒、RL policy 行走，`time skew 0.000000 s`、同一個 `plant sha256`），不是靜止畫面。
+- [RESULT] 截圖改用 CDP `Page.captureScreenshot`：3D 是持續重繪的 three.js canvas，Playwright 的 `screenshot()` 會等「畫面穩定」而逾時。
+- [BLOCKER] 五頁合計 **1 個主控台 404**（分析模式），**未定位是哪個資源**，不影響渲染。已記錄，未修。
+- [RESULT] 報告：`docs/TEST_REPORT_2026-09-20.md`；README 與 PROJECT_STATUS 已連結並更新量測值。
+
 ## Unreleased — 2026-09-20 (aw)
 
 ### §4.3 的 receipt 分流：14 份進 `docs/receipts/`（任務 #99）
