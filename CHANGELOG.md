@@ -2,6 +2,54 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-22 (be)
+
+### V1 致動能量帳：開環正弦與 plant 站立 PD 蹲起（`V1-ACTUATED-ENERGY-SUITE-V1`，任務 #107）
+
+- [RESULT] **先凍結再執行**：規格與門檻（[spec](docs/V1_ACTUATED_ENERGY_SUITE_SPEC.md)）於 `b4b5900` commit 並 push 後才跑凍結 case；門檻由能量帳的一階離散結構推得。設計期 pilot 在不同幅度／頻率／蹲深上做，只為選出不失控的動作（幅度 0.08·上限時四肢整圈翻轉；live sim 的 +4 mm 起跳使撞地接觸功在 4 ms 解析不足），規格 §1.1 先寫下。
+- [RESULT] **A1 開環正弦（軀幹固定、去地板、12 個 motor、0.015·forcerange、3 s）**：`E − E₀ = W_act − W_damp`，致動功用 held-torque 形式（力取步首、速度梯形），殘差 `0.18／0.084／0.041%`（門檻 2／1／0.5%，order 1.07／1.04）；`actuator_force = clip(ctrl, forcerange)`、`qfrc_actuator = gear·force`、命令與規格式子差 0。
+- [RESULT] **A2 plant 站立 PD 蹲起（完整人形、plant 地板、貼地起始、5 cm／4 s、5 s）**：加接觸功 `∫ Σ f_i·v_i dt`（接觸力對機器人接觸點所做的功，由序列化接觸力與 body 運動學重算），殘差 `0.23／0.13／0.069%`（門檻 5／2.5／1.25%，order 0.81／0.91）；八個接觸點全程都在、軀幹傾角 ≤ 2.3°、cone 利用率 ≤ 0.32；接觸功 −0.17～−0.20 J（只耗能）。
+- [RESULT] **兩個 plant 事實明寫為限制**：`<motor>` 沒有 drive-loss 模型，能量帳沒有這一項（`V1-R13` 的 drive-loss trace 在此 plant 恆為 0）；**`implicitfast` 有阻尼時不是半隱式 Euler**（`v_{n+1} − v_n − dt·qacc_n` 差 4e-3～1e-2，一階），前兩個 suite 的 `STEP_VELOCITY_UPDATE_IDENTITY` 之所以到 1e-10 是因為那些案例沒有速度相依力。
+- [RESULT] **stdlib-only replay** 重算全部 metric，與 NumPy primary 144 個 metric 相符（相對差 0.0）；九種結構篡改 raise、扭矩與接觸力篡改保留 FAIL。22 項測試。
+- [RESULT] 對 V1 gate：`V1-R13` 致動部分完成（仍 PARTIAL：缺行走／撞擊情境）、`V1-R11` 加兩個收斂研究、`V1-R10` 仍 BLOCKED（只多一句簿記事實）。V1 仍 `PARTIAL_IMPLEMENTED_NOT_PASS`。VV_PLAN 三列、PROJECT_STATUS §1／§6.4／§7、ROADMAP §9 第 4 項、V1_ORACLE_SPEC §5、README、STATUS.yaml 同步。Receipt：[V1_ACTUATED_ENERGY_SUITE_RECEIPT_2026-09-22](docs/receipts/V1_ACTUATED_ENERGY_SUITE_RECEIPT_2026-09-22.md)。
+- [RESULT] **全套後端測試（`b4b5900` 的乾淨工作樹（凍結 commit；其後的 `16b9275` 只有文件、無程式變更））：1,136 收集／1,135 通過／1 失敗／0 跳過**，`517.19` s；比 `c4cd809` 的 1,114 多 **22**，全部來自 `test_v1_actuated_energy_suite.py`；失敗項仍是同一個既有的 `PRIMARY_CASE_RECEIPT_IDENTITY`，未放寬、未跳過。
+
+## Unreleased — 2026-09-22 (bd)
+
+### V1 接觸參考案例：drop-and-settle、黏滯滑塊，與被拒絕的 Coulomb 假說（`V1-CONTACT-REFERENCE-SUITE-V1`，任務 #106）
+
+- [RESULT] **先凍結再執行**：規格與門檻（[spec](docs/V1_CONTACT_REFERENCE_SUITE_SPEC.md)）於 `c4cd809` commit 並 push 後才跑第一個凍結 case；門檻由引擎軟約束模型（`a_ref = −B·v − d·K·pos`、`R = (1−d)/d·diag(A)`）與離散誤差分析推得。設計期 9 個 pilot 全在**不同參數**上做、只用來推導閉式，並在規格 §1.1 先寫下三個觀察。
+- [RESULT] **drop-and-settle（1 kg 球、0.5 m、4／2／1 ms）**：觸地步與離散自由落體閉式逐字相同（80／160／319）、對連續 t_c 誤差 ≤ 1 步；法向衝量對重量積分 `2e-12`；靜止 GRF 對重量 `3e-9`；靜止穿透對引擎軟接觸平衡的閉式 `pen* = (1−d)g/(n_c d² K)` 相對差 `2e-8`；觸地後無分離。撞擊峰值 33–35 倍重量、最大穿透 2.1–2.3 cm 只記錄不設門檻。
+- [RESULT] **黏滯滑塊（1 kg 平移薄板、4 個接觸、踢速 0.02 m/s）**：未飽和摩擦是黏滯的，衰減速率對推得的 `ρ = B·2d/(1+d) = 99.79 s⁻¹` 相對差 `1e-11`；對連續指數的差就是預算的離散差 D(dt)（0.089／0.040／0.019，order 1.15／1.07）；四點分擔的平衡穿透是單點的 1/3.41，與閉式一致——**引擎的接觸柔度隨接觸點數變，不是材料常數**。
+- [RESULT] **預登記的 Coulomb 假說（同薄板、0.5 m/s、只在 plant 的 2 ms，不參與 suite 判定）三條全部 rejected**：22 ms 失去接觸、法向力膨脹到 3.03 倍重量、平均減速度差 μg 4.0%。在 plant 的接觸參數下（`impratio 1`、pyramidal、`solref` 預設），滑動摩擦低於約 0.1 m/s 是黏滯、高於約 0.2 m/s 把摩擦需求漏進法向力——**沒有 Coulomb 區間**；自由 6-DoF 薄板一被推就翹起跳離（故滑塊限制為平移）。這是解讀行走控制器比較與 Raibert 診斷時必須帶著的 plant caveat。
+- [RESULT] **stdlib-only replay**（無 MuJoCo／NumPy／專案匯入）重算全部 metric，與 NumPy primary 210 個 metric 相符（相對差 0.0）、criteria 與假說 `passed` 序列逐項相同；八種結構篡改 raise、兩種有限值篡改保留 FAIL。22 項測試。
+- [RESULT] 對 V1 gate：`V1-R08` **NOT STARTED → PARTIAL**（觸地事件 prescribed 對 solved 逐字相同）、`V1-R05`／`R06`／`R11`／`R14` 加單剛體動態接觸覆蓋；`V1-R06` 明列 plant 摩擦非 Coulomb 的證據。V1 仍 `PARTIAL_IMPLEMENTED_NOT_PASS`：缺關節式人形的 dynamic contact、致動能量帳、solver-tolerance／finite-difference、joint limits、actuator envelope。VV_PLAN 五列、PROJECT_STATUS §1／§6.4／§7、ROADMAP §9 第 4 項、V1_ORACLE_SPEC §5、README、STATUS.yaml（含 `v1_oracle_status` 的就地更正）同步。Receipt：[V1_CONTACT_REFERENCE_SUITE_RECEIPT_2026-09-22](docs/receipts/V1_CONTACT_REFERENCE_SUITE_RECEIPT_2026-09-22.md)。
+- [RESULT] **全套後端測試（`c4cd809` 的乾淨工作樹（凍結 commit；其後的 `59eab53` 只有文件、無程式變更））：1,114 收集／1,113 通過／1 失敗／0 跳過**，`550.82` s；比 `64ad5d6` 的 1,092 多 **22**，全部來自 `test_v1_contact_reference_suite.py`；失敗項仍是同一個既有的 `PRIMARY_CASE_RECEIPT_IDENTITY`，未放寬、未跳過。
+
+## Unreleased — 2026-09-22 (bc)
+
+### V1 動態參考案例：known pendulum 與被動 articulated 能量平衡（`V1-DYNAMIC-REFERENCE-SUITE-V1`，任務 #105）
+
+- [RESULT] **先凍結再執行**：規格與門檻（[spec](docs/V1_DYNAMIC_REFERENCE_SUITE_SPEC.md)）於 `a65bef2` commit 並 push 後才跑第一個 case；門檻由半隱式 Euler 的離散誤差分析推得（週期誤差 (ωΔt)²/24、能量振盪 (Δt/2)·max|τ_g·θ̇|／E₀），不是看結果湊的。
+- [RESULT] **known pendulum（2 kg 球、L 0.5 m、60° 釋放、6 s）**：週期對 AGM 橢圓積分閉式解 `6.5e-6／1.6e-6／4.1e-7`（4／2／1 ms，observed order **2.0**）；能量振盪 `0.84／0.42／0.21%`（門檻 2／1／0.5%，與預測 0.81／0.41／0.20% 相符）；長期漂移 ~1e-8——引擎在此案例上是辛的；compiled 球慣量對 2/5·m·r² 誤差 0。
+- [RESULT] **articulated 被動擺動（專案人形、軀幹固定、去地板、去致動器、12 個阻尼關節、3 s）**：能量平衡含梯形阻尼功的殘差 `0.70／0.35／0.17%`（門檻 5／2.5／1.25%，observed order 0.99）；引擎能量與由質心速度、角速度、主慣量、armature 獨立重算的能量一致到 1e-15；`trunk`／`foot_l`／`foot_r` 的閉式球／盒慣量對 compiled 相對誤差 6e-16、11 個 body 質量誤差 0。
+- [RESULT] **stdlib-only replay**（無 MuJoCo／NumPy／專案匯入）重算全部 metric，與 NumPy primary 84 個 metric 相符（相對差 0.0）；六種結構篡改 raise、有限值篡改保留 FAIL。20 項測試。
+- [RESULT] **第一次執行 FAIL，如實保留**：三個 articulated case 的 `ENGINE_KINETIC_ENERGY_AGREEMENT` 讀到 1.2——重算公式把 `mj_objectVelocity(mjOBJ_BODY)` 的線速度當成 body 原點速度再加 ω×r，而它已是質心速度。修公式（`4a96f54`）、**門檻一個都沒動**，在乾淨樹重跑 **6/6 PASS**。兩次 artifact 的 sha256 都在 [receipt](docs/receipts/V1_DYNAMIC_REFERENCE_SUITE_RECEIPT_2026-09-22.md)。
+- [RESULT] 對 V1 gate：`V1-R13` energy consistency **BLOCKED → PARTIAL**（致動下的 drive-loss 帳仍缺）、`V1-R14` known pendulum 與被動 articulated 完成、`V1-R11` 加兩個動態收斂研究。V1 仍 `PARTIAL_IMPLEMENTED_NOT_PASS`：缺 dynamic contact、致動能量帳、solver-tolerance／finite-difference、joint limits、actuator envelope。VV_PLAN 三列、PROJECT_STATUS §1／§6.4／§7、ROADMAP §9 第 4 項、V1_ORACLE_SPEC §5、README、STATUS.yaml 同步。
+- [RESULT] **全套後端測試（`64ad5d6` 的內容——run 在該 commit 建立前、於內容相同的工作樹啟動；對 `4a96f54` 只多 V1 receipt 與文件對齊、無程式變更）：1,092 收集／1,091 通過／1 失敗／0 跳過**，`651.94` s；比 `a743db9` 的 1,072 多 **20**，全部來自 `test_v1_dynamic_reference_suite.py`；失敗項仍是同一個既有的 `PRIMARY_CASE_RECEIPT_IDENTITY`，未放寬、未跳過。
+
+## Unreleased — 2026-09-22 (ba)
+
+### 接下來的三件事：Track B 決定、Raibert 瓶頸定位、瀏覽器視覺驗證（決定紀錄、任務 #103、#104）
+
+- [RESULT] **Track B formal evaluation 延後**（`TRACK-B-DEFERRAL-DECISION-2026-09-22`）：負責人以「第一點 請你建議後 開始就好」委託採納建議——(a) 若日後執行，先預註冊替代規則；(b) `20000–20029` 兩條線都不花、保持封存，保留給 reference policy 達到 `PUB-B2` 出口條件的訓練線。理由全是已量到的事實：v7 線 `SEL-C2` 聯合通過機率 `2.2e-18`／`0`；tracked lineage 兩線 full exposure `0/30 × 5`；PROJECT_ASSESSMENT §3（Track A 不再需要 `PUB-B2`）。`PUB-B0` 仍 AUTHORIZED、`PUB-B4` 仍 NOT_STARTED；無 protocol 變更、無 seed 存取、無 authorization evidence。負責人端 Track B 無待辦；**唯一在等負責人的是 Track A 的原文 PDF**。
+- [RESULT] **Raibert 堆疊 2 s 瓶頸定位**（任務 #103）：`compute()` 的 26 個常數搬成 class attribute（凍結任務 trace **19 陣列逐位元相同**，`cop_xy` 的 674 個 NaN 視為相等）；儀器化基準 + 41 個事前寫死的單因子消融 + 4 個事後組合，**無一站過 3.02 s**（baseline 2.22 s）。機制是第一步的三段連鎖：以髖推骨盆 → 軀幹後仰 31°、髖修正 −110 N·m 飽和 → 擺動腳懸在離地 3 cm、觸地晚 275 ms → 落點鎖在世界座標、落到骨盆後方 5 cm → 接不住 0.7 m/s 前衝 → 加速換步、早觸地、+39°、2.2 s 倒。每個常數只碰一段，所以調參救不了；四個結構性候選（起步策略、前推改由踝產生、落點相對座標、擺動腳觸地伺服）**未實作**，`raibert` 預設未動。這也解釋 `cp` 為何同時倒（1、2 段共用）。
+- [RESULT] **瀏覽器視覺驗證**（任務 #104，`BROWSER-VISUAL-VERIFICATION-2026-09-22`）：新增 `frontend/e2e/` 6 項 dedicated tests，跑 README 的 production 路徑（build → uvicorn 掛 dist → headless Chromium），**6 passed／103.82 s**。畫面上的數字逐項對上 API（trace 筆數、2,282 samples、25 個 profile id、`time skew 0.000000 s`、plant 簽章），五張截圖非單色，console／page error 為零。兩個 `BROWSER_VISUAL_PENDING` 解除；`PUB-C0` `NOT_STARTED` → **`PASS`**——範圍是「渲染、行為、與 API 一致」，**不是** pixel regression、**不是**物理效度（`feature_inventory_status` 仍 UNVERIFIED）。到全過前四輪失敗全是測試選擇器（收合的 Disclosure、條件渲染的 test-id、收合的 profile 群組、要等 WebSocket 的 footer），不是應用缺陷。
+- [RESULT] 順帶量到兩件事：Playwright 的 actionability 等待在持續重繪（軟體 GL）的即時互動頁會卡住——元素已 resolve 為 visible 仍逾時——該頁改用 DOM click；Playwright 1.63 自帶的 Chromium 不在機器上，退到 `/opt/pw-browsers/chromium`（1194），兩者皆無則**失敗不 skip**。
+- [RESULT] **全套後端測試（`a743db9`）：1,072 收集／1,071 通過／1 失敗／0 跳過**，`420.57` s；數目與 `0dca910` 相同（瀏覽器測試刻意不在 `pytest backend/` 集合）；失敗項仍是同一個既有的 `PRIMARY_CASE_RECEIPT_IDENTITY`，未放寬、未跳過。
+- [RESULT] teaching 閉包 16 模組／**5,104 行**（常數搬出後 +38 行），`MODULE_BOUNDARIES_CLEAN`；`GATE_STATUS_SINGLE_SOURCE_CONSISTENT`（33／54）、`DERIVED_CLAIMS_CONSISTENT`（1／3／10）；全 repo 內部連結壞掉 0 個。
+- 文件：`docs/TRACK_B_FORMAL_EVALUATION_DECISION_2026-09-22.md`、`docs/RAIBERT_STACK_DIAGNOSIS_2026-09-22.md`、`docs/receipts/BROWSER_VISUAL_VERIFICATION_RECEIPT_2026-09-22.md`；README 索引與現況一覽、REPOSITORY_GUIDE（`frontend/e2e/`、新 assets）、ROADMAP §2 M2／§9 第 3 項、PROJECT_STATUS §6.6／§7／§8、PUBLICATION_PLAN §5／`PUB-B0`／`PUB-B4`／`PUB-C0`／Track C 硬前置、`STATUS.yaml`（`track_b_formal_evaluation_decision`、`browser_visual_verification`、兩個 UI 旗標、`module_boundary`）、`docs/receipts/README.md` 同步。
+
 ## Unreleased — 2026-09-22 (az)
 
 ### 四個行走控制器的開發比較，含一個新加的 Capture-point 對照組（任務 #102）
