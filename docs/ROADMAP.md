@@ -27,7 +27,7 @@
 | M3 障礙處理 | ideal raycast、rule-based step-over/stop | TEACHING DEMO / SENSOR VALIDATION ABSENT |
 | M4 ZMP | cart-table-derived CoM/ZMP 與 scheduled support polygon | TRAJECTORY CONSISTENCY INDICATOR, NOT INDEPENDENT STABILITY VALIDATION |
 | M5 即時互動 | MuJoCo forward contact simulation 與 controller | SIL-LIKE SIMULATION ONLY |
-| M6 controller/RL | deterministic nominal comparison 與 PPO checkpoint | SOFTWARE SNAPSHOT / V3 NOT PASSED |
+| M6 controller/RL | deterministic nominal comparison 與 PPO checkpoint；2026-09-22 加入第四個 deterministic 對照組 `cp`（Capture-point 落腳，**非新方法**），四控制器凍結任務比較全 FAIL，見 [CONTROLLER_COMPARISON_2026-09-22](CONTROLLER_COMPARISON_2026-09-22.md) | SOFTWARE SNAPSHOT / V3 NOT PASSED |
 
 既有 comparison_report.md 保留為 regression snapshot；不得把其中的跌倒率、CoT 或抗推力解讀成一般化或實測結果。
 

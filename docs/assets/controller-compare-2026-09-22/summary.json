@@ -1,0 +1,1407 @@
+{
+  "schema": "CONTROLLER_COMPARISON_REPORT_V1",
+  "nature": "DEVELOPMENT_COMPARISON_ONLY",
+  "evidence_scope": "SOFTWARE_ONLY_MUJOCO_REALIZED_SIMULATION",
+  "generated_at": "2026-09-22T02:41:29+00:00",
+  "git_head": "2a2a9f8",
+  "python": "3.11.15",
+  "code_sha256": {
+    "controller.py": "sha256:78b3f91d5310115757ce4b85029f469400bbc19ca3f2b9efa801de9411f5ec0c",
+    "controller_raibert.py": "sha256:532297976f32ee88a7355740145b402b252e2526e66ef9fca20d096a98506d46",
+    "controller_cp.py": "sha256:268bed05b3b43e95e836774345290aecbbd7e20a9958ab4ea6485df725ddfef8",
+    "controller_rl.py": "sha256:ccbbb2d044c63abc1ae5a40e47a7954c2b8a6158b5c886534f4f16d462b0d074",
+    "live_sim.py": "sha256:76e1bc33a08b5b12afac5679d5c6f5102d7773f3c5ccc2afe41ff61d7f39b2a0",
+    "motion_tasks.py": "sha256:3dd9a47b6798a2fba713eda3654b428377f3a75e825105b233a1da375d4215af",
+    "run_motion_task.py": "sha256:32343f6e3ad2fb229a4967b543257979785b364d468b5bab772231e1f9561467",
+    "compare_controllers_report.py": "sha256:d79e1017c86b47b316b9044cf11daba72bdd6e147b574126799e733be13c2ba2"
+  },
+  "task": {
+    "task_id": "stand_start_walk_stop_v1",
+    "gait": {
+      "mode": "walk",
+      "speed": 0.7,
+      "step_length": 0.35,
+      "duty": 0.62,
+      "clearance": 0.07
+    },
+    "criteria_limits": {
+      "posture_limit_deg": 15.0,
+      "steady_speed_min_mps": 0.35,
+      "steady_speed_max_mps": 1.05,
+      "steady_progress_min_m": 1.4,
+      "stop_speed_max_mps": 0.15,
+      "lateral_drift_max_m": 0.3,
+      "saturation_threshold_pct": 95.0,
+      "saturation_duty_max_pct": 30.0,
+      "final_window_s": 0.5
+    },
+    "results": [
+      {
+        "controller": "track",
+        "run_id": "run-20260922t024040-track-8355df08",
+        "status": "FAIL",
+        "passed_count": 5,
+        "criteria": [
+          {
+            "id": "TRACE_INTEGRITY",
+            "passed": true,
+            "value": 9.0,
+            "operator": ">=",
+            "limit": 9.0,
+            "unit": "s"
+          },
+          {
+            "id": "ASSIST_DISABLED",
+            "passed": true,
+            "value": false,
+            "operator": "==",
+            "limit": false,
+            "unit": "bool"
+          },
+          {
+            "id": "NO_FALL",
+            "passed": false,
+            "value": true,
+            "operator": "==",
+            "limit": false,
+            "unit": "bool"
+          },
+          {
+            "id": "INITIAL_STAND_POSTURE",
+            "passed": true,
+            "value": 2.6,
+            "operator": "<=",
+            "limit": 15.0,
+            "unit": "deg"
+          },
+          {
+            "id": "STEADY_SPEED",
+            "passed": false,
+            "value": -1.164684,
+            "operator": "between",
+            "limit": [
+              0.35,
+              1.05
+            ],
+            "unit": "m/s"
+          },
+          {
+            "id": "STEADY_PROGRESS",
+            "passed": false,
+            "value": -0.655445,
+            "operator": ">=",
+            "limit": 1.4,
+            "unit": "m"
+          },
+          {
+            "id": "STOP_SPEED",
+            "passed": false,
+            "value": 1.215,
+            "operator": "<=",
+            "limit": 0.15,
+            "unit": "m/s"
+          },
+          {
+            "id": "FINAL_STAND_POSTURE",
+            "passed": false,
+            "value": 90.0,
+            "operator": "<=",
+            "limit": 15.0,
+            "unit": "deg"
+          },
+          {
+            "id": "FINAL_STATE",
+            "passed": false,
+            "value": "FALLEN",
+            "operator": "==",
+            "limit": "STAND",
+            "unit": "state"
+          },
+          {
+            "id": "LATERAL_DRIFT",
+            "passed": true,
+            "value": 0.010173,
+            "operator": "<=",
+            "limit": 0.3,
+            "unit": "m"
+          },
+          {
+            "id": "SATURATION_DUTY",
+            "passed": true,
+            "value": 0.133333,
+            "operator": "<=",
+            "limit": 30.0,
+            "unit": "% samples"
+          }
+        ],
+        "summary": {
+          "duration_s": 9.0,
+          "distance_m": -0.711783,
+          "average_forward_speed_mps": -0.079087,
+          "final_state": "FALLEN",
+          "fell": true,
+          "first_fall_time_s": 2.952,
+          "max_abs_pitch_deg": 92.800003,
+          "max_abs_roll_deg": 104.599998,
+          "positive_mechanical_work_j": 108.04731,
+          "absolute_mechanical_work_j": 178.594055,
+          "tracking_rmse_rad": [
+            0.061036,
+            0.160446,
+            0.080815,
+            0.224629,
+            0.058883,
+            0.467858,
+            0.726036,
+            1.247535,
+            1.057523,
+            0.501631,
+            0.133483,
+            0.365449
+          ],
+          "max_saturation_pct": {
+            "hip_roll": 100.0,
+            "hip_pitch": 100.0,
+            "knee": 100.0,
+            "ankle": 100.0,
+            "shoulder": 23.0,
+            "elbow": 63.0
+          },
+          "max_grf_n": {
+            "left": 755.0,
+            "right": 1556.0
+          },
+          "cop_coverage_pct": 98.933,
+          "max_contact_count": 8
+        },
+        "wall_s": 1.99
+      },
+      {
+        "controller": "raibert",
+        "run_id": "run-20260922t024042-raibert-ed8e6616",
+        "status": "FAIL",
+        "passed_count": 6,
+        "criteria": [
+          {
+            "id": "TRACE_INTEGRITY",
+            "passed": true,
+            "value": 9.0,
+            "operator": ">=",
+            "limit": 9.0,
+            "unit": "s"
+          },
+          {
+            "id": "ASSIST_DISABLED",
+            "passed": true,
+            "value": false,
+            "operator": "==",
+            "limit": false,
+            "unit": "bool"
+          },
+          {
+            "id": "NO_FALL",
+            "passed": false,
+            "value": true,
+            "operator": "==",
+            "limit": false,
+            "unit": "bool"
+          },
+          {
+            "id": "INITIAL_STAND_POSTURE",
+            "passed": true,
+            "value": 2.6,
+            "operator": "<=",
+            "limit": 15.0,
+            "unit": "deg"
+          },
+          {
+            "id": "STEADY_SPEED",
+            "passed": true,
+            "value": 0.721178,
+            "operator": "between",
+            "limit": [
+              0.35,
+              1.05
+            ],
+            "unit": "m/s"
+          },
+          {
+            "id": "STEADY_PROGRESS",
+            "passed": false,
+            "value": 0.683458,
+            "operator": ">=",
+            "limit": 1.4,
+            "unit": "m"
+          },
+          {
+            "id": "STOP_SPEED",
+            "passed": false,
+            "value": 0.689,
+            "operator": "<=",
+            "limit": 0.15,
+            "unit": "m/s"
+          },
+          {
+            "id": "FINAL_STAND_POSTURE",
+            "passed": false,
+            "value": 81.400002,
+            "operator": "<=",
+            "limit": 15.0,
+            "unit": "deg"
+          },
+          {
+            "id": "FINAL_STATE",
+            "passed": false,
+            "value": "FALLEN",
+            "operator": "==",
+            "limit": "STAND",
+            "unit": "state"
+          },
+          {
+            "id": "LATERAL_DRIFT",
+            "passed": true,
+            "value": 0.148063,
+            "operator": "<=",
+            "limit": 0.3,
+            "unit": "m"
+          },
+          {
+            "id": "SATURATION_DUTY",
+            "passed": true,
+            "value": 1.222222,
+            "operator": "<=",
+            "limit": 30.0,
+            "unit": "% samples"
+          }
+        ],
+        "summary": {
+          "duration_s": 9.0,
+          "distance_m": 0.964135,
+          "average_forward_speed_mps": 0.107126,
+          "final_state": "FALLEN",
+          "fell": true,
+          "first_fall_time_s": 3.282,
+          "max_abs_pitch_deg": 93.900002,
+          "max_abs_roll_deg": 97.800003,
+          "positive_mechanical_work_j": 883.652039,
+          "absolute_mechanical_work_j": 1432.507324,
+          "tracking_rmse_rad": [
+            0.130806,
+            1.138049,
+            1.877455,
+            0.56863,
+            0.228679,
+            0.390746,
+            0.393718,
+            0.645028,
+            0.745627,
+            0.560334,
+            0.386954,
+            0.075498
+          ],
+          "max_saturation_pct": {
+            "hip_roll": 71.0,
+            "hip_pitch": 100.0,
+            "knee": 100.0,
+            "ankle": 100.0,
+            "shoulder": 100.0,
+            "elbow": 100.0
+          },
+          "max_grf_n": {
+            "left": 1617.0,
+            "right": 1654.0
+          },
+          "cop_coverage_pct": 92.511,
+          "max_contact_count": 8
+        },
+        "wall_s": 1.72
+      },
+      {
+        "controller": "rl",
+        "run_id": "run-20260922t024049-rl-cf9b6f29",
+        "status": "FAIL",
+        "passed_count": 5,
+        "criteria": [
+          {
+            "id": "TRACE_INTEGRITY",
+            "passed": true,
+            "value": 9.0,
+            "operator": ">=",
+            "limit": 9.0,
+            "unit": "s"
+          },
+          {
+            "id": "ASSIST_DISABLED",
+            "passed": true,
+            "value": false,
+            "operator": "==",
+            "limit": false,
+            "unit": "bool"
+          },
+          {
+            "id": "NO_FALL",
+            "passed": false,
+            "value": true,
+            "operator": "==",
+            "limit": false,
+            "unit": "bool"
+          },
+          {
+            "id": "INITIAL_STAND_POSTURE",
+            "passed": true,
+            "value": 2.6,
+            "operator": "<=",
+            "limit": 15.0,
+            "unit": "deg"
+          },
+          {
+            "id": "STEADY_SPEED",
+            "passed": true,
+            "value": 0.783014,
+            "operator": "between",
+            "limit": [
+              0.35,
+              1.05
+            ],
+            "unit": "m/s"
+          },
+          {
+            "id": "STEADY_PROGRESS",
+            "passed": true,
+            "value": 3.13161,
+            "operator": ">=",
+            "limit": 1.4,
+            "unit": "m"
+          },
+          {
+            "id": "STOP_SPEED",
+            "passed": false,
+            "value": 0.670588,
+            "operator": "<=",
+            "limit": 0.15,
+            "unit": "m/s"
+          },
+          {
+            "id": "FINAL_STAND_POSTURE",
+            "passed": false,
+            "value": 89.5,
+            "operator": "<=",
+            "limit": 15.0,
+            "unit": "deg"
+          },
+          {
+            "id": "FINAL_STATE",
+            "passed": false,
+            "value": "FALLEN",
+            "operator": "==",
+            "limit": "STAND",
+            "unit": "state"
+          },
+          {
+            "id": "LATERAL_DRIFT",
+            "passed": false,
+            "value": 1.284099,
+            "operator": "<=",
+            "limit": 0.3,
+            "unit": "m"
+          },
+          {
+            "id": "SATURATION_DUTY",
+            "passed": false,
+            "value": 54.2,
+            "operator": "<=",
+            "limit": 30.0,
+            "unit": "% samples"
+          }
+        ],
+        "summary": {
+          "duration_s": 9.0,
+          "distance_m": 5.724639,
+          "average_forward_speed_mps": 0.636071,
+          "final_state": "FALLEN",
+          "fell": true,
+          "first_fall_time_s": 8.78,
+          "max_abs_pitch_deg": 88.800003,
+          "max_abs_roll_deg": 89.5,
+          "positive_mechanical_work_j": 11173.477539,
+          "absolute_mechanical_work_j": 16805.695312,
+          "tracking_rmse_rad": [
+            0.059131,
+            0.243524,
+            0.149924,
+            0.340076,
+            0.038966,
+            0.225359,
+            0.123508,
+            0.224238,
+            0.411338,
+            0.207385,
+            0.382755,
+            0.189806
+          ],
+          "max_saturation_pct": {
+            "hip_roll": 91.0,
+            "hip_pitch": 100.0,
+            "knee": 100.0,
+            "ankle": 100.0,
+            "shoulder": 100.0,
+            "elbow": 100.0
+          },
+          "max_grf_n": {
+            "left": 2685.0,
+            "right": 2081.0
+          },
+          "cop_coverage_pct": 69.889,
+          "max_contact_count": 8
+        },
+        "wall_s": 1.93
+      },
+      {
+        "controller": "cp",
+        "run_id": "run-20260922t024051-cp-265242a9",
+        "status": "FAIL",
+        "passed_count": 5,
+        "criteria": [
+          {
+            "id": "TRACE_INTEGRITY",
+            "passed": true,
+            "value": 9.0,
+            "operator": ">=",
+            "limit": 9.0,
+            "unit": "s"
+          },
+          {
+            "id": "ASSIST_DISABLED",
+            "passed": true,
+            "value": false,
+            "operator": "==",
+            "limit": false,
+            "unit": "bool"
+          },
+          {
+            "id": "NO_FALL",
+            "passed": false,
+            "value": true,
+            "operator": "==",
+            "limit": false,
+            "unit": "bool"
+          },
+          {
+            "id": "INITIAL_STAND_POSTURE",
+            "passed": true,
+            "value": 2.6,
+            "operator": "<=",
+            "limit": 15.0,
+            "unit": "deg"
+          },
+          {
+            "id": "STEADY_SPEED",
+            "passed": true,
+            "value": 0.624853,
+            "operator": "between",
+            "limit": [
+              0.35,
+              1.05
+            ],
+            "unit": "m/s"
+          },
+          {
+            "id": "STEADY_PROGRESS",
+            "passed": false,
+            "value": 0.566222,
+            "operator": ">=",
+            "limit": 1.4,
+            "unit": "m"
+          },
+          {
+            "id": "STOP_SPEED",
+            "passed": false,
+            "value": 0.635,
+            "operator": "<=",
+            "limit": 0.15,
+            "unit": "m/s"
+          },
+          {
+            "id": "FINAL_STAND_POSTURE",
+            "passed": false,
+            "value": 100.800003,
+            "operator": "<=",
+            "limit": 15.0,
+            "unit": "deg"
+          },
+          {
+            "id": "FINAL_STATE",
+            "passed": false,
+            "value": "FALLEN",
+            "operator": "==",
+            "limit": "STAND",
+            "unit": "state"
+          },
+          {
+            "id": "LATERAL_DRIFT",
+            "passed": false,
+            "value": 0.41668,
+            "operator": "<=",
+            "limit": 0.3,
+            "unit": "m"
+          },
+          {
+            "id": "SATURATION_DUTY",
+            "passed": true,
+            "value": 0.377778,
+            "operator": "<=",
+            "limit": 30.0,
+            "unit": "% samples"
+          }
+        ],
+        "summary": {
+          "duration_s": 9.0,
+          "distance_m": 0.896818,
+          "average_forward_speed_mps": 0.099646,
+          "final_state": "FALLEN",
+          "fell": true,
+          "first_fall_time_s": 2.906,
+          "max_abs_pitch_deg": 122.199997,
+          "max_abs_roll_deg": 177.699997,
+          "positive_mechanical_work_j": 425.055908,
+          "absolute_mechanical_work_j": 710.250366,
+          "tracking_rmse_rad": [
+            0.527261,
+            0.958031,
+            0.39093,
+            1.597374,
+            0.203594,
+            0.799756,
+            0.147542,
+            1.595678,
+            0.323638,
+            0.319129,
+            1.478823,
+            0.128778
+          ],
+          "max_saturation_pct": {
+            "hip_roll": 64.0,
+            "hip_pitch": 72.0,
+            "knee": 100.0,
+            "ankle": 82.0,
+            "shoulder": 86.0,
+            "elbow": 56.0
+          },
+          "max_grf_n": {
+            "left": 1044.0,
+            "right": 1517.0
+          },
+          "cop_coverage_pct": 83.622,
+          "max_contact_count": 8
+        },
+        "wall_s": 1.69
+      }
+    ]
+  },
+  "push_sweep": {
+    "push_at_walk_s": 0.8,
+    "duration_s": 0.2,
+    "observe_s": 3.0,
+    "forces_n": [
+      0.0,
+      40.0,
+      80.0,
+      120.0,
+      160.0
+    ],
+    "directions": {
+      "forward": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "lateral": [
+        0.0,
+        1.0,
+        0.0
+      ]
+    },
+    "gait": {
+      "mode": "walk",
+      "speed": 0.7,
+      "step_length": 0.35,
+      "duty": 0.62,
+      "clearance": 0.07,
+      "arm_swing_deg": 20.0,
+      "torso_lean_deg": 3.0,
+      "pelvis_sway": 0.018,
+      "pelvis_bounce": 0.012,
+      "crouch": 0.1,
+      "duration": 8.0
+    },
+    "assist": false,
+    "rows": [
+      {
+        "controller": "track",
+        "direction": "forward",
+        "force_n": 0.0,
+        "fell_before_push": false,
+        "pushed": false,
+        "push_at_walk_s": 0.8,
+        "fell_after_push": true,
+        "upright_after_push_s": 1.2,
+        "max_abs_pitch_deg": 54.8,
+        "max_abs_roll_deg": 12.3,
+        "displacement_m": [
+          -0.352,
+          -0.08
+        ]
+      },
+      {
+        "controller": "track",
+        "direction": "forward",
+        "force_n": 40.0,
+        "fell_before_push": false,
+        "pushed": true,
+        "push_at_walk_s": 0.8,
+        "fell_after_push": true,
+        "upright_after_push_s": 1.62,
+        "max_abs_pitch_deg": 17.9,
+        "max_abs_roll_deg": 56.9,
+        "displacement_m": [
+          0.65,
+          -0.55
+        ]
+      },
+      {
+        "controller": "track",
+        "direction": "forward",
+        "force_n": 80.0,
+        "fell_before_push": false,
+        "pushed": true,
+        "push_at_walk_s": 0.8,
+        "fell_after_push": true,
+        "upright_after_push_s": 1.18,
+        "max_abs_pitch_deg": 18.4,
+        "max_abs_roll_deg": 56.4,
+        "displacement_m": [
+          0.632,
+          -0.174
+        ]
+      },
+      {
+        "controller": "track",
+        "direction": "forward",
+        "force_n": 120.0,
+        "fell_before_push": false,
+        "pushed": true,
+        "push_at_walk_s": 0.8,
+        "fell_after_push": true,
+        "upright_after_push_s": 1.06,
+        "max_abs_pitch_deg": 24.7,
+        "max_abs_roll_deg": 56.3,
+        "displacement_m": [
+          0.562,
+          -0.213
+        ]
+      },
+      {
+        "controller": "track",
+        "direction": "forward",
+        "force_n": 160.0,
+        "fell_before_push": false,
+        "pushed": true,
+        "push_at_walk_s": 0.8,
+        "fell_after_push": true,
+        "upright_after_push_s": 1.22,
+        "max_abs_pitch_deg": 24.7,
+        "max_abs_roll_deg": 55.3,
+        "displacement_m": [
+          0.168,
+          -0.3
+        ]
+      },
+      {
+        "controller": "track",
+        "direction": "lateral",
+        "force_n": 0.0,
+        "fell_before_push": false,
+        "pushed": false,
+        "push_at_walk_s": 0.8,
+        "fell_after_push": true,
+        "upright_after_push_s": 1.2,
+        "max_abs_pitch_deg": 54.8,
+        "max_abs_roll_deg": 12.3,
+        "displacement_m": [
+          -0.352,
+          -0.08
+        ]
+      },
+      {
+        "controller": "track",
+        "direction": "lateral",
+        "force_n": 40.0,
+        "fell_before_push": false,
+        "pushed": true,
+        "push_at_walk_s": 0.8,
+        "fell_after_push": true,
+        "upright_after_push_s": 1.04,
+        "max_abs_pitch_deg": 54.6,
+        "max_abs_roll_deg": 50.9,
+        "displacement_m": [
+          -0.181,
+          0.439
+        ]
+      },
+      {
+        "controller": "track",
+        "direction": "lateral",
+        "force_n": 80.0,
+        "fell_before_push": false,
+        "pushed": true,
+        "push_at_walk_s": 0.8,
+        "fell_after_push": true,
+        "upright_after_push_s": 0.92,
+        "max_abs_pitch_deg": 54.6,
+        "max_abs_roll_deg": 56.2,
+        "displacement_m": [
+          -0.09,
+          0.63
+        ]
+      },
+      {
+        "controller": "track",
+        "direction": "lateral",
+        "force_n": 120.0,
+        "fell_before_push": false,
+        "pushed": true,
+        "push_at_walk_s": 0.8,
+        "fell_after_push": true,
+        "upright_after_push_s": 0.74,
+        "max_abs_pitch_deg": 49.0,
+        "max_abs_roll_deg": 57.1,
+        "displacement_m": [
+          -0.089,
+          0.535
+        ]
+      },
+      {
+        "controller": "track",
+        "direction": "lateral",
+        "force_n": 160.0,
+        "fell_before_push": false,
+        "pushed": true,
+        "push_at_walk_s": 0.8,
+        "fell_after_push": true,
+        "upright_after_push_s": 0.64,
+        "max_abs_pitch_deg": 42.6,
+        "max_abs_roll_deg": 56.4,
+        "displacement_m": [
+          -0.097,
+          0.515
+        ]
+      },
+      {
+        "controller": "raibert",
+        "direction": "forward",
+        "force_n": 0.0,
+        "fell_before_push": false,
+        "pushed": false,
+        "push_at_walk_s": 0.8,
+        "fell_after_push": true,
+        "upright_after_push_s": 1.42,
+        "max_abs_pitch_deg": 61.3,
+        "max_abs_roll_deg": 53.0,
+        "displacement_m": [
+          0.943,
+          -0.433
+        ]
+      },
+      {
+        "controller": "raibert",
+        "direction": "forward",
+        "force_n": 40.0,
+        "fell_before_push": false,
+        "pushed": true,
+        "push_at_walk_s": 0.8,
+        "fell_after_push": true,
+        "upright_after_push_s": 1.02,
+        "max_abs_pitch_deg": 56.1,
+        "max_abs_roll_deg": 47.0,
+        "displacement_m": [
+          0.75,
+          -0.317
+        ]
+      },
+      {
+        "controller": "raibert",
+        "direction": "forward",
+        "force_n": 80.0,
+        "fell_before_push": false,
+        "pushed": true,
+        "push_at_walk_s": 0.8,
+        "fell_after_push": true,
+        "upright_after_push_s": 1.16,
+        "max_abs_pitch_deg": 56.1,
+        "max_abs_roll_deg": 39.0,
+        "displacement_m": [
+          1.03,
+          -0.088
+        ]
+      },
+      {
+        "controller": "raibert",
+        "direction": "forward",
+        "force_n": 120.0,
+        "fell_before_push": false,
+        "pushed": true,
+        "push_at_walk_s": 0.8,
+        "fell_after_push": true,
+        "upright_after_push_s": 1.02,
+        "max_abs_pitch_deg": 56.6,
+        "max_abs_roll_deg": 53.9,
+        "displacement_m": [
+          0.665,
+          -0.203
+        ]
+      },
+      {
+        "controller": "raibert",
+        "direction": "forward",
+        "force_n": 160.0,
+        "fell_before_push": false,
+        "pushed": true,
+        "push_at_walk_s": 0.8,
+        "fell_after_push": true,
+        "upright_after_push_s": 1.98,
+        "max_abs_pitch_deg": 55.1,
+        "max_abs_roll_deg": 52.3,
+        "displacement_m": [
+          0.534,
+          0.293
+        ]
+      },
+      {
+        "controller": "raibert",
+        "direction": "lateral",
+        "force_n": 0.0,
+        "fell_before_push": false,
+        "pushed": false,
+        "push_at_walk_s": 0.8,
+        "fell_after_push": true,
+        "upright_after_push_s": 1.42,
+        "max_abs_pitch_deg": 61.3,
+        "max_abs_roll_deg": 53.0,
+        "displacement_m": [
+          0.943,
+          -0.433
+        ]
+      },
+      {
+        "controller": "raibert",
+        "direction": "lateral",
+        "force_n": 40.0,
+        "fell_before_push": false,
+        "pushed": true,
+        "push_at_walk_s": 0.8,
+        "fell_after_push": true,
+        "upright_after_push_s": 1.04,
+        "max_abs_pitch_deg": 61.3,
+        "max_abs_roll_deg": 51.0,
+        "displacement_m": [
+          0.607,
+          -0.127
+        ]
+      },
+      {
+        "controller": "raibert",
+        "direction": "lateral",
+        "force_n": 80.0,
+        "fell_before_push": false,
+        "pushed": true,
+        "push_at_walk_s": 0.8,
+        "fell_after_push": true,
+        "upright_after_push_s": 1.04,
+        "max_abs_pitch_deg": 55.7,
+        "max_abs_roll_deg": 57.2,
+        "displacement_m": [
+          0.746,
+          0.402
+        ]
+      },
+      {
+        "controller": "raibert",
+        "direction": "lateral",
+        "force_n": 120.0,
+        "fell_before_push": false,
+        "pushed": true,
+        "push_at_walk_s": 0.8,
+        "fell_after_push": true,
+        "upright_after_push_s": 0.96,
+        "max_abs_pitch_deg": 42.3,
+        "max_abs_roll_deg": 62.8,
+        "displacement_m": [
+          0.515,
+          0.675
+        ]
+      },
+      {
+        "controller": "raibert",
+        "direction": "lateral",
+        "force_n": 160.0,
+        "fell_before_push": false,
+        "pushed": true,
+        "push_at_walk_s": 0.8,
+        "fell_after_push": true,
+        "upright_after_push_s": 0.52,
+        "max_abs_pitch_deg": 40.6,
+        "max_abs_roll_deg": 55.4,
+        "displacement_m": [
+          0.148,
+          0.281
+        ]
+      },
+      {
+        "controller": "rl",
+        "direction": "forward",
+        "force_n": 0.0,
+        "fell_before_push": false,
+        "pushed": false,
+        "push_at_walk_s": 0.8,
+        "fell_after_push": false,
+        "upright_after_push_s": 3.0,
+        "max_abs_pitch_deg": 6.7,
+        "max_abs_roll_deg": 4.6,
+        "displacement_m": [
+          2.192,
+          -0.215
+        ]
+      },
+      {
+        "controller": "rl",
+        "direction": "forward",
+        "force_n": 40.0,
+        "fell_before_push": false,
+        "pushed": true,
+        "push_at_walk_s": 0.8,
+        "fell_after_push": false,
+        "upright_after_push_s": 3.0,
+        "max_abs_pitch_deg": 7.6,
+        "max_abs_roll_deg": 4.6,
+        "displacement_m": [
+          2.367,
+          0.047
+        ]
+      },
+      {
+        "controller": "rl",
+        "direction": "forward",
+        "force_n": 80.0,
+        "fell_before_push": false,
+        "pushed": true,
+        "push_at_walk_s": 0.8,
+        "fell_after_push": false,
+        "upright_after_push_s": 3.0,
+        "max_abs_pitch_deg": 9.1,
+        "max_abs_roll_deg": 4.6,
+        "displacement_m": [
+          2.409,
+          0.339
+        ]
+      },
+      {
+        "controller": "rl",
+        "direction": "forward",
+        "force_n": 120.0,
+        "fell_before_push": false,
+        "pushed": true,
+        "push_at_walk_s": 0.8,
+        "fell_after_push": false,
+        "upright_after_push_s": 3.0,
+        "max_abs_pitch_deg": 8.3,
+        "max_abs_roll_deg": 4.6,
+        "displacement_m": [
+          2.384,
+          0.088
+        ]
+      },
+      {
+        "controller": "rl",
+        "direction": "forward",
+        "force_n": 160.0,
+        "fell_before_push": false,
+        "pushed": true,
+        "push_at_walk_s": 0.8,
+        "fell_after_push": false,
+        "upright_after_push_s": 3.0,
+        "max_abs_pitch_deg": 8.0,
+        "max_abs_roll_deg": 5.7,
+        "displacement_m": [
+          2.61,
+          0.184
+        ]
+      },
+      {
+        "controller": "rl",
+        "direction": "lateral",
+        "force_n": 0.0,
+        "fell_before_push": false,
+        "pushed": false,
+        "push_at_walk_s": 0.8,
+        "fell_after_push": false,
+        "upright_after_push_s": 3.0,
+        "max_abs_pitch_deg": 6.7,
+        "max_abs_roll_deg": 4.6,
+        "displacement_m": [
+          2.192,
+          -0.215
+        ]
+      },
+      {
+        "controller": "rl",
+        "direction": "lateral",
+        "force_n": 40.0,
+        "fell_before_push": false,
+        "pushed": true,
+        "push_at_walk_s": 0.8,
+        "fell_after_push": false,
+        "upright_after_push_s": 3.0,
+        "max_abs_pitch_deg": 6.3,
+        "max_abs_roll_deg": 4.6,
+        "displacement_m": [
+          2.201,
+          0.377
+        ]
+      },
+      {
+        "controller": "rl",
+        "direction": "lateral",
+        "force_n": 80.0,
+        "fell_before_push": false,
+        "pushed": true,
+        "push_at_walk_s": 0.8,
+        "fell_after_push": false,
+        "upright_after_push_s": 3.0,
+        "max_abs_pitch_deg": 6.0,
+        "max_abs_roll_deg": 4.7,
+        "displacement_m": [
+          2.237,
+          0.096
+        ]
+      },
+      {
+        "controller": "rl",
+        "direction": "lateral",
+        "force_n": 120.0,
+        "fell_before_push": false,
+        "pushed": true,
+        "push_at_walk_s": 0.8,
+        "fell_after_push": false,
+        "upright_after_push_s": 3.0,
+        "max_abs_pitch_deg": 7.1,
+        "max_abs_roll_deg": 5.1,
+        "displacement_m": [
+          2.116,
+          0.27
+        ]
+      },
+      {
+        "controller": "rl",
+        "direction": "lateral",
+        "force_n": 160.0,
+        "fell_before_push": false,
+        "pushed": true,
+        "push_at_walk_s": 0.8,
+        "fell_after_push": false,
+        "upright_after_push_s": 3.0,
+        "max_abs_pitch_deg": 5.9,
+        "max_abs_roll_deg": 4.7,
+        "displacement_m": [
+          2.183,
+          1.025
+        ]
+      },
+      {
+        "controller": "cp",
+        "direction": "forward",
+        "force_n": 0.0,
+        "fell_before_push": false,
+        "pushed": false,
+        "push_at_walk_s": 0.8,
+        "fell_after_push": true,
+        "upright_after_push_s": 1.28,
+        "max_abs_pitch_deg": 55.4,
+        "max_abs_roll_deg": 31.0,
+        "displacement_m": [
+          0.512,
+          -0.269
+        ]
+      },
+      {
+        "controller": "cp",
+        "direction": "forward",
+        "force_n": 40.0,
+        "fell_before_push": false,
+        "pushed": true,
+        "push_at_walk_s": 0.8,
+        "fell_after_push": true,
+        "upright_after_push_s": 1.16,
+        "max_abs_pitch_deg": 57.3,
+        "max_abs_roll_deg": 39.9,
+        "displacement_m": [
+          0.601,
+          -0.256
+        ]
+      },
+      {
+        "controller": "cp",
+        "direction": "forward",
+        "force_n": 80.0,
+        "fell_before_push": false,
+        "pushed": true,
+        "push_at_walk_s": 0.8,
+        "fell_after_push": true,
+        "upright_after_push_s": 1.0,
+        "max_abs_pitch_deg": 49.6,
+        "max_abs_roll_deg": 55.4,
+        "displacement_m": [
+          0.417,
+          -0.13
+        ]
+      },
+      {
+        "controller": "cp",
+        "direction": "forward",
+        "force_n": 120.0,
+        "fell_before_push": false,
+        "pushed": true,
+        "push_at_walk_s": 0.8,
+        "fell_after_push": true,
+        "upright_after_push_s": 1.06,
+        "max_abs_pitch_deg": 54.7,
+        "max_abs_roll_deg": 22.9,
+        "displacement_m": [
+          0.307,
+          -0.159
+        ]
+      },
+      {
+        "controller": "cp",
+        "direction": "forward",
+        "force_n": 160.0,
+        "fell_before_push": false,
+        "pushed": true,
+        "push_at_walk_s": 0.8,
+        "fell_after_push": true,
+        "upright_after_push_s": 1.06,
+        "max_abs_pitch_deg": 56.3,
+        "max_abs_roll_deg": 35.9,
+        "displacement_m": [
+          0.721,
+          -0.124
+        ]
+      },
+      {
+        "controller": "cp",
+        "direction": "lateral",
+        "force_n": 0.0,
+        "fell_before_push": false,
+        "pushed": false,
+        "push_at_walk_s": 0.8,
+        "fell_after_push": true,
+        "upright_after_push_s": 1.28,
+        "max_abs_pitch_deg": 55.4,
+        "max_abs_roll_deg": 31.0,
+        "displacement_m": [
+          0.512,
+          -0.269
+        ]
+      },
+      {
+        "controller": "cp",
+        "direction": "lateral",
+        "force_n": 40.0,
+        "fell_before_push": false,
+        "pushed": true,
+        "push_at_walk_s": 0.8,
+        "fell_after_push": true,
+        "upright_after_push_s": 1.14,
+        "max_abs_pitch_deg": 44.9,
+        "max_abs_roll_deg": 55.9,
+        "displacement_m": [
+          0.583,
+          0.001
+        ]
+      },
+      {
+        "controller": "cp",
+        "direction": "lateral",
+        "force_n": 80.0,
+        "fell_before_push": false,
+        "pushed": true,
+        "push_at_walk_s": 0.8,
+        "fell_after_push": true,
+        "upright_after_push_s": 1.12,
+        "max_abs_pitch_deg": 44.5,
+        "max_abs_roll_deg": 61.7,
+        "displacement_m": [
+          0.549,
+          0.669
+        ]
+      },
+      {
+        "controller": "cp",
+        "direction": "lateral",
+        "force_n": 120.0,
+        "fell_before_push": false,
+        "pushed": true,
+        "push_at_walk_s": 0.8,
+        "fell_after_push": true,
+        "upright_after_push_s": 0.5,
+        "max_abs_pitch_deg": 34.6,
+        "max_abs_roll_deg": 55.2,
+        "displacement_m": [
+          0.071,
+          0.207
+        ]
+      },
+      {
+        "controller": "cp",
+        "direction": "lateral",
+        "force_n": 160.0,
+        "fell_before_push": false,
+        "pushed": true,
+        "push_at_walk_s": 0.8,
+        "fell_after_push": true,
+        "upright_after_push_s": 0.42,
+        "max_abs_pitch_deg": 27.0,
+        "max_abs_roll_deg": 55.2,
+        "displacement_m": [
+          0.037,
+          0.217
+        ]
+      }
+    ]
+  },
+  "speed_sweep": {
+    "speeds_mps": [
+      0.3,
+      0.5,
+      0.7,
+      0.9
+    ],
+    "t_step_s": 0.5,
+    "observe_s": 6.0,
+    "controllers": [
+      "track",
+      "raibert",
+      "cp"
+    ],
+    "rows": [
+      {
+        "controller": "track",
+        "speed_mps": 0.3,
+        "step_length_m": 0.15,
+        "upright_s": 1.8,
+        "fell": true,
+        "distance_m": -0.088,
+        "steps": 0
+      },
+      {
+        "controller": "track",
+        "speed_mps": 0.5,
+        "step_length_m": 0.25,
+        "upright_s": 1.94,
+        "fell": true,
+        "distance_m": -0.114,
+        "steps": 0
+      },
+      {
+        "controller": "track",
+        "speed_mps": 0.7,
+        "step_length_m": 0.35,
+        "upright_s": 2.0,
+        "fell": true,
+        "distance_m": -0.389,
+        "steps": 0
+      },
+      {
+        "controller": "track",
+        "speed_mps": 0.9,
+        "step_length_m": 0.45,
+        "upright_s": 1.92,
+        "fell": true,
+        "distance_m": 0.051,
+        "steps": 0
+      },
+      {
+        "controller": "raibert",
+        "speed_mps": 0.3,
+        "step_length_m": 0.15,
+        "upright_s": 2.02,
+        "fell": true,
+        "distance_m": 0.731,
+        "steps": 4
+      },
+      {
+        "controller": "raibert",
+        "speed_mps": 0.5,
+        "step_length_m": 0.25,
+        "upright_s": 2.48,
+        "fell": true,
+        "distance_m": 1.16,
+        "steps": 6
+      },
+      {
+        "controller": "raibert",
+        "speed_mps": 0.7,
+        "step_length_m": 0.35,
+        "upright_s": 2.22,
+        "fell": true,
+        "distance_m": 1.013,
+        "steps": 5
+      },
+      {
+        "controller": "raibert",
+        "speed_mps": 0.9,
+        "step_length_m": 0.45,
+        "upright_s": 2.22,
+        "fell": true,
+        "distance_m": 0.95,
+        "steps": 3
+      },
+      {
+        "controller": "cp",
+        "speed_mps": 0.3,
+        "step_length_m": 0.15,
+        "upright_s": 2.32,
+        "fell": true,
+        "distance_m": 0.493,
+        "steps": 4
+      },
+      {
+        "controller": "cp",
+        "speed_mps": 0.5,
+        "step_length_m": 0.25,
+        "upright_s": 1.94,
+        "fell": true,
+        "distance_m": 0.484,
+        "steps": 3
+      },
+      {
+        "controller": "cp",
+        "speed_mps": 0.7,
+        "step_length_m": 0.35,
+        "upright_s": 2.08,
+        "fell": true,
+        "distance_m": 0.595,
+        "steps": 4
+      },
+      {
+        "controller": "cp",
+        "speed_mps": 0.9,
+        "step_length_m": 0.45,
+        "upright_s": 1.98,
+        "fell": true,
+        "distance_m": 0.697,
+        "steps": 3
+      }
+    ]
+  },
+  "wall_s_total": 49.5
+}

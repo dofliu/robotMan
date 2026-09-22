@@ -66,6 +66,27 @@ class RaibertController(BalanceController):
     def _ankle_pos(self, side: str, data) -> np.ndarray:
         return data.xpos[self._body[side]].copy()
 
+    # ------------------------------------------------------------------
+    # 可覆寫的法則。這三個方法的算式是 2026-09-22 從 compute() 逐字搬出
+    # 的（行為不變，以 motion task 準則數值逐一相等驗證）；controller_cp.py
+    # 覆寫它們，其餘堆疊共用，讓比較只落在法則本身。
+
+    def _foot_placement(self, *, pelvis, v, v_des, omega0, swing, sign_sw, hip_sw_y, neutral_x) -> np.ndarray:
+        """Raibert 落腳法則：中性點 + k·(v − v_des)；側向同理。"""
+        return np.array([
+            neutral_x + self.kR * (v[0] - v_des),
+            hip_sw_y + v[1] * self.T_step * 0.5 + self.kR * v[1],
+            self.ankle_h,
+        ])
+
+    def _placement_note(self, *, adj, v, v_des, omega0) -> None:
+        if abs(self.kR * (v[0] - v_des)) > 0.06 or abs(v[1]) > 0.25:
+            self.decide("raibert", f"👣 Raibert 落點修正 ({adj*100:+.0f}, {(v[1]*self.T_step*0.5)*100:+.0f}) cm（速度誤差 {v[0]-v_des:+.2f} m/s）", "strategy", 0.8)
+
+    def _ankle_strategy(self, *, pelvis, v, v_des, omega0) -> float:
+        """Raibert 踝策略：支撐踝速度阻尼。"""
+        return float(np.clip(-70.0 * (v[0] - v_des), -35.0, 35.0))
+
     def compute(self, data: mujoco.MjData, t_gait: float, dt: float) -> np.ndarray:
         # 站立 / 跌倒沿用基底控制器
         self._complete_stop_if_due()
@@ -125,15 +146,14 @@ class RaibertController(BalanceController):
             self.decide("td", f"👟 第 {self.n_steps} 步觸地（{self.stance.upper()} 腳，時序誤差 {timing_err:+.0f} ms）→ 相位重置", "strategy", 0.4)
         phi = self.phase
 
-        # --- Raibert 落腳點（每 tick 連續更新） ---
+        # --- 落腳點（每 tick 連續更新；法則見 _foot_placement） ---
         sign_sw = +1.0 if swing == "l" else -1.0
         hip_sw_y = pelvis[1] + sign_sw * self.hw
         neutral_x = pelvis[0] + v[0] * self.T_step * 0.5
-        self.p_land = np.array([
-            neutral_x + self.kR * (v[0] - v_des),
-            hip_sw_y + v[1] * self.T_step * 0.5 + self.kR * v[1],
-            self.ankle_h,
-        ])
+        self.p_land = self._foot_placement(
+            pelvis=pelvis, v=v, v_des=v_des, omega0=omega0,
+            swing=swing, sign_sw=sign_sw, hip_sw_y=hip_sw_y, neutral_x=neutral_x,
+        )
         # 落點限制：至少要能接住前衝動量（後移量上限 6cm）+ 可及範圍
         self.p_land[0] = np.clip(self.p_land[0], neutral_x - 0.06, pelvis[0] + 0.45)
         min_sep = 0.13
@@ -149,8 +169,7 @@ class RaibertController(BalanceController):
         else:
             self._land_locked = None
         adj = self.p_land[0] - neutral_x
-        if abs(self.kR * (v[0] - v_des)) > 0.06 or abs(v[1]) > 0.25:
-            self.decide("raibert", f"👣 Raibert 落點修正 ({adj*100:+.0f}, {(v[1]*self.T_step*0.5)*100:+.0f}) cm（速度誤差 {v[0]-v_des:+.2f} m/s）", "strategy", 0.8)
+        self._placement_note(adj=adj, v=v, v_des=v_des, omega0=omega0)
 
         # --- 支撐腿目標：骨盆相對支撐腳前移 + 速度伺服 ---
         # 速度伺服項：實際速度落後時骨盆目標前移 → 支撐腿主動推進
@@ -254,7 +273,7 @@ class RaibertController(BalanceController):
             self.decide("hip", f"🫁 髖策略介入：{self.hip_corr:+.0f} Nm（軀幹前傾 {np.degrees(pitch):.1f}°）", "strategy", 1.0)
 
         # --- 踝策略：支撐踝速度阻尼 ---
-        self.ankle_corr = float(np.clip(-70.0 * (v[0] - v_des), -35.0, 35.0))
+        self.ankle_corr = self._ankle_strategy(pelvis=pelvis, v=v, v_des=v_des, omega0=omega0)
         tau[JOINT_ORDER.index(f"ankle_{self.stance}")] += self.ankle_corr
 
         # 遙測

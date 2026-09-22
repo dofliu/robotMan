@@ -318,6 +318,7 @@ const KIND_CATEGORY: Record<string, LogCategory> = {
   first: "gait",
   td: "gait",
   raibert: "gait",
+  cp: "gait",
   mode: "mode",
   stop_complete: "mode",
   ctrl_switch: "mode",

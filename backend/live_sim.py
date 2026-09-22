@@ -55,7 +55,7 @@ class LiveSession:
         self.startup_assist_enabled = True  # track controller 起步外力；assist=false 時一併關閉
         self._balance_assist_active = False
         self._startup_assist_active = False
-        self.walk_controller = "raibert"  # track | raibert | rl | rl_task_v2 | rl_task_v5
+        self.walk_controller = "raibert"  # track | raibert | rl | rl_task_v2 | rl_task_v5 | cp
         self.paused = False
         self.mode = "stand"
         self.sim_t = 0.0
@@ -119,6 +119,9 @@ class LiveSession:
         if selected == "rl_task_v5":
             from controller_rl import RLPhaseTaskController
             return RLPhaseTaskController(self.model, self.cfg, self.gait, lean)
+        if selected == "cp":
+            from controller_cp import CapturePointController
+            return CapturePointController(self.model, self.cfg, self.gait, lean)
         if selected == "track":
             return BalanceController(self.model, self.cfg, self.engine, lean)
         raise ValueError(f"unsupported controller: {selected}")
@@ -136,6 +139,41 @@ class LiveSession:
         self.mode = "stand"
 
     # ---------------- 指令 ----------------
+
+    def _switch_controller(self, kind: str) -> dict | None:
+        """換行走控制器；成功回 None，失敗回 live_error 且 session 完全不變。
+
+        公開的 ``mode`` 指令經 config_schema 的 Literal 白名單（位元組被凍結證據釘住，
+        不可增列）後才到這裡；開發用對照組（如 ``cp``）只能由 harness 直接呼叫本方法，
+        前端無法選到它。
+        """
+        # 先完整建立候選控制器；失敗時不得改 label、mode 或舊 controller。
+        old = self.controller
+        try:
+            candidate = self._make_controller(
+                np.deg2rad(self.gait.torso_lean_deg), kind=kind,
+            )
+        except Exception as exc:
+            code = "RL_LOAD_FAILED" if kind.startswith("rl") else "CONTROLLER_LOAD_FAILED"
+            return live_error(code, f"{kind} controller 載入失敗：{type(exc).__name__}")
+        candidate.decisions = old.decisions
+        candidate._decide_last = old._decide_last
+        candidate.t = old.t
+        candidate._v_filt = old._v_filt
+        candidate.state = old.state if old.state == "FALLEN" else "STAND"
+        self.controller = candidate
+        self.walk_controller = kind
+        labels = {
+            "track": "軌跡追蹤（開環時序）",
+            "raibert": "Raibert 閉環",
+            "rl": "RL legacy 學習策略",
+            "rl_task_v2": "RL curriculum-v2 任務策略",
+            "rl_task_v5": "RL phase-observable-v5 任務策略",
+            "cp": "Capture-point 落腳（DEVELOPMENT 對照組）",
+        }
+        self.controller.decide("ctrl_switch", f"🔁 行走控制器切換：{labels.get(self.walk_controller, kind)}", "event", 0)
+        self.mode = "stand"     # 換控制器後回站立，再由 mode 指令切走
+        return None
 
     def command(self, msg: dict) -> str | dict | None:
         """回傳 "scene" 表示場景已重建（前端需重新載入 geom）。"""
@@ -204,31 +242,9 @@ class LiveSession:
             new_mode = payload["mode"]
             kind = payload.get("controller")
             if kind and kind != self.walk_controller:
-                # 先完整建立候選控制器；失敗時不得改 label、mode 或舊 controller。
-                old = self.controller
-                try:
-                    candidate = self._make_controller(
-                        np.deg2rad(self.gait.torso_lean_deg), kind=kind,
-                    )
-                except Exception as exc:
-                    code = "RL_LOAD_FAILED" if kind.startswith("rl") else "CONTROLLER_LOAD_FAILED"
-                    return live_error(code, f"{kind} controller 載入失敗：{type(exc).__name__}")
-                candidate.decisions = old.decisions
-                candidate._decide_last = old._decide_last
-                candidate.t = old.t
-                candidate._v_filt = old._v_filt
-                candidate.state = old.state if old.state == "FALLEN" else "STAND"
-                self.controller = candidate
-                self.walk_controller = kind
-                labels = {
-                    "track": "軌跡追蹤（開環時序）",
-                    "raibert": "Raibert 閉環",
-                    "rl": "RL legacy 學習策略",
-                    "rl_task_v2": "RL curriculum-v2 任務策略",
-                    "rl_task_v5": "RL phase-observable-v5 任務策略",
-                }
-                self.controller.decide("ctrl_switch", f"🔁 行走控制器切換：{labels.get(self.walk_controller, kind)}", "event", 0)
-                self.mode = "stand"     # 換控制器後回站立，再由下方切走
+                failed = self._switch_controller(kind)
+                if failed is not None:
+                    return failed
             self._set_mode_internal(new_mode)
             return None
         if t == "speed":
@@ -420,9 +436,10 @@ class LiveSession:
             [],
         )
         if self.walk_controller != candidate.walk_controller:
-            switched = candidate.command({
-                "type": "mode", "mode": "stand", "controller": self.walk_controller,
-            })
+            # 走內部切換而非公開 mode 指令：candidate 是全新 stand session，
+            # command() 的各項守門在此不會觸發，而 walk_controller 已是本 session
+            # 通過過的值（含 harness 專用的開發對照組）。
+            switched = candidate._switch_controller(self.walk_controller)
             if isinstance(switched, dict) and switched.get("type") == "error":
                 raise RuntimeError(switched.get("code", "TASK_CONTROLLER_PREPARE_FAILED"))
         candidate.speed = self.speed

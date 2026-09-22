@@ -111,6 +111,8 @@
 
 [RESULT] run `run-20260830t055847-rl_task_v5-b6c4781d` 通過 10/11 criteria，無跌倒；唯一失敗為 saturation duty `38.422222% > 30%`。門檻未放寬。
 
+[RESULT] **2026-09-22 四控制器開發比較（任務 #102）**：`track`／`raibert`／`rl`／新加的 `cp`（Capture-point 落腳，Raibert 的單因子對照組，**不是新方法**）在同一凍結任務上**全部 `FAIL`**——5／6／5／5 of 11，首次跌倒 2.952／3.282／8.780／2.906 s；**CP 沒有贏過 Raibert**。行走中推力掃描（assist 全關）：三個 deterministic 控制器連 0 N 都在行走開始後 ~2 s 自行倒下，`rl` 在 3 s 窗內站滿至 160 N。速度掃描顯示三者的跌倒時點對速度不敏感——共用堆疊瓶頸是**假說，未定位**。`DEVELOPMENT_COMPARISON_ONLY`，不是排名。擁有者問「現有方法有創新嗎」：沒有，專案自己也沒這樣宣稱。報告與 7 張圖：[CONTROLLER_COMPARISON_2026-09-22](CONTROLLER_COMPARISON_2026-09-22.md)。
+
 ## 5. 已完成的證據基礎設施
 
 | Contract | ID | 驗證程度 |
