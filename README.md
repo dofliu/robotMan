@@ -19,7 +19,7 @@ Repository：[github.com/dofliu/robotMan](https://github.com/dofliu/robotMan) �
 | 面向 | 狀態 | 細節 |
 |---|---|---|
 | 專案成熟度 | `progress: 0`（以 V&V gate 通過數計，不以功能數計） | [PROJECT_STATUS §0](docs/PROJECT_STATUS.md) |
-| V&V gates | V0 PARTIAL、V1 PARTIAL、V2–V4 NOT STARTED | [PROJECT_STATUS §1](docs/PROJECT_STATUS.md) |
+| V&V gates | V0 PARTIAL、V1 PARTIAL、V2–V4 NOT STARTED。V1 於 2026-09-22 補上 known pendulum 閉式解與被動 articulated 能量／收斂（6/6 PASS，[receipt](docs/receipts/V1_DYNAMIC_REFERENCE_SUITE_RECEIPT_2026-09-22.md)）；仍缺 dynamic contact、致動能量帳、solver／finite-difference、joint limits、actuator envelope | [PROJECT_STATUS §1](docs/PROJECT_STATUS.md) |
 | Paper-data gates | PDR-0..8 無一 PASS；`paper_data_ready = false` | [PAPER_DATA_READINESS](docs/PAPER_DATA_READINESS.md) |
 | Gate 狀態一致性 | 33 個 gate、54 個站點由 `GATE-STATUS-SINGLE-SOURCE-V1` fail-closed 比對；狀態改了沒同步到 mirror 即測試失敗 | [GATE_STATUS_SINGLE_SOURCE](docs/GATE_STATUS_SINGLE_SOURCE.md) |
 | 教學／研究邊界 | `MODULE-BOUNDARY-V1`：教學應用 **16 個模組、5,104 行**（2026-09-22 重新量測；第 16 個是 Capture-point 開發對照組 `controller_cp`），**不 import 任何研究模組**；唯一的跨界 import 已於 2026-09-17 切斷，`train_ppo.py` 逐位元未動。**教學產品的檔案仍未搬動**（工具組已於 2026-09-19 搬出，見下一列） | [TEACHING_BOUNDARY](docs/TEACHING_BOUNDARY.md) |
@@ -41,6 +41,8 @@ Repository：[github.com/dofliu/robotMan](https://github.com/dofliu/robotMan) �
 | 控制器比較（2026-09-22） | 四個行走控制器（含新加的 Capture-point 對照組 `cp`，**非新方法**）在凍結任務上**全部 FAIL**：5／6／5／5 of 11；**CP 沒有贏過 Raibert**（跌倒 2.906 s 對 3.282 s）。推力掃描：三個 deterministic 控制器連 0 N 都在 ~2 s 自行倒下，`rl` 至 160 N 站滿 3 s 窗。現有方法**沒有創新**，專案也未如此宣稱。那個 2 s 瓶頸已於同日定位為**第一步的三段連鎖**，41 單因子消融無一能救（[diagnosis](docs/RAIBERT_STACK_DIAGNOSIS_2026-09-22.md)）。`DEVELOPMENT_COMPARISON_ONLY` | [CONTROLLER_COMPARISON_2026-09-22](docs/CONTROLLER_COMPARISON_2026-09-22.md) |
 | [TRACK_B_FORMAL_EVALUATION_DECISION_2026-09-22](docs/TRACK_B_FORMAL_EVALUATION_DECISION_2026-09-22.md) | **Track B formal evaluation 延後的決定紀錄**——兩個子問題的答案、五條量到的理由、解除條件；負責人於 2026-09-22 委託採納 |
 | [RAIBERT_STACK_DIAGNOSIS_2026-09-22](docs/RAIBERT_STACK_DIAGNOSIS_2026-09-22.md) | **Raibert 堆疊 2 s 瓶頸定位**——儀器化時間線、41 單因子＋4 組合消融無一站滿、第一步三段連鎖的機制、四個結構性候選（未實作） |
+| [V1_DYNAMIC_REFERENCE_SUITE_SPEC](docs/V1_DYNAMIC_REFERENCE_SUITE_SPEC.md) | **V1 動態參考案例的凍結規格**——known pendulum（閉式）與被動 articulated 能量平衡，4/2/1 ms，門檻在執行前由積分器誤差分析推得 |
+| [V1_DYNAMIC_REFERENCE_SUITE_RECEIPT_2026-09-22](docs/receipts/V1_DYNAMIC_REFERENCE_SUITE_RECEIPT_2026-09-22.md) | **執行 receipt**——6/6 PASS、stdlib replay 84 個 metric 相符；第一次執行因重算公式缺陷 FAIL 的揭露；`V1-R13` BLOCKED → PARTIAL |
 | 測試 | `backend/` **1 failed / 1071 passed**（2026-09-22，`420.57` s，1,072 收集，工作樹 `a743db9`；前一次 `0dca910` 為 `430.68` s 同數，`python3 -X utf8 -m pytest backend/ -p no:cacheprovider`；比前次多的 10 個全在 `test_controller_cp.py`）。另有 **`frontend/e2e` 6 項瀏覽器測試**（2026-09-22 全過，不在 backend 集合裡，[receipt](docs/receipts/BROWSER_VISUAL_VERIFICATION_RECEIPT_2026-09-22.md)）。那一個失敗是在具名 environment lock 下**記錄為量測結果、未放寬**的 reduction-order 差異——看到它不必修 | [PROJECT_STATUS §9](docs/PROJECT_STATUS.md)、`STATUS.yaml` 的 `test_suite_status` |
 
 ## 兩種模式
@@ -143,7 +145,7 @@ python -m pytest backend -q
 | [TOOLKIT_PORTABILITY](docs/TOOLKIT_PORTABILITY.md) | 實驗工具組的邊界與**可攜性審計**：同一契約的 toolkit 邊界（函式庫不得反向碰專案），加上七個模組逐一的 blocking／friction 分類，以及三件需要擁有者決定的事 |
 | [TEST_REPORT_2026-09-20](docs/TEST_REPORT_2026-09-20.md) | **全面測試報告**——1,062 測試（1,061 過／1 既有失敗）、三個契約、796 個連結、五個畫面的實際截圖與數據 |
 | [CONTROLLER_COMPARISON_2026-09-22](docs/CONTROLLER_COMPARISON_2026-09-22.md) | **四控制器開發比較**——現有方法有沒有創新（沒有）、新加的 Capture-point 對照組（也不是新的、沒贏過 Raibert）、凍結任務 11 項判準、推力掃描、速度掃描，7 張圖與 `summary.json`；`DEVELOPMENT_COMPARISON_ONLY` |
-| [`docs/receipts/`](docs/receipts/README.md) | **實作 receipt 索引**——15 份（14 份於 2026-09-20 由 `docs/` 搬入，加 2026-09-22 的瀏覽器視覺驗證 receipt）；仍然有效，只是不是規劃文件 |
+| [`docs/receipts/`](docs/receipts/README.md) | **實作 receipt 索引**——16 份（14 份於 2026-09-20 由 `docs/` 搬入，加 2026-09-22 的瀏覽器視覺驗證與 V1 動態參考案例兩份 receipt）；仍然有效，只是不是規劃文件 |
 | [`docs/archive/`](docs/archive/README.md) | **已結案研究線的 receipt 與 spec 索引**——17 份，2026-09-20 搬入；另 **3 份 spec 因 digest 被凍結證據釘住而搬不動**（改連結就是改位元組），7 份在原路徑留轉址。記錄見 [DOC_ARCHIVE](docs/DOC_ARCHIVE_2026-09-20.md) |
 | [RESEARCH_LINE_ARCHIVE](docs/RESEARCH_LINE_ARCHIVE_2026-09-19.md) | **封存記錄**：已結案研究線進 `backend/archive/` 的逐項改動、為什麼測試必須繼續跑、以及那個因自己的 pin 而搬不動的 contract |
 | [TOOLKIT_MOVE](docs/TOOLKIT_MOVE_2026-09-19.md) | **搬移記錄**：產品 B 進 `backend/toolkit/` 的逐檔改動、`sys.path` shim 的設計、以及搬移過程中量到的三件事（契約 fail-open、第八個檔案、五份凍結檔案的舊路徑） |

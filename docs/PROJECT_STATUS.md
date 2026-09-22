@@ -32,7 +32,7 @@
 | Gate | 狀態 | 已有 | 缺 |
 |---|---|---|---|
 | V0 Evidence & Provenance | `PARTIAL_IMPLEMENTED_NOT_PASS` | bounded fail-closed input contracts、`ANALYSIS_METRICS_V1`、run-level `PAPER_RUN_MANIFEST_V2`、artifact inventory/SHA-256、clean-source Git identity、`ENVIRONMENT-LOCK-V1` 可量測 environment identity（一份實測 record）、`RUN-MANIFEST-LOCK-BINDING-V1` fail-closed 綁定（2026-09-13，前向） | project-wide immutable artifact storage；lock 綁定的三項殘餘缺口（sidecar 可被遺漏、`simulator.py` 明示排除、2026-09-08 bundle 的兩個斷言不可重驗）；full raw artifact inventory；complete requirement registry；actual Study A matrix |
-| V1 Plant & Numerical | `PARTIAL_IMPLEMENTED_NOT_PASS` | static double-support V4 16/14 exact；analytical fixture（passive single-support、centered 5 kg payload、4/2/1 ms grid）4/4 PASS，含 raw Jacobian stdlib-only replay | articulated dynamic、known pendulum、dynamic contact、energy balance、完整 solver／finite-difference convergence；receipts 皆 same-engine，fixture 非 articulated |
+| V1 Plant & Numerical | `PARTIAL_IMPLEMENTED_NOT_PASS` | static double-support V4 16/14 exact；analytical fixture（passive single-support、centered 5 kg payload、4/2/1 ms grid）4/4 PASS，含 raw Jacobian stdlib-only replay；**2026-09-22**：known pendulum 閉式週期／能量 4/2/1 ms 3/3 PASS（order 2.0），articulated 被動擺動能量平衡（含阻尼功、閉式球／盒慣量）3/3 PASS（order 0.99），stdlib replay 相符（[receipt](receipts/V1_DYNAMIC_REFERENCE_SUITE_RECEIPT_2026-09-22.md)） | dynamic contact（接觸下的 unilateral／friction／CoP／schedule）、致動下的能量帳（drive loss）、solver-tolerance／finite-difference 研究、joint limits、actuator envelope；已有的 articulated 案例是被動、無接觸的（2026-09-22 更正：原列「articulated dynamic、known pendulum、energy balance」的被動版已完成） |
 | V2 Actuator / Sensor / Estimator | `NOT_STARTED` | — | torque-speed/thermal envelope、joint limits、latency/noise、estimator |
 | V3 Fair Benchmark & UQ | `FOUNDATION_SOFTWARE_PARTIAL` | experiment matrix validator、paired statistics/export contract、exposure-censoring audit、seed-variance contract（皆 synthetic + 部分實資料驗證） | actual Study A、binary paired CI（無 golden-case oracle）、external preregistration；formal authorization 已於 2026-09-10 取得但 protocol 仍不可執行 |
 | V4 Subsystem Validation | `NOT_STARTED` | — | 任何 SIL/HIL/bench/robot evidence |
@@ -148,7 +148,7 @@
 
 ### 6.4 Plant credibility
 
-- V1 缺 articulated dynamic、pendulum、energy、solver convergence；V2 全缺。任何 controller 結論的 plant 可信度尚未建立。
+- V1 仍缺 dynamic contact、致動下的能量帳、solver-tolerance／finite-difference 研究、joint limits、actuator envelope；known pendulum 與被動 articulated 的能量／收斂已於 2026-09-22 補上（[receipt](receipts/V1_DYNAMIC_REFERENCE_SUITE_RECEIPT_2026-09-22.md)）；V2 全缺。任何 controller 結論的 plant 可信度尚未建立。（2026-09-22 更正：原文「V1 缺 articulated dynamic、pendulum、energy、solver convergence」）
 
 ### 6.5 Authorization 與 preregistration
 
@@ -196,6 +196,7 @@
 | 2026-09-22 | Track B formal evaluation 的兩個子問題決定：**延後**，`20000–20029` 保持封存（[decision](TRACK_B_FORMAL_EVALUATION_DECISION_2026-09-22.md)） | `PUB-B0` 仍 AUTHORIZED、`PUB-B4` 仍 NOT_STARTED；無 protocol 變更、無 seed 存取；負責人端 Track B 無待辦，唯一在等負責人的是 Track A 的原文 PDF |
 | 2026-09-22 | 瀏覽器視覺驗證：`frontend/e2e` 6 項 dedicated tests 全過（[receipt](receipts/BROWSER_VISUAL_VERIFICATION_RECEIPT_2026-09-22.md)） | 兩個 `BROWSER_VISUAL_PENDING` 解除；`PUB-C0` `NOT_STARTED` → `PASS`；`feature_inventory_status` 仍 UNVERIFIED |
 | 2026-09-22 | Raibert 堆疊 2 s 瓶頸定位（[diagnosis](RAIBERT_STACK_DIAGNOSIS_2026-09-22.md)） | 41 單因子＋4 組合無一站滿 6 s；機制為第一步的三段連鎖；結構性候選四項，未實作；`raibert` 預設行為未動 |
+| 2026-09-22 | `V1-DYNAMIC-REFERENCE-SUITE-V1`：known pendulum 與被動 articulated 能量／收斂，凍結後執行（[receipt](receipts/V1_DYNAMIC_REFERENCE_SUITE_RECEIPT_2026-09-22.md)） | 6/6 PASS、replay 相符；第 1 次執行因重算公式缺陷 FAIL，修公式不改門檻後重跑；`V1-R13` BLOCKED → PARTIAL；V1 gate 仍 `PARTIAL_IMPLEMENTED_NOT_PASS` |
 
 ## 8. 下一步
 

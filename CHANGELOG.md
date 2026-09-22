@@ -2,6 +2,17 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-22 (bc)
+
+### V1 動態參考案例：known pendulum 與被動 articulated 能量平衡（`V1-DYNAMIC-REFERENCE-SUITE-V1`，任務 #105）
+
+- [RESULT] **先凍結再執行**：規格與門檻（[spec](docs/V1_DYNAMIC_REFERENCE_SUITE_SPEC.md)）於 `a65bef2` commit 並 push 後才跑第一個 case；門檻由半隱式 Euler 的離散誤差分析推得（週期誤差 (ωΔt)²/24、能量振盪 (Δt/2)·max|τ_g·θ̇|／E₀），不是看結果湊的。
+- [RESULT] **known pendulum（2 kg 球、L 0.5 m、60° 釋放、6 s）**：週期對 AGM 橢圓積分閉式解 `6.5e-6／1.6e-6／4.1e-7`（4／2／1 ms，observed order **2.0**）；能量振盪 `0.84／0.42／0.21%`（門檻 2／1／0.5%，與預測 0.81／0.41／0.20% 相符）；長期漂移 ~1e-8——引擎在此案例上是辛的；compiled 球慣量對 2/5·m·r² 誤差 0。
+- [RESULT] **articulated 被動擺動（專案人形、軀幹固定、去地板、去致動器、12 個阻尼關節、3 s）**：能量平衡含梯形阻尼功的殘差 `0.70／0.35／0.17%`（門檻 5／2.5／1.25%，observed order 0.99）；引擎能量與由質心速度、角速度、主慣量、armature 獨立重算的能量一致到 1e-15；`trunk`／`foot_l`／`foot_r` 的閉式球／盒慣量對 compiled 相對誤差 6e-16、11 個 body 質量誤差 0。
+- [RESULT] **stdlib-only replay**（無 MuJoCo／NumPy／專案匯入）重算全部 metric，與 NumPy primary 84 個 metric 相符（相對差 0.0）；六種結構篡改 raise、有限值篡改保留 FAIL。20 項測試。
+- [RESULT] **第一次執行 FAIL，如實保留**：三個 articulated case 的 `ENGINE_KINETIC_ENERGY_AGREEMENT` 讀到 1.2——重算公式把 `mj_objectVelocity(mjOBJ_BODY)` 的線速度當成 body 原點速度再加 ω×r，而它已是質心速度。修公式（`4a96f54`）、**門檻一個都沒動**，在乾淨樹重跑 **6/6 PASS**。兩次 artifact 的 sha256 都在 [receipt](docs/receipts/V1_DYNAMIC_REFERENCE_SUITE_RECEIPT_2026-09-22.md)。
+- [RESULT] 對 V1 gate：`V1-R13` energy consistency **BLOCKED → PARTIAL**（致動下的 drive-loss 帳仍缺）、`V1-R14` known pendulum 與被動 articulated 完成、`V1-R11` 加兩個動態收斂研究。V1 仍 `PARTIAL_IMPLEMENTED_NOT_PASS`：缺 dynamic contact、致動能量帳、solver-tolerance／finite-difference、joint limits、actuator envelope。VV_PLAN 三列、PROJECT_STATUS §1／§6.4／§7、ROADMAP §9 第 4 項、V1_ORACLE_SPEC §5、README、STATUS.yaml 同步。
+
 ## Unreleased — 2026-09-22 (ba)
 
 ### 接下來的三件事：Track B 決定、Raibert 瓶頸定位、瀏覽器視覺驗證（決定紀錄、任務 #103、#104）

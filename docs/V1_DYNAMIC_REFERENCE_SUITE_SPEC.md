@@ -2,7 +2,7 @@
 
 最後更新：2026-09-22 ｜ ID：`V1-DYNAMIC-REFERENCE-SUITE-V1` ｜ 任務 #105
 
-狀態：`FROZEN_BEFORE_EXECUTION / V1 PARTIAL / SIM_ONLY_MUJOCO`
+狀態：`EXECUTED_2026-09-22_PASS_6_OF_6 / V1 PARTIAL / SIM_ONLY_MUJOCO`（凍結於 `a65bef2`，執行記錄見 [receipt](receipts/V1_DYNAMIC_REFERENCE_SUITE_RECEIPT_2026-09-22.md)）
 
 上游：[VV_PLAN](VV_PLAN.md) `V1-R11`（numerical convergence）、`V1-R13`（energy consistency）、`V1-R14`（analytical reference cases：known pendulum、articulated）
 ｜ 前一個 V1 milestone：[V1_ANALYTICAL_SUITE_SPEC](V1_ANALYTICAL_SUITE_SPEC.md)（passive single-support fixture）
@@ -125,3 +125,12 @@
 `SIM_ONLY_MUJOCO / NOT_PHYSICALLY_VALIDATED`。本 suite 證明的是：(P) 引擎對一個有閉式解的動態系統，其週期與能量行為在凍結門檻內；
 (A) 專案的 articulated plant 在無接觸、無致動下，引擎的能量記帳可由序列化量獨立重算並在凍結門檻內守恆（含阻尼功），
 且球／盒組成 body 的 compiled 慣量與閉式公式一致。它**不**證明接觸物理、致動器、控制器、任何實體能力，也**不**使 V1 PASS。
+
+---
+
+## 6. 執行結果（2026-09-22，寫於執行之後）
+
+- **第 1 次執行**（源碼 `a65bef2`，凍結 commit）：3 個 pendulum case PASS；3 個 articulated case **FAIL**——重算公式把 `mj_objectVelocity(mjOBJ_BODY)` 的線速度當成 body 原點速度再加 `ω × r`，而它已是質心速度；`ENGINE_KINETIC_ENERGY_AGREEMENT` 讀到 1.2。**這是重算公式缺陷，不是門檻或物理問題。**
+- 修正（`4a96f54`）：拿掉 `ω × r`、序列化欄位改名 `linvel_com_world`；**§3 的門檻一個都沒動**。
+- **第 2 次執行**（源碼 `4a96f54`，乾淨樹）：**6/6 PASS**，stdlib replay 84 個 metric 相符。數字與 artifact sha256 見 [receipt](receipts/V1_DYNAMIC_REFERENCE_SUITE_RECEIPT_2026-09-22.md)。
+- 對 V1 gate 的影響：`V1-R13` BLOCKED → PARTIAL、`V1-R14` known pendulum 與被動 articulated 完成、`V1-R11` 加兩個動態收斂研究；gate 仍 `PARTIAL_IMPLEMENTED_NOT_PASS`。

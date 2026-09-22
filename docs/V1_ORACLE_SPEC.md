@@ -169,6 +169,8 @@ physical-foot validation。
 3. 新增 power/energy balance、solver-tolerance/iteration與 finite-difference evidence。
 4. 將任何 NaN、solver failure 或 constraint violation保留為 case FAIL，不修補輸出。
 
+**2026-09-22 更新：** 本節列的 known pendulum 與 energy 兩項已由獨立規格 [V1_DYNAMIC_REFERENCE_SUITE_SPEC](V1_DYNAMIC_REFERENCE_SUITE_SPEC.md) 以凍結門檻執行完成（6/6 PASS，[receipt](receipts/V1_DYNAMIC_REFERENCE_SUITE_RECEIPT_2026-09-22.md)）；dynamic contact 與致動下的能量帳仍為下一批。
+
 ## 6. MuJoCo 定義來源
 
 - [MuJoCo Computation — Contact and friction cones](https://mujoco.readthedocs.io/en/stable/computation/index.html#contact)
