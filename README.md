@@ -39,7 +39,7 @@ Repository：[github.com/dofliu/robotMan](https://github.com/dofliu/robotMan) �
 | 動作任務範圍 | 2026-09-11 決定現在**不**新增跳躍／轉身；順序為先綁 lock record 與建有版控 lineage 的新訓練線，轉身需 `PUB-B2`、跳躍需 V1 PASS | [MOTION_SCOPE_DECISION](docs/MOTION_SCOPE_DECISION_2026-09-11.md) |
 | 下一個決策 | formal evaluation 已於 2026-09-10 授權；剩兩個子問題：用現行 post-hoc 規則或先預註冊替代規則、唯一未檢視的 FORMAL seed 範圍花在 v7 線或新訓練線 | [PUBLICATION_PLAN §5](docs/PUBLICATION_PLAN.md)、[PUB_B0 receipt](docs/receipts/PUB_B0_AUTHORIZATION_RECEIPT_2026-09-10.md) |
 | 控制器比較（2026-09-22） | 四個行走控制器（含新加的 Capture-point 對照組 `cp`，**非新方法**）在凍結任務上**全部 FAIL**：5／6／5／5 of 11；**CP 沒有贏過 Raibert**（跌倒 2.906 s 對 3.282 s）。推力掃描：三個 deterministic 控制器連 0 N 都在 ~2 s 自行倒下，`rl` 至 160 N 站滿 3 s 窗。現有方法**沒有創新**，專案也未如此宣稱。`DEVELOPMENT_COMPARISON_ONLY` | [CONTROLLER_COMPARISON_2026-09-22](docs/CONTROLLER_COMPARISON_2026-09-22.md) |
-| 測試 | `backend/` **1 failed / 1061 passed**（2026-09-19，`407.95` s，工作樹為 `146f8c0` 加上任務 #96 的變更，`python3 -X utf8 -m pytest backend/ -p no:cacheprovider`）。那一個失敗是在具名 environment lock 下**記錄為量測結果、未放寬**的 reduction-order 差異——看到它不必修 | [PROJECT_STATUS §9](docs/PROJECT_STATUS.md)、`STATUS.yaml` 的 `test_suite_status` |
+| 測試 | `backend/` **1 failed / 1071 passed**（2026-09-22，`430.68` s，1,072 收集，工作樹 `0dca910`，`python3 -X utf8 -m pytest backend/ -p no:cacheprovider`；比前次多的 10 個全在 `test_controller_cp.py`）。那一個失敗是在具名 environment lock 下**記錄為量測結果、未放寬**的 reduction-order 差異——看到它不必修 | [PROJECT_STATUS §9](docs/PROJECT_STATUS.md)、`STATUS.yaml` 的 `test_suite_status` |
 
 ## 兩種模式
 

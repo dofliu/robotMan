@@ -234,7 +234,7 @@ python3 -I -S backend/module_boundary_contract.py
 | `backend/live_sim.py` | 切換邏輯抽成 `_switch_controller`；`_make_controller`／labels 加 `cp` |
 | `backend/run_motion_task.py` | `SINGLE_CONTROLLERS` 加 `cp`；`switch_controller()`／`HARNESS_ONLY_CONTROLLERS` |
 | `backend/compare_controllers_report.py` | **新增**，harness |
-| `backend/test_controller_cp.py` | **新增**，12 項 |
+| `backend/test_controller_cp.py` | **新增**，10 項 |
 | `backend/module_boundary_registry.json`、`docs/TEACHING_BOUNDARY.md` | teaching 閉包 15 → 16 |
 | `frontend/src/LiveView.tsx` | `KIND_CATEGORY` 加 `cp: "gait"`（決策日誌分類；`test_decision_kind` 要求） |
 | `docs/assets/controller-compare-2026-09-22/` | 7 張圖、`summary.json`、`task_traces_50hz.csv` |
