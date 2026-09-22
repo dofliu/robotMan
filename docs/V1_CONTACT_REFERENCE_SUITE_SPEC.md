@@ -2,7 +2,7 @@
 
 最後更新：2026-09-22 ｜ ID：`V1-CONTACT-REFERENCE-SUITE-V1` ｜ 任務 #106
 
-狀態：`FROZEN_NOT_EXECUTED / V1 PARTIAL / SIM_ONLY_MUJOCO`（門檻在任何 case 執行前寫死；執行後只允許在 §7 追加結果與 receipt 連結，不得回頭改 §2–§5）
+狀態：`EXECUTED_2026-09-22_PASS_7_OF_7_GATES / HYPOTHESES_H1_H2_H3_REJECTED / V1 PARTIAL / SIM_ONLY_MUJOCO`（凍結於 `c4cd809`，執行記錄見 [receipt](receipts/V1_CONTACT_REFERENCE_SUITE_RECEIPT_2026-09-22.md)；§2–§5 自凍結起未改）
 
 上游：[VV_PLAN](VV_PLAN.md) `V1-R05`（unilateral contact，dynamic）、`V1-R06`（friction feasibility，dynamic）、`V1-R08`（contact schedule consistency）、`V1-R11`（numerical convergence）、`V1-R14`（analytical reference cases：dynamic contact）
 ｜ 前一個 V1 milestone：[V1_DYNAMIC_REFERENCE_SUITE_SPEC](V1_DYNAMIC_REFERENCE_SUITE_SPEC.md)（無接觸的動態參考案例）
@@ -167,6 +167,8 @@ PASS 只表示：在凍結門檻內，MuJoCo 對 (a) 單一自由剛體的自由
 2. 之後才跑第一個 case；primary raw artifact 以 exclusive-create 寫到 `backend/run_traces/`，sha256 進 receipt。
 3. replay 以 `python -I -S` 跑；receipt 記兩者結果、V1 gate 影響、H 族的量測。
 
-## 7. 執行結果
+## 7. 執行結果（2026-09-22，寫於執行之後）
 
-（執行後追加。）
+- 凍結 commit `c4cd809`（push 後、工作樹乾淨）上執行一次：**7/7 gate case PASS、suite 4/4**；artifact `backend/run_traces/v1-contact-reference-20260922T095516.json`（`sha256:c778d7e9…c3db`，7,987,608 bytes）；stdlib replay PASS、210 個 metric 相符。門檻一個都沒動。
+- 假說 H1／H2／H3 **全部 rejected**，與 §1.1 第 2 點的設計期預期相同：踢速 0.5 m/s 時 11 個 sample 失去接觸、法向力膨脹到 3.03 倍重量、平均減速度 9.42 m/s²（相對 μg 差 4.0%）。
+- 量測表、對 V1 gate 的影響與非宣稱見 [receipt](receipts/V1_CONTACT_REFERENCE_SUITE_RECEIPT_2026-09-22.md)。

@@ -2,6 +2,17 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-22 (bd)
+
+### V1 接觸參考案例：drop-and-settle、黏滯滑塊，與被拒絕的 Coulomb 假說（`V1-CONTACT-REFERENCE-SUITE-V1`，任務 #106）
+
+- [RESULT] **先凍結再執行**：規格與門檻（[spec](docs/V1_CONTACT_REFERENCE_SUITE_SPEC.md)）於 `c4cd809` commit 並 push 後才跑第一個凍結 case；門檻由引擎軟約束模型（`a_ref = −B·v − d·K·pos`、`R = (1−d)/d·diag(A)`）與離散誤差分析推得。設計期 9 個 pilot 全在**不同參數**上做、只用來推導閉式，並在規格 §1.1 先寫下三個觀察。
+- [RESULT] **drop-and-settle（1 kg 球、0.5 m、4／2／1 ms）**：觸地步與離散自由落體閉式逐字相同（80／160／319）、對連續 t_c 誤差 ≤ 1 步；法向衝量對重量積分 `2e-12`；靜止 GRF 對重量 `3e-9`；靜止穿透對引擎軟接觸平衡的閉式 `pen* = (1−d)g/(n_c d² K)` 相對差 `2e-8`；觸地後無分離。撞擊峰值 33–35 倍重量、最大穿透 2.1–2.3 cm 只記錄不設門檻。
+- [RESULT] **黏滯滑塊（1 kg 平移薄板、4 個接觸、踢速 0.02 m/s）**：未飽和摩擦是黏滯的，衰減速率對推得的 `ρ = B·2d/(1+d) = 99.79 s⁻¹` 相對差 `1e-11`；對連續指數的差就是預算的離散差 D(dt)（0.089／0.040／0.019，order 1.15／1.07）；四點分擔的平衡穿透是單點的 1/3.41，與閉式一致——**引擎的接觸柔度隨接觸點數變，不是材料常數**。
+- [RESULT] **預登記的 Coulomb 假說（同薄板、0.5 m/s、只在 plant 的 2 ms，不參與 suite 判定）三條全部 rejected**：22 ms 失去接觸、法向力膨脹到 3.03 倍重量、平均減速度差 μg 4.0%。在 plant 的接觸參數下（`impratio 1`、pyramidal、`solref` 預設），滑動摩擦低於約 0.1 m/s 是黏滯、高於約 0.2 m/s 把摩擦需求漏進法向力——**沒有 Coulomb 區間**；自由 6-DoF 薄板一被推就翹起跳離（故滑塊限制為平移）。這是解讀行走控制器比較與 Raibert 診斷時必須帶著的 plant caveat。
+- [RESULT] **stdlib-only replay**（無 MuJoCo／NumPy／專案匯入）重算全部 metric，與 NumPy primary 210 個 metric 相符（相對差 0.0）、criteria 與假說 `passed` 序列逐項相同；八種結構篡改 raise、兩種有限值篡改保留 FAIL。22 項測試。
+- [RESULT] 對 V1 gate：`V1-R08` **NOT STARTED → PARTIAL**（觸地事件 prescribed 對 solved 逐字相同）、`V1-R05`／`R06`／`R11`／`R14` 加單剛體動態接觸覆蓋；`V1-R06` 明列 plant 摩擦非 Coulomb 的證據。V1 仍 `PARTIAL_IMPLEMENTED_NOT_PASS`：缺關節式人形的 dynamic contact、致動能量帳、solver-tolerance／finite-difference、joint limits、actuator envelope。VV_PLAN 五列、PROJECT_STATUS §1／§6.4／§7、ROADMAP §9 第 4 項、V1_ORACLE_SPEC §5、README、STATUS.yaml（含 `v1_oracle_status` 的就地更正）同步。Receipt：[V1_CONTACT_REFERENCE_SUITE_RECEIPT_2026-09-22](docs/receipts/V1_CONTACT_REFERENCE_SUITE_RECEIPT_2026-09-22.md)。
+
 ## Unreleased — 2026-09-22 (bc)
 
 ### V1 動態參考案例：known pendulum 與被動 articulated 能量平衡（`V1-DYNAMIC-REFERENCE-SUITE-V1`，任務 #105）
