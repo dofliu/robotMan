@@ -43,7 +43,7 @@ Repository：[github.com/dofliu/robotMan](https://github.com/dofliu/robotMan) �
 | [RAIBERT_STACK_DIAGNOSIS_2026-09-22](docs/RAIBERT_STACK_DIAGNOSIS_2026-09-22.md) | **Raibert 堆疊 2 s 瓶頸定位**——儀器化時間線、41 單因子＋4 組合消融無一站滿、第一步三段連鎖的機制、四個結構性候選（未實作） |
 | [V1_DYNAMIC_REFERENCE_SUITE_SPEC](docs/V1_DYNAMIC_REFERENCE_SUITE_SPEC.md) | **V1 動態參考案例的凍結規格**——known pendulum（閉式）與被動 articulated 能量平衡，4/2/1 ms，門檻在執行前由積分器誤差分析推得 |
 | [V1_DYNAMIC_REFERENCE_SUITE_RECEIPT_2026-09-22](docs/receipts/V1_DYNAMIC_REFERENCE_SUITE_RECEIPT_2026-09-22.md) | **執行 receipt**——6/6 PASS、stdlib replay 84 個 metric 相符；第一次執行因重算公式缺陷 FAIL 的揭露；`V1-R13` BLOCKED → PARTIAL |
-| 測試 | `backend/` **1 failed / 1071 passed**（2026-09-22，`420.57` s，1,072 收集，工作樹 `a743db9`；前一次 `0dca910` 為 `430.68` s 同數，`python3 -X utf8 -m pytest backend/ -p no:cacheprovider`；比前次多的 10 個全在 `test_controller_cp.py`）。另有 **`frontend/e2e` 6 項瀏覽器測試**（2026-09-22 全過，不在 backend 集合裡，[receipt](docs/receipts/BROWSER_VISUAL_VERIFICATION_RECEIPT_2026-09-22.md)）。那一個失敗是在具名 environment lock 下**記錄為量測結果、未放寬**的 reduction-order 差異——看到它不必修 | [PROJECT_STATUS §9](docs/PROJECT_STATUS.md)、`STATUS.yaml` 的 `test_suite_status` |
+| 測試 | `backend/` **1 failed / 1091 passed**（2026-09-22，`651.94` s，1,092 收集，`64ad5d6` 的內容——run 在該 commit 建立前、於內容相同的工作樹啟動；對 `4a96f54` 只多 V1 receipt 與文件對齊、無程式變更，`python3 -X utf8 -m pytest backend/ -p no:cacheprovider`；比同日 `a743db9` 的 1,072 多的 20 個全在 `test_v1_dynamic_reference_suite.py`）。另有 **`frontend/e2e` 6 項瀏覽器測試**（2026-09-22 全過，不在 backend 集合裡，[receipt](docs/receipts/BROWSER_VISUAL_VERIFICATION_RECEIPT_2026-09-22.md)）。那一個失敗是在具名 environment lock 下**記錄為量測結果、未放寬**的 reduction-order 差異——看到它不必修 | [PROJECT_STATUS §9](docs/PROJECT_STATUS.md)、`STATUS.yaml` 的 `test_suite_status` |
 
 ## 兩種模式
 

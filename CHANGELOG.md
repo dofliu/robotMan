@@ -12,6 +12,7 @@
 - [RESULT] **stdlib-only replay**（無 MuJoCo／NumPy／專案匯入）重算全部 metric，與 NumPy primary 84 個 metric 相符（相對差 0.0）；六種結構篡改 raise、有限值篡改保留 FAIL。20 項測試。
 - [RESULT] **第一次執行 FAIL，如實保留**：三個 articulated case 的 `ENGINE_KINETIC_ENERGY_AGREEMENT` 讀到 1.2——重算公式把 `mj_objectVelocity(mjOBJ_BODY)` 的線速度當成 body 原點速度再加 ω×r，而它已是質心速度。修公式（`4a96f54`）、**門檻一個都沒動**，在乾淨樹重跑 **6/6 PASS**。兩次 artifact 的 sha256 都在 [receipt](docs/receipts/V1_DYNAMIC_REFERENCE_SUITE_RECEIPT_2026-09-22.md)。
 - [RESULT] 對 V1 gate：`V1-R13` energy consistency **BLOCKED → PARTIAL**（致動下的 drive-loss 帳仍缺）、`V1-R14` known pendulum 與被動 articulated 完成、`V1-R11` 加兩個動態收斂研究。V1 仍 `PARTIAL_IMPLEMENTED_NOT_PASS`：缺 dynamic contact、致動能量帳、solver-tolerance／finite-difference、joint limits、actuator envelope。VV_PLAN 三列、PROJECT_STATUS §1／§6.4／§7、ROADMAP §9 第 4 項、V1_ORACLE_SPEC §5、README、STATUS.yaml 同步。
+- [RESULT] **全套後端測試（`64ad5d6` 的內容——run 在該 commit 建立前、於內容相同的工作樹啟動；對 `4a96f54` 只多 V1 receipt 與文件對齊、無程式變更）：1,092 收集／1,091 通過／1 失敗／0 跳過**，`651.94` s；比 `a743db9` 的 1,072 多 **20**，全部來自 `test_v1_dynamic_reference_suite.py`；失敗項仍是同一個既有的 `PRIMARY_CASE_RECEIPT_IDENTITY`，未放寬、未跳過。
 
 ## Unreleased — 2026-09-22 (ba)
 
