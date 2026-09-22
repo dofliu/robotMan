@@ -73,7 +73,7 @@ def test_analytic_inertia_matches_textbook_values():
                    {"type": "sphere", "size": [0.1], "pos": [0.0, 0.0, -0.5], "mass": 1.0}]
     out = suite.analytic_body_inertia(two_spheres)
     assert out["com_m"] == pytest.approx([0.0, 0.0, 0.0], abs=1e-15)
-    assert out["principal_kgm2"] == pytest.approx(sorted([0.004 + 0.004, 0.004 + 0.5, 0.004 + 0.5]))
+    assert out["principal_kgm2"] == pytest.approx(sorted([2 * 0.004, 2 * (0.004 + 0.25), 2 * (0.004 + 0.25)]))
     assert suite.analytic_body_inertia([{"type": "capsule", "size": [0.05], "pos": None, "mass": 1.0}]) is None
     assert replay.analytic_body_inertia(box)["principal_kgm2"] == pytest.approx(suite.analytic_body_inertia(box)["principal_kgm2"], rel=1e-15)
 
@@ -154,7 +154,7 @@ def test_replay_retains_velocity_tamper_as_energy_fail(primary):
     for sample in case["raw_trace"][len(case["raw_trace"]) // 2:]:
         sample["qvel"] = [v * 1.5 for v in sample["qvel"]]
         for body in sample["bodies"]:
-            body["linvel_world"] = [v * 1.5 for v in body["linvel_world"]]
+            body["linvel_com_world"] = [v * 1.5 for v in body["linvel_com_world"]]
             body["angvel_world"] = [v * 1.5 for v in body["angvel_world"]]
     receipt = replay_dynamic_suite(tampered)
     replayed = next(c for c in receipt["cases"] if c["case_id"] == "articulated_passive_swing_2ms")

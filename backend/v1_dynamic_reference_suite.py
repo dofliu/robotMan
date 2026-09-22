@@ -300,13 +300,16 @@ def _record_sample(model: mujoco.MjModel, data: mujoco.MjData) -> dict:
     vel = np.zeros(6)
     bodies = []
     for b in range(1, model.nbody):
+        # mjOBJ_BODY 的 6D 速度以 body 的慣性框（質心 xipos）為參考點、世界座標：
+        # 線速度就是質心速度。第一次執行時誤當成 frame 原點速度再加 ω×r，被
+        # ENGINE_KINETIC_ENERGY_AGREEMENT 判準抓到；欄位名改為 linvel_com_world 以免重演。
         mujoco.mj_objectVelocity(model, data, mujoco.mjtObj.mjOBJ_BODY, b, vel, 0)
         bodies.append({
             "xpos": [float(x) for x in data.xpos[b]],
             "xipos": [float(x) for x in data.xipos[b]],
             "ximat": [float(x) for x in data.ximat[b]],
             "angvel_world": [float(x) for x in vel[:3]],
-            "linvel_world": [float(x) for x in vel[3:]],
+            "linvel_com_world": [float(x) for x in vel[3:]],
         })
     return {
         "time_s": float(data.time),
@@ -362,9 +365,7 @@ def body_kinetic_energy(sample_body: dict, body_receipt: dict) -> float:
     m = body_receipt["mass_kg"]
     inertia = np.asarray(body_receipt["inertia_principal_kgm2"])
     w = np.asarray(sample_body["angvel_world"])
-    v = np.asarray(sample_body["linvel_world"])
-    r = np.asarray(sample_body["xipos"]) - np.asarray(sample_body["xpos"])
-    v_com = v + np.cross(w, r)
+    v_com = np.asarray(sample_body["linvel_com_world"])
     rot_mat = np.asarray(sample_body["ximat"]).reshape(3, 3)   # world_from_inertial
     w_local = rot_mat.T @ w
     return float(0.5 * m * v_com @ v_com + 0.5 * inertia @ (w_local * w_local))

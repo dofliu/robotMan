@@ -57,7 +57,7 @@ FROZEN_PENDULUM = {"mass_kg": 2.0, "radius_m": 0.05, "length_m": 0.5, "pivot_z_m
 FROZEN_ARTICULATED_DURATION_S = 3.0
 FROZEN_GRAVITY = 9.81
 SAMPLE_KEYS = ("time_s", "qpos", "qvel", "energy_engine", "ncon", "qfrc_applied_abs_max", "xfrc_applied_abs_max", "bodies")
-BODY_KEYS = ("xpos", "xipos", "ximat", "angvel_world", "linvel_world")
+BODY_KEYS = ("xpos", "xipos", "ximat", "angvel_world", "linvel_com_world")
 
 
 class ReplayValidationError(RuntimeError):
@@ -114,7 +114,7 @@ def validate_primary(primary: dict) -> None:
                 for key in BODY_KEYS:
                     _require(key in body, f"{case['case_id']}: body sample missing {key}")
                 _require(len(body["ximat"]) == 9 and len(body["xpos"]) == 3 and len(body["xipos"]) == 3
-                         and len(body["angvel_world"]) == 3 and len(body["linvel_world"]) == 3, f"{case['case_id']}: body shape")
+                         and len(body["angvel_world"]) == 3 and len(body["linvel_com_world"]) == 3, f"{case['case_id']}: body shape")
         _require(_finite_tree(trace), f"{case['case_id']}: non-finite raw value")
         _require(_finite_tree(case["compiled_model"]), f"{case['case_id']}: non-finite compiled model value")
 
@@ -153,17 +153,11 @@ def _criterion(criterion_id: str, value, operator: str, limit, unit: str) -> dic
     return {"id": criterion_id, "passed": bool(passed), "value": value, "operator": operator, "limit": limit, "unit": unit}
 
 
-def _cross(a, b):
-    return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]
-
-
 def body_kinetic_energy(sample_body: dict, body_receipt: dict) -> float:
     m = body_receipt["mass_kg"]
     inertia = body_receipt["inertia_principal_kgm2"]
     w = sample_body["angvel_world"]
-    v = sample_body["linvel_world"]
-    r = [sample_body["xipos"][i] - sample_body["xpos"][i] for i in range(3)]
-    v_com = [v[i] + c for i, c in enumerate(_cross(w, r))]
+    v_com = sample_body["linvel_com_world"]     # mjOBJ_BODY 速度的參考點就是質心
     mat = sample_body["ximat"]
     w_local = [sum(mat[3 * k + i] * w[k] for k in range(3)) for i in range(3)]
     rot = 0.5 * sum(inertia[i] * w_local[i] * w_local[i] for i in range(3))
@@ -435,7 +429,9 @@ def evaluate_suite(cases, evaluations, contract):
 # ---------------------------------------------------------------- primary 對 replay
 
 def _flatten_numbers(value, prefix=""):
-    if isinstance(value, bool) or value is None or isinstance(value, str):
+    if value is None:
+        return {prefix: float("nan")}          # 例如「無法估計的 observed order」；與數值相比視為不一致
+    if isinstance(value, bool) or isinstance(value, str):
         return {}
     if isinstance(value, (int, float)):
         return {prefix: float(value)}
@@ -458,6 +454,10 @@ def compare_metrics(primary_metrics: dict, replay_metrics: dict, tol: dict) -> d
         if math.isinf(pa) and math.isinf(pb) and (pa > 0) == (pb > 0):
             continue
         if math.isnan(pa) and math.isnan(pb):
+            continue
+        if math.isnan(pa) != math.isnan(pb):
+            if worst_key is None:
+                worst_key, worst_rel = key, float("inf")
             continue
         diff = abs(pa - pb)
         rel = diff / max(abs(pa), abs(pb), 1e-300)
