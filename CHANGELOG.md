@@ -2,6 +2,17 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-22 (be)
+
+### V1 致動能量帳：開環正弦與 plant 站立 PD 蹲起（`V1-ACTUATED-ENERGY-SUITE-V1`，任務 #107）
+
+- [RESULT] **先凍結再執行**：規格與門檻（[spec](docs/V1_ACTUATED_ENERGY_SUITE_SPEC.md)）於 `b4b5900` commit 並 push 後才跑凍結 case；門檻由能量帳的一階離散結構推得。設計期 pilot 在不同幅度／頻率／蹲深上做，只為選出不失控的動作（幅度 0.08·上限時四肢整圈翻轉；live sim 的 +4 mm 起跳使撞地接觸功在 4 ms 解析不足），規格 §1.1 先寫下。
+- [RESULT] **A1 開環正弦（軀幹固定、去地板、12 個 motor、0.015·forcerange、3 s）**：`E − E₀ = W_act − W_damp`，致動功用 held-torque 形式（力取步首、速度梯形），殘差 `0.18／0.084／0.041%`（門檻 2／1／0.5%，order 1.07／1.04）；`actuator_force = clip(ctrl, forcerange)`、`qfrc_actuator = gear·force`、命令與規格式子差 0。
+- [RESULT] **A2 plant 站立 PD 蹲起（完整人形、plant 地板、貼地起始、5 cm／4 s、5 s）**：加接觸功 `∫ Σ f_i·v_i dt`（接觸力對機器人接觸點所做的功，由序列化接觸力與 body 運動學重算），殘差 `0.23／0.13／0.069%`（門檻 5／2.5／1.25%，order 0.81／0.91）；八個接觸點全程都在、軀幹傾角 ≤ 2.3°、cone 利用率 ≤ 0.32；接觸功 −0.17～−0.20 J（只耗能）。
+- [RESULT] **兩個 plant 事實明寫為限制**：`<motor>` 沒有 drive-loss 模型，能量帳沒有這一項（`V1-R13` 的 drive-loss trace 在此 plant 恆為 0）；**`implicitfast` 有阻尼時不是半隱式 Euler**（`v_{n+1} − v_n − dt·qacc_n` 差 4e-3～1e-2，一階），前兩個 suite 的 `STEP_VELOCITY_UPDATE_IDENTITY` 之所以到 1e-10 是因為那些案例沒有速度相依力。
+- [RESULT] **stdlib-only replay** 重算全部 metric，與 NumPy primary 144 個 metric 相符（相對差 0.0）；九種結構篡改 raise、扭矩與接觸力篡改保留 FAIL。22 項測試。
+- [RESULT] 對 V1 gate：`V1-R13` 致動部分完成（仍 PARTIAL：缺行走／撞擊情境）、`V1-R11` 加兩個收斂研究、`V1-R10` 仍 BLOCKED（只多一句簿記事實）。V1 仍 `PARTIAL_IMPLEMENTED_NOT_PASS`。VV_PLAN 三列、PROJECT_STATUS §1／§6.4／§7、ROADMAP §9 第 4 項、V1_ORACLE_SPEC §5、README、STATUS.yaml 同步。Receipt：[V1_ACTUATED_ENERGY_SUITE_RECEIPT_2026-09-22](docs/receipts/V1_ACTUATED_ENERGY_SUITE_RECEIPT_2026-09-22.md)。
+
 ## Unreleased — 2026-09-22 (bd)
 
 ### V1 接觸參考案例：drop-and-settle、黏滯滑塊，與被拒絕的 Coulomb 假說（`V1-CONTACT-REFERENCE-SUITE-V1`，任務 #106）

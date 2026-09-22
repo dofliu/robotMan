@@ -2,7 +2,7 @@
 
 最後更新：2026-09-22 ｜ ID：`V1-ACTUATED-ENERGY-SUITE-V1` ｜ 任務 #107
 
-狀態：`FROZEN_NOT_EXECUTED / V1 PARTIAL / SIM_ONLY_MUJOCO`（門檻在任何凍結 case 執行前寫死；執行後只允許在 §7 追加結果與 receipt 連結，不得回頭改 §2–§5）
+狀態：`EXECUTED_2026-09-22_PASS_6_OF_6 / V1 PARTIAL / SIM_ONLY_MUJOCO`（凍結於 `b4b5900`，執行記錄見 [receipt](receipts/V1_ACTUATED_ENERGY_SUITE_RECEIPT_2026-09-22.md)；§2–§5 自凍結起未改）
 
 上游：[VV_PLAN](VV_PLAN.md) `V1-R13`（energy consistency：power balance and physics-step integration，tau／omega／drive-loss trace）、`V1-R11`（numerical convergence）、`V1-R10`（actuator envelope：只覆蓋靜態扭矩上限這一小部分）
 ｜ 前兩個 V1 milestone：[V1_DYNAMIC_REFERENCE_SUITE_SPEC](V1_DYNAMIC_REFERENCE_SUITE_SPEC.md)（被動、無接觸的能量平衡）、[V1_CONTACT_REFERENCE_SUITE_SPEC](V1_CONTACT_REFERENCE_SUITE_SPEC.md)（單剛體接觸）
@@ -121,6 +121,8 @@ PASS 只表示：在凍結門檻內，MuJoCo 對專案人形在致動（開環�
 2. 之後才跑凍結 case；raw artifact exclusive-create 到 `backend/run_traces/`，sha256 進 receipt。
 3. replay 以 `python -I -S` 跑；receipt 記結果與 `V1-R13` 的狀態變化。
 
-## 7. 執行結果
+## 7. 執行結果（2026-09-22，寫於執行之後）
 
-（執行後追加。）
+- 凍結 commit `b4b5900`（push 後、工作樹乾淨）上執行一次：**6/6 PASS、suite 2/2**；artifact `backend/run_traces/v1-actuated-energy-20260922T102345.json`（`sha256:fbffa6d6…a7b4`，139,121,014 bytes）；stdlib replay PASS、144 個 metric 相符。門檻一個都沒動。
+- 殘差／E_scale：A1 `0.18／0.084／0.041%`（order 1.07／1.04）、A2 `0.23／0.13／0.069%`（order 0.81／0.91）；隱式修正量 `4.8e-3／1.2e-3／3.1e-4`（A1）與 `1.1e-2／2.8e-3／7.2e-4`（A2），與 §1.1 第 3 點一致。
+- 量測表、對 V1 gate 的影響與非宣稱見 [receipt](receipts/V1_ACTUATED_ENERGY_SUITE_RECEIPT_2026-09-22.md)。
