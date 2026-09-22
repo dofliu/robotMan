@@ -2,6 +2,17 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-22 (ba)
+
+### 接下來的三件事：Track B 決定、Raibert 瓶頸定位、瀏覽器視覺驗證（決定紀錄、任務 #103、#104）
+
+- [RESULT] **Track B formal evaluation 延後**（`TRACK-B-DEFERRAL-DECISION-2026-09-22`）：負責人以「第一點 請你建議後 開始就好」委託採納建議——(a) 若日後執行，先預註冊替代規則；(b) `20000–20029` 兩條線都不花、保持封存，保留給 reference policy 達到 `PUB-B2` 出口條件的訓練線。理由全是已量到的事實：v7 線 `SEL-C2` 聯合通過機率 `2.2e-18`／`0`；tracked lineage 兩線 full exposure `0/30 × 5`；PROJECT_ASSESSMENT §3（Track A 不再需要 `PUB-B2`）。`PUB-B0` 仍 AUTHORIZED、`PUB-B4` 仍 NOT_STARTED；無 protocol 變更、無 seed 存取、無 authorization evidence。負責人端 Track B 無待辦；**唯一在等負責人的是 Track A 的原文 PDF**。
+- [RESULT] **Raibert 堆疊 2 s 瓶頸定位**（任務 #103）：`compute()` 的 26 個常數搬成 class attribute（凍結任務 trace **19 陣列逐位元相同**，`cop_xy` 的 674 個 NaN 視為相等）；儀器化基準 + 41 個事前寫死的單因子消融 + 4 個事後組合，**無一站過 3.02 s**（baseline 2.22 s）。機制是第一步的三段連鎖：以髖推骨盆 → 軀幹後仰 31°、髖修正 −110 N·m 飽和 → 擺動腳懸在離地 3 cm、觸地晚 275 ms → 落點鎖在世界座標、落到骨盆後方 5 cm → 接不住 0.7 m/s 前衝 → 加速換步、早觸地、+39°、2.2 s 倒。每個常數只碰一段，所以調參救不了；四個結構性候選（起步策略、前推改由踝產生、落點相對座標、擺動腳觸地伺服）**未實作**，`raibert` 預設未動。這也解釋 `cp` 為何同時倒（1、2 段共用）。
+- [RESULT] **瀏覽器視覺驗證**（任務 #104，`BROWSER-VISUAL-VERIFICATION-2026-09-22`）：新增 `frontend/e2e/` 6 項 dedicated tests，跑 README 的 production 路徑（build → uvicorn 掛 dist → headless Chromium），**6 passed／103.82 s**。畫面上的數字逐項對上 API（trace 筆數、2,282 samples、25 個 profile id、`time skew 0.000000 s`、plant 簽章），五張截圖非單色，console／page error 為零。兩個 `BROWSER_VISUAL_PENDING` 解除；`PUB-C0` `NOT_STARTED` → **`PASS`**——範圍是「渲染、行為、與 API 一致」，**不是** pixel regression、**不是**物理效度（`feature_inventory_status` 仍 UNVERIFIED）。到全過前四輪失敗全是測試選擇器（收合的 Disclosure、條件渲染的 test-id、收合的 profile 群組、要等 WebSocket 的 footer），不是應用缺陷。
+- [RESULT] 順帶量到兩件事：Playwright 的 actionability 等待在持續重繪（軟體 GL）的即時互動頁會卡住——元素已 resolve 為 visible 仍逾時——該頁改用 DOM click；Playwright 1.63 自帶的 Chromium 不在機器上，退到 `/opt/pw-browsers/chromium`（1194），兩者皆無則**失敗不 skip**。
+- [RESULT] teaching 閉包 16 模組／**5,104 行**（常數搬出後 +38 行），`MODULE_BOUNDARIES_CLEAN`；`GATE_STATUS_SINGLE_SOURCE_CONSISTENT`（33／54）、`DERIVED_CLAIMS_CONSISTENT`（1／3／10）；全 repo 內部連結壞掉 0 個。
+- 文件：`docs/TRACK_B_FORMAL_EVALUATION_DECISION_2026-09-22.md`、`docs/RAIBERT_STACK_DIAGNOSIS_2026-09-22.md`、`docs/receipts/BROWSER_VISUAL_VERIFICATION_RECEIPT_2026-09-22.md`；README 索引與現況一覽、REPOSITORY_GUIDE（`frontend/e2e/`、新 assets）、ROADMAP §2 M2／§9 第 3 項、PROJECT_STATUS §6.6／§7／§8、PUBLICATION_PLAN §5／`PUB-B0`／`PUB-B4`／`PUB-C0`／Track C 硬前置、`STATUS.yaml`（`track_b_formal_evaluation_decision`、`browser_visual_verification`、兩個 UI 旗標、`module_boundary`）、`docs/receipts/README.md` 同步。
+
 ## Unreleased — 2026-09-22 (az)
 
 ### 四個行走控制器的開發比較，含一個新加的 Capture-point 對照組（任務 #102）
