@@ -12,6 +12,7 @@
 - [RESULT] **預登記的 Coulomb 假說（同薄板、0.5 m/s、只在 plant 的 2 ms，不參與 suite 判定）三條全部 rejected**：22 ms 失去接觸、法向力膨脹到 3.03 倍重量、平均減速度差 μg 4.0%。在 plant 的接觸參數下（`impratio 1`、pyramidal、`solref` 預設），滑動摩擦低於約 0.1 m/s 是黏滯、高於約 0.2 m/s 把摩擦需求漏進法向力——**沒有 Coulomb 區間**；自由 6-DoF 薄板一被推就翹起跳離（故滑塊限制為平移）。這是解讀行走控制器比較與 Raibert 診斷時必須帶著的 plant caveat。
 - [RESULT] **stdlib-only replay**（無 MuJoCo／NumPy／專案匯入）重算全部 metric，與 NumPy primary 210 個 metric 相符（相對差 0.0）、criteria 與假說 `passed` 序列逐項相同；八種結構篡改 raise、兩種有限值篡改保留 FAIL。22 項測試。
 - [RESULT] 對 V1 gate：`V1-R08` **NOT STARTED → PARTIAL**（觸地事件 prescribed 對 solved 逐字相同）、`V1-R05`／`R06`／`R11`／`R14` 加單剛體動態接觸覆蓋；`V1-R06` 明列 plant 摩擦非 Coulomb 的證據。V1 仍 `PARTIAL_IMPLEMENTED_NOT_PASS`：缺關節式人形的 dynamic contact、致動能量帳、solver-tolerance／finite-difference、joint limits、actuator envelope。VV_PLAN 五列、PROJECT_STATUS §1／§6.4／§7、ROADMAP §9 第 4 項、V1_ORACLE_SPEC §5、README、STATUS.yaml（含 `v1_oracle_status` 的就地更正）同步。Receipt：[V1_CONTACT_REFERENCE_SUITE_RECEIPT_2026-09-22](docs/receipts/V1_CONTACT_REFERENCE_SUITE_RECEIPT_2026-09-22.md)。
+- [RESULT] **全套後端測試（`c4cd809` 的乾淨工作樹（凍結 commit；其後的 `59eab53` 只有文件、無程式變更））：1,114 收集／1,113 通過／1 失敗／0 跳過**，`550.82` s；比 `64ad5d6` 的 1,092 多 **22**，全部來自 `test_v1_contact_reference_suite.py`；失敗項仍是同一個既有的 `PRIMARY_CASE_RECEIPT_IDENTITY`，未放寬、未跳過。
 
 ## Unreleased — 2026-09-22 (bc)
 
