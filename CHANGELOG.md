@@ -2,6 +2,22 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-22 (az)
+
+### 四個行走控制器的開發比較，含一個新加的 Capture-point 對照組（任務 #102）
+
+- [RESULT] **擁有者問「目前的學習或控制方法有創新嗎」：沒有，專案自己也沒這樣宣稱。** `track` 是開環軌跡追蹤、`raibert` 是 Raibert 1986 落腳法則加標準髖／踝策略、`rl*` 是常規 PPO 配方；ROADMAP §2 把 M6 標「SOFTWARE SNAPSHOT／V3 NOT PASSED」，`prohibited_claims` 明列 `general controller superiority`。專案的貢獻主張在 Track A 的評估效度，不在控制器。
+- [RESULT] **新增 `backend/controller_cp.py`（87 行）**：Capture-point／DCM 落腳 + CP 誤差踝策略（Pratt 2006；Englsberger 2011）——**也不是新方法**，是 Raibert 的單因子對照組：繼承 `RaibertController`，只透過三個新抽出的 hook 覆寫兩個法則。增益事前寫死、看結果後未改，報的是第一次執行。
+- [RESULT] **凍結任務上 CP 沒有贏過 Raibert**：5/11 對 6/11，首次跌倒 2.906 s 對 3.282 s，多失一項 LATERAL_DRIFT（0.417 m）。四個控制器**全部 `FAIL`**；唯一走完穩態段的 `rl`（3.13 m）在停步段跌倒、側向漂移 1.284 m、飽和佔比 54.2%。
+- [RESULT] **行走中推力掃描（0–160 N × 0.2 s，前向／側向，assist 全關）**：三個 deterministic 控制器連 0 N 都在行走開始後 2.0–2.2 s 自行倒下，推力只讓它們早倒；`rl` 在 3 s 觀察窗內全數站立。CP 側向 120／160 N 比 Raibert 更快倒（0.50／0.42 s 對 0.96／0.52 s）。
+- [RESULT] **速度掃描（0.3–0.9 m/s，步週期固定 0.5 s）**：三者站立秒數全落在 1.8–2.5 s、不隨速度變；`track` 一步都沒踏出。連同 `ξ_x − CoP_x` 診斷圖（Raibert 與 CP 同時在 2.2 s 離開 LIPM 參考帶），指向共用堆疊裡一個和步數綁定的瓶頸——**假說，未定位**。
+- [RESULT] `RaibertController.compute()` 抽出三個 hook 後重跑凍結任務：**19 個 trace 陣列逐位元相同**、11 項判準值相同。`LiveSession` 的切換邏輯抽成 `_switch_controller`，`mode` 指令與 motion-task candidate 都改走它；46 項既有 live／task／trace／compare／decision-kind 測試全過。
+- [RESULT] **`cp` 是 harness 專用、前端選不到**：公開 `mode` 指令的控制器白名單是 `config_schema.py` 裡的 pydantic `Literal`，該檔位元組被兩份凍結 protocol 釘住，不能增列。`run_motion_task.switch_controller()` 對 `cp` 走內部切換。新增 `test_controller_cp.py`（10 項），同時斷言「公開指令拒絕、內部切換成功」。
+- [RESULT] **全套後端測試：1,072 收集／1,071 通過／1 失敗／0 跳過**，`430.68` s，工作樹 `0dca910`。比 2026-09-20 的 1,061 多 **10**，逐檔 collect 對 `main`（`2a2a9f8`）比對確認只有 `test_controller_cp.py` 一檔不同。失敗項是同一個既有的 `test_stdlib_replay_passes_exact_synthetic_fixture`（`PRIMARY_CASE_RECEIPT_IDENTITY`），**未放寬、未跳過**。三個文件契約全過（33／54、1／3／10、teaching 16／5,066）；831 個內部連結壞掉 0 個。（本條與 §2.3 的測試數原寫 12，實為 10——12 是連同 `test_decision_kind.py` 的 2 項一起數的；已更正。）
+- [RESULT] teaching 閉包 15 → **16 模組／5,066 行**（`controller_cp` 由 `live_sim` 載入），`MODULE_BOUNDARIES_CLEAN`；registry、`TEACHING_BOUNDARY`、README 同步。`compare_live` 的三機集合未動。
+- [RESULT] 順帶量到 `run_one("track")` 與三機 `run_all` 的 STEADY_SPEED 差 0.003 m/s（−1.164684 對 −1.167411）；`git stash` 回到重構前重跑，數字相同——差異來自兩個 harness 建 session 的路徑不同，非本次造成。
+- 報告：`docs/CONTROLLER_COMPARISON_2026-09-22.md`；harness：`backend/compare_controllers_report.py`（一個指令、50 s）；圖與數據：`docs/assets/controller-compare-2026-09-22/`（7 張圖、`summary.json`、50 Hz CSV）。
+
 ## Unreleased — 2026-09-20 (ay)
 
 ### 修掉測試報告裡那個 404（任務 #101）

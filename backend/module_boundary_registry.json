@@ -19,6 +19,7 @@
         "compare_live",
         "config_schema",
         "controller",
+        "controller_cp",
         "controller_raibert",
         "controller_rl",
         "gait",

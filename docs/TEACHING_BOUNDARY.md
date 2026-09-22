@@ -65,10 +65,11 @@ RESEARCH_MODULE_IN_TEACHING_CLOSURE: environment_lock
 
 ## 3. 現況
 
-**15 個模組、4,943 行**（`--list` 可列出）：
+**16 個模組、5,066 行**（`--list` 可列出；2026-09-22 重新量測——`controller_cp` 是
+Capture-point 落腳法則的開發對照組，由 `live_sim` 載入，原為 15 個模組、4,943 行）：
 
 ```
-compare_live  config_schema  controller  controller_raibert  controller_rl
+compare_live  config_schema  controller  controller_cp  controller_raibert  controller_rl
 gait  hardware_db  live_sim  main  model_builder  motion_tasks
 rl.policy_registry  rl.training_inventory  run_trace  simulator
 ```

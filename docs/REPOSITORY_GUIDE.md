@@ -23,7 +23,7 @@ Repository 保存：
 - `docs/receipts/`（**2026-09-20 建立**）：實作 receipt，索引見 [`docs/receipts/README.md`](receipts/README.md)。
 - **`docs/` 裡有 8 份一行的轉址存根**（7 份指向 `archive/`、1 份指向 `receipts/`）。它們不是內容：原路徑必須繼續解析，因為凍結證據以路徑指名、或位元組不能動的 spec 連到它們。**不要刪。** 原因見 [DOC_ARCHIVE §2、§3](DOC_ARCHIVE_2026-09-20.md)。
 - **有 4 份 spec 的內容 digest 被凍結證據釘住**（`R0_REGIME_PROBE_SPEC`、`RUN_MANIFEST_LOCK_BINDING_SPEC`、`TRACKED_LINEAGE_TRAINING_SPEC`、`TRACKED_LINEAGE_TRAINING_V2_SPEC`）。**連它們的相對連結都不能改**——改連結就改位元組，改位元組就破壞 pin。
-- `docs/assets/`：文件引用的圖，含 [TEST_REPORT_2026-09-20](TEST_REPORT_2026-09-20.md) 的五張 UI 截圖。
+- `docs/assets/`：文件引用的圖與數據，含 [TEST_REPORT_2026-09-20](TEST_REPORT_2026-09-20.md) 的五張 UI 截圖，以及 [CONTROLLER_COMPARISON_2026-09-22](CONTROLLER_COMPARISON_2026-09-22.md) 的 7 張圖、`summary.json` 與 50 Hz CSV（由 `backend/compare_controllers_report.py` 產生）。
 - 已保留的證據 bundle：`backend/environment_locks/`、`backend/second_case_evidence/`、`backend/seed_variance_evidence/`、`backend/r0_probe_evidence/`。這些是**證據**，內容由 digest 釘住，不得就地編輯或重新產生。
 - `backend/tracked_lineage_evidence/`（**已建立**，2026-09-14；由 [TRACKED-LINEAGE-TRAINING-V1](TRACKED_LINEAGE_TRAINING_SPEC.md) §7 與 [V2](TRACKED_LINEAGE_TRAINING_V2_SPEC.md) §7 指定）：V1 與 V2 兩線每 `500,000` 步保留的 policy checkpoint（`.zip`，實測 **40 個、`77 MB`**）、`checkpoint_index.json`／`checkpoint_index_v2.json`、訓練與評估 run manifest、環境鎖與 lock binding、訓練曲線，以及 contract runner 的機器可讀 receipt，全部**進版控**。這是本 repo 唯一刻意 tracked 的 binary training artifact 目錄，與下節排除的 `backend/rl/checkpoints/` 不同：後者是沒有 frozen environment 的 smoke output，前者是 `PUB-B1` 要求的 lineage 證據，**不得**加進 `.gitignore`，也不得為了縮小 repo 而刪除任何已保留的 checkpoint。
 

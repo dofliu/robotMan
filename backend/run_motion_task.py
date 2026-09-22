@@ -20,7 +20,18 @@ from live_sim import LiveSession
 from motion_tasks import TASK_ID
 
 
-SINGLE_CONTROLLERS = (*CONTROLLERS, "rl_task_v2", "rl_task_v5")
+SINGLE_CONTROLLERS = (*CONTROLLERS, "rl_task_v2", "rl_task_v5", "cp")
+
+
+# 公開 mode 指令的控制器白名單住在 config_schema.py（位元組被凍結 protocol 釘住），
+# 開發用對照組 cp 不在其中，只能走 LiveSession 的內部切換。
+HARNESS_ONLY_CONTROLLERS = ("cp",)
+
+
+def switch_controller(session: LiveSession, controller: str) -> dict | None:
+    if controller in HARNESS_ONLY_CONTROLLERS:
+        return session._switch_controller(controller)
+    return session.command({"type": "mode", "mode": "stand", "controller": controller})
 
 
 def result_row(session: LiveSession) -> dict:
@@ -56,7 +67,7 @@ def run_all() -> dict:
 def run_one(controller: str) -> dict:
     session = LiveSession(default_robot(), GaitParams(), [])
     if controller != session.walk_controller:
-        switched = session.command({"type": "mode", "mode": "stand", "controller": controller})
+        switched = switch_controller(session, controller)
         if isinstance(switched, dict) and switched.get("type") == "error":
             raise RuntimeError(switched["code"])
     started = session.command({"type": "task_start", "task_id": TASK_ID})
