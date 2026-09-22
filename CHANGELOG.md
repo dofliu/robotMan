@@ -12,6 +12,7 @@
 - [RESULT] **兩個 plant 事實明寫為限制**：`<motor>` 沒有 drive-loss 模型，能量帳沒有這一項（`V1-R13` 的 drive-loss trace 在此 plant 恆為 0）；**`implicitfast` 有阻尼時不是半隱式 Euler**（`v_{n+1} − v_n − dt·qacc_n` 差 4e-3～1e-2，一階），前兩個 suite 的 `STEP_VELOCITY_UPDATE_IDENTITY` 之所以到 1e-10 是因為那些案例沒有速度相依力。
 - [RESULT] **stdlib-only replay** 重算全部 metric，與 NumPy primary 144 個 metric 相符（相對差 0.0）；九種結構篡改 raise、扭矩與接觸力篡改保留 FAIL。22 項測試。
 - [RESULT] 對 V1 gate：`V1-R13` 致動部分完成（仍 PARTIAL：缺行走／撞擊情境）、`V1-R11` 加兩個收斂研究、`V1-R10` 仍 BLOCKED（只多一句簿記事實）。V1 仍 `PARTIAL_IMPLEMENTED_NOT_PASS`。VV_PLAN 三列、PROJECT_STATUS §1／§6.4／§7、ROADMAP §9 第 4 項、V1_ORACLE_SPEC §5、README、STATUS.yaml 同步。Receipt：[V1_ACTUATED_ENERGY_SUITE_RECEIPT_2026-09-22](docs/receipts/V1_ACTUATED_ENERGY_SUITE_RECEIPT_2026-09-22.md)。
+- [RESULT] **全套後端測試（`b4b5900` 的乾淨工作樹（凍結 commit；其後的 `16b9275` 只有文件、無程式變更））：1,136 收集／1,135 通過／1 失敗／0 跳過**，`517.19` s；比 `c4cd809` 的 1,114 多 **22**，全部來自 `test_v1_actuated_energy_suite.py`；失敗項仍是同一個既有的 `PRIMARY_CASE_RECEIPT_IDENTITY`，未放寬、未跳過。
 
 ## Unreleased — 2026-09-22 (bd)
 
