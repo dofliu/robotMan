@@ -20,7 +20,12 @@ CONTROLLERS = ("track", "raibert", "rl")
 
 
 def _click_tab(page, label: str) -> None:
-    page.get_by_role("button", name=label, exact=True).first.click()
+    """分頁切換也用 DOM click：2026-09-29 實測，機器滿載時 three.js 持續重繪的頁面會讓
+    Playwright 的 actionability（visible/enabled/stable）等待逾時 30 s；evaluate 不受影響。"""
+    found = page.evaluate(
+        "(t) => { const b = [...document.querySelectorAll('button')].find(b => b.textContent.trim() === t);"
+        " if (!b) return false; b.click(); return true; }", label)
+    assert found, f"找不到分頁按鈕「{label}」"
 
 
 def _body(page) -> str:
@@ -71,14 +76,19 @@ def test_analysis_view_renders_summary_cards_chart_and_scene(page, api):
 # ---------------------------------------------------------------- 2. 即時互動（含 Trace 記錄）
 
 
-def test_live_view_streams_telemetry_and_records_a_trace(page, api):
-    pg, log = page
+def test_live_view_streams_telemetry_and_records_a_trace(live_page, api):
+    pg, log = live_page
     _click_tab(pg, "即時互動")
     pg.wait_for_selector("[data-testid=intervention-status]", timeout=20_000)
     _wait_text(pg, r"站立平衡")
     t1 = float(_wait_text(pg, r"t = ([0-9]+\.[0-9]{2}) s").group(1))
-    time.sleep(1.0)
-    t2 = float(_wait_text(pg, r"t = ([0-9]+\.[0-9]{2}) s").group(1))
+    # session 在 thread 裡建構、機器滿載時可能超過 1 s 才送出第一個 frame（2026-09-29 實測）：
+    # 等到時間前進為止，最多 20 s；永遠不前進仍然 FAIL。
+    deadline = time.time() + 20.0
+    t2 = t1
+    while t2 <= t1 and time.time() < deadline:
+        time.sleep(0.5)
+        t2 = float(_wait_text(pg, r"t = ([0-9]+\.[0-9]{2}) s").group(1))
     assert t2 > t1, f"模擬時間沒有前進：{t1} → {t2}（WebSocket 沒串流）"
     assert "控制器決策日誌" in _body(pg)
 
@@ -86,13 +96,23 @@ def test_live_view_streams_telemetry_and_records_a_trace(page, api):
     _click_button_containing(pg, "Trace 記錄（500 Hz）")   # Disclosure 預設收合
     _wait_text(pg, r"● 開始記錄 Trace")
     _click_button_containing(pg, "● 開始記錄 Trace")
-    _wait_text(pg, r"■ 停止並保存 Trace")
-    time.sleep(1.5)
+    try:
+        _wait_text(pg, r"■ 停止並保存 Trace")
+    except AssertionError as exc:                       # 失敗時附上 WebSocket 往返，區分沒送／沒回／回錯誤
+        raise AssertionError(f"{exc}\nws_log tail: {log.ws_log[-12:]}") from None
+    # 錄到畫面上的 recording 時長 ≥ 1.0 s（模擬時間）再停：這台機器的即時模擬不到 1× 實時
+    # （2026-09-29 量到 0.26×），用牆鐘 sleep 1.5 s 只會錄到 0.4 s、不到 500 個樣本。
+    _wait_text(pg, r"Trace 記錄（500 Hz）\s*\n\s*(1[0-9]*\.[0-9]|[2-9][0-9]*\.[0-9]) s", timeout_s=40.0)
     _click_button_containing(pg, "■ 停止並保存 Trace")
-    _wait_text(pg, r"run-[0-9a-z\-]+", timeout_s=20.0)
-    after = api("/api/traces")["traces"]
-    new = [t for t in after if t["run_id"] not in before]
-    assert len(new) == 1, f"錄完後 /api/traces 應多一筆，實得 {len(new)}"
+    # 「記錄中：run-…」在開始時就已顯示，不能拿它當停止完成的訊號；改為等 /api/traces 多出一筆
+    # （finalize 在後端事件迴圈的下一個 tick 才跑，滿載時可達數秒）。
+    deadline = time.time() + 60.0
+    new: list = []
+    while not new and time.time() < deadline:
+        time.sleep(0.5)
+        after = api("/api/traces")["traces"]
+        new = [t for t in after if t["run_id"] not in before]
+    assert len(new) == 1, f"錄完後 /api/traces 應多一筆，實得 {len(new)}；ws_log tail: {log.ws_log[-8:]}"
     assert new[0]["label"].startswith("live-"), new[0]
     assert new[0]["sample_count"] >= 500, new[0]   # ≥ 1 s @ 500 Hz
     pytest.trace_run_id = new[0]["run_id"]  # type: ignore[attr-defined]

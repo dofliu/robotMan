@@ -47,7 +47,7 @@ Repository：[github.com/dofliu/robotMan](https://github.com/dofliu/robotMan) �
 | [V1_CONTACT_REFERENCE_SUITE_RECEIPT_2026-09-22](docs/receipts/V1_CONTACT_REFERENCE_SUITE_RECEIPT_2026-09-22.md) | **執行 receipt**——7/7 gate PASS 首輪即過、stdlib replay 210 個 metric 相符；Coulomb 假說三條 rejected（法向力膨脹 3 倍、失去接觸）；`V1-R08` NOT STARTED → PARTIAL |
 | [V1_ACTUATED_ENERGY_SUITE_SPEC](docs/V1_ACTUATED_ENERGY_SUITE_SPEC.md) | **V1 致動能量帳的凍結規格**——開環正弦扭矩（軀幹固定）與 plant 站立 PD 蹲起（含接觸功）；drive loss 明寫為 plant 沒有的項；§1.1 揭露 `implicitfast` 有阻尼時不是半隱式 Euler |
 | [V1_ACTUATED_ENERGY_SUITE_RECEIPT_2026-09-22](docs/receipts/V1_ACTUATED_ENERGY_SUITE_RECEIPT_2026-09-22.md) | **執行 receipt**——6/6 PASS 首輪即過、stdlib replay 144 個 metric 相符；殘差 0.18／0.084／0.041% 與 0.23／0.13／0.069%；`V1-R13` 致動部分完成 |
-| 測試 | `backend/` **1 failed / 1135 passed**（2026-09-22，`517.19` s，1,136 收集，`b4b5900` 的乾淨工作樹（凍結 commit；其後的 `16b9275` 只有文件、無程式變更），`python3 -X utf8 -m pytest backend/ -p no:cacheprovider`；比同日 `c4cd809` 的 1,114 多的 22 個全在 `test_v1_actuated_energy_suite.py`）。另有 **`frontend/e2e` 6 項瀏覽器測試**（2026-09-22 全過，不在 backend 集合裡，[receipt](docs/receipts/BROWSER_VISUAL_VERIFICATION_RECEIPT_2026-09-22.md)）。那一個失敗是在具名 environment lock 下**記錄為量測結果、未放寬**的 reduction-order 差異——看到它不必修 | [PROJECT_STATUS §9](docs/PROJECT_STATUS.md)、`STATUS.yaml` 的 `test_suite_status` |
+| 測試 | `backend/` **1 failed / 1135 passed**（**2026-09-29**，`753.30` s，1,136 收集，`423c4ef` 的乾淨工作樹，同機併跑瀏覽器測試故耗時長；前一次 2026-09-22 `b4b5900` 為 `517.19` s 同數，`python3 -X utf8 -m pytest backend/ -p no:cacheprovider`）。另有 **`frontend/e2e` 6 項瀏覽器測試**（2026-09-22 與 2026-09-29 全過，不在 backend 集合裡；09-29 先在滿載下 FAIL、追出 headless 渲染追不上 30 fps 串流的機制、六項等待強化後 6/4→6/6，[report](docs/TEST_REPORT_2026-09-29.md)、[receipt](docs/receipts/BROWSER_VISUAL_VERIFICATION_RECEIPT_2026-09-22.md)）。那一個失敗是在具名 environment lock 下**記錄為量測結果、未放寬**的 reduction-order 差異——看到它不必修 | [PROJECT_STATUS §9](docs/PROJECT_STATUS.md)、`STATUS.yaml` 的 `test_suite_status` |
 
 ## 兩種模式
 
@@ -147,6 +147,7 @@ python -m pytest backend -q
 | [GATE_STATUS_SINGLE_SOURCE](docs/GATE_STATUS_SINGLE_SOURCE.md) | gate 狀態的單一權威來源：`GATE-STATUS-SINGLE-SOURCE-V1` 的規則、33 個 gate 與 54 個站點的 authority／mirror 關係、明確不涵蓋的範圍；由 `backend/gate_status_contract.py` fail-closed 檢查 |
 | [TEACHING_BOUNDARY](docs/TEACHING_BOUNDARY.md) | 教學模擬器的邊界：`MODULE-BOUNDARY-V1` 的 teaching 邊界，教學進入點的遞移 import 閉包必須恰好等於登錄清單；研究模組跑進來或清單過期皆 fail closed |
 | [TOOLKIT_PORTABILITY](docs/TOOLKIT_PORTABILITY.md) | 實驗工具組的邊界與**可攜性審計**：同一契約的 toolkit 邊界（函式庫不得反向碰專案），加上七個模組逐一的 blocking／friction 分類，以及三件需要擁有者決定的事 |
+| [TEST_REPORT_2026-09-29](docs/TEST_REPORT_2026-09-29.md) | **全面驗證測試報告（最新）**——1,136 測試（1,135 過／1 既有失敗）、三個契約、98 份文件連結、typecheck／build、六項瀏覽器測試 6/6 與五張截圖；量到 headless 渲染追不上即時頁 30 fps 串流、即時頁無 backpressure 的觀察 |
 | [TEST_REPORT_2026-09-20](docs/TEST_REPORT_2026-09-20.md) | **全面測試報告**——1,062 測試（1,061 過／1 既有失敗）、三個契約、796 個連結、五個畫面的實際截圖與數據 |
 | [CONTROLLER_COMPARISON_2026-09-22](docs/CONTROLLER_COMPARISON_2026-09-22.md) | **四控制器開發比較**——現有方法有沒有創新（沒有）、新加的 Capture-point 對照組（也不是新的、沒贏過 Raibert）、凍結任務 11 項判準、推力掃描、速度掃描，7 張圖與 `summary.json`；`DEVELOPMENT_COMPARISON_ONLY` |
 | [`docs/receipts/`](docs/receipts/README.md) | **實作 receipt 索引**——18 份（14 份於 2026-09-20 由 `docs/` 搬入，加 2026-09-22 的瀏覽器視覺驗證、V1 動態參考案例、V1 接觸參考案例、V1 致動能量帳四份 receipt）；仍然有效，只是不是規劃文件 |

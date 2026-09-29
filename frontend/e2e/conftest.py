@@ -61,10 +61,13 @@ def server(frontend_dist: Path):
     """以 uvicorn 起 backend/main.py 的 app（與 README 的 production 路徑同一個 app 物件、同樣掛 dist）。"""
     port = _free_port()
     env = {**os.environ, "PYTHONUTF8": "1"}
+    ARTIFACTS.mkdir(parents=True, exist_ok=True)
+    server_log = ARTIFACTS / "server.log"          # 不用 PIPE：沒人讀的 pipe 一滿就會讓後端事件迴圈卡在 write
+    log_handle = server_log.open("w", encoding="utf-8")
     proc = subprocess.Popen(
         [sys.executable, "-X", "utf8", "-m", "uvicorn", "main:app", "--host", "127.0.0.1", "--port", str(port),
          "--log-level", "warning"],
-        cwd=BACKEND, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+        cwd=BACKEND, env=env, stdout=log_handle, stderr=subprocess.STDOUT, text=True,
     )
     base = f"http://127.0.0.1:{port}"
     try:
@@ -72,14 +75,16 @@ def server(frontend_dist: Path):
         _wait_http(f"{base}/", 30.0)
     except Exception:
         proc.terminate()
-        out = proc.communicate(timeout=10)[0]
-        raise RuntimeError(f"後端起不來：\n{out[-3000:]}")
+        proc.wait(timeout=10)
+        log_handle.close()
+        raise RuntimeError(f"後端起不來：\n{server_log.read_text(encoding='utf-8')[-3000:]}")
     yield base
     proc.terminate()
     try:
         proc.wait(timeout=10)
     except subprocess.TimeoutExpired:
         proc.kill()
+    log_handle.close()
 
 
 @pytest.fixture(scope="session")
@@ -132,6 +137,15 @@ class PageLog:
         self.page_errors: list[str] = []
         page.on("console", lambda msg: self.console_errors.append(msg.text) if msg.type == "error" else None)
         page.on("pageerror", lambda err: self.page_errors.append(str(err)))
+        # WebSocket 往返摘要（每則只留 type 與前 80 字），失敗時印出以區分「沒送」「沒回」「回錯誤」
+        self.ws_log: list[str] = []
+        page.on("websocket", self._watch_ws)
+
+    def _watch_ws(self, ws) -> None:
+        self.ws_log.append(f"open {ws.url}")
+        ws.on("framesent", lambda f: self.ws_log.append(f"sent {str(f)[:80]}"))
+        ws.on("framereceived", lambda f: self.ws_log.append(f"recv {str(f)[:80]}") if '"type": "frame"' not in str(f)[:40] else None)
+        ws.on("close", lambda _ws: self.ws_log.append("close"))
 
     def assert_clean(self) -> None:
         assert not self.page_errors, f"page errors: {self.page_errors}"
@@ -147,12 +161,31 @@ class PageLog:
         return out
 
 
-@pytest.fixture()
-def page(browser, server: str):
-    context = browser.new_context(viewport=VIEWPORT, device_scale_factor=1)
+def _open_page(browser, server: str, viewport: dict):
+    context = browser.new_context(viewport=viewport, device_scale_factor=1)
     pg = context.new_page()
     log = PageLog(pg)
     pg.goto(server + "/", wait_until="networkidle")
+    return context, pg, log
+
+
+@pytest.fixture()
+def page(browser, server: str):
+    context, pg, log = _open_page(browser, server, VIEWPORT)
+    yield pg, log
+    context.close()
+
+
+LIVE_VIEWPORT = {"width": 960, "height": 720}
+
+
+@pytest.fixture()
+def live_page(browser, server: str):
+    """即時互動頁專用的較小視窗：2026-09-29 量到 1440×1100 的 headless SwiftShader 渲染在這台 4 核機器上
+    只能吃到約 14 fps，追不上 30 fps 的 telemetry；DOM 落後網路 2 s 以上，TCP backpressure 再讓後端在
+    send 卡住、指令延後處理。960×720 約 24 fps，落後在 1 s 內。這是測試環境的渲染吞吐限制，
+    不是頁面邏輯；分析／比較／Trace／訓練頁仍用 1440×1100 截圖。"""
+    context, pg, log = _open_page(browser, server, LIVE_VIEWPORT)
     yield pg, log
     context.close()
 

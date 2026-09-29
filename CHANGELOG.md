@@ -2,6 +2,17 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-09-29 (bf)
+
+### 全面驗證測試：後端、契約、連結、前端與六項瀏覽器測試（任務 #108）
+
+- [RESULT] **後端全套（`423c4ef` 乾淨工作樹）：1,136 收集／1,135 通過／1 失敗／0 跳過**，`753.30` s（同機併跑瀏覽器測試與探針，故長於 09-22 的 517.19 s；秒數不當回歸指標）。失敗項仍是同一個既有的 `PRIMARY_CASE_RECEIPT_IDENTITY`，未放寬、未跳過；測試數與 09-22 相同（＋0）。
+- [RESULT] 三個文件契約乾淨（33／54、1／3／10、teaching 16／5,104 與 toolkit 7／5,508）；98 份 tracked Markdown 的相對連結壞掉 0 個；`npm run typecheck` 與 `npm run build` exit 0（chunk 大小警告未處理）。
+- [RESULT] **六項瀏覽器測試最後 6/6 通過（55.89 s）並重新截圖**（`docs/assets/test-report-2026-09-29/`）；照實記錄先前兩次：滿載下 2 FAIL（時間沒前進、分頁 click 逾時），閒置下 1 FAIL（錄完 Trace 後 API 沒多一筆）。以 Python 直連 WebSocket 重做同一串命令 0.05 s 內完成，後端無問題。
+- [RESULT] **量到的機制**：headless SwiftShader 在 1440 × 1100 只吃到約 14 fps，追不上即時互動頁的 30 fps 串流，DOM 落後網路 2 s 以上，TCP backpressure 讓後端在 `send` 卡住、指令延後處理；900 × 700 約 24 fps、落後 1 s 內。分類為測試環境的渲染吞吐限制與「即時頁沒有 backpressure 處理」的產品面觀察，記入 PROJECT_STATUS §6.6，不改任何 gate。
+- [RESULT] 測試碼六項強化（全在 `frontend/e2e/`，不動產品碼）：分頁切換改 DOM click、時間前進改有界等待、錄 Trace 改等模擬時長 ≥ 1.0 s（即時頁預設 0.25× 時間控制，牆鐘 1.5 s 只錄到 0.375 s）、停止後輪詢 `/api/traces`、即時頁改 960 × 720 視窗、測試用後端輸出改寫檔（沒人讀的 pipe 一滿會讓後端卡在 write）並在失敗訊息附 WebSocket 往返。放寬的是等待時間，不是斷言內容。
+- [RESULT] 報告：[TEST_REPORT_2026-09-29](docs/TEST_REPORT_2026-09-29.md)；README、PROJECT_STATUS §6.6／§7／§9、STATUS.yaml、瀏覽器 receipt 的視窗註記同步。無 gate 狀態變更。
+
 ## Unreleased — 2026-09-22 (be)
 
 ### V1 致動能量帳：開環正弦與 plant 站立 PD 蹲起（`V1-ACTUATED-ENERGY-SUITE-V1`，任務 #107）

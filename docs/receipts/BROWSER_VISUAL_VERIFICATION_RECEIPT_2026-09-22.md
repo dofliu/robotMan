@@ -5,6 +5,8 @@
 ｜ 上游：[ROADMAP §9 第 3 項](../ROADMAP.md)、[PUBLICATION_PLAN `PUB-C0`](../PUBLICATION_PLAN.md)
 ｜ 測試：[`frontend/e2e/`](../../frontend/e2e/test_browser_visual.py) ｜ 截圖：[`docs/assets/ui-2026-09-22/`](../assets/ui-2026-09-22/)
 
+**2026-09-29 更新：** 同一套測試在最終測試碼上重跑 6/6 通過並重新截圖（[TEST_REPORT_2026-09-29 §4](../TEST_REPORT_2026-09-29.md)）。即時互動頁自該日起改用 **960 × 720** 視窗（headless 渲染在 1440 × 1100 追不上 30 fps 串流），§3 的「視窗 1440 × 1100」只適用其餘四頁；六項等待強化與原因見報告 §4.3。
+
 ---
 
 ## 0. 一句話
