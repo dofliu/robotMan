@@ -70,6 +70,7 @@ interface TaskCancelledMessage {
 
 export interface LiveFrame {
   type: "frame";
+  frame_seq?: number;
   t: number;
   mode: string;
   walk_controller?: WalkController;
@@ -439,7 +440,9 @@ export default function LiveView({
       setConnected(true);
       setLiveError(null);
       // 即時模式必須沿用畫面目前設定，避免分析與 live session 使用不同的隱藏 nominal gait。
-      ws.send(JSON.stringify({ type: "init", robot, gait: { ...gait }, obstacles }));
+      ws.send(JSON.stringify({
+        type: "init", robot, gait: { ...gait }, obstacles, frame_flow_control: "ack",
+      }));
     };
     ws.onerror = () => {
       if (!disposed) {
@@ -488,17 +491,27 @@ export default function LiveView({
       if (msg.type === "scene") {
         sceneRef.current?.buildScene(msg);
       } else if (msg.type === "frame") {
-        if (msg.walk_controller) setWalkCtrl(msg.walk_controller);
-        if (typeof msg.assist_enabled === "boolean") setAssist(msg.assist_enabled);
-        if (Number.isFinite(msg.speed)) setSpeed(msg.speed);
-        setPaused(msg.paused);
-        if (msg.last_task && msg.last_trace) {
-          setTraceNotice(`正式任務 ${msg.last_task.evaluation.status}：${msg.last_trace.run_id}`);
+        try {
+          if (msg.walk_controller) setWalkCtrl(msg.walk_controller);
+          if (typeof msg.assist_enabled === "boolean") setAssist(msg.assist_enabled);
+          if (Number.isFinite(msg.speed)) setSpeed(msg.speed);
+          setPaused(msg.paused);
+          if (msg.last_task && msg.last_trace) {
+            setTraceNotice(`正式任務 ${msg.last_task.evaluation.status}：${msg.last_trace.run_id}`);
+          }
+          sceneRef.current?.updateFrame(msg);
+          // 面板 5Hz 更新即可，避免 React 重繪過頻
+          frameCount.current++;
+          if (frameCount.current % 6 === 0) setFrame(msg);
+        } finally {
+          // Request another telemetry frame only after the browser has had a
+          // paint opportunity. Control replies are not gated by this ACK.
+          window.requestAnimationFrame(() => {
+            if (!disposed && Number.isInteger(msg.frame_seq) && ws.readyState === WebSocket.OPEN) {
+              ws.send(JSON.stringify({ type: "frame_ack", frame_seq: msg.frame_seq }));
+            }
+          });
         }
-        sceneRef.current?.updateFrame(msg);
-        // 面板 5Hz 更新即可，避免 React 重繪過頻
-        frameCount.current++;
-        if (frameCount.current % 6 === 0) setFrame(msg);
       }
     };
     return () => {

@@ -7,8 +7,10 @@ from pathlib import Path
 
 import pytest
 
+import v1_analytical_replay as replay_module
 from v1_analytical_replay import (
     AnalyticalReplayValidationError,
+    _stable_mean,
     replay_analytical_suite,
 )
 from v1_analytical_suite import (
@@ -178,6 +180,29 @@ def test_stdlib_replay_passes_exact_synthetic_fixture(valid_bundle):
     assert replay["metrics"]["timestep_observed_order"] is None
     assert replay["metrics"]["raw_serialized_receipt_delta_max"] == 0.0
     assert all(item["passed"] for item in replay["criteria"])
+
+
+def test_replay_mean_is_stable_across_python_reduction_algorithms(
+    valid_bundle, monkeypatch,
+):
+    assert _stable_mean([196.2] * 400) == 196.2
+    assert _stable_mean([1.0e16, 1.0, -1.0e16, 1.0]) == 0.5
+
+    primary, package = valid_bundle
+
+    def legacy_sum(values):
+        total = 0
+        for value in values:
+            total += value
+        return total
+
+    # Emulate CPython <=3.11's left-fold sum. Before _stable_mean this
+    # reproduces the locked-environment PRIMARY_CASE_RECEIPT_IDENTITY failure.
+    monkeypatch.setattr(replay_module, "sum", legacy_sum, raising=False)
+    replay = replay_module.replay_analytical_suite(primary, package)
+
+    assert _criterion(replay, "PRIMARY_CASE_RECEIPT_IDENTITY")["passed"] is True
+    assert replay["status"] == "PASS"
 
 
 @pytest.mark.parametrize("mutation", ["missing", "duplicate", "extra"])

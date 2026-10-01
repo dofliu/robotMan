@@ -60,6 +60,7 @@ FROZEN_CASE_IDS = ("actuated_openloop_4ms", "actuated_openloop_2ms", "actuated_o
                    "planted_squat_4ms", "planted_squat_2ms", "planted_squat_1ms")
 FROZEN_CASE_DT = (0.004, 0.002, 0.001, 0.004, 0.002, 0.001)
 FROZEN_RESIDUAL_MAX = (0.02, 0.01, 0.005, 0.05, 0.025, 0.0125)
+FROZEN_CONTRACT_SHA256 = "sha256:1daba7d9cb248733a1bcc6396b812a9e2a5986129b5284e492760b955e685611"
 SAMPLE_KEYS = ("time_s", "qpos", "qvel", "qacc", "ctrl", "actuator_force", "qfrc_actuator", "qfrc_bias",
                "qfrc_constraint", "energy_engine", "ncon", "contacts", "bodies", "qfrc_applied_abs_max", "xfrc_applied_abs_max")
 CONTACT_KEYS = ("geom1", "geom2", "body1", "body2", "dim", "dist", "pos", "frame", "force_contact_frame")
@@ -95,11 +96,23 @@ def _is_num_list(value, n: int | None = None) -> bool:
     return all(isinstance(x, (int, float)) and not isinstance(x, bool) and math.isfinite(float(x)) for x in value)
 
 
+def _canonical_sha256(value: object) -> str:
+    payload = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return "sha256:" + hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def _sha256_text(value: str) -> str:
+    return "sha256:" + hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
 def validate_primary(primary: dict) -> None:
     _require(isinstance(primary, dict), "primary must be an object")
     _require(primary.get("schema_version") == PRIMARY_SCHEMA_VERSION, "schema_version drift")
     contract = primary.get("contract")
     _require(isinstance(contract, dict), "contract missing")
+    _require(_canonical_sha256(contract) == FROZEN_CONTRACT_SHA256, "full frozen contract drift")
+    _require(primary.get("contract_sha256") == FROZEN_CONTRACT_SHA256, "contract_sha256 mismatch")
+    _require(primary.get("claim_boundary") == contract.get("claim_boundary"), "primary claim_boundary drift")
     _require(contract.get("contract_id") == FROZEN_CONTRACT_ID, "contract_id drift")
     _require(contract.get("tolerances") == FROZEN_TOLERANCES, "tolerance drift")
     _require(contract.get("gravity_mps2") == FROZEN_GRAVITY, "gravity drift")
@@ -116,6 +129,11 @@ def validate_primary(primary: dict) -> None:
         cid = case.get("case_id")
         _require(case.get("physics_dt_s") == dt, f"{cid}: dt drift")
         _require(case.get("spec") == spec, f"{cid}: spec drift")
+        _require(case.get("family") == spec.get("family"), f"{cid}: family drift")
+        expected_duration = contract["openloop" if case["family"] == "openloop" else "squat"]["duration_s"]
+        _require(case.get("duration_s") == expected_duration, f"{cid}: duration drift")
+        _require(case.get("expected_sample_count") == int(round(expected_duration / dt)) + 1,
+                 f"{cid}: expected_sample_count drift")
         _require(isinstance(case.get("compiled_model"), dict) and isinstance(case.get("raw_trace"), list), f"{cid}: raw_trace or compiled_model missing")
         _require(isinstance(case.get("criteria"), list) and all(isinstance(k, dict) and "id" in k and "passed" in k for k in case["criteria"]), f"{cid}: criteria malformed")
         _require(isinstance(case.get("metrics"), dict) and isinstance(case.get("mjcf"), str), f"{cid}: metrics or mjcf missing")
@@ -123,6 +141,9 @@ def validate_primary(primary: dict) -> None:
         for key in ("timestep_s", "integrator", "gravity_mps2", "energy_flag_enabled", "nq", "nv", "nu", "nbody", "joints", "bodies",
                     "actuators", "dof_damping", "dof_armature", "has_floor", "has_freejoint"):
             _require(key in cm, f"{cid}: compiled_model.{key} missing")
+        _require(cm.get("mjcf_sha256") == _sha256_text(case["mjcf"]), f"{cid}: compiled mjcf hash mismatch")
+        _require(cm.get("timestep_s") == dt, f"{cid}: compiled timestep drift")
+        _require(case.get("status") in {"PASS", "FAIL"}, f"{cid}: status malformed")
         nq, nv, nu, nbody = int(cm["nq"]), int(cm["nv"]), int(cm["nu"]), int(cm["nbody"])
         _require(nu == n_joint and len(cm["actuators"]) == nu and len(cm["bodies"]) == nbody - 1, f"{cid}: actuator/body inventory")
         _require(len(case["raw_trace"]) == case.get("expected_sample_count"), f"{cid}: sample count mismatch")
@@ -151,6 +172,8 @@ def validate_primary(primary: dict) -> None:
                 _require(_is_num_list(sample.get("q_ref"), n_joint) and _is_num_list(sample.get("qd_ref"), n_joint), f"{cid}[{i}]: reference")
     suite = primary.get("suite")
     _require(isinstance(suite, dict) and isinstance(suite.get("criteria"), list), "suite block missing")
+    _require(suite.get("status") in {"PASS", "FAIL"}, "suite status malformed")
+    _require(primary.get("status") in {"PASS", "FAIL"}, "primary status malformed")
 
 
 # ---------------------------------------------------------------- 純 Python 重算
@@ -376,7 +399,7 @@ def _common_criteria(case: dict, contract: dict, metrics: dict) -> list[dict]:
         _criterion("TRACE_STEP_COUNT", len(trace), "==", case["expected_sample_count"], "samples"),
         _criterion("TRACE_TIME_GRID", metrics["time_grid_error_max_s"], "<=", tol["time_grid_error_max_s"], "s"),
         _criterion("COMPILED_TIMESTEP_IDENTITY", case["compiled_model"]["timestep_s"], "==", case["physics_dt_s"], "s"),
-        _criterion("COMPILED_MODEL_CONTRACT", 1 if _model_contract_ok(case, contract) else 0, "==", 1, "flag"),
+        _criterion("COMPILED_MODEL_CONTRACT", 1 if _model_contract_ok(case, contract) else 0, "==", 1, "flag; problems="),
         _criterion("EXTERNAL_FORCE_ABSENT", metrics["external_force_abs_max"], "<=", 0.0, "N or N·m"),
         _criterion("ACTUATOR_FORCE_IS_CLIPPED_CTRL", metrics["actuator_clip_error_max"], "<=", tol["actuator_clip_abs_max"], "N·m"),
         _criterion("QFRC_ACTUATOR_MATCHES_GEAR_FORCE", metrics["gear_projection_error_max"], "<=", tol["gear_projection_abs_max"], "N·m"),
@@ -510,6 +533,21 @@ def _agree(a, b, rel: float, absolute: float) -> bool:
     return abs(a - b) <= max(absolute, rel * max(abs(a), abs(b)))
 
 
+def _deep_agree(a, b, rel: float, absolute: float) -> bool:
+    """Compare every field in a JSON-shaped receipt with tolerance only for numbers."""
+    if isinstance(a, bool) or isinstance(b, bool):
+        return type(a) is bool and type(b) is bool and a is b
+    if a is None or b is None or isinstance(a, str) or isinstance(b, str):
+        return type(a) is type(b) and a == b
+    if isinstance(a, (int, float)) and isinstance(b, (int, float)):
+        return _agree(a, b, rel, absolute)
+    if isinstance(a, dict) and isinstance(b, dict):
+        return set(a) == set(b) and all(_deep_agree(a[key], b[key], rel, absolute) for key in a)
+    if isinstance(a, list) and isinstance(b, list):
+        return len(a) == len(b) and all(_deep_agree(x, y, rel, absolute) for x, y in zip(a, b))
+    return type(a) is type(b) and a == b
+
+
 def compare_metrics(primary_case: dict, replayed: dict, tol: dict) -> dict:
     rel, absolute = tol["primary_replay_relative_max"], tol["primary_replay_absolute_max"]
     p_metrics, r_metrics = primary_case["metrics"], replayed["metrics"]
@@ -528,11 +566,12 @@ def compare_metrics(primary_case: dict, replayed: dict, tol: dict) -> dict:
             scale = max(abs(float(a)), abs(float(b)))
             if scale > 0 and math.isfinite(scale) and abs(float(a) - float(b)) > absolute:
                 max_rel = max(max_rel, abs(float(a) - float(b)) / scale)
-    p_crit = [(k["id"], bool(k["passed"])) for k in primary_case["criteria"]]
-    r_crit = [(k["id"], bool(k["passed"])) for k in replayed["criteria"]]
+    criteria_identical = _deep_agree(primary_case["criteria"], replayed["criteria"], rel, absolute)
+    status_identical = primary_case["status"] == replayed["status"]
     return {"case_id": primary_case["case_id"], "metric_count": len(keys), "disagreements": disagreements,
-            "max_relative_difference": max_rel, "criteria_identical": p_crit == r_crit,
-            "agree": not disagreements and p_crit == r_crit}
+            "max_relative_difference": max_rel, "criteria_identical": criteria_identical,
+            "status_identical": status_identical,
+            "agree": not disagreements and criteria_identical and status_identical}
 
 
 def replay_actuated_suite(primary: dict, primary_sha256: str | None = None) -> dict:
@@ -542,8 +581,16 @@ def replay_actuated_suite(primary: dict, primary_sha256: str | None = None) -> d
     evaluations = [evaluate_openloop_case(c, contract) if c["family"] == "openloop" else evaluate_squat_case(c, contract) for c in primary["cases"]]
     suite = evaluate_suite(evaluations, contract)
     comparisons = [compare_metrics(pc, ev, tol) for pc, ev in zip(primary["cases"], evaluations)]
-    suite_identical = [(k["id"], bool(k["passed"])) for k in primary["suite"]["criteria"]] == [(k["id"], bool(k["passed"])) for k in suite["criteria"]]
-    all_agree = all(c["agree"] for c in comparisons) and suite_identical
+    suite_identical = _deep_agree(
+        primary["suite"], suite,
+        tol["primary_replay_relative_max"], tol["primary_replay_absolute_max"],
+    )
+    suite_criteria_identical = _deep_agree(
+        primary["suite"]["criteria"], suite["criteria"],
+        tol["primary_replay_relative_max"], tol["primary_replay_absolute_max"],
+    )
+    primary_status_identical = primary["status"] == suite["status"]
+    all_agree = all(c["agree"] for c in comparisons) and suite_identical and primary_status_identical
     return {
         "schema_version": REPLAY_SCHEMA_VERSION,
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
@@ -553,7 +600,9 @@ def replay_actuated_suite(primary: dict, primary_sha256: str | None = None) -> d
         "primary_status": primary.get("status"),
         "cases": evaluations,
         "suite": suite,
-        "primary_replay_agreement": {"all_agree": all_agree, "suite_criteria_identical": suite_identical, "cases": comparisons},
+        "primary_replay_agreement": {"all_agree": all_agree, "suite_criteria_identical": suite_criteria_identical,
+                                     "suite_receipt_identical": suite_identical,
+                                     "primary_status_identical": primary_status_identical, "cases": comparisons},
         "status": "PASS" if suite["status"] == "PASS" and all_agree else "FAIL",
     }
 

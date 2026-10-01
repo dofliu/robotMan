@@ -102,17 +102,34 @@ def test_live_view_streams_telemetry_and_records_a_trace(live_page, api):
         raise AssertionError(f"{exc}\nws_log tail: {log.ws_log[-12:]}") from None
     # 錄到畫面上的 recording 時長 ≥ 1.0 s（模擬時間）再停：這台機器的即時模擬不到 1× 實時
     # （2026-09-29 量到 0.26×），用牆鐘 sleep 1.5 s 只會錄到 0.4 s、不到 500 個樣本。
-    _wait_text(pg, r"Trace 記錄（500 Hz）\s*\n\s*(1[0-9]*\.[0-9]|[2-9][0-9]*\.[0-9]) s", timeout_s=40.0)
+    # The UI rounds to one decimal: require 1.1 s so a displayed 1.0 cannot
+    # stop a 0.98 s / 492-sample trace before the >=500-sample assertion.
+    _wait_text(
+        pg,
+        r"Trace 記錄（500 Hz）\s*\n\s*(1\.[1-9]|[2-9][0-9]*\.[0-9]|1[0-9]+\.[0-9]) s",
+        timeout_s=40.0,
+    )
+    stopped_at = time.perf_counter()
     _click_button_containing(pg, "■ 停止並保存 Trace")
-    # 「記錄中：run-…」在開始時就已顯示，不能拿它當停止完成的訊號；改為等 /api/traces 多出一筆
-    # （finalize 在後端事件迴圈的下一個 tick 才跑，滿載時可達數秒）。
-    deadline = time.time() + 60.0
+    # The browser-visible receipt is the regression target: the REST artifact
+    # can exist while a trace_ready message is still buried behind stale frames.
+    try:
+        completed = _wait_text(
+            pg, r"已完成：(run-[^（\s]+)（([0-9]+) samples）", timeout_s=5.0,
+        )
+    except AssertionError as exc:
+        raise AssertionError(f"{exc}\nws_log tail: {log.ws_log[-12:]}") from None
+    assert time.perf_counter() - stopped_at < 5.0
+
+    deadline = time.time() + 10.0
     new: list = []
     while not new and time.time() < deadline:
         time.sleep(0.5)
         after = api("/api/traces")["traces"]
         new = [t for t in after if t["run_id"] not in before]
     assert len(new) == 1, f"錄完後 /api/traces 應多一筆，實得 {len(new)}；ws_log tail: {log.ws_log[-8:]}"
+    assert new[0]["run_id"] == completed.group(1)
+    assert new[0]["sample_count"] == int(completed.group(2))
     assert new[0]["label"].startswith("live-"), new[0]
     assert new[0]["sample_count"] >= 500, new[0]   # ≥ 1 s @ 500 Hz
     pytest.trace_run_id = new[0]["run_id"]  # type: ignore[attr-defined]
@@ -131,11 +148,13 @@ def test_compare_view_runs_three_isolated_plants_in_lockstep(page, api):
         pg.wait_for_selector(f"[data-testid=compare-canvas-{c}]", timeout=30_000)
     _wait_text(pg, r"DEVELOPMENT_COMPARISON_ONLY", timeout_s=30.0)
     _wait_text(pg, r"相同輸入、三個獨立 plant", timeout_s=30.0)
+    # Canvases and static labels mount before the three MuJoCo sessions and RL
+    # policy finish initializing; the plant signature is the ready signal.
+    _wait_text(pg, r"plant sha256:[0-9a-f]{8,}", timeout_s=60.0)
     pg.get_by_role("button", name="三機開始行走").click()
     time.sleep(2.5)
     skew = _wait_text(pg, r"time skew ([0-9]+\.[0-9]{6}) s", timeout_s=15.0)
     assert float(skew.group(1)) == 0.0, f"三機時間偏移不為零：{skew.group(1)}"
-    _wait_text(pg, r"plant sha256:[0-9a-f]{8,}", timeout_s=15.0)
     _wait_text(pg, r"行走|跌倒|停止中", timeout_s=15.0)
     shot = log.screenshot("compare")
     assert png_distinct_colors(shot) > 50

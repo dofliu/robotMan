@@ -141,6 +141,36 @@ def test_replay_reproduces_primary_metrics_and_passes(primary):
         assert comparison["agree"] and comparison["criteria_identical"], comparison
 
 
+def test_replay_rejects_full_contract_drift_even_if_compiled_receipts_and_self_hash_match(primary):
+    tampered = dict(primary)
+    tampered["contract"] = deepcopy(primary["contract"])
+    tampered["contract"]["integrator"] = "RK4"
+    tampered["contract_sha256"] = replay._canonical_sha256(tampered["contract"])
+    tampered["cases"] = [dict(case) for case in primary["cases"]]
+    for case in tampered["cases"]:
+        case["compiled_model"] = dict(case["compiled_model"])
+        case["compiled_model"]["integrator"] = "RK4"
+    with pytest.raises(ReplayValidationError, match="full frozen contract drift"):
+        replay_actuated_suite(tampered)
+
+
+@pytest.mark.parametrize("receipt_part", ["criterion", "suite", "status"])
+def test_replay_fails_on_deep_primary_receipt_or_status_tamper(primary, receipt_part):
+    if receipt_part == "criterion":
+        tampered = _light_copy(primary, 0)
+        tampered["cases"][0]["criteria"][0]["limit"] = 999
+    elif receipt_part == "suite":
+        tampered = dict(primary)
+        tampered["suite"] = deepcopy(primary["suite"])
+        tampered["suite"]["criteria"][0]["unit"] = "tampered"
+    else:
+        tampered = dict(primary)
+        tampered["status"] = "FAIL"
+    receipt = replay_actuated_suite(tampered)
+    assert receipt["status"] == "FAIL"
+    assert receipt["primary_replay_agreement"]["all_agree"] is False
+
+
 def test_replay_source_has_no_mujoco_numpy_or_project_dependency():
     tree = ast.parse((HERE / "v1_actuated_energy_replay.py").read_text(encoding="utf-8"))
     modules = set()
@@ -178,7 +208,8 @@ def test_replay_retains_contact_force_tamper_as_fail(primary):
 
 
 @pytest.mark.parametrize("mutation", ["drop_raw_trace", "drop_body_key", "nan_value", "tolerance_drift",
-                                      "case_inventory_drift", "shape_drift", "reference_missing", "controller_missing", "threshold_drift"])
+                                      "case_inventory_drift", "shape_drift", "reference_missing", "controller_missing",
+                                      "threshold_drift", "case_spec_drift", "compiled_mjcf_hash_drift"])
 def test_replay_rejects_structural_problems(primary, mutation):
     tampered = _light_copy(primary, 0, copy_contract=True)
     tampered["cases"][3] = deepcopy(primary["cases"][3]) if mutation in ("reference_missing", "controller_missing") else tampered["cases"][3]
@@ -201,6 +232,10 @@ def test_replay_rejects_structural_problems(primary, mutation):
         tampered["cases"][3]["controller"] = None
     elif mutation == "threshold_drift":
         tampered["contract"]["case_matrix"][0]["energy_residual_relative_max"] = 0.5
+    elif mutation == "case_spec_drift":
+        case["spec"]["energy_residual_relative_max"] = 0.5
+    elif mutation == "compiled_mjcf_hash_drift":
+        case["compiled_model"]["mjcf_sha256"] = "sha256:" + "0" * 64
     with pytest.raises(ReplayValidationError):
         replay_actuated_suite(tampered)
 

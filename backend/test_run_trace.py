@@ -1,5 +1,7 @@
 """Dynamic Run Trace V1 recorder, integrity, API, and comparison tests."""
 
+import time
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -214,3 +216,65 @@ def test_live_websocket_exposes_record_start_and_ready_receipts(trace_store):
                 break
         assert message["trace"]["run_id"] == run_id
         assert trace_store.list_traces()[0]["run_id"] == run_id
+
+
+def test_ack_flow_control_coalesces_frames_but_not_record_stop(trace_store):
+    """A renderer withholding its ACK must not delay control receipts."""
+    client = TestClient(main.app)
+    robot = default_robot().model_dump(mode="json")
+    gait = GaitParams().model_dump(mode="json")
+    with client.websocket_connect("/ws/live") as socket:
+        socket.send_json({
+            "type": "init", "robot": robot, "gait": gait,
+            "frame_flow_control": "invalid",
+        })
+        invalid = socket.receive_json()
+        assert invalid["type"] == "error"
+        assert invalid["code"] == "INVALID_INIT"
+
+        socket.send_json({
+            "type": "init",
+            "robot": robot,
+            "gait": gait,
+            "obstacles": [],
+            "frame_flow_control": "ack",
+        })
+        assert socket.receive_json()["type"] == "scene"
+        first_frame = socket.receive_json()
+        assert first_frame["type"] == "frame"
+        assert first_frame["frame_seq"] == 1
+
+        # Keep frame 1 outstanding to model a busy browser main thread. The
+        # simulation still advances and control receipts bypass telemetry.
+        socket.send_json({"type": "record_start", "label": "slow-renderer"})
+        assert socket.receive_json()["type"] == "trace_recording_started"
+        time.sleep(0.15)
+        started = time.perf_counter()
+        socket.send_json({"type": "record_stop"})
+        ready = socket.receive_json()
+        latency = time.perf_counter() - started
+
+        assert ready["type"] == "trace_ready"
+        assert ready["trace"]["sample_count"] > 0
+        assert latency < 2.0
+
+        # Stale, boolean, and non-schema acknowledgements cannot grant credit.
+        invalid_acks = [
+            {"type": "frame_ack", "frame_seq": 0},
+            {"type": "frame_ack", "frame_seq": True},
+            {"type": "frame_ack", "frame_seq": 1, "extra": "forbidden"},
+        ]
+        for payload in invalid_acks:
+            socket.send_json(payload)
+            invalid_ack = socket.receive_json()
+            assert invalid_ack["code"] == "INVALID_FRAME_ACK"
+
+        socket.send_json({"type": "frame_ack", "frame_seq": 1})
+        next_frame = socket.receive_json()
+        assert next_frame["type"] == "frame"
+        assert next_frame["frame_seq"] == 2
+        assert next_frame["t"] > first_frame["t"]
+        assert next_frame["recording"]["active"] is False
+
+        socket.send_json({"type": "frame_ack", "frame_seq": 1})
+        assert socket.receive_json()["code"] == "INVALID_FRAME_ACK"

@@ -124,6 +124,28 @@ def test_replay_reproduces_primary_metrics_and_passes(primary):
         primary["suite"]["timestep_study"]["pendulum_period_s"]["closed_form"], rel=1e-15)
 
 
+def test_replay_rejects_full_contract_drift_even_with_matching_self_hash(primary):
+    tampered = deepcopy(primary)
+    tampered["contract"]["articulated"]["initial_pose_rad"]["knee_l"] = 999.0
+    tampered["contract_sha256"] = replay._canonical_sha256(tampered["contract"])
+    with pytest.raises(ReplayValidationError, match="full frozen contract drift"):
+        replay_dynamic_suite(tampered)
+
+
+@pytest.mark.parametrize("receipt_part", ["criterion", "suite", "status"])
+def test_replay_fails_on_deep_primary_receipt_or_status_tamper(primary, receipt_part):
+    tampered = deepcopy(primary)
+    if receipt_part == "criterion":
+        tampered["cases"][0]["criteria"][0]["limit"] = 999
+    elif receipt_part == "suite":
+        tampered["suite"]["criteria"][0]["unit"] = "tampered"
+    else:
+        tampered["status"] = "FAIL"
+    receipt = replay_dynamic_suite(tampered)
+    assert receipt["status"] == "FAIL"
+    assert receipt["primary_replay_agreement"]["all_agree"] is False
+
+
 def test_replay_source_has_no_mujoco_numpy_or_project_dependency():
     tree = ast.parse((HERE / "v1_dynamic_replay.py").read_text(encoding="utf-8"))
     modules = set()
@@ -163,7 +185,8 @@ def test_replay_retains_velocity_tamper_as_energy_fail(primary):
     assert receipt["status"] == "FAIL"
 
 
-@pytest.mark.parametrize("mutation", ["drop_raw_trace", "drop_body_key", "nan_value", "tolerance_drift", "case_inventory_drift", "shape_drift"])
+@pytest.mark.parametrize("mutation", ["drop_raw_trace", "drop_body_key", "nan_value", "tolerance_drift", "case_inventory_drift",
+                                      "shape_drift", "case_spec_drift", "compiled_mjcf_hash_drift"])
 def test_replay_rejects_structural_problems(primary, mutation):
     tampered = deepcopy(primary)
     case = tampered["cases"][0]
@@ -179,6 +202,10 @@ def test_replay_rejects_structural_problems(primary, mutation):
         tampered["cases"] = tampered["cases"][:5]
     elif mutation == "shape_drift":
         case["raw_trace"][10]["qpos"] = [0.0, 0.0]
+    elif mutation == "case_spec_drift":
+        case["spec"]["energy_fluctuation_relative_max"] = 999.0
+    elif mutation == "compiled_mjcf_hash_drift":
+        case["compiled_model"]["mjcf_sha256"] = "sha256:" + "0" * 64
     with pytest.raises(ReplayValidationError):
         replay_dynamic_suite(tampered)
 

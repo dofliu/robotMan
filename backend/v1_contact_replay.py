@@ -75,6 +75,7 @@ FROZEN_CASE_IDS = (
 FROZEN_CASE_DT = (0.004, 0.002, 0.001, 0.004, 0.002, 0.001, 0.002)
 FROZEN_CASE_GATES = (True, True, True, True, True, True, False)
 FROZEN_KICKS = (None, None, None, 0.02, 0.02, 0.02, 0.5)
+FROZEN_CONTRACT_SHA256 = "sha256:90ae75553d1fc5e9ffc17d7774f3ee26be64dc9b89e7355c73ab4b43e8811a31"
 SAMPLE_KEYS = ("time_s", "qpos", "qvel", "qacc", "ncon", "qfrc_constraint", "qfrc_applied_abs_max", "xfrc_applied_abs_max", "contacts")
 CONTACT_KEYS = ("geom1", "geom2", "dim", "dist", "pos", "frame", "force_contact_frame")
 COMMON_IDS = (
@@ -116,11 +117,23 @@ def _is_num_list(value, n: int | None = None) -> bool:
     return all(isinstance(x, (int, float)) and not isinstance(x, bool) and math.isfinite(float(x)) for x in value)
 
 
+def _canonical_sha256(value: object) -> str:
+    payload = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return "sha256:" + hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def _sha256_text(value: str) -> str:
+    return "sha256:" + hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
 def validate_primary(primary: dict) -> None:
     _require(isinstance(primary, dict), "primary must be an object")
     _require(primary.get("schema_version") == PRIMARY_SCHEMA_VERSION, "schema_version drift")
     contract = primary.get("contract")
     _require(isinstance(contract, dict), "contract missing")
+    _require(_canonical_sha256(contract) == FROZEN_CONTRACT_SHA256, "full frozen contract drift")
+    _require(primary.get("contract_sha256") == FROZEN_CONTRACT_SHA256, "contract_sha256 mismatch")
+    _require(primary.get("claim_boundary") == contract.get("claim_boundary"), "primary claim_boundary drift")
     _require(contract.get("contract_id") == FROZEN_CONTRACT_ID, "contract_id drift")
     _require(contract.get("tolerances") == FROZEN_TOLERANCES, "tolerance drift")
     _require(contract.get("gravity_mps2") == FROZEN_GRAVITY, "gravity drift")
@@ -135,8 +148,17 @@ def validate_primary(primary: dict) -> None:
     _require([s.get("kick_velocity_mps") for s in matrix] == list(FROZEN_KICKS), "kick velocity drift")
     cases = primary.get("cases")
     _require(isinstance(cases, list) and [c.get("case_id") for c in cases] == list(FROZEN_CASE_IDS), "case inventory drift")
-    for case, dt in zip(cases, FROZEN_CASE_DT):
+    for case, dt, spec in zip(cases, FROZEN_CASE_DT, matrix):
+        _require(case.get("spec") == spec, f"{case.get('case_id')}: spec drift")
+        _require(case.get("family") == spec.get("family"), f"{case.get('case_id')}: family drift")
         _require(case.get("physics_dt_s") == dt, f"{case.get('case_id')}: dt drift")
+        _require(case.get("roles") == spec.get("roles"), f"{case.get('case_id')}: roles drift")
+        _require(case.get("gates_suite") is spec.get("gates_suite"), f"{case.get('case_id')}: gates_suite drift")
+        expected_duration = contract[case["family"]]["duration_s"]
+        _require(case.get("duration_s") == expected_duration, f"{case.get('case_id')}: duration drift")
+        _require(case.get("expected_sample_count") == int(round(expected_duration / dt)) + 1,
+                 f"{case.get('case_id')}: expected_sample_count drift")
+        _require(isinstance(case.get("mjcf"), str), f"{case.get('case_id')}: mjcf missing")
         _require(isinstance(case.get("compiled_model"), dict) and isinstance(case.get("raw_trace"), list), f"{case.get('case_id')}: raw_trace or compiled_model missing")
         _require(isinstance(case.get("criteria"), list) and all(isinstance(k, dict) and "id" in k and "passed" in k for k in case["criteria"]), f"{case.get('case_id')}: criteria malformed")
         _require(isinstance(case.get("hypotheses"), list), f"{case.get('case_id')}: hypotheses missing")
@@ -145,6 +167,9 @@ def validate_primary(primary: dict) -> None:
         for key in ("timestep_s", "integrator", "cone", "gravity", "nu", "nv", "nq", "body_mass", "geoms", "joints",
                     "solver_tolerance", "solver_iterations", "impratio", "noslip_iterations"):
             _require(key in cm, f"{case['case_id']}: compiled_model.{key} missing")
+        _require(cm.get("mjcf_sha256") == _sha256_text(case["mjcf"]), f"{case['case_id']}: compiled mjcf hash mismatch")
+        _require(cm.get("timestep_s") == dt, f"{case['case_id']}: compiled timestep drift")
+        _require(case.get("status") in {"PASS", "FAIL"}, f"{case['case_id']}: status malformed")
         nq, nv = int(cm["nq"]), int(cm["nv"])
         _require(len(case["raw_trace"]) == case.get("expected_sample_count"), f"{case['case_id']}: sample count mismatch")
         if case["family"] == "slider":
@@ -164,6 +189,8 @@ def validate_primary(primary: dict) -> None:
                          and isinstance(c["dist"], (int, float)) and math.isfinite(c["dist"]), f"{case['case_id']}[{i}]: contact shape")
     suite = primary.get("suite")
     _require(isinstance(suite, dict) and isinstance(suite.get("criteria"), list), "suite block missing")
+    _require(suite.get("status") in {"PASS", "FAIL"}, "suite status malformed")
+    _require(primary.get("status") in {"PASS", "FAIL"}, "primary status malformed")
 
 
 # ---------------------------------------------------------------- 閉式（與 primary 逐字對應）
@@ -363,7 +390,7 @@ def _common_criteria(case: dict, contract: dict, metrics: dict) -> list[dict]:
         _criterion("TRACE_STEP_COUNT", len(trace), "==", case["expected_sample_count"], "samples"),
         _criterion("TRACE_TIME_GRID", metrics["time_grid_error_max_s"], "<=", tol["time_grid_error_max_s"], "s"),
         _criterion("COMPILED_TIMESTEP_IDENTITY", case["compiled_model"]["timestep_s"], "==", case["physics_dt_s"], "s"),
-        _criterion("COMPILED_MODEL_CONTRACT", 1 if _model_contract_ok(case, contract) else 0, "==", 1, "flag"),
+        _criterion("COMPILED_MODEL_CONTRACT", 1 if _model_contract_ok(case, contract) else 0, "==", 1, "flag; problems="),
         _criterion("EXTERNAL_FORCE_ABSENT", metrics["external_force_abs_max"], "<=", 0.0, "N or N·m"),
         _criterion("CONTACT_FRAME_AXIS_ALIGNED", metrics["frame_axis_alignment_error_max"], "<=", tol["frame_axis_alignment_max"], "unit vector"),
         _criterion("UNILATERAL_NORMAL_FORCE", metrics["normal_force_min_n"], ">=", tol["unilateral_normal_force_min_n"], "N"),
@@ -581,6 +608,7 @@ def evaluate_suite(evaluations: list[dict], contract: dict) -> dict:
         _criterion("TOUCHDOWN_ERROR_WITHIN_DT_ALL", touchdown_all, "==", 1, "flag"),
     ]
     positive = min(e_cont) > 0.0
+    hyp_cases = [e for e in evaluations if e["hypotheses"]]
     gate_ok = all(e["status"] == "PASS" for e in evaluations) and all(c["passed"] for c in criteria)
     return {
         "status": "PASS" if gate_ok else "FAIL",
@@ -593,6 +621,17 @@ def evaluate_suite(evaluations: list[dict], contract: dict) -> dict:
                 "medium_fine": (math.log2(e_cont[1] / e_cont[2]) if positive else None), "status": "ESTIMATED"},
             "touchdown_time_error_s": [e["metrics"]["touchdown_time_error_s"] for e in drops],
         },
+        "hypothesis_outcomes": [
+            {
+                "case_id": e["case_id"],
+                "hypotheses": [
+                    {"id": h["id"], "passed": h["passed"], "value": h["value"], "limit": h["limit"]}
+                    for h in e["hypotheses"]
+                ],
+                "gates_suite": e["gates_suite"],
+            }
+            for e in hyp_cases
+        ],
         "closed_forms": closed_forms(contract),
     }
 
@@ -608,6 +647,21 @@ def _agree(a, b, rel: float, absolute: float) -> bool:
     if math.isnan(a) or math.isnan(b):
         return False
     return abs(a - b) <= max(absolute, rel * max(abs(a), abs(b)))
+
+
+def _deep_agree(a, b, rel: float, absolute: float) -> bool:
+    """Compare every field in a JSON-shaped receipt with tolerance only for numbers."""
+    if isinstance(a, bool) or isinstance(b, bool):
+        return type(a) is bool and type(b) is bool and a is b
+    if a is None or b is None or isinstance(a, str) or isinstance(b, str):
+        return type(a) is type(b) and a == b
+    if isinstance(a, (int, float)) and isinstance(b, (int, float)):
+        return _agree(a, b, rel, absolute)
+    if isinstance(a, dict) and isinstance(b, dict):
+        return set(a) == set(b) and all(_deep_agree(a[key], b[key], rel, absolute) for key in a)
+    if isinstance(a, list) and isinstance(b, list):
+        return len(a) == len(b) and all(_deep_agree(x, y, rel, absolute) for x, y in zip(a, b))
+    return type(a) is type(b) and a == b
 
 
 def compare_metrics(primary_case: dict, replayed: dict, tol: dict) -> dict:
@@ -628,14 +682,13 @@ def compare_metrics(primary_case: dict, replayed: dict, tol: dict) -> dict:
             scale = max(abs(float(a)), abs(float(b)))
             if scale > 0 and math.isfinite(scale) and abs(float(a) - float(b)) > absolute:
                 max_rel = max(max_rel, abs(float(a) - float(b)) / scale)      # 絕對差已在 1e-12 內的不列入
-    p_crit = [(k["id"], bool(k["passed"])) for k in primary_case["criteria"]]
-    r_crit = [(k["id"], bool(k["passed"])) for k in replayed["criteria"]]
-    p_hyp = [(k["id"], bool(k["passed"])) for k in primary_case["hypotheses"]]
-    r_hyp = [(k["id"], bool(k["passed"])) for k in replayed["hypotheses"]]
+    criteria_identical = _deep_agree(primary_case["criteria"], replayed["criteria"], rel, absolute)
+    hypotheses_identical = _deep_agree(primary_case["hypotheses"], replayed["hypotheses"], rel, absolute)
+    status_identical = primary_case["status"] == replayed["status"]
     return {"case_id": primary_case["case_id"], "metric_count": len(keys), "disagreements": disagreements,
-            "max_relative_difference": max_rel, "criteria_identical": p_crit == r_crit,
-            "hypotheses_identical": p_hyp == r_hyp,
-            "agree": not disagreements and p_crit == r_crit and p_hyp == r_hyp}
+            "max_relative_difference": max_rel, "criteria_identical": criteria_identical,
+            "hypotheses_identical": hypotheses_identical, "status_identical": status_identical,
+            "agree": not disagreements and criteria_identical and hypotheses_identical and status_identical}
 
 
 def replay_contact_suite(primary: dict, primary_sha256: str | None = None) -> dict:
@@ -647,8 +700,16 @@ def replay_contact_suite(primary: dict, primary_sha256: str | None = None) -> di
         evaluations.append(evaluate_drop_case(case, contract) if case["family"] == "drop" else evaluate_slider_case(case, contract))
     suite = evaluate_suite(evaluations, contract)
     comparisons = [compare_metrics(pc, ev, tol) for pc, ev in zip(primary["cases"], evaluations)]
-    suite_identical = [(k["id"], bool(k["passed"])) for k in primary["suite"]["criteria"]] == [(k["id"], bool(k["passed"])) for k in suite["criteria"]]
-    all_agree = all(c["agree"] for c in comparisons) and suite_identical
+    suite_identical = _deep_agree(
+        primary["suite"], suite,
+        tol["primary_replay_relative_max"], tol["primary_replay_absolute_max"],
+    )
+    suite_criteria_identical = _deep_agree(
+        primary["suite"]["criteria"], suite["criteria"],
+        tol["primary_replay_relative_max"], tol["primary_replay_absolute_max"],
+    )
+    primary_status_identical = primary["status"] == suite["status"]
+    all_agree = all(c["agree"] for c in comparisons) and suite_identical and primary_status_identical
     return {
         "schema_version": REPLAY_SCHEMA_VERSION,
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
@@ -658,7 +719,9 @@ def replay_contact_suite(primary: dict, primary_sha256: str | None = None) -> di
         "primary_status": primary.get("status"),
         "cases": evaluations,
         "suite": suite,
-        "primary_replay_agreement": {"all_agree": all_agree, "suite_criteria_identical": suite_identical, "cases": comparisons},
+        "primary_replay_agreement": {"all_agree": all_agree, "suite_criteria_identical": suite_criteria_identical,
+                                     "suite_receipt_identical": suite_identical,
+                                     "primary_status_identical": primary_status_identical, "cases": comparisons},
         "status": "PASS" if suite["status"] == "PASS" and all_agree else "FAIL",
     }
 

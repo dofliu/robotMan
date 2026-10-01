@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import socket
 import subprocess
 import sys
@@ -49,7 +50,9 @@ def _wait_http(url: str, timeout_s: float) -> None:
 @pytest.fixture(scope="session")
 def frontend_dist() -> Path:
     """每次都重新 build，驗證的是目前的原始碼，不是上次留下的 dist。"""
-    result = subprocess.run(["npm", "run", "build"], cwd=FRONTEND, capture_output=True, text=True, timeout=600)
+    npm = shutil.which("npm")
+    assert npm is not None, "找不到 npm"
+    result = subprocess.run([npm, "run", "build"], cwd=FRONTEND, capture_output=True, text=True, timeout=600)
     assert result.returncode == 0, f"npm run build 失敗：\n{result.stdout[-2000:]}\n{result.stderr[-2000:]}"
     dist = FRONTEND / "dist"
     assert (dist / "index.html").exists(), "build 後沒有 dist/index.html"
@@ -176,15 +179,16 @@ def page(browser, server: str):
     context.close()
 
 
-LIVE_VIEWPORT = {"width": 960, "height": 720}
+LIVE_VIEWPORT = VIEWPORT
 
 
 @pytest.fixture()
 def live_page(browser, server: str):
-    """即時互動頁專用的較小視窗：2026-09-29 量到 1440×1100 的 headless SwiftShader 渲染在這台 4 核機器上
-    只能吃到約 14 fps，追不上 30 fps 的 telemetry；DOM 落後網路 2 s 以上，TCP backpressure 再讓後端在
-    send 卡住、指令延後處理。960×720 約 24 fps，落後在 1 s 內。這是測試環境的渲染吞吐限制，
-    不是頁面邏輯；分析／比較／Trace／訓練頁仍用 1440×1100 截圖。"""
+    """Run live telemetry at the production-size viewport that exposed lag.
+
+    ACK flow control must keep the 1440x1100 SwiftShader renderer current even
+    when it can consume only about 14 fps rather than the server's 30 fps.
+    """
     context, pg, log = _open_page(browser, server, LIVE_VIEWPORT)
     yield pg, log
     context.close()

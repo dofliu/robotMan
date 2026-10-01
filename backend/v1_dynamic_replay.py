@@ -30,6 +30,14 @@ REPLAY_CLAIM_BOUNDARY = (
     "inertias and kinematics remain MuJoCo receipts; this is not physical validation "
     "and does not make V1 PASS."
 )
+PRIMARY_CLAIM_BOUNDARY = (
+    "SIM_ONLY_MUJOCO / NOT_PHYSICALLY_VALIDATED. Contact-free, controller-free, "
+    "actuation-free reference cases: a closed-form physical pendulum (period and "
+    "energy) and the project's articulated humanoid swinging passively from a fixed "
+    "trunk (energy balance including joint-damping work, closed-form inertia of "
+    "sphere/box bodies). It does not verify contact physics, actuators, controllers, "
+    "any physical capability, or the complete V1 gate."
+)
 
 # 與 primary 的 DYNAMIC_SUITE_CONTRACT 逐字相同的凍結常數；漂移即 ReplayValidationError。
 FROZEN_CONTRACT_ID = "v1_dynamic_reference_suite_v1"
@@ -56,6 +64,7 @@ FROZEN_PENDULUM = {"mass_kg": 2.0, "radius_m": 0.05, "length_m": 0.5, "pivot_z_m
                    "theta0_rad": math.pi / 3.0, "duration_s": 6.0, "min_period_count": 3}
 FROZEN_ARTICULATED_DURATION_S = 3.0
 FROZEN_GRAVITY = 9.81
+FROZEN_CONTRACT_SHA256 = "sha256:55fa7a29b1d108c2d37d8c80ef28a5b055a68cdfe72d7acd208a84e928a9961d"
 SAMPLE_KEYS = ("time_s", "qpos", "qvel", "energy_engine", "ncon", "qfrc_applied_abs_max", "xfrc_applied_abs_max", "bodies")
 BODY_KEYS = ("xpos", "xipos", "ximat", "angvel_world", "linvel_com_world")
 
@@ -83,11 +92,23 @@ def _finite_tree(value) -> bool:
     return False
 
 
+def _canonical_sha256(value: object) -> str:
+    payload = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return "sha256:" + hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def _sha256_text(value: str) -> str:
+    return "sha256:" + hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
 def validate_primary(primary: dict) -> None:
     _require(isinstance(primary, dict), "primary result must be an object")
     _require(primary.get("schema_version") == PRIMARY_SCHEMA_VERSION, "primary schema_version mismatch")
     contract = primary.get("contract")
     _require(isinstance(contract, dict), "contract missing")
+    _require(_canonical_sha256(contract) == FROZEN_CONTRACT_SHA256, "full frozen contract drift")
+    _require(primary.get("contract_sha256") == FROZEN_CONTRACT_SHA256, "contract_sha256 mismatch")
+    _require(primary.get("claim_boundary") == PRIMARY_CLAIM_BOUNDARY, "primary claim_boundary drift")
     _require(contract.get("contract_id") == FROZEN_CONTRACT_ID, "contract_id drift")
     _require(contract.get("tolerances") == FROZEN_TOLERANCES, "tolerances drift against the frozen replay copy")
     _require(contract.get("gravity_mps2") == FROZEN_GRAVITY, "gravity drift")
@@ -97,9 +118,25 @@ def validate_primary(primary: dict) -> None:
     _require(contract.get("articulated", {}).get("duration_s") == FROZEN_ARTICULATED_DURATION_S, "articulated duration drift")
     cases = primary.get("cases")
     _require(isinstance(cases, list) and [c.get("case_id") for c in cases] == list(FROZEN_CASE_IDS), "case inventory drift")
-    for case in cases:
+    matrix = contract.get("case_matrix")
+    _require(isinstance(matrix, list) and len(matrix) == len(FROZEN_CASE_IDS), "case matrix drift")
+    for case, spec in zip(cases, matrix):
         for key in ("family", "physics_dt_s", "expected_sample_count", "compiled_model", "raw_trace", "metrics", "criteria", "spec"):
             _require(key in case, f"{case.get('case_id')}: missing {key}")
+        _require(case.get("spec") == spec, f"{case.get('case_id')}: spec drift")
+        _require(case.get("family") == spec.get("family"), f"{case.get('case_id')}: family drift")
+        _require(case.get("physics_dt_s") == spec.get("physics_dt_s"), f"{case.get('case_id')}: dt/spec drift")
+        _require(case.get("roles") == spec.get("roles"), f"{case.get('case_id')}: roles drift")
+        expected_duration = contract["pendulum" if case["family"] == "pendulum" else "articulated"]["duration_s"]
+        _require(case.get("duration_s") == expected_duration, f"{case.get('case_id')}: duration drift")
+        _require(case.get("expected_sample_count") == int(round(expected_duration / case["physics_dt_s"])) + 1,
+                 f"{case.get('case_id')}: expected_sample_count drift")
+        _require(isinstance(case.get("mjcf"), str), f"{case.get('case_id')}: mjcf missing")
+        compiled = case["compiled_model"]
+        _require(isinstance(compiled, dict), f"{case.get('case_id')}: compiled_model malformed")
+        _require(compiled.get("mjcf_sha256") == _sha256_text(case["mjcf"]), f"{case.get('case_id')}: compiled mjcf hash mismatch")
+        _require(compiled.get("timestep_s") == case["physics_dt_s"], f"{case.get('case_id')}: compiled timestep drift")
+        _require(case.get("status") in {"PASS", "FAIL"}, f"{case.get('case_id')}: status malformed")
         trace = case["raw_trace"]
         _require(isinstance(trace, list) and len(trace) == case["expected_sample_count"],
                  f"{case['case_id']}: raw_trace length {len(trace) if isinstance(trace, list) else 'n/a'} != {case['expected_sample_count']}")
@@ -117,6 +154,10 @@ def validate_primary(primary: dict) -> None:
                          and len(body["angvel_world"]) == 3 and len(body["linvel_com_world"]) == 3, f"{case['case_id']}: body shape")
         _require(_finite_tree(trace), f"{case['case_id']}: non-finite raw value")
         _require(_finite_tree(case["compiled_model"]), f"{case['case_id']}: non-finite compiled model value")
+    suite = primary.get("suite")
+    _require(isinstance(suite, dict) and isinstance(suite.get("criteria"), list), "suite block missing")
+    _require(suite.get("status") in {"PASS", "FAIL"}, "suite status malformed")
+    _require(primary.get("status") in {"PASS", "FAIL"}, "primary status malformed")
 
 
 # ---------------------------------------------------------------- 純 Python 的重算（與 primary 同樣的算式）
@@ -445,6 +486,26 @@ def _flatten_numbers(value, prefix=""):
     return out
 
 
+def _deep_agree(a, b, rel: float, absolute: float) -> bool:
+    """Compare a complete JSON-shaped receipt, not just its pass bits/numeric leaves."""
+    if isinstance(a, bool) or isinstance(b, bool):
+        return type(a) is bool and type(b) is bool and a is b
+    if a is None or b is None or isinstance(a, str) or isinstance(b, str):
+        return type(a) is type(b) and a == b
+    if isinstance(a, (int, float)) and isinstance(b, (int, float)):
+        a_float, b_float = float(a), float(b)
+        if math.isnan(a_float) or math.isnan(b_float):
+            return False
+        if math.isinf(a_float) or math.isinf(b_float):
+            return a_float == b_float
+        return abs(a_float - b_float) <= max(absolute, rel * max(abs(a_float), abs(b_float)))
+    if isinstance(a, dict) and isinstance(b, dict):
+        return set(a) == set(b) and all(_deep_agree(a[key], b[key], rel, absolute) for key in a)
+    if isinstance(a, list) and isinstance(b, list):
+        return len(a) == len(b) and all(_deep_agree(x, y, rel, absolute) for x, y in zip(a, b))
+    return type(a) is type(b) and a == b
+
+
 def compare_metrics(primary_metrics: dict, replay_metrics: dict, tol: dict) -> dict:
     a, b = _flatten_numbers(primary_metrics), _flatten_numbers(replay_metrics)
     _require(set(a) == set(b), f"metric key set differs: {sorted(set(a) ^ set(b))[:5]}")
@@ -464,7 +525,15 @@ def compare_metrics(primary_metrics: dict, replay_metrics: dict, tol: dict) -> d
         ok = diff <= tol["primary_replay_absolute_max"] or rel <= tol["primary_replay_relative_max"]
         if not ok and rel > worst_rel:
             worst_key, worst_rel = key, rel
-    return {"agree": worst_key is None, "worst_key": worst_key, "worst_relative_difference": worst_rel, "compared": len(a)}
+    complete_tree_agrees = _deep_agree(
+        primary_metrics, replay_metrics,
+        tol["primary_replay_relative_max"], tol["primary_replay_absolute_max"],
+    )
+    if not complete_tree_agrees and worst_key is None:
+        worst_key = "NON_NUMERIC_OR_STRUCTURE_MISMATCH"
+        worst_rel = float("inf")
+    return {"agree": worst_key is None, "worst_key": worst_key, "worst_relative_difference": worst_rel,
+            "compared": len(a), "complete_tree_agrees": complete_tree_agrees}
 
 
 def replay_dynamic_suite(primary: dict) -> dict:
@@ -479,17 +548,28 @@ def replay_dynamic_suite(primary: dict) -> dict:
         evaluation = evaluate_pendulum_case(replay_case, contract) if case["family"] == "pendulum" else evaluate_articulated_case(replay_case, contract)
         evaluations.append(evaluation)
         comparison = compare_metrics(case["metrics"], evaluation["metrics"], tol)
-        primary_passed = [c["passed"] for c in case["criteria"]]
-        replay_passed = [c["passed"] for c in evaluation["criteria"]]
-        comparison["criteria_identical"] = ([c["id"] for c in case["criteria"]] == [c["id"] for c in evaluation["criteria"]]
-                                            and primary_passed == replay_passed)
+        comparison["criteria_identical"] = _deep_agree(
+            case["criteria"], evaluation["criteria"],
+            tol["primary_replay_relative_max"], tol["primary_replay_absolute_max"],
+        )
+        comparison["status_identical"] = case["status"] == evaluation["status"]
         comparison["case_id"] = case["case_id"]
         comparisons.append(comparison)
     suite = evaluate_suite([{k: c[k] for k in ("case_id", "family", "physics_dt_s", "compiled_model", "spec")} for c in cases],
                            evaluations, contract)
     suite_comparison = compare_metrics(primary["suite"]["timestep_study"], suite["timestep_study"], tol)
-    suite_comparison["criteria_identical"] = [c["passed"] for c in primary["suite"]["criteria"]] == [c["passed"] for c in suite["criteria"]]
-    all_agree = all(c["agree"] and c["criteria_identical"] for c in comparisons) and suite_comparison["agree"] and suite_comparison["criteria_identical"]
+    suite_comparison["criteria_identical"] = _deep_agree(
+        primary["suite"]["criteria"], suite["criteria"],
+        tol["primary_replay_relative_max"], tol["primary_replay_absolute_max"],
+    )
+    suite_comparison["status_identical"] = primary["suite"]["status"] == suite["status"]
+    derived_primary_status = "PASS" if suite["status"] == "PASS" and all(e["status"] == "PASS" for e in evaluations) else "FAIL"
+    primary_status_identical = primary["status"] == derived_primary_status
+    all_agree = (
+        all(c["agree"] and c["criteria_identical"] and c["status_identical"] for c in comparisons)
+        and suite_comparison["agree"] and suite_comparison["criteria_identical"]
+        and suite_comparison["status_identical"] and primary_status_identical
+    )
     replay_status = "PASS" if suite["status"] == "PASS" and all(e["status"] == "PASS" for e in evaluations) else "FAIL"
     return {
         "schema_version": REPLAY_SCHEMA_VERSION,
@@ -501,7 +581,8 @@ def replay_dynamic_suite(primary: dict) -> dict:
         "cases": [{"case_id": c["case_id"], "status": e["status"], "metrics": e["metrics"], "criteria": e["criteria"]}
                   for c, e in zip(cases, evaluations)],
         "suite": suite,
-        "primary_replay_agreement": {"cases": comparisons, "suite": suite_comparison, "all_agree": all_agree},
+        "primary_replay_agreement": {"cases": comparisons, "suite": suite_comparison,
+                                     "primary_status_identical": primary_status_identical, "all_agree": all_agree},
         "status": replay_status if all_agree else "FAIL",
         "status_reason": None if all_agree else "PRIMARY_REPLAY_DISAGREEMENT",
     }

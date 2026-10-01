@@ -179,6 +179,9 @@ class LiveInitCommand(ContractModel):
     robot: RobotConfig
     gait: GaitParams = Field(default_factory=GaitParams)
     obstacles: list[Obstacle] = Field(default_factory=list, max_length=MAX_OBSTACLES)
+    # Opt-in so older API clients retain the original push stream. The browser
+    # uses this mode to keep at most one telemetry frame awaiting consumption.
+    frame_flow_control: Literal["ack"] | None = None
 
     @model_validator(mode="after")
     def require_robot_gait_compatibility(self):
