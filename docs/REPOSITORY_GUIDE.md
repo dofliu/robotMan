@@ -55,7 +55,7 @@ Set-Location frontend
 npm run check
 ~~~
 
-第一個命令目前的預期結果是 **1 failed / 941 passed**（2026-09-14；逐 commit 實測的對帳見 [PROJECT_STATUS §9](PROJECT_STATUS.md)）；唯一的失敗是在具名 environment lock 下記錄為量測結果的 reduction-order 差異（[PROJECT_STATUS §9](PROJECT_STATUS.md)）。**新增任何失敗才算 regression。**
+**歷史基準（2026-09-14）：**第一個命令當時為 **1 failed / 941 passed**；逐 commit 實測對帳見 [PROJECT_STATUS §9](PROJECT_STATUS.md)。該 reduction-order failure 已在 2026-10-01 以 `math.fsum` 修正，fixture 與門檻未改，**不可再把舊失敗視為目前預期結果**。PR #50 的 focused backend group 為 199 passed；fresh LF checkout 全套為 **1,151 passed／6 failed／0 skipped**（1,157 collected），六項皆在 SUT 前因 Windows `os.symlink` 權限的 `WinError 1314` 失敗，evidence digest test 已通過。詳見 [`STATUS.yaml`](../STATUS.yaml) 的 `pr50_merge_hardening_status` 與 [PROJECT_STATUS §9](PROJECT_STATUS.md)。
 
 發布前另須確認：
 

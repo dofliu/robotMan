@@ -1,6 +1,6 @@
 # Gate-first 工作規劃
 
-最後更新：2026-09-16
+最後更新：2026-10-01
 
 專案成熟度改以 **evidence gate** 表示，不再以 UI 或 feature count 換算完成百分比。既有 M1–M6 代表 prototype feature inventory，並非 verification 或 physical validation 已完成。
 
@@ -95,7 +95,7 @@ Paired statistics/export V1已完成 synthetic software precursor：continuous p
 
 ### Development precursor：三機同步觀察
 
-狀態：IMPLEMENTED / FRONTEND BUILD PASS / BROWSER VISUAL PENDING / DEVELOPMENT ONLY。依 [COMPARE_MODE_SPEC](COMPARE_MODE_SPEC.md) 建立三個獨立 MuJoCo sessions、相同輸入、同步 sim time、assist 預設關閉與跌倒保留。此功能用來暴露 controller 差異與改善實驗設計，不產生 V3 PASS 或 ranking evidence。
+狀態：IMPLEMENTED / FRONTEND BUILD PASS / BROWSER VISUAL VERIFIED / DEVELOPMENT ONLY。依 [COMPARE_MODE_SPEC](COMPARE_MODE_SPEC.md) 建立三個獨立 MuJoCo sessions、相同輸入、同步 sim time、assist 預設關閉與跌倒保留；browser 測試在 2026-09-22 驗證三個 canvas、共享 plant signature 與 `time skew = 0.000000 s`，並於 2026-10-01 的 1440 × 1100 六項全站測試再次通過。此功能用來暴露 controller 差異與改善實驗設計，不產生 V3 PASS 或 ranking evidence。
 
 ## 7. V4 — Subsystem Validation
 
@@ -113,7 +113,7 @@ V4 不等於整機認證。依風險逐級增加外部 evidence：
 
 ### Dynamic Run Trace Bridge
 
-狀態：IMPLEMENTED / BUILD PASS / BROWSER VISUAL PENDING / DEVELOPMENT ONLY。依 [DYNAMIC_RUN_TRACE_SPEC](DYNAMIC_RUN_TRACE_SPEC.md) 將 Live/Compare 的 500 Hz realized simulation state 保存為 bounded NPZ + manifest，並由第一模式讀取。這是控制器技能開發與工程輸出分析之間的必要橋接，但不是 physical validation 或 V3 benchmark evidence。
+狀態：IMPLEMENTED / BUILD PASS / BROWSER VISUAL + LIVE ACK FLOW-CONTROL VERIFIED / DEVELOPMENT ONLY。依 [DYNAMIC_RUN_TRACE_SPEC](DYNAMIC_RUN_TRACE_SPEC.md) 將 Live/Compare 的 500 Hz realized simulation state 保存為 bounded NPZ + manifest，並由第一模式讀取；2026-10-01 驗證 browser 6/6 at 1440 × 1100、visible `trace_ready` < 5 s，且 opt-in ACK 模式不讓慢 renderer 阻擋 control／record receipts。這是控制器技能開發與工程輸出分析之間的必要橋接，但不是 physical validation 或 V3 benchmark evidence。
 
 ### Motion Task V1：stand → start → steady walk → stop
 

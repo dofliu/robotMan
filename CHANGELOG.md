@@ -2,6 +2,17 @@
 
 本專案採語意化版本概念記錄可公開的 development releases。所有版本目前仍屬 SIM-only prototype，不表示 physical validation maturity。
 
+## Unreleased — 2026-10-01 (bg)
+
+### PR #50 merge hardening：bounded Live telemetry 與 fail-closed replay receipts
+
+- [RESULT] `4bba670` 為 `/ws/live` 加入 opt-in `frame_flow_control: "ack"`：同一 session 最多一個未確認 telemetry frame，只有欄位集合恰為 `type`／`frame_seq`、且 `frame_seq` 是非布林整數並精確匹配 outstanding sequence 的 ACK 才補回 credit；stale、布林或多欄位 ACK 皆回 `INVALID_FRAME_ACK`。未 opt in 的舊 client 與 `/ws/compare` 保持原行為，simulation 仍持續推進，control 與 recording receipts 不受 telemetry credit 阻擋。
+- [RESULT] analytical replay 的相關平均值改用 `math.fsum(values) / len(values)`，消除已觀察到的 left-fold reduction mismatch；fixture 與 `1e-12` 門檻都未修改。2026-09-29 的 `PRIMARY_CASE_RECEIPT_IDENTITY` 失敗仍是該 SHA 的真實歷史量測，未被回寫成 PASS。
+- [RESULT] Dynamic／Contact／Actuated 三個 2026-09-22 replay verifier 現在 fail closed 地核對完整 frozen contract SHA、claim boundary、case/spec/duration/sample count、compiled MJCF hash 與 timestep，以及完整 criteria／hypothesis／suite／top-level receipt／status tree；既有 frozen 規格、artifact、metric、threshold、fixture、PASS 結果與 claim boundary 均未改。
+- [RESULT] focused verification：frontend `npm run check` PASS；1440 × 1100 Chromium browser tests **6/6 PASS**，browser-visible `trace_ready` 在 5 s 門檻內出現；PR #50 相關 integrated backend group **199 passed**。
+- [BLOCKER] **尚不可宣稱 full backend suite 綠燈。** 在 substantive head 的 fresh LF checkout 完整收集 **1,157** 項：**1,151 passed／6 failed／0 skipped**。六項全都在 SUT 執行前停於 `pathlib`／`os.symlink` 建立連結的 Windows `WinError 1314`；目前 runner 沒有該權限。`9aa8e2b` 以 `.gitattributes` 固定 digest-pinned CSV 為 LF，fresh checkout 的 evidence digest test 已通過，沒有剩餘 Git／CRLF digest failure。
+- [HISTORY] 2026-09-29 的 1,136 項量測、14 fps／約 2 s DOM lag 與 `record_stop` 延遲觀察仍完整保留於 [TEST_REPORT_2026-09-29](docs/TEST_REPORT_2026-09-29.md)，只代表 `423c4ef`，不代表目前 head。
+
 ## Unreleased — 2026-09-29 (bf)
 
 ### 全面驗證測試：後端、契約、連結、前端與六項瀏覽器測試（任務 #108）

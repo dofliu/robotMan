@@ -3,6 +3,8 @@
 ID：`V1-ACTUATED-ENERGY-SUITE-V1` ｜ 任務 #107 ｜ 規格：[V1_ACTUATED_ENERGY_SUITE_SPEC](../V1_ACTUATED_ENERGY_SUITE_SPEC.md)
 ｜ 性質：**實作 receipt 與量測**；`SIM_ONLY_MUJOCO / NOT_PHYSICALLY_VALIDATED`；V1 gate 仍 `PARTIAL_IMPLEMENTED_NOT_PASS`
 
+> **2026-10-01 verifier 維護附註（不是新 execution receipt）：** replay 現在另以 fail-closed 方式核對完整 frozen contract SHA、claim boundary、case/spec/duration/sample count、compiled MJCF hash 與 timestep，以及完整 criteria／suite／top-level receipt／status tree。原 artifact、metric、threshold、fixture、PASS 結果與 claim boundary 均未改。
+
 ---
 
 ## 0. 一句話
