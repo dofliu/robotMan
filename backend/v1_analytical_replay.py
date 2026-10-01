@@ -381,6 +381,13 @@ def _norm(vector: list[float]) -> float:
     return math.sqrt(sum(item * item for item in vector))
 
 
+def _stable_mean(values: list[float]) -> float:
+    """Return a mean whose reduction order is stable across Python versions."""
+    if not values:
+        raise AnalyticalReplayValidationError("cannot average an empty sequence")
+    return math.fsum(values) / len(values)
+
+
 def _cross(left: list[float], right: list[float]) -> list[float]:
     return [
         left[1] * right[2] - left[2] * right[1],
@@ -949,9 +956,9 @@ def _evaluate_case(case: Any, model_record: dict, case_index: int) -> tuple[dict
     if not evaluation_rows:
         raise AnalyticalReplayValidationError(f"{field} has no evaluation samples")
     model_weight = model_mass_expected * float(config["gravity_mps2"])
-    mean_grf = sum(row["vertical_support_force_n"] for row in evaluation_rows) / len(
-        evaluation_rows
-    )
+    mean_grf = _stable_mean([
+        row["vertical_support_force_n"] for row in evaluation_rows
+    ])
     metrics = {
         "finite": True,
         "trace_step_count": len(trace),
@@ -964,9 +971,9 @@ def _evaluate_case(case: Any, model_record: dict, case_index: int) -> tuple[dict
         "forward_inverse_constraint_force_norm_max": max(fwdinv_constraint),
         "raw_jacobian_closure_relative_max": max(qfrc_errors),
         "maximum_external_applied_force": applied_max,
-        "exact_single_support_duty": sum(
+        "exact_single_support_duty": _stable_mean([
             1.0 if row["exact_support"] else 0.0 for row in evaluation_rows
-        ) / len(evaluation_rows),
+        ]),
         "maximum_unexpected_contact_count": max(
             row["unexpected_contact_count"] for row in evaluation_rows
         ),
@@ -985,8 +992,12 @@ def _evaluate_case(case: Any, model_record: dict, case_index: int) -> tuple[dict
         "model_weight_n": model_weight,
         "mean_vertical_grf_n": mean_grf,
         "weight_balance_relative_error": abs(mean_grf - model_weight) / max(model_weight, 1.0e-12),
-        "mean_linear_speed_mps": sum(row["linear_speed_mps"] for row in evaluation_rows) / len(evaluation_rows),
-        "mean_angular_speed_rps": sum(row["angular_speed_rps"] for row in evaluation_rows) / len(evaluation_rows),
+        "mean_linear_speed_mps": _stable_mean([
+            row["linear_speed_mps"] for row in evaluation_rows
+        ]),
+        "mean_angular_speed_rps": _stable_mean([
+            row["angular_speed_rps"] for row in evaluation_rows
+        ]),
         "timestep_qoi_normalized_mean_grf": mean_grf / max(model_weight, 1.0e-12),
     }
     limits = FROZEN_CONTRACT["tolerances"]

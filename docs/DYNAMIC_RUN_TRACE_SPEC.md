@@ -1,7 +1,7 @@
 # Dynamic Run Trace V1 規格
 
-最後更新：2026-08-29
-狀態：BACKEND + FRONTEND IMPLEMENTED / BUILD PASS / BROWSER VISUAL PENDING / DEVELOPMENT ONLY
+最後更新：2026-10-01
+狀態：BACKEND + FRONTEND IMPLEMENTED / BUILD PASS / BROWSER VISUAL + ACK FLOW-CONTROL VERIFIED / DEVELOPMENT ONLY
 
 ## 1. 目的
 
@@ -26,7 +26,7 @@ Robot + Gait + Controller/Policy
      第一模式 Realized Trace Analysis
 ```
 
-WebSocket frame 仍只負責視覺化；分析 API 必須由完成且 hash 可驗證的 trace artifact 讀取。
+WebSocket frame 仍只負責視覺化；分析 API 必須由完成且 hash 可驗證的 trace artifact 讀取。2026-10-01 起，Live browser path 以 ACK flow control opt in，同一 session 最多一個 outstanding telemetry frame；這個 credit 只約束 frame，simulation、recording 與 control receipts 不受阻擋。未 opt in 的 client 保持既有 push 行為，Compare path 不在這個變更範圍。
 
 ## 3. Capture contract
 
@@ -39,6 +39,19 @@ Live/Compare WebSocket 新增：
 ```json
 {"type":"record_stop"}
 ```
+
+Live telemetry flow control（opt in）：
+
+```json
+{"type":"init","frame_flow_control":"ack","robot":{},"gait":{}}
+{"type":"frame","frame_seq":1,"t":0.033}
+{"type":"frame_ack","frame_seq":1}
+```
+
+- `frame_flow_control: "ack"` 只適用 `/ws/live`；server 在一個 telemetry frame 尚未 ACK 時不排送其他 telemetry，credit 恢復後送下一個 fresh current frame。
+- ACK payload 的欄位集合必須精確為 `type` 與 `frame_seq`；`frame_seq` 必須是非布林整數，且精確等於目前 outstanding sequence。stale、布林、缺欄或多欄 ACK 一律回 `INVALID_FRAME_ACK`，不補 credit。
+- simulation loop 不等待 ACK；`record_start`、`record_stop`、pause／step／push 等 control 處理與其 receipts 也不受 telemetry credit gate。
+- 未宣告 `frame_flow_control` 的舊 client 仍使用原本 push stream；`/ws/compare` 行為不變。
 
 - `max_duration_s`：1–60 秒，預設 30 秒。
 - 單一 LiveSession 同時只能有一個 active recording。
@@ -91,8 +104,9 @@ Manifest 保存 robot/gait/obstacles、controller、policy ID/evidence status、
 | TRACE-R04 | NPZ bytes 與 SHA-256 mismatch fail closed | PASS — tamper negative test |
 | TRACE-R05 | recording 中 scenario/controller identity 不可漂移 | PASS — command contract test |
 | TRACE-R06 | compare 三 traces 共用 group ID 且時間 skew 在 tolerance 內 | PASS — comparison integration test |
-| TRACE-R07 | 第一模式可列出、選取並呈現 realized trace summary/series | PARTIAL — API + typecheck/build PASS；browser visual pending |
+| TRACE-R07 | 第一模式可列出、選取並呈現 realized trace summary/series | PASS — API + typecheck/build；2026-10-01 browser 6/6 at 1440 × 1100，visible `trace_ready` < 5 s |
 | TRACE-R08 | UI 固定標示 simulated realized output，不宣稱 physical measurement | PASS — source/document review |
+| TRACE-R09 | 慢 renderer 不得讓舊 telemetry 無界排隊或阻擋 recording/control receipt | PASS — ACK-withheld backend regression < 2 s；browser `trace_ready` < 5 s；legacy/Compare compatibility retained |
 
 ## 7. 非本版範圍
 

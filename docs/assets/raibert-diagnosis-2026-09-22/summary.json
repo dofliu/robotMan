@@ -1,0 +1,843 @@
+{
+  "schema": "RAIBERT_STACK_DIAGNOSIS_V1",
+  "nature": "DEVELOPMENT_DIAGNOSIS_ONLY",
+  "generated_at": "2026-09-22T04:08:14+00:00",
+  "git_head": "71c9d71",
+  "python": "3.11.15",
+  "code_sha256": {
+    "controller.py": "sha256:78b3f91d5310115757ce4b85029f469400bbc19ca3f2b9efa801de9411f5ec0c",
+    "controller_raibert.py": "sha256:470faa20c773a0493460720db4df3b948266095a4d51d45e6f46989c2fbae481",
+    "live_sim.py": "sha256:76e1bc33a08b5b12afac5679d5c6f5102d7773f3c5ccc2afe41ff61d7f39b2a0",
+    "diagnose_raibert_stack.py": "sha256:66e615467ee051c1dbe1afce5d0a589f26983bde3898a975012c46d019bf9a6e"
+  },
+  "gait": {
+    "mode": "walk",
+    "speed": 0.7,
+    "step_length": 0.35,
+    "duty": 0.62,
+    "clearance": 0.07,
+    "arm_swing_deg": 20.0,
+    "torso_lean_deg": 3.0,
+    "pelvis_sway": 0.018,
+    "pelvis_bounce": 0.012,
+    "crouch": 0.1,
+    "duration": 8.0
+  },
+  "observe_s": 6.0,
+  "baseline": {
+    "fall_t_after_walk_s": 2.22,
+    "steps": 5
+  },
+  "baseline_events": [
+    {
+      "t": 0.0,
+      "kind": "mode",
+      "text": "🚶 Raibert 閉環行走：觸地相位重置 + 線上落腳法則"
+    },
+    {
+      "t": 0.0,
+      "kind": "first",
+      "text": "🦵 起步：重心先橫移至 L 腳，再跨出第一步"
+    },
+    {
+      "t": 0.04,
+      "kind": "hip",
+      "text": "🫁 髖策略介入：-43 Nm（軀幹前傾 -0.1°）"
+    },
+    {
+      "t": 1.04,
+      "kind": "hip",
+      "text": "🫁 髖策略介入：-110 Nm（軀幹前傾 -14.0°）"
+    },
+    {
+      "t": 1.06,
+      "kind": "hurry",
+      "text": "⏩ 加速換步：capture point 超前支撐腳 20 cm"
+    },
+    {
+      "t": 1.33,
+      "kind": "td",
+      "text": "👟 第 2 步觸地（R 腳，時序誤差 +275 ms）→ 相位重置"
+    },
+    {
+      "t": 1.78,
+      "kind": "td",
+      "text": "👟 第 4 步觸地（R 腳，時序誤差 -272 ms）→ 相位重置"
+    },
+    {
+      "t": 1.86,
+      "kind": "hurry",
+      "text": "⏩ 加速換步：capture point 超前支撐腳 42 cm"
+    },
+    {
+      "t": 2.04,
+      "kind": "hip",
+      "text": "🫁 髖策略介入：+110 Nm（軀幹前傾 39.2°）"
+    },
+    {
+      "t": 2.2,
+      "kind": "fall",
+      "text": "💥 跌倒！pitch 55° / roll -46° — 進入阻尼癱軟"
+    }
+  ],
+  "ablation": [
+    {
+      "variant": "baseline",
+      "overrides": {},
+      "gait_overrides": {},
+      "upright_s": 2.22,
+      "fell": true,
+      "steps": 5,
+      "distance_m": 1.013,
+      "max_abs_pitch_deg": 61.3,
+      "knee_sat_ticks_20ms": 2,
+      "touchdowns_logged": [
+        "👟 第 2 步觸地（R 腳，時序誤差 +275 ms）→ 相位重置",
+        "👟 第 4 步觸地（R 腳，時序誤差 -272 ms）→ 相位重置"
+      ]
+    },
+    {
+      "variant": "hurry_off",
+      "overrides": {
+        "HURRY_CP_AHEAD_M": 9.9
+      },
+      "gait_overrides": {},
+      "upright_s": 2.22,
+      "fell": true,
+      "steps": 4,
+      "distance_m": 1.04,
+      "max_abs_pitch_deg": 56.7,
+      "knee_sat_ticks_20ms": 5,
+      "touchdowns_logged": [
+        "👟 第 2 步觸地（R 腳，時序誤差 +89 ms）→ 相位重置",
+        "👟 第 4 步觸地（R 腳，時序誤差 -98 ms）→ 相位重置"
+      ]
+    },
+    {
+      "variant": "td_min_phase_0.70",
+      "overrides": {
+        "TD_MIN_PHASE": 0.7
+      },
+      "gait_overrides": {},
+      "upright_s": 2.12,
+      "fell": true,
+      "steps": 4,
+      "distance_m": 0.876,
+      "max_abs_pitch_deg": 57.1,
+      "knee_sat_ticks_20ms": 3,
+      "touchdowns_logged": [
+        "👟 第 2 步觸地（R 腳，時序誤差 +275 ms）→ 相位重置",
+        "👟 第 4 步觸地（R 腳，時序誤差 +93 ms）→ 相位重置"
+      ]
+    },
+    {
+      "variant": "td_min_phase_0.25",
+      "overrides": {
+        "TD_MIN_PHASE": 0.25
+      },
+      "gait_overrides": {},
+      "upright_s": 1.36,
+      "fell": true,
+      "steps": 2,
+      "distance_m": 0.076,
+      "max_abs_pitch_deg": 41.9,
+      "knee_sat_ticks_20ms": 0,
+      "touchdowns_logged": [
+        "👟 第 2 步觸地（R 腳，時序誤差 -375 ms）→ 相位重置"
+      ]
+    },
+    {
+      "variant": "first_shift_0.4s",
+      "overrides": {
+        "FIRST_SHIFT_S": 0.4
+      },
+      "gait_overrides": {},
+      "upright_s": 1.54,
+      "fell": true,
+      "steps": 2,
+      "distance_m": 0.757,
+      "max_abs_pitch_deg": 36.8,
+      "knee_sat_ticks_20ms": 3,
+      "touchdowns_logged": [
+        "👟 第 2 步觸地（R 腳，時序誤差 -97 ms）→ 相位重置"
+      ]
+    },
+    {
+      "variant": "first_shift_1.2s",
+      "overrides": {
+        "FIRST_SHIFT_S": 1.2
+      },
+      "gait_overrides": {},
+      "upright_s": 2.98,
+      "fell": true,
+      "steps": 3,
+      "distance_m": 0.595,
+      "max_abs_pitch_deg": 38.3,
+      "knee_sat_ticks_20ms": 2,
+      "touchdowns_logged": [
+        "👟 第 2 步觸地（R 腳，時序誤差 +87 ms）→ 相位重置",
+        "👟 第 3 步觸地（L 腳，時序誤差 +104 ms）→ 相位重置"
+      ]
+    },
+    {
+      "variant": "land_lock_off",
+      "overrides": {
+        "LAND_LOCK_PHASE": 1.1
+      },
+      "gait_overrides": {},
+      "upright_s": 2.24,
+      "fell": true,
+      "steps": 4,
+      "distance_m": 1.2,
+      "max_abs_pitch_deg": 30.6,
+      "knee_sat_ticks_20ms": 6,
+      "touchdowns_logged": [
+        "👟 第 2 步觸地（R 腳，時序誤差 +395 ms）→ 相位重置",
+        "👟 第 4 步觸地（R 腳，時序誤差 +39 ms）→ 相位重置"
+      ]
+    },
+    {
+      "variant": "pushdown_off",
+      "overrides": {
+        "PUSHDOWN_RATE": 0.0
+      },
+      "gait_overrides": {},
+      "upright_s": 2.46,
+      "fell": true,
+      "steps": 6,
+      "distance_m": 1.128,
+      "max_abs_pitch_deg": 57.9,
+      "knee_sat_ticks_20ms": 1,
+      "touchdowns_logged": [
+        "👟 第 2 步觸地（R 腳，時序誤差 +450 ms）→ 相位重置",
+        "👟 第 4 步觸地（R 腳，時序誤差 -103 ms）→ 相位重置",
+        "👟 第 6 步觸地（R 腳，時序誤差 -50 ms）→ 相位重置"
+      ]
+    },
+    {
+      "variant": "pushdown_x2",
+      "overrides": {
+        "PUSHDOWN_RATE": 0.7
+      },
+      "gait_overrides": {},
+      "upright_s": 2.22,
+      "fell": true,
+      "steps": 5,
+      "distance_m": 1.018,
+      "max_abs_pitch_deg": 60.6,
+      "knee_sat_ticks_20ms": 1,
+      "touchdowns_logged": [
+        "👟 第 2 步觸地（R 腳，時序誤差 +270 ms）→ 相位重置",
+        "👟 第 4 步觸地（R 腳，時序誤差 -273 ms）→ 相位重置"
+      ]
+    },
+    {
+      "variant": "v_servo_off",
+      "overrides": {
+        "V_SERVO_GAIN": 0.0
+      },
+      "gait_overrides": {},
+      "upright_s": 2.0,
+      "fell": true,
+      "steps": 1,
+      "distance_m": -0.258,
+      "max_abs_pitch_deg": 56.2,
+      "knee_sat_ticks_20ms": 0,
+      "touchdowns_logged": []
+    },
+    {
+      "variant": "v_servo_x2",
+      "overrides": {
+        "V_SERVO_GAIN": 0.5
+      },
+      "gait_overrides": {},
+      "upright_s": 2.1,
+      "fell": true,
+      "steps": 4,
+      "distance_m": 1.207,
+      "max_abs_pitch_deg": 57.1,
+      "knee_sat_ticks_20ms": 9,
+      "touchdowns_logged": [
+        "👟 第 2 步觸地（R 腳，時序誤差 +302 ms）→ 相位重置",
+        "👟 第 4 步觸地（R 腳，時序誤差 +320 ms）→ 相位重置"
+      ]
+    },
+    {
+      "variant": "x_rel_center_0.3",
+      "overrides": {
+        "X_REL_PHASE_CENTER": 0.3
+      },
+      "gait_overrides": {},
+      "upright_s": 1.78,
+      "fell": true,
+      "steps": 3,
+      "distance_m": 0.864,
+      "max_abs_pitch_deg": 56.6,
+      "knee_sat_ticks_20ms": 5,
+      "touchdowns_logged": [
+        "👟 第 2 步觸地（R 腳，時序誤差 +344 ms）→ 相位重置"
+      ]
+    },
+    {
+      "variant": "x_rel_center_0.7",
+      "overrides": {
+        "X_REL_PHASE_CENTER": 0.7
+      },
+      "gait_overrides": {},
+      "upright_s": 2.22,
+      "fell": true,
+      "steps": 2,
+      "distance_m": -0.138,
+      "max_abs_pitch_deg": 55.4,
+      "knee_sat_ticks_20ms": 0,
+      "touchdowns_logged": [
+        "👟 第 2 步觸地（R 腳，時序誤差 +361 ms）→ 相位重置"
+      ]
+    },
+    {
+      "variant": "x_rel_lim_half",
+      "overrides": {
+        "X_REL_LIM_M": 0.16
+      },
+      "gait_overrides": {},
+      "upright_s": 2.4,
+      "fell": true,
+      "steps": 4,
+      "distance_m": 1.235,
+      "max_abs_pitch_deg": 56.1,
+      "knee_sat_ticks_20ms": 2,
+      "touchdowns_logged": [
+        "👟 第 2 步觸地（R 腳，時序誤差 +146 ms）→ 相位重置",
+        "👟 第 4 步觸地（R 腳，時序誤差 +87 ms）→ 相位重置"
+      ]
+    },
+    {
+      "variant": "lateral_rate_first_x2",
+      "overrides": {
+        "LATERAL_RATE_FIRST": 0.3
+      },
+      "gait_overrides": {},
+      "upright_s": 2.44,
+      "fell": true,
+      "steps": 5,
+      "distance_m": 0.795,
+      "max_abs_pitch_deg": 44.1,
+      "knee_sat_ticks_20ms": 2,
+      "touchdowns_logged": [
+        "👟 第 2 步觸地（R 腳，時序誤差 +24 ms）→ 相位重置",
+        "👟 第 3 步觸地（L 腳，時序誤差 +114 ms）→ 相位重置",
+        "👟 第 5 步觸地（L 腳，時序誤差 -85 ms）→ 相位重置"
+      ]
+    },
+    {
+      "variant": "lean_v_off",
+      "overrides": {
+        "LEAN_V_GAIN": 0.0
+      },
+      "gait_overrides": {},
+      "upright_s": 1.78,
+      "fell": true,
+      "steps": 3,
+      "distance_m": 0.54,
+      "max_abs_pitch_deg": 49.1,
+      "knee_sat_ticks_20ms": 2,
+      "touchdowns_logged": [
+        "👟 第 2 步觸地（R 腳，時序誤差 +28 ms）→ 相位重置"
+      ]
+    },
+    {
+      "variant": "grav_ff_1.0",
+      "overrides": {
+        "GRAV_FF_SCALE": 1.0
+      },
+      "gait_overrides": {},
+      "upright_s": 2.22,
+      "fell": true,
+      "steps": 5,
+      "distance_m": 1.003,
+      "max_abs_pitch_deg": 57.8,
+      "knee_sat_ticks_20ms": 2,
+      "touchdowns_logged": [
+        "👟 第 2 步觸地（R 腳，時序誤差 +201 ms）→ 相位重置",
+        "👟 第 4 步觸地（R 腳，時序誤差 -272 ms）→ 相位重置"
+      ]
+    },
+    {
+      "variant": "grav_ff_0.7",
+      "overrides": {
+        "GRAV_FF_SCALE": 0.7
+      },
+      "gait_overrides": {},
+      "upright_s": 2.24,
+      "fell": true,
+      "steps": 4,
+      "distance_m": 1.259,
+      "max_abs_pitch_deg": 55.7,
+      "knee_sat_ticks_20ms": 4,
+      "touchdowns_logged": [
+        "👟 第 2 步觸地（R 腳，時序誤差 +378 ms）→ 相位重置"
+      ]
+    },
+    {
+      "variant": "qfrc_bias_1.0",
+      "overrides": {
+        "QFRC_BIAS_SCALE": 1.0
+      },
+      "gait_overrides": {},
+      "upright_s": 2.2,
+      "fell": true,
+      "steps": 5,
+      "distance_m": 1.008,
+      "max_abs_pitch_deg": 58.1,
+      "knee_sat_ticks_20ms": 4,
+      "touchdowns_logged": [
+        "👟 第 2 步觸地（R 腳，時序誤差 +256 ms）→ 相位重置",
+        "👟 第 4 步觸地（R 腳，時序誤差 -275 ms）→ 相位重置"
+      ]
+    },
+    {
+      "variant": "hip_pitch_gain_half",
+      "overrides": {
+        "HIP_PITCH_KP": 130.0,
+        "HIP_PITCH_KD": 60.0
+      },
+      "gait_overrides": {},
+      "upright_s": 2.08,
+      "fell": true,
+      "steps": 4,
+      "distance_m": 0.687,
+      "max_abs_pitch_deg": 55.2,
+      "knee_sat_ticks_20ms": 2,
+      "touchdowns_logged": [
+        "👟 第 2 步觸地（R 腳，時序誤差 +86 ms）→ 相位重置",
+        "👟 第 3 步觸地（L 腳，時序誤差 +211 ms）→ 相位重置"
+      ]
+    },
+    {
+      "variant": "hip_pitch_gain_x2",
+      "overrides": {
+        "HIP_PITCH_KP": 520.0,
+        "HIP_PITCH_KD": 240.0
+      },
+      "gait_overrides": {},
+      "upright_s": 1.74,
+      "fell": true,
+      "steps": 3,
+      "distance_m": 0.46,
+      "max_abs_pitch_deg": 57.5,
+      "knee_sat_ticks_20ms": 3,
+      "touchdowns_logged": [
+        "👟 第 2 步觸地（R 腳，時序誤差 +209 ms）→ 相位重置"
+      ]
+    },
+    {
+      "variant": "hip_corr_lim_220",
+      "overrides": {
+        "HIP_CORR_LIM_NM": 220.0
+      },
+      "gait_overrides": {},
+      "upright_s": 2.28,
+      "fell": true,
+      "steps": 5,
+      "distance_m": 1.211,
+      "max_abs_pitch_deg": 56.5,
+      "knee_sat_ticks_20ms": 1,
+      "touchdowns_logged": [
+        "👟 第 2 步觸地（R 腳，時序誤差 +340 ms）→ 相位重置",
+        "👟 第 4 步觸地（R 腳，時序誤差 +36 ms）→ 相位重置"
+      ]
+    },
+    {
+      "variant": "roll_gain_half",
+      "overrides": {
+        "ROLL_KP": 110.0,
+        "ROLL_KD": 27.5
+      },
+      "gait_overrides": {},
+      "upright_s": 1.96,
+      "fell": true,
+      "steps": 4,
+      "distance_m": 0.664,
+      "max_abs_pitch_deg": 54.8,
+      "knee_sat_ticks_20ms": 3,
+      "touchdowns_logged": [
+        "👟 第 2 步觸地（R 腳，時序誤差 +283 ms）→ 相位重置"
+      ]
+    },
+    {
+      "variant": "roll_gain_x2",
+      "overrides": {
+        "ROLL_KP": 440.0,
+        "ROLL_KD": 110.0
+      },
+      "gait_overrides": {},
+      "upright_s": 2.22,
+      "fell": true,
+      "steps": 4,
+      "distance_m": 0.876,
+      "max_abs_pitch_deg": 57.4,
+      "knee_sat_ticks_20ms": 1,
+      "touchdowns_logged": [
+        "👟 第 2 步觸地（R 腳，時序誤差 +103 ms）→ 相位重置",
+        "👟 第 3 步觸地（L 腳，時序誤差 +67 ms）→ 相位重置"
+      ]
+    },
+    {
+      "variant": "ankle_x2",
+      "overrides": {
+        "ANKLE_KV": 140.0,
+        "ANKLE_LIM_NM": 70.0
+      },
+      "gait_overrides": {},
+      "upright_s": 1.68,
+      "fell": true,
+      "steps": 4,
+      "distance_m": 0.424,
+      "max_abs_pitch_deg": 35.0,
+      "knee_sat_ticks_20ms": 0,
+      "touchdowns_logged": [
+        "👟 第 2 步觸地（R 腳，時序誤差 -147 ms）→ 相位重置",
+        "👟 第 4 步觸地（R 腳，時序誤差 -274 ms）→ 相位重置"
+      ]
+    },
+    {
+      "variant": "ankle_off",
+      "overrides": {
+        "ANKLE_KV": 0.0
+      },
+      "gait_overrides": {},
+      "upright_s": 1.94,
+      "fell": true,
+      "steps": 3,
+      "distance_m": 0.601,
+      "max_abs_pitch_deg": 55.3,
+      "knee_sat_ticks_20ms": 3,
+      "touchdowns_logged": [
+        "👟 第 2 步觸地（R 腳，時序誤差 +238 ms）→ 相位重置"
+      ]
+    },
+    {
+      "variant": "kR_0.15",
+      "overrides": {
+        "kR": 0.15
+      },
+      "gait_overrides": {},
+      "upright_s": 2.3,
+      "fell": true,
+      "steps": 5,
+      "distance_m": 1.091,
+      "max_abs_pitch_deg": 56.6,
+      "knee_sat_ticks_20ms": 1,
+      "touchdowns_logged": [
+        "👟 第 2 步觸地（R 腳，時序誤差 +185 ms）→ 相位重置",
+        "👟 第 4 步觸地（R 腳，時序誤差 -272 ms）→ 相位重置"
+      ]
+    },
+    {
+      "variant": "kR_0.60",
+      "overrides": {
+        "kR": 0.6
+      },
+      "gait_overrides": {},
+      "upright_s": 2.24,
+      "fell": true,
+      "steps": 5,
+      "distance_m": 1.012,
+      "max_abs_pitch_deg": 55.2,
+      "knee_sat_ticks_20ms": 7,
+      "touchdowns_logged": [
+        "👟 第 2 步觸地（R 腳，時序誤差 +444 ms）→ 相位重置",
+        "👟 第 4 步觸地（R 腳，時序誤差 +12 ms）→ 相位重置"
+      ]
+    },
+    {
+      "variant": "DS_0.30",
+      "overrides": {
+        "DS": 0.3
+      },
+      "gait_overrides": {},
+      "upright_s": 1.62,
+      "fell": true,
+      "steps": 3,
+      "distance_m": 0.496,
+      "max_abs_pitch_deg": 56.2,
+      "knee_sat_ticks_20ms": 1,
+      "touchdowns_logged": [
+        "👟 第 2 步觸地（R 腳，時序誤差 +314 ms）→ 相位重置"
+      ]
+    },
+    {
+      "variant": "DS_0.05",
+      "overrides": {
+        "DS": 0.05
+      },
+      "gait_overrides": {},
+      "upright_s": 2.22,
+      "fell": true,
+      "steps": 3,
+      "distance_m": 0.729,
+      "max_abs_pitch_deg": 56.1,
+      "knee_sat_ticks_20ms": 2,
+      "touchdowns_logged": [
+        "👟 第 2 步觸地（R 腳，時序誤差 +219 ms）→ 相位重置",
+        "👟 第 3 步觸地（L 腳，時序誤差 +334 ms）→ 相位重置"
+      ]
+    },
+    {
+      "variant": "land_back_lim_0.20",
+      "overrides": {
+        "LAND_BACK_LIM_M": 0.2
+      },
+      "gait_overrides": {},
+      "upright_s": 2.2,
+      "fell": true,
+      "steps": 5,
+      "distance_m": 1.004,
+      "max_abs_pitch_deg": 52.1,
+      "knee_sat_ticks_20ms": 2,
+      "touchdowns_logged": [
+        "👟 第 2 步觸地（R 腳，時序誤差 +233 ms）→ 相位重置",
+        "👟 第 4 步觸地（R 腳，時序誤差 -274 ms）→ 相位重置"
+      ]
+    },
+    {
+      "variant": "land_reach_0.30",
+      "overrides": {
+        "LAND_REACH_M": 0.3
+      },
+      "gait_overrides": {},
+      "upright_s": 2.26,
+      "fell": true,
+      "steps": 5,
+      "distance_m": 1.095,
+      "max_abs_pitch_deg": 56.1,
+      "knee_sat_ticks_20ms": 2,
+      "touchdowns_logged": [
+        "👟 第 2 步觸地（R 腳，時序誤差 +275 ms）→ 相位重置",
+        "👟 第 4 步觸地（R 腳，時序誤差 -272 ms）→ 相位重置"
+      ]
+    },
+    {
+      "variant": "pd_x1.5",
+      "overrides": {
+        "_pd_scale": 1.5
+      },
+      "gait_overrides": {},
+      "upright_s": 2.22,
+      "fell": true,
+      "steps": 5,
+      "distance_m": 0.45,
+      "max_abs_pitch_deg": 38.7,
+      "knee_sat_ticks_20ms": 1,
+      "touchdowns_logged": [
+        "👟 第 2 步觸地（R 腳，時序誤差 -133 ms）→ 相位重置",
+        "👟 第 3 步觸地（L 腳，時序誤差 +12 ms）→ 相位重置",
+        "👟 第 5 步觸地（L 腳，時序誤差 -19 ms）→ 相位重置"
+      ]
+    },
+    {
+      "variant": "pd_x0.7",
+      "overrides": {
+        "_pd_scale": 0.7
+      },
+      "gait_overrides": {},
+      "upright_s": 2.24,
+      "fell": true,
+      "steps": 2,
+      "distance_m": 0.593,
+      "max_abs_pitch_deg": 33.1,
+      "knee_sat_ticks_20ms": 0,
+      "touchdowns_logged": [
+        "👟 第 2 步觸地（R 腳，時序誤差 +287 ms）→ 相位重置"
+      ]
+    },
+    {
+      "variant": "gait_clearance_0.04",
+      "overrides": {},
+      "gait_overrides": {
+        "clearance": 0.04
+      },
+      "upright_s": 2.24,
+      "fell": true,
+      "steps": 4,
+      "distance_m": 1.354,
+      "max_abs_pitch_deg": 61.1,
+      "knee_sat_ticks_20ms": 4,
+      "touchdowns_logged": [
+        "👟 第 2 步觸地（R 腳，時序誤差 +291 ms）→ 相位重置"
+      ]
+    },
+    {
+      "variant": "gait_clearance_0.10",
+      "overrides": {},
+      "gait_overrides": {
+        "clearance": 0.1
+      },
+      "upright_s": 2.44,
+      "fell": true,
+      "steps": 4,
+      "distance_m": 1.204,
+      "max_abs_pitch_deg": 57.5,
+      "knee_sat_ticks_20ms": 0,
+      "touchdowns_logged": [
+        "👟 第 2 步觸地（R 腳，時序誤差 +266 ms）→ 相位重置",
+        "👟 第 4 步觸地（R 腳，時序誤差 +130 ms）→ 相位重置"
+      ]
+    },
+    {
+      "variant": "gait_step_0.25",
+      "overrides": {},
+      "gait_overrides": {
+        "step_length": 0.25
+      },
+      "upright_s": 1.66,
+      "fell": true,
+      "steps": 4,
+      "distance_m": 0.372,
+      "max_abs_pitch_deg": 58.5,
+      "knee_sat_ticks_20ms": 1,
+      "touchdowns_logged": [
+        "👟 第 2 步觸地（R 腳，時序誤差 +122 ms）→ 相位重置"
+      ]
+    },
+    {
+      "variant": "gait_step_0.45",
+      "overrides": {},
+      "gait_overrides": {
+        "step_length": 0.45
+      },
+      "upright_s": 2.34,
+      "fell": true,
+      "steps": 4,
+      "distance_m": 1.018,
+      "max_abs_pitch_deg": 54.8,
+      "knee_sat_ticks_20ms": 6,
+      "touchdowns_logged": [
+        "👟 第 2 步觸地（R 腳，時序誤差 +310 ms）→ 相位重置",
+        "👟 第 4 步觸地（R 腳，時序誤差 -78 ms）→ 相位重置"
+      ]
+    },
+    {
+      "variant": "gait_lean_0deg",
+      "overrides": {},
+      "gait_overrides": {
+        "torso_lean_deg": 0.0
+      },
+      "upright_s": 1.7,
+      "fell": true,
+      "steps": 3,
+      "distance_m": 0.6,
+      "max_abs_pitch_deg": 58.5,
+      "knee_sat_ticks_20ms": 0,
+      "touchdowns_logged": [
+        "👟 第 2 步觸地（R 腳，時序誤差 +152 ms）→ 相位重置"
+      ]
+    },
+    {
+      "variant": "gait_lean_6deg",
+      "overrides": {},
+      "gait_overrides": {
+        "torso_lean_deg": 6.0
+      },
+      "upright_s": 1.92,
+      "fell": true,
+      "steps": 3,
+      "distance_m": 0.616,
+      "max_abs_pitch_deg": 58.4,
+      "knee_sat_ticks_20ms": 3,
+      "touchdowns_logged": [
+        "👟 第 2 步觸地（R 腳，時序誤差 +370 ms）→ 相位重置"
+      ]
+    },
+    {
+      "variant": "gait_speed_0.5_step_0.25",
+      "overrides": {},
+      "gait_overrides": {
+        "speed": 0.5,
+        "step_length": 0.25
+      },
+      "upright_s": 2.48,
+      "fell": true,
+      "steps": 6,
+      "distance_m": 1.16,
+      "max_abs_pitch_deg": 50.8,
+      "knee_sat_ticks_20ms": 1,
+      "touchdowns_logged": [
+        "👟 第 2 步觸地（R 腳，時序誤差 +103 ms）→ 相位重置",
+        "👟 第 4 步觸地（R 腳，時序誤差 +39 ms）→ 相位重置"
+      ]
+    },
+    {
+      "variant": "combo:first_shift_1.2s+pushdown_off",
+      "overrides": {
+        "FIRST_SHIFT_S": 1.2,
+        "PUSHDOWN_RATE": 0.0
+      },
+      "gait_overrides": {},
+      "upright_s": 3.02,
+      "fell": true,
+      "steps": 2,
+      "distance_m": 0.756,
+      "max_abs_pitch_deg": 57.5,
+      "knee_sat_ticks_20ms": 0,
+      "touchdowns_logged": [
+        "👟 第 2 步觸地（R 腳，時序誤差 +160 ms）→ 相位重置"
+      ]
+    },
+    {
+      "variant": "combo:first_shift_1.2s+lateral_rate_first_x2",
+      "overrides": {
+        "FIRST_SHIFT_S": 1.2,
+        "LATERAL_RATE_FIRST": 0.3
+      },
+      "gait_overrides": {},
+      "upright_s": 1.82,
+      "fell": true,
+      "steps": 3,
+      "distance_m": 0.383,
+      "max_abs_pitch_deg": 55.2,
+      "knee_sat_ticks_20ms": 1,
+      "touchdowns_logged": [
+        "👟 第 2 步觸地（R 腳，時序誤差 -58 ms）→ 相位重置"
+      ]
+    },
+    {
+      "variant": "combo:pushdown_off+lateral_rate_first_x2",
+      "overrides": {
+        "PUSHDOWN_RATE": 0.0,
+        "LATERAL_RATE_FIRST": 0.3
+      },
+      "gait_overrides": {},
+      "upright_s": 2.12,
+      "fell": true,
+      "steps": 3,
+      "distance_m": 0.603,
+      "max_abs_pitch_deg": 25.5,
+      "knee_sat_ticks_20ms": 0,
+      "touchdowns_logged": [
+        "👟 第 2 步觸地（R 腳，時序誤差 +57 ms）→ 相位重置",
+        "👟 第 3 步觸地（L 腳，時序誤差 +294 ms）→ 相位重置"
+      ]
+    },
+    {
+      "variant": "combo:first_shift_1.2s+pushdown_off+lateral_rate_first_x2",
+      "overrides": {
+        "FIRST_SHIFT_S": 1.2,
+        "PUSHDOWN_RATE": 0.0,
+        "LATERAL_RATE_FIRST": 0.3
+      },
+      "gait_overrides": {},
+      "upright_s": 1.82,
+      "fell": true,
+      "steps": 3,
+      "distance_m": 0.383,
+      "max_abs_pitch_deg": 55.2,
+      "knee_sat_ticks_20ms": 1,
+      "touchdowns_logged": [
+        "👟 第 2 步觸地（R 腳，時序誤差 -58 ms）→ 相位重置"
+      ]
+    }
+  ],
+  "task_on_survivors": [],
+  "wall_s_total": 25.2
+}

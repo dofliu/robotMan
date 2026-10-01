@@ -214,9 +214,10 @@
     "PUB-B0": {
       "title": "Authorization decision",
       "status": "AUTHORIZED",
-      "detail": "SUB_OPTION_OPEN",
-      "as_of": "2026-09-10",
+      "detail": "SUB_OPTIONS_DECIDED_2026-09-22_DEFERRED",
+      "as_of": "2026-09-22",
       "evidence": [
+        "docs/TRACK_B_FORMAL_EVALUATION_DECISION_2026-09-22.md",
         "docs/receipts/PUB_B0_AUTHORIZATION_RECEIPT_2026-09-10.md"
       ],
       "sites": [
@@ -283,8 +284,8 @@
     "PUB-B4": {
       "title": "External preregistration",
       "status": "NOT_STARTED",
-      "detail": "",
-      "as_of": "2026-09-10",
+      "detail": "DEFERRED_WITH_FORMAL_EVALUATION_2026-09-22",
+      "as_of": "2026-09-22",
       "evidence": [],
       "sites": [
         {
@@ -342,10 +343,12 @@
     },
     "PUB-C0": {
       "title": "UI verified",
-      "status": "NOT_STARTED",
-      "detail": "",
-      "as_of": "2026-09-08",
-      "evidence": [],
+      "status": "PASS",
+      "detail": "FRONTEND_E2E_6_TESTS_PASSED",
+      "as_of": "2026-09-22",
+      "evidence": [
+        "docs/receipts/BROWSER_VISUAL_VERIFICATION_RECEIPT_2026-09-22.md"
+      ],
       "sites": [
         {
           "doc": "docs/PUBLICATION_PLAN.md",

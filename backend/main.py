@@ -100,6 +100,9 @@ async def ws_live(ws: WebSocket):
     await ws.accept()
     session: LiveSession | None = None
     queue: asyncio.Queue = asyncio.Queue()
+    frame_flow_control = False
+    outstanding_frame_seq: int | None = None
+    next_frame_seq = 1
 
     async def reader():
         while True:
@@ -148,7 +151,25 @@ async def ws_live(ws: WebSocket):
                         continue
                     # 只有完整建構成功才取代既有 session。
                     session = candidate
+                    frame_flow_control = init.frame_flow_control == "ack"
+                    outstanding_frame_seq = None
+                    next_frame_seq = 1
                     await ws.send_json(session.scene())
+                elif msg.get("type") == "frame_ack" and frame_flow_control:
+                    # The browser acknowledges only after its main thread has
+                    # consumed the frame. Until then simulation and commands
+                    # continue, but stale telemetry is coalesced.
+                    ack_seq = msg.get("frame_seq")
+                    if (
+                        set(msg) != {"type", "frame_seq"}
+                        or type(ack_seq) is not int
+                        or ack_seq != outstanding_frame_seq
+                    ):
+                        await ws.send_json(live_error(
+                            "INVALID_FRAME_ACK", "frame_ack must match the outstanding frame_seq",
+                        ))
+                        continue
+                    outstanding_frame_seq = None
                 elif session is None:
                     await ws.send_json(live_error(
                         "INVALID_COMMAND", "尚未完成有效 init，command 未執行",
@@ -165,7 +186,13 @@ async def ws_live(ws: WebSocket):
             last = now
             if session is not None:
                 await asyncio.to_thread(session.advance, min(wall, 0.1))
-                await ws.send_json(session.frame())
+                if not frame_flow_control or outstanding_frame_seq is None:
+                    frame = session.frame()
+                    if frame_flow_control:
+                        frame["frame_seq"] = next_frame_seq
+                        outstanding_frame_seq = next_frame_seq
+                        next_frame_seq += 1
+                    await ws.send_json(frame)
             await asyncio.sleep(0.033)
     except (WebSocketDisconnect, RuntimeError):
         pass

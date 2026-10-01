@@ -21,6 +21,44 @@ from gait import GaitEngine
 class RaibertController(BalanceController):
     blend_T = 0.5   # 閉環控制器不需長混合：從站立小步起步本身就自洽
 
+    # 堆疊常數。2026-09-22 由 compute() 內的字面值逐字搬出（數值不變，以 motion task
+    # trace 逐位元相等驢證），目的是讓 diagnose_raibert_stack.py 能做單因子消融；
+    # 預設值就是原本的行為。
+    HURRY_CP_AHEAD_M = 0.20        # capture point 超前支撐腳多少開始加速換步
+    HURRY_RANGE_M = 0.15           # 加速量的線性區
+    HURRY_MAX_EXTRA_RATE = 1.2     # 相位速率最多 1 + 1.2 倍
+    TD_MIN_PHASE = 0.45            # 相位低於此值不接受觸地事件
+    FIRST_SHIFT_S = 0.8            # 起步重心橫移時間
+    LAND_BACK_LIM_M = 0.06         # 落點相對中性點的後移上限
+    LAND_REACH_M = 0.45            # 落點相對骨盆的前伸上限
+    MIN_FOOT_SEP_M = 0.13          # 左右腳最小間距
+    LAND_LOCK_PHASE = 0.85         # 末段鎖定落點的相位
+    V_SERVO_GAIN = 0.25            # 支撐腿速度伺服增益（× T_step）
+    V_SERVO_MIN_M = -0.10
+    V_SERVO_MAX_M = 0.12
+    X_REL_LIM_M = 0.32             # 骨盆相對支撐腳前移的上限
+    X_REL_PHASE_CENTER = 0.5       # 骨盆越過支撐腳的相位
+    PELVIS_Y_INSET_M = 0.015       # 骨盆側向目標相對支撐腳的內縮
+    LATERAL_RATE_FIRST = 0.15      # 起步側向目標限速 m/s
+    LATERAL_RATE = 0.5             # 行走中側向目標限速 m/s
+    LEAN_V_GAIN = 0.20             # 軀幹前傾目標的速度誤差項
+    LEAN_V_LIM = 0.10
+    PUSHDOWN_PHASE = 0.92          # 擺動末段主動下探起點
+    PUSHDOWN_RATE = 0.35           # 下探速率（m per unit phase）
+    PUSHDOWN_MIN_M = -0.05
+    SWING_HIP_Z_MARGIN_M = 0.02
+    QFRC_BIAS_SCALE = 0.8          # 重力／偏置前饋比例
+    GRAV_FF_SCALE = 0.9            # 支撐腿重力前饋比例
+    HIP_PITCH_KP = 260.0           # 髖姿態修正（作用於支撐髖）
+    HIP_PITCH_KD = 120.0
+    HIP_CORR_LIM_NM = 110.0
+    HIP_NOTE_NM = 40.0
+    ROLL_KP = 220.0
+    ROLL_KD = 55.0
+    ROLL_LIM_NM = 70.0
+    ANKLE_KV = 70.0                # 踝策略：支撐踝速度阻尼
+    ANKLE_LIM_NM = 35.0
+
     def __init__(self, model, cfg: RobotConfig, gait: GaitParams, lean: float):
         super().__init__(model, cfg, None, lean)
         self.gait = gait
@@ -85,7 +123,7 @@ class RaibertController(BalanceController):
 
     def _ankle_strategy(self, *, pelvis, v, v_des, omega0) -> float:
         """Raibert 踝策略：支撐踝速度阻尼。"""
-        return float(np.clip(-70.0 * (v[0] - v_des), -35.0, 35.0))
+        return float(np.clip(-self.ANKLE_KV * (v[0] - v_des), -self.ANKLE_LIM_NM, self.ANKLE_LIM_NM))
 
     def compute(self, data: mujoco.MjData, t_gait: float, dt: float) -> np.ndarray:
         # 站立 / 跌倒沿用基底控制器
@@ -117,8 +155,8 @@ class RaibertController(BalanceController):
         # 危急加速換步：capture point 跑出支撐腳太遠時，擺動腳加速落地
         cp_ahead = (pelvis[0] + v[0] / omega0) - self.stance_ankle[0]
         rate = 1.0
-        if self.phase > self.DS and cp_ahead > 0.20:
-            rate = 1.0 + np.clip((cp_ahead - 0.20) / 0.15, 0.0, 1.2)
+        if self.phase > self.DS and cp_ahead > self.HURRY_CP_AHEAD_M:
+            rate = 1.0 + np.clip((cp_ahead - self.HURRY_CP_AHEAD_M) / self.HURRY_RANGE_M, 0.0, self.HURRY_MAX_EXTRA_RATE)
             self.decide("hurry", f"⏩ 加速換步：capture point 超前支撐腳 {cp_ahead*100:.0f} cm", "strategy", 0.8)
         self.phase += rate * dt / self.T_step
         swing = "r" if self.stance == "l" else "l"
@@ -131,10 +169,10 @@ class RaibertController(BalanceController):
             swing = "r" if self.stance == "l" else "l"
             self.stance_ankle = self._ankle_pos(self.stance, data)
             self.swing_start = self._ankle_pos(swing, data)
-            self.phase = self.DS - 0.8 / self.T_step
+            self.phase = self.DS - self.FIRST_SHIFT_S / self.T_step
             self.n_steps = 1
             self.decide("first", f"🦵 起步：重心先橫移至 {self.stance.upper()} 腳，再跨出第一步", "strategy", 0)
-        elif contact[swing] and self.phase > 0.45:
+        elif contact[swing] and self.phase > self.TD_MIN_PHASE:
             # 觸地！相位重置、支撐腳交換
             timing_err = (self.phase - 1.0) * self.T_step * 1000
             self.n_steps += 1
@@ -155,14 +193,14 @@ class RaibertController(BalanceController):
             swing=swing, sign_sw=sign_sw, hip_sw_y=hip_sw_y, neutral_x=neutral_x,
         )
         # 落點限制：至少要能接住前衝動量（後移量上限 6cm）+ 可及範圍
-        self.p_land[0] = np.clip(self.p_land[0], neutral_x - 0.06, pelvis[0] + 0.45)
-        min_sep = 0.13
+        self.p_land[0] = np.clip(self.p_land[0], neutral_x - self.LAND_BACK_LIM_M, pelvis[0] + self.LAND_REACH_M)
+        min_sep = self.MIN_FOOT_SEP_M
         if swing == "l":
             self.p_land[1] = max(self.p_land[1], self.stance_ankle[1] + min_sep)
         else:
             self.p_land[1] = min(self.p_land[1], self.stance_ankle[1] - min_sep)
         # 末段鎖定落點：觸地前持續改目標會讓擺動腳永遠追不上
-        if self.phase > 0.85:
+        if self.phase > self.LAND_LOCK_PHASE:
             if self._land_locked is None:
                 self._land_locked = self.p_land.copy()
             self.p_land = self._land_locked
@@ -174,23 +212,23 @@ class RaibertController(BalanceController):
         # --- 支撐腿目標：骨盆相對支撐腳前移 + 速度伺服 ---
         # 速度伺服項：實際速度落後時骨盆目標前移 → 支撐腿主動推進
         # （沒有這一項，擺動腿的反作用會把身體越推越後）
-        v_servo = float(np.clip(0.25 * (v_des - v[0]) * self.T_step, -0.10, 0.12))
+        v_servo = float(np.clip(self.V_SERVO_GAIN * (v_des - v[0]) * self.T_step, self.V_SERVO_MIN_M, self.V_SERVO_MAX_M))
         if self.n_steps == 1 and phi < self.DS:
             x_rel = 0.0          # 起步重心橫移期間骨盆不前後移動
         else:
-            x_rel = np.clip((phi - 0.5) * v_des * self.T_step + v_servo, -0.32, 0.32)
+            x_rel = np.clip((phi - self.X_REL_PHASE_CENTER) * v_des * self.T_step + v_servo, -self.X_REL_LIM_M, self.X_REL_LIM_M)
         hip_des_x = self.stance_ankle[0] + x_rel
         sign_st = +1.0 if self.stance == "l" else -1.0
         # 骨盆側向目標幾乎在支撐腳正上方（單支撐的靜態必要條件）
-        pelvis_y_target = self.stance_ankle[1] - sign_st * 0.015
+        pelvis_y_target = self.stance_ankle[1] - sign_st * self.PELVIS_Y_INSET_M
         # 側向目標限速：起步用準靜態緩移（快了會引發動力學對抗而失速），
         # 行走中換腳用較快速率
-        rate = 0.15 if self.n_steps == 1 else 0.5
+        rate = self.LATERAL_RATE_FIRST if self.n_steps == 1 else self.LATERAL_RATE
         dy = np.clip(pelvis_y_target - self.pelvis_y_ref, -rate * dt, rate * dt)
         self.pelvis_y_ref += dy
         pelvis_des = np.array([hip_des_x, self.pelvis_y_ref, self.z_nom])
 
-        lean_target = self.lean + float(np.clip(0.20 * (v_des - v[0]), -0.10, 0.10))
+        lean_target = self.lean + float(np.clip(self.LEAN_V_GAIN * (v_des - v[0]), -self.LEAN_V_LIM, self.LEAN_V_LIM))
 
         # --- 擺動腳軌跡 ---
         if phi < self.DS:
@@ -200,10 +238,10 @@ class RaibertController(BalanceController):
             s = 10 * u**3 - 15 * u**4 + 6 * u**5
             swing_target = self.swing_start + (self.p_land - self.swing_start) * s
             z_lift = self.gait.clearance * np.sin(np.pi * min(u, 1.0)) ** 3
-            if self.phase > 0.92:
+            if self.phase > self.PUSHDOWN_PHASE:
                 # 末段主動下探：確保準時觸地（骨盆高度誤差會讓名目軌跡懸空）
-                z_lift -= 0.35 * (self.phase - 0.92)
-            swing_target[2] = self.ankle_h + max(z_lift, -0.05)
+                z_lift -= self.PUSHDOWN_RATE * (self.phase - self.PUSHDOWN_PHASE)
+            swing_target[2] = self.ankle_h + max(z_lift, self.PUSHDOWN_MIN_M)
 
         # --- 反解關節角 ---
         # 統一原則（在目前 simulated plant 的側向 case 有效）：IK 以目標姿態
@@ -215,7 +253,7 @@ class RaibertController(BalanceController):
         r0, hp0, kn0, ap0 = self.ik.leg_ik(hip_st, self.stance_ankle, lean_target)
         # 擺動腿：以 MuJoCo state 的骨盆位置解 IK → 腳掌落在世界座標的目標點，
         # 不受骨盆伺服誤差影響（否則骨盆一偏，落點就永遠搆不到）
-        hip_sw = np.array([pelvis[0], pelvis[1], min(pelvis[2], self.z_nom + 0.02)]) \
+        hip_sw = np.array([pelvis[0], pelvis[1], min(pelvis[2], self.z_nom + self.SWING_HIP_Z_MARGIN_M)]) \
             + np.array([0.0, sign_sw * self.hw, 0.0])
         r1, hp1, kn1, ap1 = self.ik.leg_ik(hip_sw, swing_target, lean_target)
         pitch_full = float(np.clip(pitch, -0.6, 0.6))
@@ -243,7 +281,7 @@ class RaibertController(BalanceController):
             q_ref = (1 - a) * self.stand_q + a * q_ref
 
         # --- PD + 前饋 ---
-        tau = self.kp * (q_ref - q) - self.kd * qd + 0.8 * data.qfrc_bias[6:]
+        tau = self.kp * (q_ref - q) - self.kd * qd + self.QFRC_BIAS_SCALE * data.qfrc_bias[6:]
 
         # 支撐腿重力前饋（觸地後 DS 期間新舊腳線性轉移）
         if phi < self.DS:
@@ -260,16 +298,16 @@ class RaibertController(BalanceController):
             if w > 1e-3:
                 F = np.array([0.0, 0.0, w * self.M_total * G])
                 mujoco.mj_jacSite(self.model, data, self._jacp, None, self._site(f"sole_{side}"))
-                tau -= 0.9 * (self._jacp.T @ F)[6:]
+                tau -= self.GRAV_FF_SCALE * (self._jacp.T @ F)[6:]
 
         # --- 姿態修正（作用於支撐髖） ---
         pitch_err = pitch - lean_target
-        self.hip_corr = float(np.clip(260.0 * pitch_err + 120.0 * data.qvel[4], -110.0, 110.0))
+        self.hip_corr = float(np.clip(self.HIP_PITCH_KP * pitch_err + self.HIP_PITCH_KD * data.qvel[4], -self.HIP_CORR_LIM_NM, self.HIP_CORR_LIM_NM))
         tau[JOINT_ORDER.index(f"hip_pitch_{self.stance}")] += self.hip_corr
         # 符號：roll 正 = 向右（−y）傾 → 需負向 hip_roll 扭矩把軀幹推回 +y
-        self.roll_corr = float(np.clip(-220.0 * roll - 55.0 * data.qvel[3], -70.0, 70.0))
+        self.roll_corr = float(np.clip(-self.ROLL_KP * roll - self.ROLL_KD * data.qvel[3], -self.ROLL_LIM_NM, self.ROLL_LIM_NM))
         tau[JOINT_ORDER.index(f"hip_roll_{self.stance}")] += self.roll_corr
-        if abs(self.hip_corr) > 40:
+        if abs(self.hip_corr) > self.HIP_NOTE_NM:
             self.decide("hip", f"🫁 髖策略介入：{self.hip_corr:+.0f} Nm（軀幹前傾 {np.degrees(pitch):.1f}°）", "strategy", 1.0)
 
         # --- 踝策略：支撐踝速度阻尼 ---

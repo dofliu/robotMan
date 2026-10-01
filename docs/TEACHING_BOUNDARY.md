@@ -65,7 +65,7 @@ RESEARCH_MODULE_IN_TEACHING_CLOSURE: environment_lock
 
 ## 3. 現況
 
-**16 個模組、5,066 行**（`--list` 可列出；2026-09-22 重新量測——`controller_cp` 是
+**16 個模組、5,104 行**（`--list` 可列出；2026-09-22 重新量測，同日 `controller_raibert` 的常數搬成 class attribute 後由 5,066 行增為 5,104 行——`controller_cp` 是
 Capture-point 落腳法則的開發對照組，由 `live_sim` 載入，原為 15 個模組、4,943 行）：
 
 ```

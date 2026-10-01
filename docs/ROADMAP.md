@@ -1,6 +1,6 @@
 # Gate-first 工作規劃
 
-最後更新：2026-09-16
+最後更新：2026-10-01
 
 專案成熟度改以 **evidence gate** 表示，不再以 UI 或 feature count 換算完成百分比。既有 M1–M6 代表 prototype feature inventory，並非 verification 或 physical validation 已完成。
 
@@ -23,7 +23,7 @@
 | 舊里程碑 | 已有內容 | 新證據定位 |
 |---|---|---|
 | M1 分析模式 | prescribed gait、analytical GRF、inverse dynamics、示意 actuator screening | FEATURE PRESENT / V1 NOT PASSED |
-| M2 3D 與圖表 | visualization、telemetry display | UI VERIFIED ONLY AFTER dedicated tests |
+| M2 3D 與圖表 | visualization、telemetry display | UI BROWSER-VERIFIED 2026-09-22（`frontend/e2e` 6 項 dedicated tests，[receipt](receipts/BROWSER_VISUAL_VERIFICATION_RECEIPT_2026-09-22.md)）；仍非 physical validation |
 | M3 障礙處理 | ideal raycast、rule-based step-over/stop | TEACHING DEMO / SENSOR VALIDATION ABSENT |
 | M4 ZMP | cart-table-derived CoM/ZMP 與 scheduled support polygon | TRAJECTORY CONSISTENCY INDICATOR, NOT INDEPENDENT STABILITY VALIDATION |
 | M5 即時互動 | MuJoCo forward contact simulation 與 controller | SIL-LIKE SIMULATION ONLY |
@@ -95,7 +95,7 @@ Paired statistics/export V1已完成 synthetic software precursor：continuous p
 
 ### Development precursor：三機同步觀察
 
-狀態：IMPLEMENTED / FRONTEND BUILD PASS / BROWSER VISUAL PENDING / DEVELOPMENT ONLY。依 [COMPARE_MODE_SPEC](COMPARE_MODE_SPEC.md) 建立三個獨立 MuJoCo sessions、相同輸入、同步 sim time、assist 預設關閉與跌倒保留。此功能用來暴露 controller 差異與改善實驗設計，不產生 V3 PASS 或 ranking evidence。
+狀態：IMPLEMENTED / FRONTEND BUILD PASS / BROWSER VISUAL VERIFIED / DEVELOPMENT ONLY。依 [COMPARE_MODE_SPEC](COMPARE_MODE_SPEC.md) 建立三個獨立 MuJoCo sessions、相同輸入、同步 sim time、assist 預設關閉與跌倒保留；browser 測試在 2026-09-22 驗證三個 canvas、共享 plant signature 與 `time skew = 0.000000 s`，並於 2026-10-01 的 1440 × 1100 六項全站測試再次通過。此功能用來暴露 controller 差異與改善實驗設計，不產生 V3 PASS 或 ranking evidence。
 
 ## 7. V4 — Subsystem Validation
 
@@ -113,7 +113,7 @@ V4 不等於整機認證。依風險逐級增加外部 evidence：
 
 ### Dynamic Run Trace Bridge
 
-狀態：IMPLEMENTED / BUILD PASS / BROWSER VISUAL PENDING / DEVELOPMENT ONLY。依 [DYNAMIC_RUN_TRACE_SPEC](DYNAMIC_RUN_TRACE_SPEC.md) 將 Live/Compare 的 500 Hz realized simulation state 保存為 bounded NPZ + manifest，並由第一模式讀取。這是控制器技能開發與工程輸出分析之間的必要橋接，但不是 physical validation 或 V3 benchmark evidence。
+狀態：IMPLEMENTED / BUILD PASS / BROWSER VISUAL + LIVE ACK FLOW-CONTROL VERIFIED / DEVELOPMENT ONLY。依 [DYNAMIC_RUN_TRACE_SPEC](DYNAMIC_RUN_TRACE_SPEC.md) 將 Live/Compare 的 500 Hz realized simulation state 保存為 bounded NPZ + manifest，並由第一模式讀取；2026-10-01 驗證 browser 6/6 at 1440 × 1100、visible `trace_ready` < 5 s，且 opt-in ACK 模式不讓慢 renderer 阻擋 control／record receipts。這是控制器技能開發與工程輸出分析之間的必要橋接，但不是 physical validation 或 V3 benchmark evidence。
 
 ### Motion Task V1：stand → start → steady walk → stop
 
@@ -156,8 +156,8 @@ Development 已完成 v1–v7 failure-retaining iteration：v2 解決前進與�
 0. [DONE] 執行 `SEEDVAR-V7-TRAINING-REPLICATE-DEV-V1`：`1,843,200` realized timesteps、450 records、replay exact；V7B 方向 5/5 可識別，`between_replicate_sd` 因 exposure censoring 為 null。
 1. [PARTIAL] Lock 綁定已於 2026-09-13 以 `RUN-MANIFEST-LOCK-BINDING-V1` 前向完成（[spec](RUN_MANIFEST_LOCK_BINDING_SPEC.md)、[receipt](receipts/RUN_MANIFEST_LOCK_BINDING_RECEIPT_2026-09-13.md)），`LB-01`..`LB-12` 通過且三個被釘住的 driver／simulator 檔案逐位元未變。**blocker 只是變窄**：sidecar 可被遺漏、`simulator.py` 明示排除、2026-09-08 bundle 未重建。本項剩下的部分是 actual matrix execution 與 immutable evidence storage。
 2. [EXECUTED — lineage 達成、reference policy 未達成] 建立一條**有版控 checkpoint lineage** 的新訓練線。protocol 於 2026-09-14 凍結並執行完成（[receipt](archive/TRACKED_LINEAGE_TRAINING_RECEIPT_2026-09-14.md)）：[`TRACKED-LINEAGE-TRAINING-V1`](TRACKED_LINEAGE_TRAINING_SPEC.md)。**`PUB-B1` 達成**（20 個 checkpoint 進版控、`38.0 MiB`、10 次執行皆 `RUN_LOCK_BOUND`），**`PUB-B2` 未達成**（5 個 replicate 的 full exposure 皆 `0/30`，標籤 `TL_BUDGET_EXHAUSTED`——曲線在上限處全部未收斂，為事先宣告的結果）。本項 並把本項原文的「scratch **或** tracked warm start」**收窄為 scratch**：版控內唯一的 warm start 候選是 v5 artifact，它的檔案可由 digest 重建但訓練過程不可重建，而那正是本線要移除的缺陷。凍結內容：5 replicates、training seeds `9100/9112/9124/9136/9148`、上限 `2,000,000` steps／replicate、`GIT_DIRECT` 每 `500,000` 步保留 checkpoint（合計 `20` 個 ≈ `38 MB`）、evaluation seeds `22000–22029`、full-exposure 門檻 `30/30`。這同時是 Track B 的硬前置，也是解除 exposure-censoring 對 between-replicate variance 封鎖的唯一途徑：需要一個能穩定跑完 9 s 任務的 reference policy。v7 line 因 provenance 不可重建，不能再作為這條線的起點。**本線範圍只到 `PUB-B1`／`PUB-B2`**；`PUB-B3` 需要另一份 protocol（規格 §6.4、§8.3）。**尚未解除的部分**：仍缺一個能穩定跑完 9 s 任務的 reference policy。receipt §10 四條後續路線中的第一條——加倍預算——已於同日以 [`TRACKED-LINEAGE-TRAINING-V2`](TRACKED_LINEAGE_TRAINING_V2_SPEC.md) 執行完畢，**結果為否定**（[V2 receipt](archive/TRACKED_LINEAGE_TRAINING_V2_RECEIPT_2026-09-14.md)）：續訓到 `4,015,200` 步使獎勵升 `+51.5`–`+66.5`、存活升 `+0.145`–`+0.778` s，而 full exposure **仍是 `0/30`，五個全部**，且五個裡有四個的曲線在上限處**更陡**。標籤 `TL2_BUDGET_EXHAUSTED`。依 V2 規格 `escalation_rule`，這**不授權**再加一次預算：**要改的不是預算**，reward shaping、curriculum、任務定義才是候選，而**門檻在凍結後不得下調**。其餘路線仍需新的 protocol 版本並揭露它是在已知 V1 **與** V2 結果的情況下設計的。V1 與 V2 合計 40 個已保留 checkpoint **不得刪除**。
-3. Compare／Dynamic trace 的 browser visual verification（Playwright），解除兩個 `BROWSER_VISUAL_PENDING`。
-4. 完成 V1 contact/plant/numerical verification（articulated dynamic、pendulum、energy、solver convergence）。
+3. [DONE 2026-09-22] Compare／Dynamic trace 的 browser visual verification（Playwright，`frontend/e2e` 6 項，含五個畫面）；兩個 `BROWSER_VISUAL_PENDING` 已解除，`PUB-C0` PASS（[receipt](receipts/BROWSER_VISUAL_VERIFICATION_RECEIPT_2026-09-22.md)）。
+4. [PARTIAL 2026-09-22] 完成 V1 contact/plant/numerical verification：known pendulum（閉式）與被動 articulated 的能量／4/2/1 ms 收斂已補（[receipt](receipts/V1_DYNAMIC_REFERENCE_SUITE_RECEIPT_2026-09-22.md)）；單剛體 dynamic contact（drop-and-settle、黏滯滑塊）同日補上並量到 plant 滑動摩擦在 ≳ 0.2 m/s 非 Coulomb（[receipt](receipts/V1_CONTACT_REFERENCE_SUITE_RECEIPT_2026-09-22.md)）；致動能量帳（開環正弦、plant 站立 PD 蹲起含接觸功）亦於同日完成（[receipt](receipts/V1_ACTUATED_ENERGY_SUITE_RECEIPT_2026-09-22.md)）；仍缺關節式人形的 dynamic contact、行走情境的能量帳、solver-tolerance／finite-difference、joint limits、actuator envelope。
 5. M7A 可作為教學支線；M7B 保持 blocked。新增動作任務（轉身、跳躍）的順位與前置見 [MOTION_SCOPE_DECISION §2](MOTION_SCOPE_DECISION_2026-09-11.md)：轉身排在第 2 項之後且需 `PUB-B2` 出口條件，跳躍排在第 4 項之後。
 6. 完成 V2 actuator/sensor/estimator fidelity。
 7. 建立 M8 WBC verified baseline。
